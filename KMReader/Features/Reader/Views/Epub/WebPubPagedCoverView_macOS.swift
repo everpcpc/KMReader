@@ -7,6 +7,7 @@
     @Bindable var viewModel: EpubReaderViewModel
     let preferences: EpubReaderPreferences
     let colorScheme: ColorScheme
+    let animateTapTurns: Bool
     let showingControls: Bool
     let bookTitle: String?
     let onCenterTap: () -> Void
@@ -181,6 +182,7 @@
         parent.viewModel.targetChapterIndex != nil || parent.viewModel.targetPageIndex != nil
       let shouldAnimateNavigation =
         hasPendingNavigation
+        && parent.animateTapTurns
         && isContentLoaded
         && (requestedChapterIndex != chapterIndex || requestedPageIndex != currentSubPageIndex)
 

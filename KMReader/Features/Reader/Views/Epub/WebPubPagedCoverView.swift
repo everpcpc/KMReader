@@ -11,6 +11,7 @@
     @Bindable var viewModel: EpubReaderViewModel
     let preferences: EpubReaderPreferences
     let colorScheme: ColorScheme
+    let animateTapTurns: Bool
     let showingControls: Bool
     let bookTitle: String?
     let onCenterTap: () -> Void
@@ -103,7 +104,7 @@
           || (targetChapterIndex == context.coordinator.currentChapterIndex
             && normalizedPageIndex > context.coordinator.currentPageIndex)
 
-        let shouldAnimate = context.coordinator.hasCompletedInitialUpdate
+        let shouldAnimate = context.coordinator.hasCompletedInitialUpdate && animateTapTurns
 
         if shouldAnimate {
           context.coordinator.animateTransition(

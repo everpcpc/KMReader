@@ -11,6 +11,7 @@
     let mode: PageViewMode
     let readingDirection: ReadingDirection
     let splitWidePageMode: SplitWidePageMode
+    let animateTapTurns: Bool
     let renderConfig: ReaderRenderConfig
     let readListContext: ReaderReadListContext?
     let onDismiss: () -> Void
@@ -120,7 +121,7 @@
       }
 
       context.coordinator.isTransitioning = true
-      let shouldAnimateTransition = context.coordinator.hasCompletedInitialUpdate
+      let shouldAnimateTransition = context.coordinator.hasCompletedInitialUpdate && animateTapTurns
       let transitionControllers = pageCurlControllers(
         primary: targetVC,
         targetIndex: targetViewItemIndex,

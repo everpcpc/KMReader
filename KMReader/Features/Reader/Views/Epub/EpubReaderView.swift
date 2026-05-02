@@ -22,7 +22,7 @@
     @AppStorage("epubPreferences") private var globalPreferences: EpubReaderPreferences = .init()
     @AppStorage("epubPageTransitionStyle") private var epubPageTransitionStyle: PageTransitionStyle = .scroll
     @AppStorage("epubShowsStatusBarWhileReading") private var epubShowsStatusBarWhileReading: Bool = false
-    @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.3
+    @AppStorage("animateEpubTapTurns") private var animateEpubTapTurns: Bool = AppConfig.animateEpubTapTurns
     @AppStorage("epubShowKeyboardHelpOverlay")
     private var showKeyboardHelpOverlay: Bool = AppConfig.epubShowKeyboardHelpOverlay
 
@@ -420,29 +420,12 @@
         switch activePreferences.flowStyle {
         case .paged:
           switch epubPageTransitionStyle {
-          case .none:
-            WebPubPagedScrollView(
-              viewModel: viewModel,
-              animatePageTransitions: false,
-              preferences: activePreferences,
-              colorScheme: colorScheme,
-              showingControls: shouldShowControls,
-              bookTitle: currentBook?.metadata.title,
-              onCenterTap: {
-                toggleControls()
-              },
-              onEndReached: {
-                if !showingEndPage {
-                  viewModel.syncEndProgression()
-                  showingEndPage = true
-                }
-              }
-            )
           case .cover:
             WebPubPagedCoverView(
               viewModel: viewModel,
               preferences: activePreferences,
               colorScheme: colorScheme,
+              animateTapTurns: animateEpubTapTurns,
               showingControls: shouldShowControls,
               bookTitle: currentBook?.metadata.title,
               onCenterTap: {
@@ -458,7 +441,7 @@
           case .scroll, .pageCurl:
             WebPubPagedScrollView(
               viewModel: viewModel,
-              animatePageTransitions: true,
+              animatePageTransitions: animateEpubTapTurns,
               preferences: activePreferences,
               colorScheme: colorScheme,
               showingControls: shouldShowControls,
@@ -479,7 +462,7 @@
             viewModel: viewModel,
             preferences: activePreferences,
             colorScheme: colorScheme,
-            tapPageTransitionDuration: tapPageTransitionDuration,
+            animateTapTurns: animateEpubTapTurns,
             showingControls: shouldShowControls,
             bookTitle: currentBook?.metadata.title,
             onCenterTap: {
@@ -497,28 +480,10 @@
         switch activePreferences.flowStyle {
         case .paged:
           switch epubPageTransitionStyle {
-          case .none:
-            WebPubPagedScrollView(
-              viewModel: viewModel,
-              animatePageTransitions: false,
-              preferences: activePreferences,
-              colorScheme: colorScheme,
-              showingControls: shouldShowControls,
-              bookTitle: currentBook?.metadata.title,
-              onCenterTap: {
-                toggleControls()
-              },
-              onEndReached: {
-                if !showingEndPage {
-                  viewModel.syncEndProgression()
-                  showingEndPage = true
-                }
-              }
-            ).readerIgnoresSafeArea()
           case .scroll:
             WebPubPagedScrollView(
               viewModel: viewModel,
-              animatePageTransitions: true,
+              animatePageTransitions: animateEpubTapTurns,
               preferences: activePreferences,
               colorScheme: colorScheme,
               showingControls: shouldShowControls,
@@ -538,6 +503,7 @@
               viewModel: viewModel,
               preferences: activePreferences,
               colorScheme: colorScheme,
+              animateTapTurns: animateEpubTapTurns,
               showingControls: shouldShowControls,
               bookTitle: currentBook?.metadata.title,
               onCenterTap: {
@@ -555,6 +521,7 @@
               viewModel: viewModel,
               preferences: activePreferences,
               colorScheme: colorScheme,
+              animateTapTurns: animateEpubTapTurns,
               showingControls: shouldShowControls,
               bookTitle: currentBook?.metadata.title,
               onCenterTap: {
@@ -573,7 +540,7 @@
             viewModel: viewModel,
             preferences: activePreferences,
             colorScheme: colorScheme,
-            tapPageTransitionDuration: tapPageTransitionDuration,
+            animateTapTurns: animateEpubTapTurns,
             showingControls: shouldShowControls,
             bookTitle: currentBook?.metadata.title,
             onCenterTap: {

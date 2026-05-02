@@ -21,7 +21,7 @@ struct DivinaPreferencesView: View {
   @AppStorage("forceDefaultReadingDirection") private var forceDefaultReadingDirection: Bool = false
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
   @AppStorage("showPageShadow") private var showPageShadow: Bool = AppConfig.showPageShadow
-  @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.3
+  @AppStorage("animateTapTurns") private var animateTapTurns: Bool = AppConfig.animateTapTurns
   @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .cover
   @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 3.0
   @AppStorage("doubleTapZoomMode") private var doubleTapZoomMode: DoubleTapZoomMode = .fast
@@ -51,16 +51,8 @@ struct DivinaPreferencesView: View {
     return forcedReadingDirection != .webtoon
   }
 
-  private var shouldShowTapTransitionDuration: Bool {
-    shouldShowPagedSpecificSettings && pageTransitionStyle != .pageCurl
-  }
-
-  private var tapPageTransitionDurationText: String {
-    if tapPageTransitionDuration <= 0 {
-      return String(localized: "Page Turn Animation Off")
-    }
-
-    return String(format: "%.1fs", tapPageTransitionDuration)
+  private var shouldShowTapTurnAnimation: Bool {
+    shouldShowWebtoonSpecificSettings || shouldShowPagedSpecificSettings
   }
 
   private var shouldShowWebtoonTapNavigationSettings: Bool {
@@ -344,27 +336,20 @@ struct DivinaPreferencesView: View {
               .foregroundColor(.secondary)
           }
 
-          #if os(iOS) || os(macOS)
-            if shouldShowTapTransitionDuration {
-              VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                  Text("Page Turn Animation Duration")
-                  Spacer()
-                  Text(tapPageTransitionDurationText)
-                    .foregroundColor(.secondary)
-                }
-                Slider(
-                  value: $tapPageTransitionDuration,
-                  in: 0...1,
-                  step: 0.1
-                )
-                Text("Animation duration for tap-based page turns. Set to 0 to turn off page turn animation.")
+        }
+
+        #if os(iOS) || os(macOS)
+          if shouldShowTapTurnAnimation {
+            Toggle(isOn: $animateTapTurns) {
+              VStack(alignment: .leading, spacing: 4) {
+                Text("Animate Page Turns")
+                Text("Use animation when tapping zones to turn pages")
                   .font(.caption)
                   .foregroundColor(.secondary)
               }
             }
-          #endif
-        }
+          }
+        #endif
 
         Toggle(isOn: $showKeyboardHelpOverlay) {
           VStack(alignment: .leading, spacing: 4) {

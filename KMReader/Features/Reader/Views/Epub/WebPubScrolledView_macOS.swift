@@ -7,7 +7,7 @@
     @Bindable var viewModel: EpubReaderViewModel
     let preferences: EpubReaderPreferences
     let colorScheme: ColorScheme
-    let tapPageTransitionDuration: Double
+    let animateTapTurns: Bool
     let showingControls: Bool
     let bookTitle: String?
     let onCenterTap: () -> Void
@@ -76,7 +76,7 @@
     private var lastKnownDocumentViewportHeight: CGFloat = 0
     private var chapterTitle: String?
     private var totalProgression: Double?
-    private var tapPageTransitionDuration: TimeInterval = 0.3
+    private var animateTapTurns = true
 
     init(parent: WebPubScrolledView) {
       self.parent = parent
@@ -116,15 +116,12 @@
       let nextChapterURL = parent.viewModel.chapterURL(at: selectedChapterIndex)
       let nextRootURL = parent.viewModel.resourceRootURL
       let shouldReload = nextChapterURL != chapterURL || nextRootURL != rootURL
-      let normalizedTapPageTransitionDuration = Self.normalizedTapPageTransitionDuration(
-        parent.tapPageTransitionDuration
-      )
       let appearanceChanged =
         contentCSS != readiumPayload.css
         || readiumProperties != readiumPayload.properties
         || publicationLanguage != parent.viewModel.publicationLanguage
         || publicationReadingProgression != parent.viewModel.publicationReadingProgression
-        || tapPageTransitionDuration != normalizedTapPageTransitionDuration
+        || animateTapTurns != parent.animateTapTurns
 
       chapterIndex = selectedChapterIndex
       chapterURL = nextChapterURL
@@ -134,7 +131,7 @@
       publicationLanguage = parent.viewModel.publicationLanguage
       publicationReadingProgression = parent.viewModel.publicationReadingProgression
       chapterTitle = currentLocation?.title
-      tapPageTransitionDuration = normalizedTapPageTransitionDuration
+      animateTapTurns = parent.animateTapTurns
       totalProgression = currentLocation.flatMap { location in
         parent.viewModel.totalProgression(location: location, chapterProgress: nil)
       }
@@ -270,7 +267,7 @@
       let clampedOffset = max(0, targetOffset)
       lastKnownDocumentScrollTop = clampedOffset
       let offset = Double(clampedOffset)
-      let duration = tapPageTransitionDuration
+      let duration = animateTapTurns ? 0.3 : 0
       let js = """
           (function() {
             var top = \(offset);
@@ -340,10 +337,6 @@
           })();
         """
       webView.evaluateJavaScript(js, completionHandler: nil)
-    }
-
-    private static func normalizedTapPageTransitionDuration(_ value: Double) -> TimeInterval {
-      min(1.0, max(0.0, value))
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
