@@ -22,10 +22,6 @@
     let controlsVisible: Bool
     let onDismiss: () -> Void
 
-    private var buttonStyle: AdaptiveButtonStyleType {
-      .bordered
-    }
-
     private var animation: Animation {
       .easeInOut(duration: 0.2)
     }
@@ -82,7 +78,7 @@
           }
           .buttonBorderShape(.circle)
           .controlSize(.large)
-          .adaptiveButtonStyle(buttonStyle)
+          .readerControlButtonStyle()
         #endif
 
         Spacer()
@@ -117,7 +113,7 @@
             .contentShape(Capsule())
           }
           .optimizedControlSize()
-          .adaptiveButtonStyle(buttonStyle)
+          .readerControlButtonStyle()
         }
 
         Spacer()
@@ -132,7 +128,7 @@
           }
           .buttonBorderShape(.circle)
           .controlSize(.large)
-          .adaptiveButtonStyle(buttonStyle)
+          .readerControlButtonStyle()
         #endif
       }
       .allowsHitTesting(true)
@@ -160,7 +156,7 @@
             }
             .contentShape(Capsule())
           }
-          .adaptiveButtonStyle(buttonStyle)
+          .readerControlButtonStyle()
           .disabled(pageCount <= 0)
 
           Spacer(minLength: 0)

@@ -43,9 +43,9 @@ extension View {
       case .borderedProminent:
         self.buttonStyle(.borderedProminent)
       case .bordered:
-        self.buttonStyle(.borderedProminent)
+        self.buttonStyle(.bordered)
       case .borderless:
-        self.buttonStyle(.borderedProminent)
+        self.buttonStyle(.borderless)
       case .plain:
         #if os(tvOS)
           self.buttonStyle(.card)
