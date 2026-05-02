@@ -106,10 +106,6 @@
       currentBook?.metadata.title ?? book.metadata.title
     }
 
-    private var buttonStyle: AdaptiveButtonStyleType {
-      return .bordered
-    }
-
     private var animation: Animation {
       .default
     }
@@ -643,7 +639,7 @@
             }
             .controlSize(.extraLarge)
             .buttonBorderShape(.circle)
-            .adaptiveButtonStyle(buttonStyle)
+            .readerControlButtonStyle()
             .padding(.top, 24)
             .padding(.trailing, 12)
             .transition(
@@ -678,7 +674,7 @@
               }
               .controlSize(.extraLarge)
               .buttonBorderShape(.circle)
-              .adaptiveButtonStyle(buttonStyle)
+              .readerControlButtonStyle()
               .padding(.bottom, 24)
               .padding(.trailing, 12)
               .transition(
@@ -744,7 +740,7 @@
             }
             .contentShape(Capsule())
           }
-          .adaptiveButtonStyle(buttonStyle)
+          .readerControlButtonStyle()
           .buttonBorderShape(.capsule)
           .controlSize(.large)
           .disabled(viewModel.tableOfContents.isEmpty)
@@ -760,7 +756,7 @@
           }
           .contentShape(Capsule())
         }
-        .adaptiveButtonStyle(buttonStyle)
+        .readerControlButtonStyle()
         .buttonBorderShape(.capsule)
         .controlSize(.large)
 
@@ -774,7 +770,7 @@
           }
           .contentShape(Capsule())
         }
-        .adaptiveButtonStyle(buttonStyle)
+        .readerControlButtonStyle()
         .buttonBorderShape(.capsule)
         .controlSize(.large)
       }

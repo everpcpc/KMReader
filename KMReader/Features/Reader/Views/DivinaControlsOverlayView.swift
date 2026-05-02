@@ -38,10 +38,6 @@ struct DivinaControlsOverlayView: View {
     @FocusState private var focusedControl: ControlFocus?
   #endif
 
-  private var buttonStyle: AdaptiveButtonStyleType {
-    return .bordered
-  }
-
   private var animation: Animation {
     .easeInOut(duration: 0.2)
   }
@@ -199,7 +195,7 @@ struct DivinaControlsOverlayView: View {
         }
         .buttonBorderShape(.circle)
         .controlSize(.large)
-        .adaptiveButtonStyle(buttonStyle)
+        .readerControlButtonStyle()
         #if os(tvOS)
           .focused($focusedControl, equals: .close)
           .id("closeButton")
@@ -236,7 +232,7 @@ struct DivinaControlsOverlayView: View {
           .contentShape(Capsule())
         }
         .optimizedControlSize()
-        .adaptiveButtonStyle(buttonStyle)
+        .readerControlButtonStyle()
         #if os(tvOS)
           .focused($focusedControl, equals: .title)
           .id("titleLabel")
@@ -255,7 +251,7 @@ struct DivinaControlsOverlayView: View {
         }
         .buttonBorderShape(.circle)
         .controlSize(.large)
-        .adaptiveButtonStyle(buttonStyle)
+        .readerControlButtonStyle()
         #if os(tvOS)
           .focused($focusedControl, equals: .settings)
         #endif
@@ -287,7 +283,7 @@ struct DivinaControlsOverlayView: View {
           }
           .contentShape(Capsule())
         }
-        .adaptiveButtonStyle(buttonStyle)
+        .readerControlButtonStyle()
         #if os(tvOS)
           .focused($focusedControl, equals: .pageNumber)
         #endif
