@@ -42,6 +42,7 @@ struct ReadingProgressBar: View {
             width: max(geometry.size.width * progress, progress > 0 ? 4 : 0),
             height: height
           )
+          .animation(.easeInOut(duration: 0.2), value: progress)
       }
     }
     .frame(height: height)

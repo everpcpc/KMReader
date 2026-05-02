@@ -283,6 +283,7 @@ struct DivinaControlsOverlayView: View {
             Image(systemName: "bookmark")
             Text("\(displayedCurrentPage) / \(currentSegmentPageCount)")
               .monospacedDigit()
+              .contentTransition(.numericText())
           }
           .contentShape(Capsule())
         }
@@ -299,6 +300,10 @@ struct DivinaControlsOverlayView: View {
       ReadingProgressBar(progress: progress, type: .reader)
         .scaleEffect(x: readingDirection == .rtl ? -1 : 1, y: 1)
     }
+    .animation(animation, value: currentBook?.id)
+    .animation(animation, value: displayedCurrentPage)
+    .animation(animation, value: currentSegmentPageCount)
+    .animation(animation, value: progress)
     .padding()
     .iPadIgnoresSafeArea(paddingTop: 24)
     .background {
