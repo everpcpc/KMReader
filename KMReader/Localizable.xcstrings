@@ -69284,61 +69284,321 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KMReader konnte die lokalen Daten nicht öffnen oder aktualisieren. Das kann passieren, wenn Sie von einer deutlich älteren Version aktualisieren oder wenn die lokale Datenbank bereits beschädigt ist. Versuchen Sie es noch einmal. Wenn es weiterhin fehlschlägt, installieren Sie KMReader neu, um die lokalen Daten zurückzusetzen, und melden Sie sich dann erneut an."
+            "value" : "KMReader konnte die lokalen Daten nicht öffnen oder aktualisieren. Das kann passieren, wenn Sie von einer deutlich älteren Version aktualisieren oder wenn die lokale Datenbank bereits beschädigt ist. Versuchen Sie es noch einmal. Wenn es weiterhin fehlschlägt, setzen Sie die lokalen Daten zurück und melden Sie sich dann erneut an."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KMReader couldn't open or upgrade its local data. This can happen when upgrading from a much older version, or when the local database is already corrupted. Try again once. If it still fails, reinstall KMReader to reset local data, then sign in again."
+            "value" : "KMReader couldn't open or upgrade its local data. This can happen when upgrading from a much older version, or when the local database is already corrupted. Try again once. If it still fails, reset local data, then sign in again."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KMReader no pudo abrir o actualizar sus datos locales. Esto puede ocurrir al actualizar desde una version muy antigua, o si la base de datos local ya esta dañada. Intentalo una vez mas. Si aun falla, reinstala KMReader para restablecer los datos locales y vuelve a iniciar sesion."
+            "value" : "KMReader no pudo abrir o actualizar sus datos locales. Esto puede ocurrir al actualizar desde una version muy antigua, o si la base de datos local ya esta dañada. Intentalo una vez mas. Si aun falla, restablece los datos locales y vuelve a iniciar sesion."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KMReader n'a pas pu ouvrir ou mettre à niveau ses données locales. Cela peut arriver lors d'une mise à niveau depuis une version beaucoup plus ancienne, ou si la base de données locale est déjà corrompue. Réessayez une fois. Si cela échoue encore, réinstallez KMReader pour réinitialiser les données locales, puis reconnectez-vous."
+            "value" : "KMReader n'a pas pu ouvrir ou mettre à niveau ses données locales. Cela peut arriver lors d'une mise à niveau depuis une version beaucoup plus ancienne, ou si la base de données locale est déjà corrompue. Réessayez une fois. Si cela échoue encore, réinitialisez les données locales, puis reconnectez-vous."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KMReader non e riuscito ad aprire o aggiornare i dati locali. Questo puo accadere durante l'aggiornamento da una versione molto vecchia, o se il database locale e gia corrotto. Riprova una volta. Se continua a fallire, reinstalla KMReader per ripristinare i dati locali, poi accedi di nuovo."
+            "value" : "KMReader non e riuscito ad aprire o aggiornare i dati locali. Questo puo accadere durante l'aggiornamento da una versione molto vecchia, o se il database locale e gia corrotto. Riprova una volta. Se continua a fallire, reimposta i dati locali, poi accedi di nuovo."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KMReader はローカルデータを開くこともアップグレードすることもできませんでした。かなり古いバージョンからアップグレードした場合や、ローカルデータベースがすでに破損している場合に発生することがあります。一度だけ再試行してください。それでも失敗する場合は、KMReader を再インストールしてローカルデータをリセットしてから、再度サインインしてください。"
+            "value" : "KMReader はローカルデータを開くこともアップグレードすることもできませんでした。かなり古いバージョンからアップグレードした場合や、ローカルデータベースがすでに破損している場合に発生することがあります。一度だけ再試行してください。それでも失敗する場合は、ローカルデータをリセットしてから、再度サインインしてください。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KMReader가 로컬 데이터를 열거나 업그레이드하지 못했습니다. 아주 오래된 버전에서 업그레이드하는 경우나 로컬 데이터베이스가 이미 손상된 경우 이런 문제가 발생할 수 있습니다. 한 번 다시 시도해 보세요. 계속 실패하면 KMReader를 다시 설치해 로컬 데이터를 재설정한 후 다시 로그인하세요."
+            "value" : "KMReader가 로컬 데이터를 열거나 업그레이드하지 못했습니다. 아주 오래된 버전에서 업그레이드하는 경우나 로컬 데이터베이스가 이미 손상된 경우 이런 문제가 발생할 수 있습니다. 한 번 다시 시도해 보세요. 계속 실패하면 로컬 데이터를 재설정한 후 다시 로그인하세요."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KMReader не удалось открыть или обновить локальные данные. Это может произойти при обновлении с очень старой версии или если локальная база данных уже повреждена. Попробуйте еще раз. Если ошибка повторится, переустановите KMReader, чтобы сбросить локальные данные, затем войдите снова."
+            "value" : "KMReader не удалось открыть или обновить локальные данные. Это может произойти при обновлении с очень старой версии или если локальная база данных уже повреждена. Попробуйте еще раз. Если ошибка повторится, сбросьте локальные данные, затем войдите снова."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KMReader 无法打开或升级本地数据。这可能发生在从很旧的版本升级时，或本地数据库已经损坏时。请先重试一次。如果仍然失败，请重新安装 KMReader 以重置本地数据，然后重新登录。"
+            "value" : "KMReader 无法打开或升级本地数据。这可能发生在从很旧的版本升级时，或本地数据库已经损坏时。请先重试一次。如果仍然失败，请重置本地数据，然后重新登录。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "KMReader 無法開啟或升級本機資料。這可能發生在從很舊的版本升級時，或本機資料庫已經損壞時。請先再試一次。如果仍然失敗，請重新安裝 KMReader 以重設本機資料，然後重新登入。"
+            "value" : "KMReader 無法開啟或升級本機資料。這可能發生在從很舊的版本升級時，或本機資料庫已經損壞時。請先再試一次。如果仍然失敗，請重設本機資料，然後重新登入。"
+          }
+        }
+      }
+    },
+    "startup.storageFailure.resetButton" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset Local Data"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lokale Daten zurücksetzen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restablecer datos locales"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réinitialiser les données locales"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reimposta dati locali"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ローカルデータをリセット"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "로컬 데이터 재설정"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сбросить локальные данные"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重置本地数据"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重設本機資料"
+          }
+        }
+      }
+    },
+    "startup.storageFailure.resetConfirm" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zurücksetzen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restablecer"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réinitialiser"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reimposta"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リセット"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "재설정"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сбросить"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重置"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重設"
+          }
+        }
+      }
+    },
+    "startup.storageFailure.resetMessage" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This removes all local KMReader data on this device, including saved servers, preferences, offline books, custom fonts, logs, and caches. Server data in Komga is not changed. KMReader will start fresh after the reset."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dadurch werden alle lokalen KMReader-Daten auf diesem Gerät entfernt, einschließlich gespeicherter Server, Einstellungen, Offline-Bücher, eigener Schriften, Protokolle und Caches. Daten auf dem Komga-Server werden nicht geändert. KMReader startet nach dem Zurücksetzen frisch."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esto elimina todos los datos locales de KMReader en este dispositivo, incluidos servidores guardados, preferencias, libros sin conexion, fuentes personalizadas, registros y caches. Los datos del servidor Komga no se modifican. KMReader se iniciara desde cero despues del restablecimiento."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette action supprime toutes les données locales de KMReader sur cet appareil, notamment les serveurs enregistrés, les préférences, les livres hors ligne, les polices personnalisées, les journaux et les caches. Les données du serveur Komga ne sont pas modifiées. KMReader redémarrera avec un état vierge après la réinitialisation."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Questa operazione rimuove tutti i dati locali di KMReader su questo dispositivo, inclusi server salvati, preferenze, libri offline, font personalizzati, log e cache. I dati sul server Komga non vengono modificati. Dopo il ripristino KMReader si avviera da zero."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この操作により、このデバイス上の KMReader のローカルデータがすべて削除されます。保存済みサーバー、設定、オフラインブック、カスタムフォント、ログ、キャッシュが含まれます。Komga サーバー上のデータは変更されません。リセット後、KMReader は新しい状態で起動します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 작업은 이 기기의 모든 KMReader 로컬 데이터를 제거합니다. 저장된 서버, 환경설정, 오프라인 책, 사용자 지정 글꼴, 로그, 캐시가 포함됩니다. Komga 서버의 데이터는 변경되지 않습니다. 재설정 후 KMReader는 새 상태로 시작됩니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Это удалит все локальные данные KMReader на этом устройстве, включая сохраненные серверы, настройки, офлайн-книги, пользовательские шрифты, журналы и кэши. Данные на сервере Komga не изменяются. После сброса KMReader запустится заново."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这会移除此设备上的所有 KMReader 本地数据，包括已保存的服务器、偏好设置、离线书籍、自定义字体、日志和缓存。Komga 服务器上的数据不会被更改。重置后 KMReader 会从全新状态启动。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這會移除此裝置上的所有 KMReader 本機資料，包括已儲存的伺服器、偏好設定、離線書籍、自訂字型、日誌和快取。Komga 伺服器上的資料不會被更改。重設後 KMReader 會從全新狀態啟動。"
+          }
+        }
+      }
+    },
+    "startup.storageFailure.resetTitle" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset Local Data?"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lokale Daten zurücksetzen?"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Restablecer datos locales?"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réinitialiser les données locales ?"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reimpostare i dati locali?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ローカルデータをリセットしますか？"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "로컬 데이터를 재설정할까요?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сбросить локальные данные?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要重置本地数据吗？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要重設本機資料嗎？"
           }
         }
       }

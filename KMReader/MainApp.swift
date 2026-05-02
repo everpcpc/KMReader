@@ -110,6 +110,22 @@ struct MainApp: App {
     }
   }
 
+  @MainActor
+  private func resetLocalDataAndRetryModelContainer() async {
+    modelContainer = nil
+    modelContainerFailureDetails = nil
+
+    do {
+      try LocalDataResetService.resetAllLocalData()
+      authViewModel = AuthViewModel()
+      await prepareModelContainerIfNeeded(forceRetry: true)
+    } catch {
+      let errorMessage = String(describing: error)
+      AppLogger(.database).error("Failed to reset local data: \(errorMessage)")
+      modelContainerFailureDetails = errorMessage
+    }
+  }
+
   @ViewBuilder
   private func modelContainerGate<Content: View>(
     @ViewBuilder content: (ModelContainer) -> Content
@@ -122,6 +138,11 @@ struct MainApp: App {
         onRetry: {
           Task {
             await prepareModelContainerIfNeeded(forceRetry: true)
+          }
+        },
+        onReset: {
+          Task {
+            await resetLocalDataAndRetryModelContainer()
           }
         }
       )
