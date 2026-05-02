@@ -17,6 +17,7 @@
     @State private var newPresetName: String = ""
     @State private var showSystemFontPicker: Bool = false
     @AppStorage("epubPageTransitionStyle") private var epubPageTransitionStyle: PageTransitionStyle = .scroll
+    @AppStorage("animateEpubTapTurns") private var animateEpubTapTurns: Bool = AppConfig.animateEpubTapTurns
     @AppStorage("epubShowsProgressFooter") private var epubShowsProgressFooter: Bool = false
     @AppStorage("epubShowKeyboardHelpOverlay")
     private var showKeyboardHelpOverlay: Bool = AppConfig.epubShowKeyboardHelpOverlay
@@ -175,6 +176,15 @@
                 }
               }
               .pickerStyle(.menu)
+
+              Toggle(isOn: $animateEpubTapTurns) {
+                VStack(alignment: .leading, spacing: 4) {
+                  Text("Animate Page Turns")
+                  Text("Use animation when tapping zones to turn pages")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+              }
 
               if draft.flowStyle.isPaged {
                 Picker(

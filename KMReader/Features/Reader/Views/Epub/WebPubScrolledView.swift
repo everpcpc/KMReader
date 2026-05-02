@@ -13,7 +13,7 @@
     @Bindable var viewModel: EpubReaderViewModel
     let preferences: EpubReaderPreferences
     let colorScheme: ColorScheme
-    let tapPageTransitionDuration: Double
+    let animateTapTurns: Bool
     let showingControls: Bool
     let bookTitle: String?
     let onCenterTap: () -> Void
@@ -43,7 +43,7 @@
         rootURL: viewModel.resourceRootURL,
         containerInsets: viewModel.containerInsetsForLabels().uiEdgeInsets,
         tapScrollPercentage: preferences.tapScrollPercentage,
-        tapPageTransitionDuration: tapPageTransitionDuration,
+        animateTapTurns: animateTapTurns,
         theme: theme,
         contentCSS: readiumPayload.css,
         readiumProperties: readiumPayload.properties,
@@ -201,7 +201,7 @@
         rootURL: viewModel.resourceRootURL,
         containerInsets: containerInsets,
         tapScrollPercentage: preferences.tapScrollPercentage,
-        tapPageTransitionDuration: tapPageTransitionDuration,
+        animateTapTurns: animateTapTurns,
         theme: theme,
         contentCSS: readiumPayload.css,
         readiumProperties: readiumPayload.properties,
@@ -247,7 +247,7 @@
     private var totalPagesInChapter: Int = 1
     private var containerInsets: UIEdgeInsets
     private var tapScrollPercentage: Double
-    private var tapPageTransitionDuration: TimeInterval
+    private var animateTapTurns: Bool
     private var theme: ReaderTheme
     private var contentCSS: String
     private var readiumProperties: [String: String?]
@@ -319,7 +319,7 @@
       rootURL: URL?,
       containerInsets: UIEdgeInsets,
       tapScrollPercentage: Double,
-      tapPageTransitionDuration: Double,
+      animateTapTurns: Bool,
       theme: ReaderTheme,
       contentCSS: String,
       readiumProperties: [String: String?],
@@ -341,7 +341,7 @@
       self.rootURL = rootURL
       self.containerInsets = containerInsets
       self.tapScrollPercentage = Self.normalizedTapScrollPercentage(tapScrollPercentage)
-      self.tapPageTransitionDuration = Self.normalizedTapPageTransitionDuration(tapPageTransitionDuration)
+      self.animateTapTurns = animateTapTurns
       self.theme = theme
       self.contentCSS = contentCSS
       self.readiumProperties = readiumProperties
@@ -687,7 +687,7 @@
       rootURL: URL?,
       containerInsets: UIEdgeInsets,
       tapScrollPercentage: Double,
-      tapPageTransitionDuration: Double,
+      animateTapTurns: Bool,
       theme: ReaderTheme,
       contentCSS: String,
       readiumProperties: [String: String?],
@@ -705,14 +705,11 @@
     ) {
       let shouldReload = chapterURL != self.chapterURL || rootURL != self.rootURL
       let normalizedTapScrollPercentage = Self.normalizedTapScrollPercentage(tapScrollPercentage)
-      let normalizedTapPageTransitionDuration = Self.normalizedTapPageTransitionDuration(
-        tapPageTransitionDuration
-      )
       let appearanceChanged =
         theme != self.theme
         || containerInsets != self.containerInsets
         || normalizedTapScrollPercentage != self.tapScrollPercentage
-        || normalizedTapPageTransitionDuration != self.tapPageTransitionDuration
+        || animateTapTurns != self.animateTapTurns
         || contentCSS != self.contentCSS
         || readiumProperties != self.readiumProperties
         || publicationLanguage != self.publicationLanguage
@@ -725,7 +722,7 @@
       self.rootURL = rootURL
       self.containerInsets = containerInsets
       self.tapScrollPercentage = normalizedTapScrollPercentage
-      self.tapPageTransitionDuration = normalizedTapPageTransitionDuration
+      self.animateTapTurns = animateTapTurns
       self.theme = theme
       self.contentCSS = contentCSS
       self.readiumProperties = readiumProperties
@@ -759,10 +756,6 @@
 
     private static func normalizedTapScrollPercentage(_ value: Double) -> Double {
       min(100.0, max(25.0, value))
-    }
-
-    private static func normalizedTapPageTransitionDuration(_ value: Double) -> TimeInterval {
-      min(1.0, max(0.0, value))
     }
 
     private func loadContentIfNeeded(force: Bool) {
@@ -906,7 +899,7 @@
       let clampedOffset = max(0, targetOffset)
       lastKnownDocumentScrollTop = clampedOffset
       let offset = Double(clampedOffset)
-      let duration = animated ? tapPageTransitionDuration : 0
+      let duration = animated && animateTapTurns ? 0.3 : 0
       let js = """
           (function() {
             var top = \(offset);

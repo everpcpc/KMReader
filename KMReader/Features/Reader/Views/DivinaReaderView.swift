@@ -20,7 +20,7 @@ struct DivinaReaderView: View {
   @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
   @AppStorage("webtoonPageWidthPercentage") private var webtoonPageWidthPercentage: Double = 100.0
   @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .cover
-  @AppStorage("tapPageTransitionDuration") private var tapPageTransitionDuration: Double = 0.3
+  @AppStorage("animateTapTurns") private var animateTapTurns: Bool = AppConfig.animateTapTurns
   @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
   @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
   @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
@@ -180,7 +180,7 @@ struct DivinaReaderView: View {
   }
 
   private var pageTurnAnimationDuration: Double {
-    max(tapPageTransitionDuration, 0)
+    animateTapTurns ? 0.3 : 0
   }
 
   private var isPresentingModalSheet: Bool {
@@ -669,6 +669,7 @@ struct DivinaReaderView: View {
                     mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
                     readingDirection: readingDirection,
                     splitWidePageMode: splitWidePageMode,
+                    animateTapTurns: animateTapTurns,
                     renderConfig: renderConfig,
                     readListContext: readListContext,
                     onDismiss: { closeReader() }
@@ -679,6 +680,7 @@ struct DivinaReaderView: View {
                     mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
                     readingDirection: readingDirection,
                     splitWidePageMode: splitWidePageMode,
+                    animateTapTurns: animateTapTurns,
                     renderConfig: renderConfig,
                     readListContext: readListContext,
                     onDismiss: { closeReader() }
@@ -687,7 +689,7 @@ struct DivinaReaderView: View {
               #else
                 standardScrollPageView(useDualPage: useDualPage, screenSize: screenSize)
               #endif
-            case .none, .scroll:
+            case .scroll:
               standardScrollPageView(useDualPage: useDualPage, screenSize: screenSize)
             case .cover:
               NativeCoverPageView(

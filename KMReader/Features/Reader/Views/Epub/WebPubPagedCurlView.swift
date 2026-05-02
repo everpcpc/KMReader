@@ -12,6 +12,7 @@
     @Bindable var viewModel: EpubReaderViewModel
     let preferences: EpubReaderPreferences
     let colorScheme: ColorScheme
+    let animateTapTurns: Bool
     let showingControls: Bool
     let bookTitle: String?
     let onCenterTap: () -> Void
@@ -167,7 +168,7 @@
         let direction: UIPageViewController.NavigationDirection = isForward ? .forward : .reverse
 
         context.coordinator.isAnimating = true
-        let shouldAnimateTransition = context.coordinator.hasCompletedInitialUpdate
+        let shouldAnimateTransition = context.coordinator.hasCompletedInitialUpdate && animateTapTurns
         let transitionControllers = pageCurlControllers(
           primary: targetVC,
           targetChapterIndex: targetChapterIndex,

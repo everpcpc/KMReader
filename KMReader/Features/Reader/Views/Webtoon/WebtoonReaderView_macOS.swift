@@ -967,17 +967,26 @@
         preheatPages(at: targetY)
 
         isProgrammaticScrolling = true
-        NSAnimationContext.runAnimationGroup { context in
-          context.duration = WebtoonConstants.scrollAnimationDuration
-          context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-          context.allowsImplicitAnimation = true
-          clipView.animator().scroll(to: NSPoint(x: 0, y: targetY))
-        } completionHandler: { [weak self, weak scrollView, weak clipView] in
-          Task { @MainActor [weak self, weak scrollView, weak clipView] in
-            self?.finalizeProgrammaticScroll()
-            guard let scrollView, let clipView else { return }
-            scrollView.reflectScrolledClipView(clipView)
-          }
+        if AppConfig.animateTapTurns {
+          NSAnimationContext.runAnimationGroup(
+            { context in
+              context.duration = WebtoonConstants.scrollAnimationDuration
+              context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+              context.allowsImplicitAnimation = true
+              clipView.animator().scroll(to: NSPoint(x: 0, y: targetY))
+            },
+            completionHandler: { [weak self, weak scrollView, weak clipView] in
+              Task { @MainActor [weak self, weak scrollView, weak clipView] in
+                self?.finalizeProgrammaticScroll()
+                guard let scrollView, let clipView else { return }
+                scrollView.reflectScrolledClipView(clipView)
+              }
+            }
+          )
+        } else {
+          clipView.scroll(to: NSPoint(x: 0, y: targetY))
+          finalizeProgrammaticScroll()
+          scrollView.reflectScrolledClipView(clipView)
         }
       }
 

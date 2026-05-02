@@ -1084,8 +1084,15 @@
         }
         cancelDeferredMaintenance()
         preheatPages(at: targetOffset, in: collectionView)
-        isProgrammaticAnimatedScroll = true
-        collectionView.setContentOffset(CGPoint(x: 0, y: targetOffset), animated: true)
+        let shouldAnimate = AppConfig.animateTapTurns
+        isProgrammaticAnimatedScroll = shouldAnimate
+        collectionView.setContentOffset(
+          CGPoint(x: 0, y: targetOffset),
+          animated: shouldAnimate
+        )
+        if !shouldAnimate {
+          finalizeScrollInteraction()
+        }
       }
 
       private func preheatPages(at targetOffset: CGFloat, in collectionView: UICollectionView) {

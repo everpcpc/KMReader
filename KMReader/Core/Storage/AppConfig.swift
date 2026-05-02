@@ -712,15 +712,27 @@ enum AppConfig {
     }
   }
 
-  static nonisolated var tapPageTransitionDuration: Double {
+  static nonisolated var animateTapTurns: Bool {
     get {
-      if UserDefaults.standard.object(forKey: "tapPageTransitionDuration") != nil {
-        return UserDefaults.standard.double(forKey: "tapPageTransitionDuration")
+      if UserDefaults.standard.object(forKey: "animateTapTurns") != nil {
+        return UserDefaults.standard.bool(forKey: "animateTapTurns")
       }
-      return 0.3
+      return true
     }
     set {
-      UserDefaults.standard.set(newValue, forKey: "tapPageTransitionDuration")
+      UserDefaults.standard.set(newValue, forKey: "animateTapTurns")
+    }
+  }
+
+  static nonisolated var animateEpubTapTurns: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "animateEpubTapTurns") != nil {
+        return UserDefaults.standard.bool(forKey: "animateEpubTapTurns")
+      }
+      return true
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: "animateEpubTapTurns")
     }
   }
 

@@ -4381,66 +4381,66 @@
         }
       }
     },
-    "Animation duration for tap-based page turns. Set to 0 to turn off page turn animation." : {
+    "Animate Page Turns" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Animationsdauer für tipbasierte Seitenwechsel. Auf 0 setzen, um die Blätteranimation auszuschalten."
+            "value" : "Seitenwechsel animieren"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Animation duration for tap-based page turns. Set to 0 to turn off page turn animation."
+            "value" : "Animate Page Turns"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Duración de la animación para el cambio de página al tocar. Establécela en 0 para desactivar la animación de cambio de página."
+            "value" : "Animar cambios de página"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Durée de l'animation pour le changement de page par appui. Réglez sur 0 pour désactiver l'animation de changement de page."
+            "value" : "Animer les changements de page"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Durata dell'animazione per il cambio pagina tramite tocco. Imposta 0 per disattivare l'animazione di cambio pagina."
+            "value" : "Anima i cambi di pagina"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "タップでページを切り替える際のアニメーション時間です。0 にするとページめくりアニメーションをオフにします。"
+            "value" : "ページめくりをアニメーション表示"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "탭으로 페이지를 넘길 때의 애니메이션 시간입니다. 0으로 설정하면 페이지 넘김 애니메이션이 꺼집니다."
+            "value" : "페이지 넘김 애니메이션"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Длительность анимации перелистывания при переходе по тапу. Установите 0, чтобы отключить анимацию перелистывания."
+            "value" : "Анимировать перелистывание страниц"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "设置点击翻页时的动画时长。设为 0 可关闭翻页动画。"
+            "value" : "翻页动画"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "設定點擊翻頁時的動畫時長。設為 0 可關閉翻頁動畫。"
+            "value" : "翻頁動畫"
           }
         }
       }
@@ -48287,134 +48287,6 @@
         }
       }
     },
-    "Page Turn Animation Duration" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dauer der Blätteranimation"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Page Turn Animation Duration"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Duración de la animación de cambio de página"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Durée de l'animation de changement de page"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Durata animazione cambio pagina"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ページめくりアニメーション時間"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "페이지 넘김 애니메이션 시간"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Длительность анимации перелистывания"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "翻页动画时长"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "翻頁動畫時長"
-          }
-        }
-      }
-    },
-    "Page Turn Animation Off" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Blätteranimation aus"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Page Turn Animation Off"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Animación de cambio de página desactivada"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Animation de changement de page désactivée"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Animazione cambio pagina disattivata"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ページめくりアニメーションオフ"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "페이지 넘김 애니메이션 끔"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Анимация перелистывания отключена"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "关闭翻页动画"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "關閉翻頁動畫"
-          }
-        }
-      }
-    },
     "Pages Read" : {
       "localizations" : {
         "de" : {
@@ -52123,134 +51995,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "當前頁像蓋板一樣滑開，下一頁保持靜止"
-          }
-        }
-      }
-    },
-    "reader.page_transition.none" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keine"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "None"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ninguna"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aucune"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nessuna"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "なし"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "없음"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Нет"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "无"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "無"
-          }
-        }
-      }
-    },
-    "reader.page_transition.none.description" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wechselt Seiten sofort ohne Animation."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Change pages instantly without animation."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cambia de página al instante, sin animación."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Change de page instantanément, sans animation."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cambia pagina istantaneamente, senza animazione."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "アニメーションなしで即座にページを切り替えます。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "애니메이션 없이 즉시 페이지를 전환합니다."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Мгновенно переключает страницы без анимации."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "无动画，立即切换页面。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "無動畫，立即切換頁面。"
           }
         }
       }
@@ -74971,6 +74715,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "URL 連結"
+          }
+        }
+      }
+    },
+    "Use animation when tapping zones to turn pages" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Animation beim Umblättern über Tippzonen verwenden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use animation when tapping zones to turn pages"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usar animación al tocar zonas para cambiar de página"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utiliser une animation lorsque les zones tactiles changent de page"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa animazioni quando tocchi le zone per cambiare pagina"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タップゾーンでページをめくるときにアニメーションを使用します"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "탭 영역으로 페이지를 넘길 때 애니메이션 사용"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Использовать анимацию при перелистывании через зоны касания"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点击区域翻页时使用动画"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "點擊區域翻頁時使用動畫"
           }
         }
       }
