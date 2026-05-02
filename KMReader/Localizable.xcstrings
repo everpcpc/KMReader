@@ -69344,18 +69344,17 @@
       }
     },
     "startup.storageFailure.resetButton" : {
-      "extractionState" : "extracted_with_value",
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reset Local Data"
-          }
-        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Lokale Daten zurücksetzen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset Local Data"
           }
         },
         "es" : {
@@ -69409,18 +69408,17 @@
       }
     },
     "startup.storageFailure.resetConfirm" : {
-      "extractionState" : "extracted_with_value",
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reset"
-          }
-        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zurücksetzen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset"
           }
         },
         "es" : {
@@ -69474,18 +69472,17 @@
       }
     },
     "startup.storageFailure.resetMessage" : {
-      "extractionState" : "extracted_with_value",
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This removes all local KMReader data on this device, including saved servers, preferences, offline books, custom fonts, logs, and caches. Server data in Komga is not changed. KMReader will start fresh after the reset."
-          }
-        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dadurch werden alle lokalen KMReader-Daten auf diesem Gerät entfernt, einschließlich gespeicherter Server, Einstellungen, Offline-Bücher, eigener Schriften, Protokolle und Caches. Daten auf dem Komga-Server werden nicht geändert. KMReader startet nach dem Zurücksetzen frisch."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This removes all local KMReader data on this device, including saved servers, preferences, offline books, custom fonts, logs, and caches. Server data in Komga is not changed. KMReader will start fresh after the reset."
           }
         },
         "es" : {
@@ -69539,18 +69536,17 @@
       }
     },
     "startup.storageFailure.resetTitle" : {
-      "extractionState" : "extracted_with_value",
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reset Local Data?"
-          }
-        },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Lokale Daten zurücksetzen?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset Local Data?"
           }
         },
         "es" : {

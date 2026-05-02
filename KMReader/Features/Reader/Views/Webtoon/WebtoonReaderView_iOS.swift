@@ -789,7 +789,7 @@
 
       func scrollViewDidScroll(_ scrollView: UIScrollView) {
         if isUserScrolling {
-          updateCurrentPage()
+          updateCurrentPage(commitToViewModel: false)
         }
       }
 
@@ -816,7 +816,7 @@
         scheduleDeferredCleanupIfNeeded()
       }
 
-      private func updateCurrentPage() {
+      private func updateCurrentPage(commitToViewModel: Bool = true) {
         guard let collectionView = collectionView else { return }
         let totalItems = scrollEngine.itemCount
         guard totalItems > 0 else { return }
@@ -846,6 +846,8 @@
 
         if scrollEngine.currentPageID != resolvedPageID {
           scrollEngine.currentPageID = resolvedPageID
+        }
+        if commitToViewModel, viewModel?.currentReaderPage?.id != resolvedPageID {
           viewModel?.updateCurrentPosition(pageID: resolvedPageID)
         }
       }

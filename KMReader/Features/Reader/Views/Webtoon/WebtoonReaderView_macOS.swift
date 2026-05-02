@@ -776,14 +776,14 @@
           isUserScrolling = true
         }
         lastScrollTime = Date().timeIntervalSinceReferenceDate
-        updateCurrentPage()
+        updateCurrentPage(commitToViewModel: false)
       }
 
       @objc func scrollViewDidEndScroll(_ notification: Notification) {
         finalizeScrollInteraction()
       }
 
-      private func updateCurrentPage() {
+      private func updateCurrentPage(commitToViewModel: Bool = true) {
         guard let cv = collectionView, let sv = scrollView else { return }
         let totalItems = scrollEngine.itemCount
         guard totalItems > 0 else { return }
@@ -813,6 +813,8 @@
 
         if scrollEngine.currentPageID != resolvedPageID {
           scrollEngine.currentPageID = resolvedPageID
+        }
+        if commitToViewModel, viewModel?.currentReaderPage?.id != resolvedPageID {
           viewModel?.updateCurrentPosition(pageID: resolvedPageID)
         }
       }
