@@ -562,6 +562,7 @@
       private func applyCurrentItem(_ item: ReaderViewItem) {
         postTransitionTask?.cancel()
         let token = transitionToken
+        parent.viewModel.updateCurrentPosition(viewItem: item)
 
         postTransitionTask = Task(priority: .utility) {
           guard !Task.isCancelled else { return }
@@ -569,7 +570,6 @@
           let shouldContinue = await MainActor.run { () -> Bool in
             guard token == self.transitionToken else { return false }
             guard self.currentItem == item else { return false }
-            self.parent.viewModel.updateCurrentPosition(viewItem: item)
             return true
           }
           guard shouldContinue else { return }
