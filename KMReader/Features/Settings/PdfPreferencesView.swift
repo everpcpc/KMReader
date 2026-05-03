@@ -14,6 +14,8 @@
     private var pageLayout: PageLayout = .auto
     @AppStorage("pdfIsolateCoverPage")
     private var isolateCoverPage: Bool = true
+    @AppStorage("pdfContinuousScroll")
+    private var continuousScroll: Bool = AppConfig.pdfContinuousScroll
     @AppStorage("pdfShowKeyboardHelpOverlay")
     private var showKeyboardHelpOverlay: Bool = AppConfig.pdfShowKeyboardHelpOverlay
     @AppStorage("pdfOfflineRenderQuality")
@@ -98,9 +100,18 @@
               }
               .pickerStyle(.menu)
 
-              Text("Used for single and dual-page presentation in continuous mode")
+              Text("Used for single and dual-page presentation")
                 .font(.caption)
                 .foregroundColor(.secondary)
+            }
+
+            Toggle(isOn: $continuousScroll) {
+              VStack(alignment: .leading, spacing: 4) {
+                Text("Continuous Scroll")
+                Text("Scroll through pages continuously instead of paging one page or spread at a time.")
+                  .font(.caption)
+                  .foregroundColor(.secondary)
+              }
             }
 
             if pageLayout.supportsDualPageOptions {
