@@ -20,6 +20,8 @@
     private var forceDefaultReadingDirection: Bool = false
     @AppStorage("pdfPageLayout") private var pageLayout: PageLayout = .auto
     @AppStorage("pdfIsolateCoverPage") private var isolateCoverPage: Bool = true
+    @AppStorage("pdfContinuousScroll")
+    private var continuousScroll: Bool = AppConfig.pdfContinuousScroll
     @AppStorage("pdfShowKeyboardHelpOverlay")
     private var showKeyboardHelpOverlay: Bool = AppConfig.pdfShowKeyboardHelpOverlay
 
@@ -227,7 +229,7 @@
     }
 
     private var documentViewIdentity: String {
-      "continuous-\(book.id)"
+      "native-pdf-\(book.id)"
     }
 
     private var documentInitialPage: Int {
@@ -281,6 +283,7 @@
           documentURL: documentURL,
           pageLayout: pageLayout,
           isolateCoverPage: isolateCoverPage,
+          continuousScroll: continuousScroll,
           readingDirection: readingDirection,
           initialPageNumber: documentInitialPage,
           targetPageNumber: targetPageNumber,

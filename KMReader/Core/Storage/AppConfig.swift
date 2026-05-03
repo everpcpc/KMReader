@@ -139,6 +139,16 @@ enum AppConfig {
     set { UserDefaults.standard.set(newValue.rawValue, forKey: "pdfOfflineRenderQuality") }
   }
 
+  static nonisolated var pdfContinuousScroll: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "pdfContinuousScroll") != nil {
+        return UserDefaults.standard.bool(forKey: "pdfContinuousScroll")
+      }
+      return false
+    }
+    set { UserDefaults.standard.set(newValue, forKey: "pdfContinuousScroll") }
+  }
+
   static nonisolated var isOffline: Bool {
     get { UserDefaults.standard.bool(forKey: "isOffline") }
     set { UserDefaults.standard.set(newValue, forKey: "isOffline") }

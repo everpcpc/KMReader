@@ -6,6 +6,7 @@
     let documentURL: URL
     let pageLayout: PageLayout
     let isolateCoverPage: Bool
+    let continuousScroll: Bool
     let readingDirection: ReadingDirection
     let initialPageNumber: Int
     let targetPageNumber: Int?
@@ -75,20 +76,23 @@
 
       if coordinator.lastResolvedPageLayout == resolvedLayout,
         coordinator.lastResolvedReadingDirection == direction,
-        coordinator.lastResolvedIsolateCoverPage == isolateCoverPage
+        coordinator.lastResolvedIsolateCoverPage == isolateCoverPage,
+        coordinator.lastResolvedContinuousScroll == continuousScroll
       {
         return
       }
 
       let currentPage = pdfView.currentPage
-      let currentPageNumberBeforeConfiguration = currentPageNumber(in: pdfView)
+      let targetPageAfterConfiguration =
+        currentPageNumber(in: pdfView)
+        ?? (coordinator.lastKnownPageNumber > 0 ? coordinator.lastKnownPageNumber : initialPageNumber)
       let displayMode: PDFDisplayMode
 
       switch resolvedLayout {
       case .dual:
-        displayMode = .twoUpContinuous
+        displayMode = continuousScroll ? .twoUpContinuous : .twoUp
       case .single, .auto:
-        displayMode = .singlePageContinuous
+        displayMode = continuousScroll ? .singlePageContinuous : .singlePage
       }
 
       pdfView.displayMode = displayMode
@@ -99,15 +103,19 @@
       coordinator.lastResolvedPageLayout = resolvedLayout
       coordinator.lastResolvedReadingDirection = direction
       coordinator.lastResolvedIsolateCoverPage = isolateCoverPage
+      coordinator.lastResolvedContinuousScroll = continuousScroll
 
       if let currentPage {
-        if currentPageNumber(in: pdfView) != currentPageNumberBeforeConfiguration {
-          pdfView.go(to: currentPage)
-        }
+        pdfView.go(to: currentPage)
       } else if pdfView.document != nil {
-        let fallbackPage = coordinator.lastKnownPageNumber > 0 ? coordinator.lastKnownPageNumber : initialPageNumber
-        goToPage(fallbackPage, in: pdfView)
+        goToPage(targetPageAfterConfiguration, in: pdfView)
       }
+
+      scheduleInitialPageCorrection(
+        targetPage: targetPageAfterConfiguration,
+        in: pdfView,
+        coordinator: coordinator
+      )
     }
 
     private func resolvedPageLayout(for size: CGSize) -> PageLayout {
@@ -134,8 +142,8 @@
       in pdfView: PDFView,
       coordinator: Coordinator
     ) {
-      // In continuous mode, PDFKit may reset current page multiple times
-      // during initial layout; retry briefly until the target page sticks.
+      // PDFKit may reset current page multiple times during initial layout;
+      // retry briefly until the target page sticks.
       let retryDelays: [TimeInterval] = [0.0, 0.05, 0.2, 0.5]
       for delay in retryDelays {
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak pdfView, weak coordinator] in
@@ -163,6 +171,7 @@
       var lastResolvedPageLayout: PageLayout?
       var lastResolvedReadingDirection: ReadingDirection?
       var lastResolvedIsolateCoverPage: Bool?
+      var lastResolvedContinuousScroll: Bool?
       var lastKnownPageNumber: Int = 1
       private weak var observedPDFView: PDFView?
       private weak var singleClickRecognizer: NSClickGestureRecognizer?

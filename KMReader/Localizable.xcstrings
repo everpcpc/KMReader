@@ -13469,6 +13469,70 @@
         }
       }
     },
+    "Continuous Scroll" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kontinuierlicher Bildlauf"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continuous Scroll"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desplazamiento continuo"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Défilement continu"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scorrimento continuo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "連続スクロール"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "연속 스크롤"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Непрерывная прокрутка"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连续滚动"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "連續捲動"
+          }
+        }
+      }
+    },
     "Copy" : {
       "localizations" : {
         "de" : {
@@ -57247,6 +57311,70 @@
         }
       }
     },
+    "Scroll through pages continuously instead of paging one page or spread at a time." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seiten fortlaufend durchblättern, statt jeweils eine Seite oder Doppelseite umzuschalten."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scroll through pages continuously instead of paging one page or spread at a time."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desplázate por las páginas de forma continua en lugar de avanzar una página o pliego cada vez."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Faites défiler les pages en continu au lieu de passer une page ou une double page à la fois."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scorri le pagine in modo continuo invece di avanzare una pagina o una doppia pagina alla volta."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1ページまたは見開きごとにページ送りせず、ページを連続してスクロールします。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "한 번에 한 페이지나 펼침면씩 넘기는 대신 페이지를 연속해서 스크롤합니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Прокручивать страницы непрерывно вместо постраничного перехода по одной странице или развороту."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连续滚动页面，而不是每次翻动一页或一组跨页。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "連續捲動頁面，而不是每次翻動一頁或一組跨頁。"
+          }
+        }
+      }
+    },
     "Search" : {
       "localizations" : {
         "de" : {
@@ -74911,66 +75039,66 @@
         }
       }
     },
-    "Used for single and dual-page presentation in continuous mode" : {
+    "Used for single and dual-page presentation" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wird für die Einzel- und Doppelseitenanzeige im kontinuierlichen Modus verwendet"
+            "value" : "Wird für Einzel- und Doppelseitenanzeige verwendet"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Used for single and dual-page presentation in continuous mode"
+            "value" : "Used for single and dual-page presentation"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Se usa para presentacion de pagina unica y doble en modo continuo"
+            "value" : "Se usa para la presentación de página única y doble"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Utilisé pour l'affichage en page simple et en double page en mode défilement continu"
+            "value" : "Utilisé pour l'affichage en page simple et en double page"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Usato per la presentazione a pagina singola e doppia in modalita continua"
+            "value" : "Usato per la presentazione a pagina singola e doppia"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "連続スクロールモードでの単ページおよび見開き表示に使用されます"
+            "value" : "単ページおよび見開き表示に使用されます"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "연속 스크롤 모드에서 단일 및 양면 페이지 표시 방식에 사용됩니다"
+            "value" : "단일 및 양면 페이지 표시 방식에 사용됩니다"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Используется для одиночного и двойного отображения страниц в непрерывном режиме"
+            "value" : "Используется для одиночного и двойного отображения страниц"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "用于连续滚动模式下的单页和双页显示"
+            "value" : "用于单页和双页显示"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "用於連續捲動模式下的單頁與雙頁顯示"
+            "value" : "用於單頁與雙頁顯示"
           }
         }
       }
