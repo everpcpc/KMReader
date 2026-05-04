@@ -6,6 +6,11 @@
 import SwiftUI
 
 struct DivinaReaderView: View {
+  private enum ReaderNavigationStep {
+    case previous
+    case next
+  }
+
   let sessionID: UUID
   let book: Book
   let incognito: Bool
@@ -59,6 +64,7 @@ struct DivinaReaderView: View {
   @State private var keyboardHelpTimer: Timer?
   @State private var preserveReaderOptions = false
   @State private var usesDualPagePresentation = false
+  @State private var webtoonScrollController = WebtoonScrollController()
 
   // UI Panels states
   @State private var showingPageJumpSheet = false
@@ -360,7 +366,7 @@ struct DivinaReaderView: View {
       if isShowingEndPage {
         if isBackwardTVMove(direction) {
           logger.debug("📺 \(source) move on end page: go to previous page")
-          goToPreviousPage()
+          goToReaderPosition(.previous)
           return true
         }
 
@@ -373,16 +379,16 @@ struct DivinaReaderView: View {
         switch direction {
         case .left:
           if readingDirection == .rtl {
-            goToNextPage()
+            goToReaderPosition(.next)
           } else {
-            goToPreviousPage()
+            goToReaderPosition(.previous)
           }
           return true
         case .right:
           if readingDirection == .rtl {
-            goToPreviousPage()
+            goToReaderPosition(.previous)
           } else {
-            goToNextPage()
+            goToReaderPosition(.next)
           }
           return true
         default:
@@ -391,10 +397,10 @@ struct DivinaReaderView: View {
       case .vertical:
         switch direction {
         case .up:
-          goToPreviousPage()
+          goToReaderPosition(.previous)
           return true
         case .down:
-          goToNextPage()
+          goToReaderPosition(.next)
           return true
         default:
           return false
@@ -402,10 +408,10 @@ struct DivinaReaderView: View {
       case .webtoon:
         switch direction {
         case .up:
-          goToPreviousPage()
+          goToReaderPosition(.previous)
           return true
         case .down:
-          goToNextPage()
+          goToReaderPosition(.next)
           return true
         default:
           return false
@@ -646,6 +652,7 @@ struct DivinaReaderView: View {
                 readListContext: readListContext,
                 onDismiss: { closeReader() },
                 toggleControls: { toggleControls() },
+                scrollController: webtoonScrollController,
                 pageWidthPercentage: webtoonPageWidthPercentage,
                 renderConfig: renderConfig
               )
@@ -956,10 +963,10 @@ struct DivinaReaderView: View {
     case .ltr:
       switch event.key {
       case .rightArrow:
-        goToNextPage()
+        goToReaderPosition(.next)
         return true
       case .leftArrow:
-        goToPreviousPage()
+        goToReaderPosition(.previous)
         return true
       default:
         return false
@@ -967,10 +974,10 @@ struct DivinaReaderView: View {
     case .rtl:
       switch event.key {
       case .leftArrow:
-        goToNextPage()
+        goToReaderPosition(.next)
         return true
       case .rightArrow:
-        goToPreviousPage()
+        goToReaderPosition(.previous)
         return true
       default:
         return false
@@ -978,17 +985,37 @@ struct DivinaReaderView: View {
     case .vertical:
       switch event.key {
       case .downArrow:
-        goToNextPage()
+        goToReaderPosition(.next)
         return true
       case .upArrow:
-        goToPreviousPage()
+        goToReaderPosition(.previous)
         return true
       default:
         return false
       }
     case .webtoon:
-      return false
+      switch event.key {
+      case .downArrow:
+        goToReaderPosition(.next)
+        return true
+      case .upArrow:
+        goToReaderPosition(.previous)
+        return true
+      default:
+        return false
+      }
     }
+  }
+
+  private func sendWebtoonScrollCommand(for step: ReaderNavigationStep) {
+    let direction: WebtoonScrollDirection =
+      switch step {
+      case .previous:
+        .up
+      case .next:
+        .down
+      }
+    webtoonScrollController.scroll(direction)
   }
 
   private func loadBook(bookId: String, preserveReaderOptions: Bool) async {
@@ -1497,38 +1524,38 @@ struct DivinaReaderView: View {
   private func handleTapZoneAction(_ action: TapZoneAction) {
     switch action {
     case .previous:
-      goToPreviousPage()
+      goToReaderPosition(.previous)
     case .next:
-      goToNextPage()
+      goToReaderPosition(.next)
     case .toggleControls:
       toggleControls()
     }
   }
 
-  private func goToNextPage() {
+  private func goToReaderPosition(_ step: ReaderNavigationStep) {
     guard viewModel.hasPages else { return }
     switch readingDirection {
-    case .ltr, .rtl, .vertical, .webtoon:
-      if let nextItem = viewModel.adjacentViewItem(offset: 1) {
-        viewModel.requestNavigation(toViewItem: nextItem)
-      } else {
-        Task { @MainActor in
-          _ = await navigateAcrossBoundaryIfNeeded(offset: 1)
-        }
-      }
+    case .ltr, .rtl, .vertical:
+      goToPagedReaderPosition(step)
+    case .webtoon:
+      sendWebtoonScrollCommand(for: step)
     }
   }
 
-  private func goToPreviousPage() {
-    guard viewModel.hasPages else { return }
-    switch readingDirection {
-    case .ltr, .rtl, .vertical, .webtoon:
-      if let previousItem = viewModel.adjacentViewItem(offset: -1) {
-        viewModel.requestNavigation(toViewItem: previousItem)
-      } else {
-        Task { @MainActor in
-          _ = await navigateAcrossBoundaryIfNeeded(offset: -1)
-        }
+  private func goToPagedReaderPosition(_ step: ReaderNavigationStep) {
+    let offset: Int =
+      switch step {
+      case .previous:
+        -1
+      case .next:
+        1
+      }
+
+    if let item = viewModel.adjacentViewItem(offset: offset) {
+      viewModel.requestNavigation(toViewItem: item)
+    } else {
+      Task { @MainActor in
+        _ = await navigateAcrossBoundaryIfNeeded(offset: offset)
       }
     }
   }
