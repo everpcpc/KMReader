@@ -15,21 +15,10 @@ struct ReadingProgressBar: View {
   let height: CGFloat
   let color: Color
   let background: Color
+  let showsShadow: Bool
 
-  init(progress: Double, type: ReadingProgressBarType) {
-    self.progress = progress
-    self.height = PlatformHelper.progressBarHeight
-    switch type {
-    case .reader:
-      self.color = .white
-      self.background = .secondary.opacity(0.4)
-    case .card:
-      self.color = .accentColor
-      self.background = .accentColor.opacity(0.4)
-    }
-  }
-
-  var body: some View {
+  @ViewBuilder
+  private var progressContent: some View {
     GeometryReader { geometry in
       ZStack(alignment: .leading) {
         Capsule()
@@ -43,6 +32,32 @@ struct ReadingProgressBar: View {
             height: height
           )
           .animation(.easeInOut(duration: 0.2), value: progress)
+      }
+    }
+  }
+
+  init(progress: Double, type: ReadingProgressBarType) {
+    self.progress = progress
+    self.height = PlatformHelper.progressBarHeight
+    switch type {
+    case .reader:
+      self.color = .white
+      self.background = .secondary.opacity(0.4)
+      self.showsShadow = true
+    case .card:
+      self.color = .accentColor
+      self.background = .accentColor.opacity(0.4)
+      self.showsShadow = false
+    }
+  }
+
+  var body: some View {
+    Group {
+      if showsShadow {
+        progressContent
+          .shadow(color: .black.opacity(0.35), radius: 3, x: 0, y: 1)
+      } else {
+        progressContent
       }
     }
     .frame(height: height)

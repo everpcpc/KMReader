@@ -206,7 +206,11 @@
           bottomProgressTrackView = UIView()
           bottomProgressTrackView.translatesAutoresizingMaskIntoConstraints = false
           bottomProgressTrackView.layer.cornerRadius = 1.5
-          bottomProgressTrackView.clipsToBounds = true
+          bottomProgressTrackView.layer.shadowColor = UIColor.black.cgColor
+          bottomProgressTrackView.layer.shadowOpacity = 0.45
+          bottomProgressTrackView.layer.shadowRadius = 3
+          bottomProgressTrackView.layer.shadowOffset = CGSize(width: 0, height: 1)
+          bottomProgressTrackView.clipsToBounds = false
           bottomProgressTrackView.isUserInteractionEnabled = false
           bottomProgressTrackView.alpha = 0
 
@@ -387,6 +391,10 @@
           bottomProgressTrackView.translatesAutoresizingMaskIntoConstraints = false
           bottomProgressTrackView.wantsLayer = true
           bottomProgressTrackView.layer?.cornerRadius = 1.5
+          bottomProgressTrackView.layer?.shadowColor = NSColor.black.cgColor
+          bottomProgressTrackView.layer?.shadowOpacity = 0.45
+          bottomProgressTrackView.layer?.shadowRadius = 3
+          bottomProgressTrackView.layer?.shadowOffset = CGSize(width: 0, height: -1)
           bottomProgressTrackView.alphaValue = 0
 
           bottomProgressFillView = NSView()
