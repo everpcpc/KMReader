@@ -174,6 +174,9 @@ struct MainApp: App {
       }
     #endif
     .modelContainer(modelContainer)
+    .task {
+      await StoreManager.shared.start()
+    }
   }
 
   #if os(macOS)
