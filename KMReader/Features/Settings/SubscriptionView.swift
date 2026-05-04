@@ -41,6 +41,10 @@ struct SubscriptionView: View {
         .padding()
       }
     }
+    .task {
+      await StoreManager.shared.start()
+      await StoreManager.shared.loadProductsIfNeeded()
+    }
   }
 
   private var headerSection: some View {

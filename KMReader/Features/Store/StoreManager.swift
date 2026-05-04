@@ -32,15 +32,22 @@ final class StoreManager {
     products.first { $0.id == Self.yearlyProductID }
   }
 
-  private var updateListenerTask: Task<Void, Error>?
+  private var updateListenerTask: Task<Void, Never>?
+  private var hasStarted = false
   private static let restoreTimeoutSeconds: Double = 20
 
-  private init() {
+  private init() {}
+
+  func start() async {
+    guard !hasStarted else { return }
+    hasStarted = true
     updateListenerTask = listenForTransactions()
-    Task {
-      await loadProducts()
-      await updatePurchasedProducts()
-    }
+    await updatePurchasedProducts()
+  }
+
+  func loadProductsIfNeeded() async {
+    guard products.isEmpty, !isLoadingProducts else { return }
+    await loadProducts()
   }
 
   func loadProducts() async {
@@ -131,8 +138,8 @@ final class StoreManager {
     purchasedProductIDs = purchasedIDs
   }
 
-  private func listenForTransactions() -> Task<Void, Error> {
-    Task.detached {
+  private func listenForTransactions() -> Task<Void, Never> {
+    Task {
       for await result in Transaction.updates {
         if case .verified(let transaction) = result {
           await self.updatePurchasedProducts()
