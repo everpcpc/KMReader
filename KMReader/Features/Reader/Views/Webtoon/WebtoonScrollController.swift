@@ -8,7 +8,7 @@ final class WebtoonScrollController {
   weak var target: WebtoonScrollCommandHandling?
 
   func scroll(_ direction: WebtoonScrollDirection) {
-    target?.scrollWebtoon(direction)
+    target?.scroll(direction)
   }
 
   func clearTarget(_ target: WebtoonScrollCommandHandling) {

@@ -5,5 +5,5 @@
 
 @MainActor
 protocol WebtoonScrollCommandHandling: AnyObject {
-  func scrollWebtoon(_ direction: WebtoonScrollDirection)
+  func scroll(_ direction: WebtoonScrollDirection)
 }

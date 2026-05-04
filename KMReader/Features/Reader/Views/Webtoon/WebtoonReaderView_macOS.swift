@@ -936,7 +936,7 @@
         scrollToOffsetIfNeeded(targetY, in: sv)
       }
 
-      func scrollWebtoon(_ direction: WebtoonScrollDirection) {
+      func scroll(_ direction: WebtoonScrollDirection) {
         guard let sv = scrollView else { return }
 
         let screenHeight = sv.contentView.bounds.height

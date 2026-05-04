@@ -1085,7 +1085,7 @@
         scrollToOffsetIfNeeded(targetOffset, in: collectionView)
       }
 
-      func scrollWebtoon(_ direction: WebtoonScrollDirection) {
+      func scroll(_ direction: WebtoonScrollDirection) {
         guard let collectionView else { return }
 
         let screenHeight = collectionView.bounds.height
