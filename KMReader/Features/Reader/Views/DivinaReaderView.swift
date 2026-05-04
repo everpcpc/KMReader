@@ -1479,7 +1479,8 @@ struct DivinaReaderView: View {
           },
           setSplitWidePageMode: { mode in
             splitWidePageMode = mode
-          }
+          },
+          toggleContinuousScroll: {}
         )
       )
     }

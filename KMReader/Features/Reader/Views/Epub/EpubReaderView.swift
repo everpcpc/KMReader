@@ -904,7 +904,8 @@
             setPageLayout: { _ in },
             toggleIsolateCoverPage: {},
             toggleIsolatePage: { _ in },
-            setSplitWidePageMode: { _ in }
+            setSplitWidePageMode: { _ in },
+            toggleContinuousScroll: {}
           )
         )
       }

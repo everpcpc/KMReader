@@ -225,6 +225,7 @@ struct MainApp: App {
           || state.supportsPageLayoutSelection
           || state.supportsDualPageOptions
           || state.supportsSplitWidePageMode
+          || state.supportsContinuousScrollToggle
         {
           Divider()
         }
@@ -295,6 +296,19 @@ struct MainApp: App {
                   Text(mode.displayName)
                 }
               }
+            }
+          }
+          .disabled(!state.isActive)
+        }
+
+        if state.supportsContinuousScrollToggle {
+          Button {
+            readerPresentation.toggleContinuousScrollFromCommand()
+          } label: {
+            if state.continuousScroll {
+              Label(String(localized: "Continuous Scroll"), systemImage: "checkmark")
+            } else {
+              Text(String(localized: "Continuous Scroll"))
             }
           }
           .disabled(!state.isActive)
