@@ -24,6 +24,9 @@
     private var continuousScroll: Bool = AppConfig.pdfContinuousScroll
     @AppStorage("pdfShowKeyboardHelpOverlay")
     private var showKeyboardHelpOverlay: Bool = AppConfig.pdfShowKeyboardHelpOverlay
+    @AppStorage("showPdfControlsGradientBackground")
+    private var showControlsGradientBackground: Bool =
+      AppConfig.showPdfControlsGradientBackground
 
     @State private var viewModel: PdfReaderViewModel
     @State private var readingDirection: ReadingDirection
@@ -326,6 +329,7 @@
         hasTOC: !viewModel.tableOfContents.isEmpty,
         canSearch: viewModel.documentURL != nil,
         controlsVisible: shouldShowControls,
+        showGradientBackground: showControlsGradientBackground,
         onDismiss: closeReader
       )
     }

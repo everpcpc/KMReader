@@ -127,6 +127,16 @@ enum AppConfig {
     set { UserDefaults.standard.set(newValue, forKey: "enableDivinaImageContextMenu") }
   }
 
+  static nonisolated var showDivinaControlsGradientBackground: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "showDivinaControlsGradientBackground") != nil {
+        return UserDefaults.standard.bool(forKey: "showDivinaControlsGradientBackground")
+      }
+      return false
+    }
+    set { UserDefaults.standard.set(newValue, forKey: "showDivinaControlsGradientBackground") }
+  }
+
   static nonisolated var pdfOfflineRenderQuality: PdfOfflineRenderQuality {
     get {
       if let stored = UserDefaults.standard.string(forKey: "pdfOfflineRenderQuality"),
@@ -147,6 +157,16 @@ enum AppConfig {
       return false
     }
     set { UserDefaults.standard.set(newValue, forKey: "pdfContinuousScroll") }
+  }
+
+  static nonisolated var showPdfControlsGradientBackground: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "showPdfControlsGradientBackground") != nil {
+        return UserDefaults.standard.bool(forKey: "showPdfControlsGradientBackground")
+      }
+      return false
+    }
+    set { UserDefaults.standard.set(newValue, forKey: "showPdfControlsGradientBackground") }
   }
 
   static nonisolated var isOffline: Bool {

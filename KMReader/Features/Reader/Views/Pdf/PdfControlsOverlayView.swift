@@ -20,6 +20,7 @@
     let hasTOC: Bool
     let canSearch: Bool
     let controlsVisible: Bool
+    let showGradientBackground: Bool
     let onDismiss: () -> Void
 
     private var animation: Animation {
@@ -256,15 +257,17 @@
       startPoint: UnitPoint,
       endPoint: UnitPoint
     ) -> some View {
-      LinearGradient(
-        gradient: Gradient(colors: [
-          Color.black.opacity(0.72),
-          Color.black.opacity(0.44),
-          Color.clear,
-        ]),
-        startPoint: startPoint,
-        endPoint: endPoint
-      )
+      if showGradientBackground {
+        LinearGradient(
+          gradient: Gradient(colors: [
+            Color.black.opacity(0.72),
+            Color.black.opacity(0.44),
+            Color.clear,
+          ]),
+          startPoint: startPoint,
+          endPoint: endPoint
+        )
+      }
     }
 
     private var titleText: String {
