@@ -13,8 +13,8 @@
     private var currentScreenSize: CGSize = .zero
     private var currentSplitWidePageMode: SplitWidePageMode = .auto
     private var renderConfig = ReaderRenderConfig(
-      tapZoneSize: .large,
-      tapZoneMode: .auto,
+      tapZoneMode: .defaultLayout,
+      tapZoneInversionMode: .auto,
       showPageNumber: true,
       showPageShadow: true,
       readerBackground: .system,

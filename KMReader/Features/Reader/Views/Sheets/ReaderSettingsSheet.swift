@@ -18,9 +18,9 @@ struct ReaderSettingsSheet: View {
   @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 3.0
   @AppStorage("doubleTapZoomMode") private var doubleTapZoomMode: DoubleTapZoomMode = .fast
   @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .cover
-  @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
+  @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .defaultLayout
+  @AppStorage("tapZoneInversionMode") private var tapZoneInversionMode: TapZoneInversionMode = .auto
   @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
-  @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
   @AppStorage("animateTapTurns") private var animateTapTurns: Bool = AppConfig.animateTapTurns
   @AppStorage("showKeyboardHelpOverlay") private var showKeyboardHelpOverlay: Bool = true
   @AppStorage("autoFullscreenOnOpen") private var autoFullscreenOnOpen: Bool = false
@@ -129,43 +129,22 @@ struct ReaderSettingsSheet: View {
           }
 
           #if os(iOS) || os(macOS)
-            Picker("Tap Zone Mode", selection: $tapZoneMode) {
-              ForEach(TapZoneMode.allCases, id: \.self) { mode in
-                Text(mode.displayName).tag(mode)
-              }
-            }
-            .pickerStyle(.menu)
+            TapZoneModePicker(
+              selection: $tapZoneMode,
+              tapZoneInversionMode: tapZoneInversionMode,
+              readingDirection: readingDirection
+            )
 
             if !tapZoneMode.isDisabled {
+              Picker("Tap Zone Mirroring", selection: $tapZoneInversionMode) {
+                ForEach(TapZoneInversionMode.allCases, id: \.self) { mode in
+                  Text(mode.displayName).tag(mode)
+                }
+              }
+              .pickerStyle(.menu)
+
               Toggle(isOn: $showTapZoneHints) {
                 Text("Show Tap Zone Hints")
-              }
-
-              VStack(alignment: .leading, spacing: 8) {
-                Picker("Tap Zone Size", selection: $tapZoneSize) {
-                  ForEach(TapZoneSize.allCases, id: \.self) { size in
-                    Text(size.displayName).tag(size)
-                  }
-                }
-                .pickerStyle(.menu)
-
-                HStack(spacing: 12) {
-                  switch tapZoneMode {
-                  case .none:
-                    EmptyView()
-                  case .auto:
-                    TapZonePreview(size: tapZoneSize, direction: readingDirection)
-                  case .ltr:
-                    TapZonePreview(size: tapZoneSize, direction: .ltr)
-                  case .rtl:
-                    TapZonePreview(size: tapZoneSize, direction: .rtl)
-                  case .vertical:
-                    TapZonePreview(size: tapZoneSize, direction: .vertical)
-                  case .webtoon:
-                    TapZonePreview(size: tapZoneSize, direction: .webtoon)
-                  }
-                }
-                .frame(height: 60)
               }
 
               if isWebtoonDirection {

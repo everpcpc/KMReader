@@ -6,31 +6,37 @@
 import SwiftUI
 
 struct TapZonePreview: View {
-  let size: TapZoneSize
-  let direction: ReadingDirection
+  let tapZoneMode: TapZoneMode
+  let tapZoneInversionMode: TapZoneInversionMode
+  let readingDirection: ReadingDirection
+  let previewAspectRatio: CGFloat
+  let caption: String?
 
-  private var zoneValue: CGFloat { size.value }
-
-  private var aspectRatio: CGFloat {
-    switch direction {
-    case .vertical, .webtoon:
-      return CoverAspectRatio.widthToHeight
-    case .ltr, .rtl:
-      return CoverAspectRatio.heightToWidth
-    }
+  init(
+    tapZoneMode: TapZoneMode,
+    tapZoneInversionMode: TapZoneInversionMode,
+    readingDirection: ReadingDirection,
+    previewAspectRatio: CGFloat,
+    caption: String? = nil
+  ) {
+    self.tapZoneMode = tapZoneMode
+    self.tapZoneInversionMode = tapZoneInversionMode
+    self.readingDirection = readingDirection
+    self.previewAspectRatio = previewAspectRatio
+    self.caption = caption
   }
 
   var body: some View {
     VStack(spacing: 4) {
       previewContent
-        .aspectRatio(aspectRatio, contentMode: .fit)
+        .aspectRatio(previewAspectRatio, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: 4))
         .overlay(
           RoundedRectangle(cornerRadius: 4)
             .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
         )
 
-      Text(direction.displayName)
+      Text(caption ?? readingDirection.displayName)
         .font(.caption2)
         .foregroundColor(.secondary)
         .lineLimit(1)
@@ -43,16 +49,11 @@ struct TapZonePreview: View {
       Rectangle()
         .fill(Color.gray.opacity(0.1))
 
-      switch direction {
-      case .ltr:
-        ComicTapZoneOverlayContent(tapZoneSize: size)
-      case .rtl:
-        MangaTapZoneOverlayContent(tapZoneSize: size)
-      case .vertical:
-        VerticalTapZoneOverlayContent(tapZoneSize: size)
-      case .webtoon:
-        WebtoonTapZoneOverlayContent(tapZoneSize: size)
-      }
+      TapZoneGridOverlayContent(
+        tapZoneMode: tapZoneMode,
+        tapZoneInversionMode: tapZoneInversionMode,
+        readingDirection: readingDirection
+      )
     }
   }
 }

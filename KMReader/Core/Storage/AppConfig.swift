@@ -557,24 +557,24 @@ enum AppConfig {
       {
         return mode
       }
-      return .auto
+      return .defaultLayout
     }
     set {
       UserDefaults.standard.set(newValue.rawValue, forKey: "tapZoneMode")
     }
   }
 
-  static nonisolated var tapZoneSize: TapZoneSize {
+  static nonisolated var tapZoneInversionMode: TapZoneInversionMode {
     get {
-      if let stored = UserDefaults.standard.string(forKey: "tapZoneSize"),
-        let size = TapZoneSize(rawValue: stored)
+      if let stored = UserDefaults.standard.string(forKey: "tapZoneInversionMode"),
+        let mode = TapZoneInversionMode(rawValue: stored)
       {
-        return size
+        return mode
       }
-      return .large
+      return .auto
     }
     set {
-      UserDefaults.standard.set(newValue.rawValue, forKey: "tapZoneSize")
+      UserDefaults.standard.set(newValue.rawValue, forKey: "tapZoneInversionMode")
     }
   }
 

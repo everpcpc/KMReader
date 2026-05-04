@@ -143,8 +143,8 @@
       var isProgrammaticScrolling: Bool = false
       var pageWidth: CGFloat = 0
       var readerBackground: ReaderBackground = .system
-      var tapZoneMode: TapZoneMode = .auto
-      var tapZoneSize: TapZoneSize = .large
+      var tapZoneMode: TapZoneMode = .defaultLayout
+      var tapZoneInversionMode: TapZoneInversionMode = .auto
       var showPageNumber: Bool = true
       var isLongPress: Bool = false
       var heightCache = WebtoonPageHeightCache()
@@ -175,7 +175,7 @@
         self.heightCache.lastPageWidth = parent.pageWidth
         self.readerBackground = parent.renderConfig.readerBackground
         self.tapZoneMode = parent.renderConfig.tapZoneMode
-        self.tapZoneSize = parent.renderConfig.tapZoneSize
+        self.tapZoneInversionMode = parent.renderConfig.tapZoneInversionMode
         self.showPageNumber = parent.renderConfig.showPageNumber
         super.init()
         _ = scrollEngine.rebuildContentItemsIfNeeded(viewModel: viewModel)
@@ -379,7 +379,7 @@
         self.pageWidth = pageWidth
         self.readerBackground = renderConfig.readerBackground
         self.tapZoneMode = renderConfig.tapZoneMode
-        self.tapZoneSize = renderConfig.tapZoneSize
+        self.tapZoneInversionMode = renderConfig.tapZoneInversionMode
         self.showPageNumber = renderConfig.showPageNumber
 
         let currentPageID = viewModel.currentReaderPage?.id
@@ -884,8 +884,8 @@
           normalizedX: normalizedX,
           normalizedY: normalizedY,
           tapZoneMode: tapZoneMode,
-          readingDirection: .webtoon,
-          zoneThreshold: tapZoneSize.value
+          tapZoneInversionMode: tapZoneInversionMode,
+          readingDirection: .webtoon
         )
 
         switch action {

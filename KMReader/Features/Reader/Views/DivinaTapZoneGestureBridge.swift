@@ -16,7 +16,7 @@
     let isEnabled: Bool
     let readingDirection: ReadingDirection
     let tapZoneMode: TapZoneMode
-    let tapZoneSize: TapZoneSize
+    let tapZoneInversionMode: TapZoneInversionMode
     let doubleTapZoomMode: DoubleTapZoomMode
     let enableLiveText: Bool
     let onAction: (TapZoneAction) -> Void
@@ -36,7 +36,7 @@
         isEnabled: isEnabled,
         readingDirection: readingDirection,
         tapZoneMode: tapZoneMode,
-        zoneThreshold: tapZoneSize.value,
+        tapZoneInversionMode: tapZoneInversionMode,
         tapDebounceDelay: doubleTapZoomMode.tapDebounceDelay,
         enableLiveText: enableLiveText
       )
@@ -46,7 +46,7 @@
       let isEnabled: Bool
       let readingDirection: ReadingDirection
       let tapZoneMode: TapZoneMode
-      let zoneThreshold: Double
+      let tapZoneInversionMode: TapZoneInversionMode
       let tapDebounceDelay: TimeInterval
       let enableLiveText: Bool
     }
@@ -258,8 +258,8 @@
               normalizedX: normalizedX,
               normalizedY: normalizedY,
               tapZoneMode: configuration.tapZoneMode,
-              readingDirection: configuration.readingDirection,
-              zoneThreshold: configuration.zoneThreshold
+              tapZoneInversionMode: configuration.tapZoneInversionMode,
+              readingDirection: configuration.readingDirection
             )
             onAction(action)
           }
@@ -548,8 +548,8 @@
               normalizedX: normalizedX,
               normalizedY: normalizedY,
               tapZoneMode: configuration.tapZoneMode,
-              readingDirection: configuration.readingDirection,
-              zoneThreshold: configuration.zoneThreshold
+              tapZoneInversionMode: configuration.tapZoneInversionMode,
+              readingDirection: configuration.readingDirection
             )
             onAction(action)
           }
@@ -578,7 +578,7 @@
 
             if configuration.enableLiveText && className.contains("VK") {
               let normalizedX = location.x / max(attachedView.bounds.width, 1)
-              let threshold = configuration.zoneThreshold
+              let threshold = 1.0 / 3.0
               let isEdge = normalizedX < threshold || normalizedX > (1 - threshold)
               return isEdge
             }

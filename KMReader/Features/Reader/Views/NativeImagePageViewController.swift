@@ -17,8 +17,8 @@
     private var alignment: HorizontalAlignment = .center
     private var readingDirection: ReadingDirection = .ltr
     private var renderConfig = ReaderRenderConfig(
-      tapZoneSize: .large,
-      tapZoneMode: .auto,
+      tapZoneMode: .defaultLayout,
+      tapZoneInversionMode: .auto,
       showPageNumber: true,
       showPageShadow: true,
       readerBackground: .system,

@@ -26,8 +26,8 @@
     private var readingDirection: ReadingDirection = .ltr
     private var splitWidePageMode: SplitWidePageMode = .auto
     private var renderConfig = ReaderRenderConfig(
-      tapZoneSize: .large,
-      tapZoneMode: .auto,
+      tapZoneMode: .defaultLayout,
+      tapZoneInversionMode: .auto,
       showPageNumber: true,
       showPageShadow: true,
       readerBackground: .system,

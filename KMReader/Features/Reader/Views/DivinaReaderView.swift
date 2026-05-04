@@ -27,8 +27,8 @@ struct DivinaReaderView: View {
   @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .cover
   @AppStorage("animateTapTurns") private var animateTapTurns: Bool = AppConfig.animateTapTurns
   @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
-  @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
-  @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
+  @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .defaultLayout
+  @AppStorage("tapZoneInversionMode") private var tapZoneInversionMode: TapZoneInversionMode = .auto
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
   @AppStorage("showPageShadow") private var showPageShadow: Bool = AppConfig.showPageShadow
   @AppStorage("showKeyboardHelpOverlay") private var showKeyboardHelpOverlay: Bool = true
@@ -121,8 +121,8 @@ struct DivinaReaderView: View {
 
   private var renderConfig: ReaderRenderConfig {
     ReaderRenderConfig(
-      tapZoneSize: tapZoneSize,
       tapZoneMode: tapZoneMode,
+      tapZoneInversionMode: tapZoneInversionMode,
       showPageNumber: showPageNumber,
       showPageShadow: showPageShadow,
       readerBackground: readerBackground,
@@ -723,7 +723,7 @@ struct DivinaReaderView: View {
               isEnabled: isTapZoneGestureEnabled,
               readingDirection: readingDirection,
               tapZoneMode: tapZoneMode,
-              tapZoneSize: tapZoneSize,
+              tapZoneInversionMode: tapZoneInversionMode,
               doubleTapZoomMode: doubleTapZoomMode,
               enableLiveText: enableLiveText,
               onAction: handleTapZoneAction
@@ -787,6 +787,10 @@ struct DivinaReaderView: View {
         }
         .onChange(of: tapZoneMode) {
           // Show helper overlay when tap zone mode changes
+          triggerTapZoneOverlay(timeout: 1)
+        }
+        .onChange(of: tapZoneInversionMode) {
+          // Show helper overlay when tap zone mirroring changes
           triggerTapZoneOverlay(timeout: 1)
         }
     #else

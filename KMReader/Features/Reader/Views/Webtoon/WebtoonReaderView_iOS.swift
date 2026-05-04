@@ -137,8 +137,8 @@
       var isProgrammaticAnimatedScroll: Bool = false
       var pageWidth: CGFloat = 0
       var readerBackground: ReaderBackground = .system
-      var tapZoneMode: TapZoneMode = .auto
-      var tapZoneSize: TapZoneSize = .large
+      var tapZoneMode: TapZoneMode = .defaultLayout
+      var tapZoneInversionMode: TapZoneInversionMode = .auto
       var doubleTapZoomMode: DoubleTapZoomMode = .fast
       var showPageNumber: Bool = true
       var isLongPress: Bool = false
@@ -171,7 +171,7 @@
         self.heightCache.lastPageWidth = parent.pageWidth
         self.readerBackground = parent.renderConfig.readerBackground
         self.tapZoneMode = parent.renderConfig.tapZoneMode
-        self.tapZoneSize = parent.renderConfig.tapZoneSize
+        self.tapZoneInversionMode = parent.renderConfig.tapZoneInversionMode
         self.doubleTapZoomMode = parent.renderConfig.doubleTapZoomMode
         self.showPageNumber = parent.renderConfig.showPageNumber
         super.init()
@@ -386,7 +386,7 @@
         self.pageWidth = pageWidth
         self.readerBackground = renderConfig.readerBackground
         self.tapZoneMode = renderConfig.tapZoneMode
-        self.tapZoneSize = renderConfig.tapZoneSize
+        self.tapZoneInversionMode = renderConfig.tapZoneInversionMode
         self.doubleTapZoomMode = renderConfig.doubleTapZoomMode
         self.showPageNumber = renderConfig.showPageNumber
 
@@ -942,8 +942,8 @@
           normalizedX: normalizedX,
           normalizedY: normalizedY,
           tapZoneMode: tapZoneMode,
-          readingDirection: .webtoon,
-          zoneThreshold: tapZoneSize.value
+          tapZoneInversionMode: tapZoneInversionMode,
+          readingDirection: .webtoon
         )
 
         let workItem = DispatchWorkItem { [weak self] in
