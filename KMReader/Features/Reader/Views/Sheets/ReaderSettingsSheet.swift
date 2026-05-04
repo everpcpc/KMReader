@@ -35,6 +35,9 @@ struct ReaderSettingsSheet: View {
   @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
   @AppStorage("enableDivinaImageContextMenu")
   private var enableDivinaImageContextMenu: Bool = AppConfig.enableDivinaImageContextMenu
+  @AppStorage("showDivinaControlsGradientBackground")
+  private var showControlsGradientBackground: Bool =
+    AppConfig.showDivinaControlsGradientBackground
 
   private var isWebtoonDirection: Bool {
     readingDirection == .webtoon
@@ -68,12 +71,11 @@ struct ReaderSettingsSheet: View {
           }
 
           Toggle(isOn: $showPageShadow) {
-            VStack(alignment: .leading, spacing: 4) {
-              Text("Show Page Shadow")
-              Text("Render a subtle shadow around pages. Turn off for seamless dual-page spreads.")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            }
+            Text("Show Page Shadow")
+          }
+
+          Toggle(isOn: $showControlsGradientBackground) {
+            Text("Controls Gradient Background")
           }
 
           #if os(iOS) || os(macOS)
@@ -102,148 +104,22 @@ struct ReaderSettingsSheet: View {
 
         }
 
-        #if os(iOS)
-          Section(header: Text("Zooming")) {
-            Picker("Double Tap to Zoom", selection: $doubleTapZoomMode) {
-              ForEach(DoubleTapZoomMode.allCases, id: \.self) { mode in
-                Text(mode.displayName).tag(mode)
-              }
-            }
-            .pickerStyle(.menu)
-            if doubleTapZoomMode != .disabled {
-              VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                  Text("Double Tap Zoom Scale")
-                  Spacer()
-                  Text(String(format: "%.1fx", doubleTapZoomScale))
-                    .foregroundColor(.secondary)
-                }
-                Slider(
-                  value: $doubleTapZoomScale,
-                  in: 1.0...8.0,
-                  step: 0.5
-                )
-              }
-            }
-          }
-        #endif
-
-        #if os(iOS) || os(macOS)
-          Section(header: Text("Image Upscaling")) {
-            VStack(alignment: .leading, spacing: 8) {
-              Picker("Waifu2x Mode", selection: $imageUpscalingMode) {
-                ForEach(ReaderImageUpscalingMode.allCases, id: \.self) { mode in
-                  Text(mode.displayName).tag(mode)
-                }
-              }
-              .pickerStyle(.menu)
-
-              Text("Improve clarity for low-resolution pages using built-in waifu2x (2x).")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            }
-
-            Group {
-              switch imageUpscalingMode {
-              case .auto:
-                VStack(alignment: .leading, spacing: 8) {
-                  HStack {
-                    Text("Auto Trigger Scale Threshold")
-                    Spacer()
-                    Text(String(format: "%.2fx", imageUpscaleAutoTriggerScale))
-                      .foregroundColor(.secondary)
-                  }
-                  Slider(
-                    value: $imageUpscaleAutoTriggerScale,
-                    in: 1.0...1.5,
-                    step: 0.01
-                  )
-                  Text("Auto scale only when required scale to fit the page on screen is greater than this value.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                }
-              case .always:
-                VStack(alignment: .leading, spacing: 8) {
-                  HStack {
-                    Text("Always Mode Source Size Threshold")
-                    Spacer()
-                    Text(String(format: "%.2fx", imageUpscaleAlwaysMaxScreenScale))
-                      .foregroundColor(.secondary)
-                  }
-                  Slider(
-                    value: $imageUpscaleAlwaysMaxScreenScale,
-                    in: 1.0...3.0,
-                    step: 0.05
-                  )
-                  Text("In Always mode, upscale unless source width or height exceeds this multiple of the screen.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                }
-              case .disabled:
-                EmptyView()
-              }
-            }
-          }
-        #endif
-
-        #if os(iOS) || os(macOS)
-          Section(header: Text("Live Text")) {
-            Toggle(isOn: $enableLiveText) {
-              VStack(alignment: .leading, spacing: 4) {
-                Text("Enable Live Text")
-                Text("Automatically enable Live Text for all images.")
-                  .font(.caption)
-                  .foregroundColor(.secondary)
-              }
-            }
-            #if os(iOS)
-              Toggle(isOn: $shakeToOpenLiveText) {
-                VStack(alignment: .leading, spacing: 4) {
-                  Text("Shake to Open Live Text")
-                  Text("Shake your device to toggle Live Text")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                }
-              }
-            #endif
-          }
-        #endif
-
-        #if os(iOS) || os(macOS)
-          Section(header: Text("Context Menu")) {
-            Toggle(isOn: $enableDivinaImageContextMenu) {
-              Text("Enable Image Context Menu")
-            }
-          }
-        #endif
-
         // MARK: - Page Turn Section
 
         Section(header: Text("Page Turn")) {
           if shouldShowPagedTurnSettings {
-            VStack(alignment: .leading, spacing: 8) {
-              Picker("Page Transition Style", selection: $pageTransitionStyle) {
-                ForEach(PageTransitionStyle.availableCases, id: \.self) { style in
-                  Text(style.displayName).tag(style)
-                }
+            Picker("Page Transition Style", selection: $pageTransitionStyle) {
+              ForEach(PageTransitionStyle.availableCases, id: \.self) { style in
+                Text(style.displayName).tag(style)
               }
-              .pickerStyle(.menu)
-              Text(pageTransitionStyle.description)
-                .font(.caption)
-                .foregroundColor(.secondary)
             }
-
+            .pickerStyle(.menu)
           }
 
           #if os(iOS) || os(macOS)
             if shouldShowTapTurnAnimation {
               Toggle(isOn: $animateTapTurns) {
-                VStack(alignment: .leading, spacing: 4) {
-                  Text("Animate Page Turns")
-                  Text("Use animation when tapping zones to turn pages")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                }
+                Text("Animate Page Turns")
               }
             }
           #endif
@@ -310,6 +186,101 @@ struct ReaderSettingsSheet: View {
             }
           #endif
         }
+
+        #if os(iOS)
+          Section(header: Text("Zooming")) {
+            Picker("Double Tap to Zoom", selection: $doubleTapZoomMode) {
+              ForEach(DoubleTapZoomMode.allCases, id: \.self) { mode in
+                Text(mode.displayName).tag(mode)
+              }
+            }
+            .pickerStyle(.menu)
+            if doubleTapZoomMode != .disabled {
+              VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                  Text("Double Tap Zoom Scale")
+                  Spacer()
+                  Text(String(format: "%.1fx", doubleTapZoomScale))
+                    .foregroundColor(.secondary)
+                }
+                Slider(
+                  value: $doubleTapZoomScale,
+                  in: 1.0...8.0,
+                  step: 0.5
+                )
+              }
+            }
+          }
+        #endif
+
+        #if os(iOS) || os(macOS)
+          Section(header: Text("Image Upscaling")) {
+            VStack(alignment: .leading, spacing: 8) {
+              Picker("Waifu2x Mode", selection: $imageUpscalingMode) {
+                ForEach(ReaderImageUpscalingMode.allCases, id: \.self) { mode in
+                  Text(mode.displayName).tag(mode)
+                }
+              }
+              .pickerStyle(.menu)
+            }
+
+            Group {
+              switch imageUpscalingMode {
+              case .auto:
+                VStack(alignment: .leading, spacing: 8) {
+                  HStack {
+                    Text("Auto Trigger Scale Threshold")
+                    Spacer()
+                    Text(String(format: "%.2fx", imageUpscaleAutoTriggerScale))
+                      .foregroundColor(.secondary)
+                  }
+                  Slider(
+                    value: $imageUpscaleAutoTriggerScale,
+                    in: 1.0...1.5,
+                    step: 0.01
+                  )
+                }
+              case .always:
+                VStack(alignment: .leading, spacing: 8) {
+                  HStack {
+                    Text("Always Mode Source Size Threshold")
+                    Spacer()
+                    Text(String(format: "%.2fx", imageUpscaleAlwaysMaxScreenScale))
+                      .foregroundColor(.secondary)
+                  }
+                  Slider(
+                    value: $imageUpscaleAlwaysMaxScreenScale,
+                    in: 1.0...3.0,
+                    step: 0.05
+                  )
+                }
+              case .disabled:
+                EmptyView()
+              }
+            }
+          }
+        #endif
+
+        #if os(iOS) || os(macOS)
+          Section(header: Text("Live Text")) {
+            Toggle(isOn: $enableLiveText) {
+              Text("Enable Live Text")
+            }
+            #if os(iOS)
+              Toggle(isOn: $shakeToOpenLiveText) {
+                Text("Shake to Open Live Text")
+              }
+            #endif
+          }
+        #endif
+
+        #if os(iOS) || os(macOS)
+          Section(header: Text("Context Menu")) {
+            Toggle(isOn: $enableDivinaImageContextMenu) {
+              Text("Enable Image Context Menu")
+            }
+          }
+        #endif
       }
     }
     .animation(.default, value: tapZoneMode)

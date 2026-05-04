@@ -2,8 +2,6 @@
   import SwiftUI
 
   struct PdfPreferencesView: View {
-    let inSheet: Bool
-
     @AppStorage("useNativePdfReader") private var useNativePdfReader: Bool = true
     @AppStorage("pdfReaderBackground") private var readerBackground: ReaderBackground = .system
     @AppStorage("pdfDefaultReadingDirection")
@@ -24,36 +22,7 @@
     @AppStorage("pdfOfflineRenderQuality")
     private var pdfOfflineRenderQuality: PdfOfflineRenderQuality = AppConfig.pdfOfflineRenderQuality
 
-    init(inSheet: Bool = false) {
-      self.inSheet = inSheet
-    }
-
     var body: some View {
-      Group {
-        if inSheet {
-          SheetView(
-            title: String(localized: "Reader Settings"),
-            size: .medium,
-            applyFormStyle: true
-          ) {
-            preferencesForm
-          }
-          .presentationDragIndicator(.visible)
-        } else {
-          preferencesForm
-            .formStyle(.grouped)
-            .inlineNavigationBarTitle(SettingsSection.pdfReader.title)
-        }
-      }
-      .onAppear {
-        if defaultReadingDirection == .webtoon {
-          defaultReadingDirection = .vertical
-        }
-      }
-      .animation(.easeInOut(duration: 0.2), value: useNativePdfReader)
-    }
-
-    private var preferencesForm: some View {
       Form {
         Section {
           Toggle(isOn: $useNativePdfReader) {
@@ -178,9 +147,16 @@
                 .foregroundColor(.secondary)
             }
           }
-
         }
       }
+      .onAppear {
+        if defaultReadingDirection == .webtoon {
+          defaultReadingDirection = .vertical
+        }
+      }
+      .animation(.easeInOut(duration: 0.2), value: useNativePdfReader)
+      .formStyle(.grouped)
+      .inlineNavigationBarTitle(SettingsSection.pdfReader.title)
     }
   }
 #endif

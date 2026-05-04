@@ -16,10 +16,12 @@ struct ReaderCommandState: Equatable {
   var isolateCoverPage: Bool = true
   var pageIsolationActions: [ReaderPageIsolationActions.Action] = []
   var splitWidePageMode: SplitWidePageMode = .none
+  var continuousScroll: Bool = false
   var supportsSearch: Bool = false
   var canSearch: Bool = false
   var supportsReadingDirectionSelection: Bool = false
   var supportsPageLayoutSelection: Bool = false
   var supportsDualPageOptions: Bool = false
   var supportsSplitWidePageMode: Bool = false
+  var supportsContinuousScrollToggle: Bool = false
 }

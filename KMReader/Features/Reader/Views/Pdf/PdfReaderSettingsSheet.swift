@@ -2,8 +2,41 @@
   import SwiftUI
 
   struct PdfReaderSettingsSheet: View {
+    @AppStorage("pdfReaderBackground") private var readerBackground: ReaderBackground = .system
+    @AppStorage("pdfShowKeyboardHelpOverlay")
+    private var showKeyboardHelpOverlay: Bool = AppConfig.pdfShowKeyboardHelpOverlay
+    @AppStorage("showPdfControlsGradientBackground")
+    private var showControlsGradientBackground: Bool =
+      AppConfig.showPdfControlsGradientBackground
+
     var body: some View {
-      PdfPreferencesView(inSheet: true)
+      SheetView(
+        title: String(localized: "Reader Settings"),
+        size: .medium,
+        applyFormStyle: true
+      ) {
+        Form {
+          Section(header: Text("Appearance")) {
+            Picker("Reader Background", selection: $readerBackground) {
+              ForEach(ReaderBackground.allCases, id: \.self) { background in
+                Text(background.displayName).tag(background)
+              }
+            }
+            .pickerStyle(.menu)
+          }
+
+          Section(header: Text("Reader Overlay")) {
+            Toggle(isOn: $showControlsGradientBackground) {
+              Text("Controls Gradient Background")
+            }
+
+            Toggle(isOn: $showKeyboardHelpOverlay) {
+              Text("Auto-Show Keyboard Help")
+            }
+          }
+        }
+      }
+      .presentationDragIndicator(.visible)
     }
   }
 #endif

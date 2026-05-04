@@ -5,6 +5,7 @@
     @Binding var readingDirection: ReadingDirection
     @Binding var pageLayout: PageLayout
     @Binding var isolateCoverPage: Bool
+    @Binding var continuousScroll: Bool
 
     @Binding var showingPageJumpSheet: Bool
     @Binding var showingSearchSheet: Bool
@@ -201,6 +202,10 @@
 
         if pageLayout.supportsDualPageOptions {
           pageIsolation()
+        }
+
+        Toggle(isOn: $continuousScroll) {
+          Label(String(localized: "Continuous Scroll"), systemImage: "scroll")
         }
       } header: {
         Text(String(localized: "Current Reading Options"))

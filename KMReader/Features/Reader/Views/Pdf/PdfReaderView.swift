@@ -18,10 +18,6 @@
     private var defaultReadingDirection: ReadingDirection = .ltr
     @AppStorage("pdfForceDefaultReadingDirection")
     private var forceDefaultReadingDirection: Bool = false
-    @AppStorage("pdfPageLayout") private var pageLayout: PageLayout = .auto
-    @AppStorage("pdfIsolateCoverPage") private var isolateCoverPage: Bool = true
-    @AppStorage("pdfContinuousScroll")
-    private var continuousScroll: Bool = AppConfig.pdfContinuousScroll
     @AppStorage("pdfShowKeyboardHelpOverlay")
     private var showKeyboardHelpOverlay: Bool = AppConfig.pdfShowKeyboardHelpOverlay
     @AppStorage("showPdfControlsGradientBackground")
@@ -30,6 +26,9 @@
 
     @State private var viewModel: PdfReaderViewModel
     @State private var readingDirection: ReadingDirection
+    @State private var pageLayout: PageLayout
+    @State private var isolateCoverPage: Bool
+    @State private var continuousScroll: Bool
     @State private var currentBook: Book?
     @State private var currentSeries: Series?
     @State private var showingControls = false
@@ -60,6 +59,9 @@
       self.onClose = onClose
       _viewModel = State(initialValue: PdfReaderViewModel(incognito: incognito))
       _readingDirection = State(initialValue: .ltr)
+      _pageLayout = State(initialValue: AppConfig.pdfPageLayout)
+      _isolateCoverPage = State(initialValue: AppConfig.pdfIsolateCoverPage)
+      _continuousScroll = State(initialValue: AppConfig.pdfContinuousScroll)
       _currentBook = State(initialValue: book)
     }
 
@@ -149,14 +151,6 @@
       .onChange(of: defaultReadingDirection) { _, newDirection in
         if newDirection == .webtoon {
           defaultReadingDirection = .vertical
-        }
-        Task {
-          await refreshPreferredReadingDirection()
-        }
-      }
-      .onChange(of: forceDefaultReadingDirection) { _, _ in
-        Task {
-          await refreshPreferredReadingDirection()
         }
       }
       .onReceive(NotificationCenter.default.publisher(for: .fileDownloadProgress)) { notification in
@@ -316,6 +310,7 @@
         readingDirection: $readingDirection,
         pageLayout: $pageLayout,
         isolateCoverPage: $isolateCoverPage,
+        continuousScroll: $continuousScroll,
         showingPageJumpSheet: $showingPageJumpSheet,
         showingSearchSheet: $showingSearchSheet,
         showingTOCSheet: $showingTOCSheet,
@@ -390,13 +385,6 @@
       readingDirection = resolvePreferredReadingDirection(series: resolvedSeries)
       await viewModel.load(book: resolvedBook)
       updateHandoff()
-    }
-
-    private func refreshPreferredReadingDirection() async {
-      let activeBook = currentBook ?? book
-      let resolvedSeries = await fetchSeries(for: activeBook)
-      currentSeries = resolvedSeries
-      readingDirection = resolvePreferredReadingDirection(series: resolvedSeries)
     }
 
     private func runSearch(query: String) {
@@ -547,12 +535,14 @@
           isolateCoverPage: isolateCoverPage,
           pageIsolationActions: [],
           splitWidePageMode: .none,
+          continuousScroll: continuousScroll,
           supportsSearch: true,
           canSearch: viewModel.documentURL != nil,
           supportsReadingDirectionSelection: true,
           supportsPageLayoutSelection: true,
           supportsDualPageOptions: pageLayout.supportsDualPageOptions,
-          supportsSplitWidePageMode: false
+          supportsSplitWidePageMode: false,
+          supportsContinuousScrollToggle: true
         )
       }
     #endif
@@ -616,7 +606,10 @@
               isolateCoverPage.toggle()
             },
             toggleIsolatePage: { _ in },
-            setSplitWidePageMode: { _ in }
+            setSplitWidePageMode: { _ in },
+            toggleContinuousScroll: {
+              continuousScroll.toggle()
+            }
           )
         )
       }

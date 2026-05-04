@@ -159,6 +159,28 @@ enum AppConfig {
     set { UserDefaults.standard.set(newValue, forKey: "pdfContinuousScroll") }
   }
 
+  static nonisolated var pdfPageLayout: PageLayout {
+    get {
+      if let stored = UserDefaults.standard.string(forKey: "pdfPageLayout"),
+        let layout = PageLayout(rawValue: stored)
+      {
+        return layout
+      }
+      return .auto
+    }
+    set { UserDefaults.standard.set(newValue.rawValue, forKey: "pdfPageLayout") }
+  }
+
+  static nonisolated var pdfIsolateCoverPage: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "pdfIsolateCoverPage") != nil {
+        return UserDefaults.standard.bool(forKey: "pdfIsolateCoverPage")
+      }
+      return true
+    }
+    set { UserDefaults.standard.set(newValue, forKey: "pdfIsolateCoverPage") }
+  }
+
   static nonisolated var showPdfControlsGradientBackground: Bool {
     get {
       if UserDefaults.standard.object(forKey: "showPdfControlsGradientBackground") != nil {

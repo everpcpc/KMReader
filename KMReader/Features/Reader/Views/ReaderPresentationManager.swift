@@ -204,6 +204,10 @@ final class ReaderPresentationManager {
     func setSplitWidePageModeFromCommand(_ mode: SplitWidePageMode) {
       readerCommandHandlers?.setSplitWidePageMode(mode)
     }
+
+    func toggleContinuousScrollFromCommand() {
+      readerCommandHandlers?.toggleContinuousScroll()
+    }
   #endif
 
   private func finishSession(_ session: ReaderSession, syncVisited: Bool) {

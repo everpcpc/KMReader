@@ -209,6 +209,123 @@ struct DivinaPreferencesView: View {
         #endif
       }
 
+      Section(header: Text("Page Turn")) {
+        if shouldShowPagedSpecificSettings {
+          VStack(alignment: .leading, spacing: 8) {
+            Picker("Page Transition Style", selection: $pageTransitionStyle) {
+              ForEach(PageTransitionStyle.availableCases, id: \.self) { style in
+                Text(style.displayName).tag(style)
+              }
+            }
+            .pickerStyle(.menu)
+            Text(pageTransitionStyle.description)
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
+
+        }
+
+        #if os(iOS) || os(macOS)
+          if shouldShowTapTurnAnimation {
+            Toggle(isOn: $animateTapTurns) {
+              VStack(alignment: .leading, spacing: 4) {
+                Text("Animate Page Turns")
+                Text("Use animation when tapping zones to turn pages")
+                  .font(.caption)
+                  .foregroundColor(.secondary)
+              }
+            }
+          }
+        #endif
+
+        Toggle(isOn: $showKeyboardHelpOverlay) {
+          VStack(alignment: .leading, spacing: 4) {
+            Text("Auto-Show Keyboard Help")
+            Text("Briefly show keyboard shortcuts when opening the reader")
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
+        }
+
+        #if os(iOS) || os(macOS)
+          VStack(alignment: .leading, spacing: 8) {
+            Picker("Tap Zone Mode", selection: $tapZoneMode) {
+              ForEach(TapZoneMode.allCases, id: \.self) { mode in
+                Text(mode.displayName).tag(mode)
+              }
+            }
+            .pickerStyle(.menu)
+            Text("Choose how tap zones work: auto matches reading direction, or select a fixed layout")
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
+
+          if !tapZoneMode.isDisabled {
+            Toggle(isOn: $showTapZoneHints) {
+              VStack(alignment: .leading, spacing: 4) {
+                Text("Show Tap Zone Hints")
+                Text("Display tap zone hints when opening the reader")
+                  .font(.caption)
+                  .foregroundColor(.secondary)
+              }
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+              Picker("Tap Zone Size", selection: $tapZoneSize) {
+                ForEach(TapZoneSize.allCases, id: \.self) { size in
+                  Text(size.displayName).tag(size)
+                }
+              }
+              .pickerStyle(.menu)
+
+              HStack(spacing: 12) {
+                switch tapZoneMode {
+                case .none:
+                  EmptyView()
+                case .auto:
+                  TapZonePreview(size: tapZoneSize, direction: .ltr)
+                  TapZonePreview(size: tapZoneSize, direction: .rtl)
+                  TapZonePreview(size: tapZoneSize, direction: .vertical)
+                  TapZonePreview(size: tapZoneSize, direction: .webtoon)
+                case .ltr:
+                  TapZonePreview(size: tapZoneSize, direction: .ltr)
+                case .rtl:
+                  TapZonePreview(size: tapZoneSize, direction: .rtl)
+                case .vertical:
+                  TapZonePreview(size: tapZoneSize, direction: .vertical)
+                case .webtoon:
+                  TapZonePreview(size: tapZoneSize, direction: .webtoon)
+                }
+              }
+              .frame(height: 80)
+
+              Text("Size of tap zones for page navigation")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
+
+            if shouldShowWebtoonTapNavigationSettings {
+              VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                  Text("Webtoon Tap Scroll Height")
+                  Spacer()
+                  Text("\(Int(webtoonTapScrollPercentage))%")
+                    .foregroundColor(.secondary)
+                }
+                Slider(
+                  value: $webtoonTapScrollPercentage,
+                  in: 25...100,
+                  step: 5
+                )
+                Text("Scroll distance when tapping to navigate in webtoon mode")
+                  .font(.caption)
+                  .foregroundColor(.secondary)
+              }
+            }
+          }
+        #endif
+      }
+
       #if os(iOS)
         Section(header: Text("Zooming")) {
           Picker("Double Tap to Zoom", selection: $doubleTapZoomMode) {
@@ -333,123 +450,6 @@ struct DivinaPreferencesView: View {
           }
         }
       #endif
-
-      Section(header: Text("Page Turn")) {
-        if shouldShowPagedSpecificSettings {
-          VStack(alignment: .leading, spacing: 8) {
-            Picker("Page Transition Style", selection: $pageTransitionStyle) {
-              ForEach(PageTransitionStyle.availableCases, id: \.self) { style in
-                Text(style.displayName).tag(style)
-              }
-            }
-            .pickerStyle(.menu)
-            Text(pageTransitionStyle.description)
-              .font(.caption)
-              .foregroundColor(.secondary)
-          }
-
-        }
-
-        #if os(iOS) || os(macOS)
-          if shouldShowTapTurnAnimation {
-            Toggle(isOn: $animateTapTurns) {
-              VStack(alignment: .leading, spacing: 4) {
-                Text("Animate Page Turns")
-                Text("Use animation when tapping zones to turn pages")
-                  .font(.caption)
-                  .foregroundColor(.secondary)
-              }
-            }
-          }
-        #endif
-
-        Toggle(isOn: $showKeyboardHelpOverlay) {
-          VStack(alignment: .leading, spacing: 4) {
-            Text("Auto-Show Keyboard Help")
-            Text("Briefly show keyboard shortcuts when opening the reader")
-              .font(.caption)
-              .foregroundColor(.secondary)
-          }
-        }
-
-        #if os(iOS) || os(macOS)
-          VStack(alignment: .leading, spacing: 8) {
-            Picker("Tap Zone Mode", selection: $tapZoneMode) {
-              ForEach(TapZoneMode.allCases, id: \.self) { mode in
-                Text(mode.displayName).tag(mode)
-              }
-            }
-            .pickerStyle(.menu)
-            Text("Choose how tap zones work: auto matches reading direction, or select a fixed layout")
-              .font(.caption)
-              .foregroundColor(.secondary)
-          }
-
-          if !tapZoneMode.isDisabled {
-            Toggle(isOn: $showTapZoneHints) {
-              VStack(alignment: .leading, spacing: 4) {
-                Text("Show Tap Zone Hints")
-                Text("Display tap zone hints when opening the reader")
-                  .font(.caption)
-                  .foregroundColor(.secondary)
-              }
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-              Picker("Tap Zone Size", selection: $tapZoneSize) {
-                ForEach(TapZoneSize.allCases, id: \.self) { size in
-                  Text(size.displayName).tag(size)
-                }
-              }
-              .pickerStyle(.menu)
-
-              HStack(spacing: 12) {
-                switch tapZoneMode {
-                case .none:
-                  EmptyView()
-                case .auto:
-                  TapZonePreview(size: tapZoneSize, direction: .ltr)
-                  TapZonePreview(size: tapZoneSize, direction: .rtl)
-                  TapZonePreview(size: tapZoneSize, direction: .vertical)
-                  TapZonePreview(size: tapZoneSize, direction: .webtoon)
-                case .ltr:
-                  TapZonePreview(size: tapZoneSize, direction: .ltr)
-                case .rtl:
-                  TapZonePreview(size: tapZoneSize, direction: .rtl)
-                case .vertical:
-                  TapZonePreview(size: tapZoneSize, direction: .vertical)
-                case .webtoon:
-                  TapZonePreview(size: tapZoneSize, direction: .webtoon)
-                }
-              }
-              .frame(height: 80)
-
-              Text("Size of tap zones for page navigation")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            }
-
-            if shouldShowWebtoonTapNavigationSettings {
-              VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                  Text("Webtoon Tap Scroll Height")
-                  Spacer()
-                  Text("\(Int(webtoonTapScrollPercentage))%")
-                    .foregroundColor(.secondary)
-                }
-                Slider(
-                  value: $webtoonTapScrollPercentage,
-                  in: 25...100,
-                  step: 5
-                )
-                Text("Scroll distance when tapping to navigate in webtoon mode")
-                  .font(.caption)
-                  .foregroundColor(.secondary)
-              }
-            }
-          }
-        #endif
-      }
 
     }
     .animation(.default, value: tapZoneMode)
