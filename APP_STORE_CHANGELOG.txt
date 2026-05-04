@@ -1,20 +1,16 @@
-Reader Improvements
-- External keyboard shortcuts now work in the reader on iPhone, iPad, and Apple TV, with expanded keyboard help across DIVINA, EPUB, and PDF readers.
-- DIVINA cover and scroll reading are more reliable, especially around drag gestures, tap navigation, zoom dismissal, split wide pages, and Webtoon end pages.
-- Split wide pages in scroll mode now line up more cleanly while swiping, reducing the visible gap between page halves.
-- Reader overlays and controls are easier to interact with on older system versions.
+Reader Settings and Controls
+- DIVINA and PDF reader settings are now more consistent between global Settings and in-reader controls.
+- PDF reading now supports an optional continuous scrolling mode, while page-by-page reading remains the default.
+- Reader controls can show optional gradient backgrounds for better contrast over page artwork.
+- Tap page-turn animation settings are simpler, with separate controls for DIVINA/Webtoon and EPUB.
+- Reader progress bars are easier to see over comics, PDFs, and EPUB content.
+- Reader overlay buttons have better contrast on older system versions.
 
-Offline and Downloads
-- Large original book downloads now stream directly to disk, reducing memory pressure for large CBR, EPUB, and PDF files.
-- Offline downloads for CBZ, CBR, and supported EPUB books now use a faster single-file workflow with local extraction.
-- Download progress updates are smoother, and offline tasks now show a processing state while extraction or finalization continues.
-- Stale offline books removed from the server are cleaned up more reliably instead of retrying forever.
+Reader Reliability
+- Cover-mode table of contents and page jumps are more stable and should no longer snap back to the previous page.
+- Webtoon scrolling is smoother when moving between book segments.
+- PDF display mode changes preserve the current reading position more reliably.
 
-Browsing and Settings
-- Cover thumbnails can refresh automatically after a configurable expiration period, helping updated covers appear without manual refresh.
-- Sync and Handoff settings now have their own settings page, making network settings easier to scan.
-- Filter sheets are more stable on iOS 17.
-
-Reliability
-- Dashboard and reading-progress sync are more stable on iOS 17.
-- Thumbnail refreshes, cache fallbacks, and local offline state handling are more resilient during transient network failures.
+Offline and Recovery
+- Offline archive extraction is more consistent for EPUB, CBZ, and CBR downloads.
+- If local storage damage prevents KMReader from opening, the startup failure screen now offers a Reset Local Data recovery action.
