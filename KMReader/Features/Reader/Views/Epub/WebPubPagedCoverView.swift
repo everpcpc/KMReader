@@ -1043,8 +1043,8 @@
           normalizedX: normalizedX,
           normalizedY: normalizedY,
           tapZoneMode: AppConfig.tapZoneMode,
-          readingDirection: tapReadingDirection(),
-          zoneThreshold: AppConfig.tapZoneSize.value
+          tapZoneInversionMode: AppConfig.tapZoneInversionMode,
+          readingDirection: tapReadingDirection()
         )
 
         switch action {

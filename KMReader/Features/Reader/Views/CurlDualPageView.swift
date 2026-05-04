@@ -656,8 +656,8 @@
             normalizedX: normalizedX,
             normalizedY: normalizedY,
             tapZoneMode: parent.renderConfig.tapZoneMode,
-            readingDirection: parent.readingDirection,
-            zoneThreshold: parent.renderConfig.tapZoneSize.value
+            tapZoneInversionMode: parent.renderConfig.tapZoneInversionMode,
+            readingDirection: parent.readingDirection
           )
 
           switch action {

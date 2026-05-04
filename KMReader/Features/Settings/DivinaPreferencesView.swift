@@ -7,8 +7,8 @@ import SwiftUI
 
 struct DivinaPreferencesView: View {
   @AppStorage("showTapZoneHints") private var showTapZoneHints: Bool = true
-  @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .auto
-  @AppStorage("tapZoneSize") private var tapZoneSize: TapZoneSize = .large
+  @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .defaultLayout
+  @AppStorage("tapZoneInversionMode") private var tapZoneInversionMode: TapZoneInversionMode = .auto
   @AppStorage("showKeyboardHelpOverlay") private var showKeyboardHelpOverlay: Bool = true
   @AppStorage("autoFullscreenOnOpen") private var autoFullscreenOnOpen: Bool = false
   @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
@@ -59,17 +59,7 @@ struct DivinaPreferencesView: View {
   }
 
   private var shouldShowWebtoonTapNavigationSettings: Bool {
-    guard !tapZoneMode.isDisabled else { return false }
-    switch tapZoneMode {
-    case .none:
-      return false
-    case .auto:
-      return shouldShowWebtoonSpecificSettings
-    case .ltr, .rtl, .vertical:
-      return false
-    case .webtoon:
-      return true
-    }
+    !tapZoneMode.isDisabled && shouldShowWebtoonSpecificSettings
   }
 
   var body: some View {
@@ -249,18 +239,29 @@ struct DivinaPreferencesView: View {
 
         #if os(iOS) || os(macOS)
           VStack(alignment: .leading, spacing: 8) {
-            Picker("Tap Zone Mode", selection: $tapZoneMode) {
-              ForEach(TapZoneMode.allCases, id: \.self) { mode in
-                Text(mode.displayName).tag(mode)
-              }
-            }
-            .pickerStyle(.menu)
-            Text("Choose how tap zones work: auto matches reading direction, or select a fixed layout")
+            TapZoneModePicker(
+              selection: $tapZoneMode,
+              tapZoneInversionMode: tapZoneInversionMode,
+              readingDirection: readDirection
+            )
+            Text("Choose how tap zones are laid out")
               .font(.caption)
               .foregroundColor(.secondary)
           }
 
           if !tapZoneMode.isDisabled {
+            VStack(alignment: .leading, spacing: 8) {
+              Picker("Tap Zone Mirroring", selection: $tapZoneInversionMode) {
+                ForEach(TapZoneInversionMode.allCases, id: \.self) { mode in
+                  Text(mode.displayName).tag(mode)
+                }
+              }
+              .pickerStyle(.menu)
+              Text("Mirror left and right tap zones manually or automatically for RTL reading")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
+
             Toggle(isOn: $showTapZoneHints) {
               VStack(alignment: .leading, spacing: 4) {
                 Text("Show Tap Zone Hints")
@@ -268,40 +269,6 @@ struct DivinaPreferencesView: View {
                   .font(.caption)
                   .foregroundColor(.secondary)
               }
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-              Picker("Tap Zone Size", selection: $tapZoneSize) {
-                ForEach(TapZoneSize.allCases, id: \.self) { size in
-                  Text(size.displayName).tag(size)
-                }
-              }
-              .pickerStyle(.menu)
-
-              HStack(spacing: 12) {
-                switch tapZoneMode {
-                case .none:
-                  EmptyView()
-                case .auto:
-                  TapZonePreview(size: tapZoneSize, direction: .ltr)
-                  TapZonePreview(size: tapZoneSize, direction: .rtl)
-                  TapZonePreview(size: tapZoneSize, direction: .vertical)
-                  TapZonePreview(size: tapZoneSize, direction: .webtoon)
-                case .ltr:
-                  TapZonePreview(size: tapZoneSize, direction: .ltr)
-                case .rtl:
-                  TapZonePreview(size: tapZoneSize, direction: .rtl)
-                case .vertical:
-                  TapZonePreview(size: tapZoneSize, direction: .vertical)
-                case .webtoon:
-                  TapZonePreview(size: tapZoneSize, direction: .webtoon)
-                }
-              }
-              .frame(height: 80)
-
-              Text("Size of tap zones for page navigation")
-                .font(.caption)
-                .foregroundColor(.secondary)
             }
 
             if shouldShowWebtoonTapNavigationSettings {

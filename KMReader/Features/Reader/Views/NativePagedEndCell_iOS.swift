@@ -59,8 +59,8 @@
 
     private var placeholderRenderConfig: ReaderRenderConfig {
       ReaderRenderConfig(
-        tapZoneSize: .large,
-        tapZoneMode: .auto,
+        tapZoneMode: .defaultLayout,
+        tapZoneInversionMode: .auto,
         showPageNumber: true,
         showPageShadow: true,
         readerBackground: .system,

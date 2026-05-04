@@ -19,87 +19,89 @@ enum TapZoneHelper {
   ///   - normalizedX: X position normalized to 0...1 (0 = left, 1 = right)
   ///   - normalizedY: Y position normalized to 0...1 (0 = top, 1 = bottom)
   ///   - tapZoneMode: The tap zone mode setting
-  ///   - readingDirection: The current reading direction (used when mode is .auto)
-  ///   - zoneThreshold: The tap zone threshold (from TapZoneSize.value)
+  ///   - tapZoneInversionMode: The tap zone horizontal inversion setting
+  ///   - readingDirection: The current reading direction (used when inversion mode is .auto)
   /// - Returns: The action to perform
   static func action(
     normalizedX: CGFloat,
     normalizedY: CGFloat,
     tapZoneMode: TapZoneMode,
-    readingDirection: ReadingDirection,
-    zoneThreshold: CGFloat
+    tapZoneInversionMode: TapZoneInversionMode,
+    readingDirection: ReadingDirection
   ) -> TapZoneAction {
-    // Handle none mode - always toggle controls
-    guard let effectiveDirection = tapZoneMode.effectiveDirection(for: readingDirection) else {
+    if tapZoneMode.isDisabled {
       return .toggleControls
     }
 
-    return actionForDirection(
+    let column = columnIndex(
       normalizedX: normalizedX,
-      normalizedY: normalizedY,
-      direction: effectiveDirection,
-      zoneThreshold: zoneThreshold
+      isInverted: tapZoneInversionMode.isInverted(for: readingDirection)
     )
+    let row = rowIndex(normalizedY: normalizedY)
+    return action(row: row, column: column, tapZoneMode: tapZoneMode)
   }
 
-  /// Determine the action for a tap based on a specific direction
-  private static func actionForDirection(
-    normalizedX: CGFloat,
-    normalizedY: CGFloat,
-    direction: ReadingDirection,
-    zoneThreshold: CGFloat
+  static func action(
+    row: Int,
+    column: Int,
+    tapZoneMode: TapZoneMode,
+    tapZoneInversionMode: TapZoneInversionMode,
+    readingDirection: ReadingDirection
   ) -> TapZoneAction {
-    switch direction {
-    case .ltr:
-      // Left-to-right: left=previous, right=next, center=controls
-      if normalizedX < zoneThreshold {
+    let effectiveColumn = tapZoneInversionMode.isInverted(for: readingDirection) ? 2 - column : column
+    return action(row: row, column: effectiveColumn, tapZoneMode: tapZoneMode)
+  }
+
+  private static func action(row: Int, column: Int, tapZoneMode: TapZoneMode) -> TapZoneAction {
+    guard !tapZoneMode.isDisabled else { return .toggleControls }
+
+    switch tapZoneMode {
+    case .none:
+      return .toggleControls
+    case .defaultLayout:
+      switch column {
+      case 0:
         return .previous
-      } else if normalizedX > (1.0 - zoneThreshold) {
-        return .next
-      } else {
+      case 1:
         return .toggleControls
-      }
-
-    case .rtl:
-      // Right-to-left: right=previous, left=next, center=controls
-      if normalizedX > (1.0 - zoneThreshold) {
-        return .previous
-      } else if normalizedX < zoneThreshold {
-        return .next
-      } else {
-        return .toggleControls
-      }
-
-    case .vertical:
-      // Vertical: top=previous, bottom=next, center=controls
-      if normalizedY < zoneThreshold {
-        return .previous
-      } else if normalizedY > (1.0 - zoneThreshold) {
-        return .next
-      } else {
-        return .toggleControls
-      }
-
-    case .webtoon:
-      // L-shaped zones: top + left = previous, bottom + right = next
-      let isTopArea = normalizedY < zoneThreshold
-      let isBottomArea = normalizedY > (1.0 - zoneThreshold)
-      let isMiddleY = !isTopArea && !isBottomArea
-      let isLeftArea = normalizedX < zoneThreshold
-
-      let isCenterArea =
-        normalizedX > zoneThreshold
-        && normalizedX < (1.0 - zoneThreshold)
-        && normalizedY > zoneThreshold
-        && normalizedY < (1.0 - zoneThreshold)
-
-      if isCenterArea {
-        return .toggleControls
-      } else if isTopArea || (isMiddleY && isLeftArea) {
-        return .previous
-      } else {
+      default:
         return .next
       }
+    case .edge:
+      if row == 1 && column == 1 {
+        return .toggleControls
+      }
+      if row == 2 && column == 1 {
+        return .previous
+      }
+      return .next
+    case .kindle:
+      if row == 0 {
+        return .toggleControls
+      }
+      if column == 0 {
+        return .previous
+      }
+      return .next
+    case .lShape:
+      if row == 1 && column == 1 {
+        return .toggleControls
+      }
+      if row == 0 || (row == 1 && column == 0) {
+        return .previous
+      }
+      return .next
     }
+  }
+
+  private static func columnIndex(normalizedX: CGFloat, isInverted: Bool) -> Int {
+    let clampedX = min(max(normalizedX, 0), 0.999_999)
+    let column = Int(clampedX * 3)
+    return isInverted ? 2 - column : column
+  }
+
+  private static func rowIndex(normalizedY: CGFloat) -> Int {
+    let clampedY = min(max(normalizedY, 0), 0.999_999)
+    return Int(clampedY * 3)
   }
 }
