@@ -11,6 +11,7 @@
     let readListContext: ReaderReadListContext?
     let onDismiss: () -> Void
     let toggleControls: () -> Void
+    let scrollController: WebtoonScrollController
     let pageWidthPercentage: Double
     let renderConfig: ReaderRenderConfig
     @State private var zoomTargetPageID: ReaderPageID?
@@ -35,7 +36,8 @@
             },
             onZoomRequest: { pageID, anchor in
               openZoomOverlay(pageID: pageID, anchor: anchor)
-            }
+            },
+            scrollController: scrollController
           )
 
           if let zoomTargetPageID, let zoomRequestID {

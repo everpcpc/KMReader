@@ -15,6 +15,7 @@
     let onZoomRequest: ((ReaderPageID, CGPoint) -> Void)?
     let pageWidth: CGFloat
     let renderConfig: ReaderRenderConfig
+    let scrollController: WebtoonScrollController
 
     init(
       viewModel: ReaderViewModel,
@@ -23,7 +24,8 @@
       readListContext: ReaderReadListContext? = nil,
       onDismiss: @escaping () -> Void = {},
       onCenterTap: (() -> Void)? = nil,
-      onZoomRequest: ((ReaderPageID, CGPoint) -> Void)? = nil
+      onZoomRequest: ((ReaderPageID, CGPoint) -> Void)? = nil,
+      scrollController: WebtoonScrollController
     ) {
       self.viewModel = viewModel
       self.pageWidth = pageWidth
@@ -32,6 +34,7 @@
       self.onDismiss = onDismiss
       self.onCenterTap = onCenterTap
       self.onZoomRequest = onZoomRequest
+      self.scrollController = scrollController
     }
 
     func makeUIView(context: Context) -> UICollectionView {
@@ -86,6 +89,7 @@
       collectionView.addGestureRecognizer(pinchGesture)
 
       context.coordinator.collectionView = collectionView
+      scrollController.target = context.coordinator
       context.coordinator.scheduleInitialScroll()
 
       return collectionView
@@ -103,6 +107,8 @@
         collectionView: collectionView,
         renderConfig: renderConfig
       )
+      context.coordinator.scrollController = scrollController
+      scrollController.target = context.coordinator
     }
 
     @MainActor
@@ -116,7 +122,7 @@
 
     @MainActor
     class Coordinator: NSObject, UICollectionViewDelegate, UICollectionViewDataSource,
-      UICollectionViewDelegateFlowLayout, UIGestureRecognizerDelegate
+      UICollectionViewDelegateFlowLayout, UIGestureRecognizerDelegate, WebtoonScrollCommandHandling
     {
       var collectionView: UICollectionView?
       private var scrollEngine: WebtoonScrollEngine
@@ -125,6 +131,7 @@
       var onDismiss: (() -> Void)?
       var onCenterTap: (() -> Void)?
       var onZoomRequest: ((ReaderPageID, CGPoint) -> Void)?
+      weak var scrollController: WebtoonScrollController?
       var lastPagesCount: Int = 0
       var isUserScrolling: Bool = false
       var isProgrammaticAnimatedScroll: Bool = false
@@ -158,6 +165,7 @@
         self.onDismiss = parent.onDismiss
         self.onCenterTap = parent.onCenterTap
         self.onZoomRequest = parent.onZoomRequest
+        self.scrollController = parent.scrollController
         self.lastPagesCount = parent.viewModel.pageCount
         self.pageWidth = parent.pageWidth
         self.heightCache.lastPageWidth = parent.pageWidth
@@ -578,6 +586,7 @@
       }
 
       func teardown() {
+        scrollController?.clearTarget(self)
         singleTapWorkItem?.cancel()
         singleTapWorkItem = nil
         cancelDeferredMaintenance()
@@ -1074,6 +1083,20 @@
           maxOffset
         )
         scrollToOffsetIfNeeded(targetOffset, in: collectionView)
+      }
+
+      func scrollWebtoon(_ direction: WebtoonScrollDirection) {
+        guard let collectionView else { return }
+
+        let screenHeight = collectionView.bounds.height
+        guard screenHeight > 0 else { return }
+
+        switch direction {
+        case .up:
+          scrollUp(collectionView: collectionView, screenHeight: screenHeight)
+        case .down:
+          scrollDown(collectionView: collectionView, screenHeight: screenHeight)
+        }
       }
 
       private func scrollToOffsetIfNeeded(_ targetOffset: CGFloat, in collectionView: UICollectionView) {

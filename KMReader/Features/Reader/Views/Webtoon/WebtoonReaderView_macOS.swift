@@ -15,6 +15,7 @@
     let onZoomRequest: ((ReaderPageID, CGPoint) -> Void)?
     let pageWidth: CGFloat
     let renderConfig: ReaderRenderConfig
+    let scrollController: WebtoonScrollController
 
     init(
       viewModel: ReaderViewModel,
@@ -23,7 +24,8 @@
       readListContext: ReaderReadListContext? = nil,
       onDismiss: @escaping () -> Void = {},
       onCenterTap: (() -> Void)? = nil,
-      onZoomRequest: ((ReaderPageID, CGPoint) -> Void)? = nil
+      onZoomRequest: ((ReaderPageID, CGPoint) -> Void)? = nil,
+      scrollController: WebtoonScrollController
     ) {
       self.viewModel = viewModel
       self.pageWidth = pageWidth
@@ -32,6 +34,7 @@
       self.onDismiss = onDismiss
       self.onCenterTap = onCenterTap
       self.onZoomRequest = onZoomRequest
+      self.scrollController = scrollController
     }
 
     func makeNSView(context: Context) -> NSScrollView {
@@ -78,8 +81,8 @@
 
       context.coordinator.collectionView = collectionView
       context.coordinator.scrollView = scrollView
+      scrollController.target = context.coordinator
       context.coordinator.scheduleInitialScroll()
-      context.coordinator.setupKeyboardMonitor()
 
       NotificationCenter.default.addObserver(
         context.coordinator,
@@ -108,6 +111,8 @@
           pageWidth: pageWidth,
           collectionView: collectionView,
           renderConfig: renderConfig)
+        context.coordinator.scrollController = scrollController
+        scrollController.target = context.coordinator
       }
     }
 
@@ -122,7 +127,7 @@
 
     @MainActor
     class Coordinator: NSObject, NSCollectionViewDelegate, NSCollectionViewDataSource,
-      NSCollectionViewDelegateFlowLayout, NSGestureRecognizerDelegate
+      NSCollectionViewDelegateFlowLayout, NSGestureRecognizerDelegate, WebtoonScrollCommandHandling
     {
       var collectionView: NSCollectionView?
       var scrollView: NSScrollView?
@@ -132,6 +137,7 @@
       var onDismiss: (() -> Void)?
       var onCenterTap: (() -> Void)?
       var onZoomRequest: ((ReaderPageID, CGPoint) -> Void)?
+      weak var scrollController: WebtoonScrollController?
       var lastPagesCount: Int = 0
       var isUserScrolling: Bool = false
       var isProgrammaticScrolling: Bool = false
@@ -142,7 +148,6 @@
       var showPageNumber: Bool = true
       var isLongPress: Bool = false
       var heightCache = WebtoonPageHeightCache()
-      var keyMonitor: Any?
       var lastScrollTime: TimeInterval = 0
       var hasTriggeredZoomGesture: Bool = false
       private var deferredReloadWorkItem: DispatchWorkItem?
@@ -164,6 +169,7 @@
         self.onDismiss = parent.onDismiss
         self.onCenterTap = parent.onCenterTap
         self.onZoomRequest = parent.onZoomRequest
+        self.scrollController = parent.scrollController
         self.lastPagesCount = parent.viewModel.pageCount
         self.pageWidth = parent.pageWidth
         self.heightCache.lastPageWidth = parent.pageWidth
@@ -184,38 +190,12 @@
       }
 
       func teardown() {
+        scrollController?.clearTarget(self)
         cancelDeferredMaintenance()
         sizeProbeTasks.values.forEach { $0.cancel() }
         sizeProbeTasks.removeAll()
         pendingMeasuredPageIDs.removeAll()
         NotificationCenter.default.removeObserver(self)
-        if let monitor = keyMonitor {
-          NSEvent.removeMonitor(monitor)
-          keyMonitor = nil
-        }
-      }
-
-      func setupKeyboardMonitor() {
-        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-          guard let self = self else { return event }
-          return self.handleKeyDown(event) ? nil : event
-        }
-      }
-
-      func handleKeyDown(_ event: NSEvent) -> Bool {
-        guard let sv = scrollView, let window = sv.window, window.isKeyWindow else { return false }
-        let screenHeight = window.contentView?.bounds.height ?? window.frame.height
-
-        switch event.keyCode {
-        case 125:  // Down arrow
-          scrollDown(screenHeight)
-          return true
-        case 126:  // Up arrow
-          scrollUp(screenHeight)
-          return true
-        default:
-          return false
-        }
       }
 
       private func itemIndex(forPageID pageID: ReaderPageID?) -> Int? {
@@ -605,6 +585,7 @@
       private func finalizeProgrammaticScroll() {
         isProgrammaticScrolling = false
         applyPendingMeasuredLayoutUpdatesIfNeeded()
+        updateCurrentPage()
         scheduleDeferredPendingReloadIfNeeded()
         scheduleDeferredCleanupIfNeeded()
       }
@@ -955,11 +936,26 @@
         scrollToOffsetIfNeeded(targetY, in: sv)
       }
 
+      func scrollWebtoon(_ direction: WebtoonScrollDirection) {
+        guard let sv = scrollView else { return }
+
+        let screenHeight = sv.contentView.bounds.height
+        guard screenHeight > 0 else { return }
+
+        switch direction {
+        case .up:
+          scrollUp(screenHeight)
+        case .down:
+          scrollDown(screenHeight)
+        }
+      }
+
       private func scrollToOffsetIfNeeded(_ targetY: CGFloat, in scrollView: NSScrollView) {
         let clipView = scrollView.contentView
         let currentY = clipView.bounds.origin.y
         guard abs(targetY - currentY) > WebtoonConstants.offsetEpsilon else {
           isProgrammaticScrolling = false
+          updateCurrentPage()
           return
         }
 
