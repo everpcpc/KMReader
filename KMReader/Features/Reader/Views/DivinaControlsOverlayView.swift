@@ -27,6 +27,7 @@ struct DivinaControlsOverlayView: View {
   let onNextBook: ((String) -> Void)?
   let controlsVisible: Bool
   let showingControls: Bool
+  let showGradientBackground: Bool
 
   #if os(tvOS)
     private enum ControlFocus: Hashable {
@@ -391,15 +392,17 @@ struct DivinaControlsOverlayView: View {
     startPoint: UnitPoint,
     endPoint: UnitPoint
   ) -> some View {
-    LinearGradient(
-      gradient: Gradient(colors: [
-        Color.black.opacity(0.72),
-        Color.black.opacity(0.44),
-        Color.clear,
-      ]),
-      startPoint: startPoint,
-      endPoint: endPoint
-    )
+    if showGradientBackground {
+      LinearGradient(
+        gradient: Gradient(colors: [
+          Color.black.opacity(0.72),
+          Color.black.opacity(0.44),
+          Color.clear,
+        ]),
+        startPoint: startPoint,
+        endPoint: endPoint
+      )
+    }
   }
 
   @ViewBuilder

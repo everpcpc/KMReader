@@ -2845,6 +2845,70 @@
         }
       }
     },
+    "Add a gradient behind reader controls for better contrast over pages." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fügt hinter den Reader-Steuerelementen einen Verlauf hinzu, damit sie auf Seiten besser lesbar sind."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add a gradient behind reader controls for better contrast over pages."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añade un degradado detrás de los controles del lector para mejorar el contraste sobre las páginas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajoute un dégradé derrière les commandes du lecteur pour améliorer le contraste sur les pages."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aggiunge una sfumatura dietro i controlli del lettore per migliorare il contrasto sulle pagine."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ページ上で読みやすくするため、リーダーのコントロール背後にグラデーションを追加します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "페이지 위에서 더 잘 보이도록 리더 컨트롤 뒤에 그라데이션을 추가합니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавляет градиент за элементами управления читалки, чтобы повысить контраст на страницах."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在阅读器控件后添加渐变，以提升其在页面上的对比度。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在閱讀器控制項後方加入漸層，以提升其在頁面上的對比度。"
+          }
+        }
+      }
+    },
     "Add a library from Komga's web interface to manage it here." : {
       "localizations" : {
         "de" : {
@@ -13529,6 +13593,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "連續捲動"
+          }
+        }
+      }
+    },
+    "Controls Gradient Background" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verlaufshintergrund für Steuerelemente"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controls Gradient Background"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fondo degradado para los controles"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fond en dégradé des commandes"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sfondo sfumato dei controlli"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コントロールのグラデーション背景"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "컨트롤 그라데이션 배경"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Градиентный фон элементов управления"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "控件渐变背景"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "控制項漸層背景"
           }
         }
       }

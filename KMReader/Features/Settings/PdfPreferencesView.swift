@@ -18,6 +18,9 @@
     private var continuousScroll: Bool = AppConfig.pdfContinuousScroll
     @AppStorage("pdfShowKeyboardHelpOverlay")
     private var showKeyboardHelpOverlay: Bool = AppConfig.pdfShowKeyboardHelpOverlay
+    @AppStorage("showPdfControlsGradientBackground")
+    private var showControlsGradientBackground: Bool =
+      AppConfig.showPdfControlsGradientBackground
     @AppStorage("pdfOfflineRenderQuality")
     private var pdfOfflineRenderQuality: PdfOfflineRenderQuality = AppConfig.pdfOfflineRenderQuality
 
@@ -136,6 +139,15 @@
           }
 
           Section(header: Text("Reader Overlay")) {
+            Toggle(isOn: $showControlsGradientBackground) {
+              VStack(alignment: .leading, spacing: 4) {
+                Text("Controls Gradient Background")
+                Text("Add a gradient behind reader controls for better contrast over pages.")
+                  .font(.caption)
+                  .foregroundColor(.secondary)
+              }
+            }
+
             Toggle(isOn: $showKeyboardHelpOverlay) {
               VStack(alignment: .leading, spacing: 4) {
                 Text("Auto-Show Keyboard Help")

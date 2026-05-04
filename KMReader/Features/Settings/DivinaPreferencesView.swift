@@ -35,6 +35,9 @@ struct DivinaPreferencesView: View {
   @AppStorage("enableLiveText") private var enableLiveText: Bool = false
   @AppStorage("enableDivinaImageContextMenu")
   private var enableDivinaImageContextMenu: Bool = AppConfig.enableDivinaImageContextMenu
+  @AppStorage("showDivinaControlsGradientBackground")
+  private var showControlsGradientBackground: Bool =
+    AppConfig.showDivinaControlsGradientBackground
   @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
 
   private var forcedReadingDirection: ReadingDirection? {
@@ -159,6 +162,15 @@ struct DivinaPreferencesView: View {
           VStack(alignment: .leading, spacing: 4) {
             Text("Show Page Shadow")
             Text("Render a subtle shadow around pages. Turn off for seamless dual-page spreads.")
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
+        }
+
+        Toggle(isOn: $showControlsGradientBackground) {
+          VStack(alignment: .leading, spacing: 4) {
+            Text("Controls Gradient Background")
+            Text("Add a gradient behind reader controls for better contrast over pages.")
               .font(.caption)
               .foregroundColor(.secondary)
           }
