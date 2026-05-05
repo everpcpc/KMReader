@@ -40,6 +40,49 @@ struct DashboardView: View {
     )
   }
 
+  @ViewBuilder
+  private var dashboardHeader: some View {
+    HStack {
+      #if os(tvOS)
+        Button {
+          showLibraryPicker = true
+        } label: {
+          Label(String(localized: "Libraries"), systemImage: ContentIcon.library)
+        }
+      #endif
+
+      if enableSSE {
+        #if os(tvOS)
+          if isOffline {
+            Button {
+              Task {
+                await tryReconnect()
+              }
+            } label: {
+              if isCheckingConnection {
+                LoadingIcon()
+              } else {
+                Label(String(localized: "settings.offline"), systemImage: "wifi.slash")
+                  .foregroundStyle(.orange)
+              }
+            }
+            .disabled(isCheckingConnection)
+          } else {
+            Button {
+              refreshDashboard(reason: "Manual tvOS button")
+            } label: {
+              Label("Refresh", systemImage: "arrow.clockwise")
+            }
+            .disabled(isRefreshing)
+          }
+        #endif
+        ServerUpdateStatusView()
+      }
+      Spacer()
+    }
+    .padding()
+  }
+
   private func performRefresh(
     reason: String,
     source: DashboardRefreshSource,
@@ -180,44 +223,13 @@ struct DashboardView: View {
   var body: some View {
     ScrollView {
       VStack(alignment: .leading, spacing: 0) {
-        HStack {
-          #if os(tvOS)
-            Button {
-              showLibraryPicker = true
-            } label: {
-              Label(String(localized: "Libraries"), systemImage: ContentIcon.library)
-            }
-          #endif
-
+        #if os(tvOS)
+          dashboardHeader
+        #else
           if enableSSE {
-            #if os(tvOS)
-              if isOffline {
-                Button {
-                  Task {
-                    await tryReconnect()
-                  }
-                } label: {
-                  if isCheckingConnection {
-                    LoadingIcon()
-                  } else {
-                    Label(String(localized: "settings.offline"), systemImage: "wifi.slash")
-                      .foregroundStyle(.orange)
-                  }
-                }
-                .disabled(isCheckingConnection)
-              } else {
-                Button {
-                  refreshDashboard(reason: "Manual tvOS button")
-                } label: {
-                  Label("Refresh", systemImage: "arrow.clockwise")
-                }
-                .disabled(isRefreshing)
-              }
-            #endif
-            ServerUpdateStatusView()
+            dashboardHeader
           }
-          Spacer()
-        }.padding()
+        #endif
 
         ForEach(dashboard.sections, id: \.id) { section in
           if section.isLocalSection {
