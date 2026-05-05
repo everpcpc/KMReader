@@ -36,7 +36,7 @@ enum SettingsSection: String, CaseIterable {
     case .cache:
       return "externaldrive"
     case .divinaReader:
-      return "book.pages"
+      return "photo.on.rectangle.angled"
     #if os(iOS) || os(macOS)
       case .pdfReader:
         return "doc.richtext"

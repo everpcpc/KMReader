@@ -368,6 +368,8 @@ struct DashboardView: View {
               }
             }
             .disabled(isCheckingConnection)
+            .help(String(localized: "Check Server Connection"))
+            .accessibilityLabel(String(localized: "Check Server Connection"))
           } else if isRefreshing {
             Button {
             } label: {
@@ -399,7 +401,7 @@ struct DashboardView: View {
               Button {
                 enterOfflineMode()
               } label: {
-                Label(String(localized: "settings.offline"), systemImage: "wifi.slash")
+                Label(String(localized: "Enter Offline Mode"), systemImage: "wifi.slash")
               }
             } label: {
               Image(systemName: "ellipsis")
