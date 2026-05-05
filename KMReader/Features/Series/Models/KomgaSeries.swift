@@ -24,9 +24,9 @@ final class KomgaSeries {
   var booksUnreadCount: Int
   var booksInProgressCount: Int
 
-  // API-aligned fields
-  var metadata: SeriesMetadata?
-  var booksMetadata: SeriesBooksMetadata?
+  // API-aligned raw storage
+  var metadataRaw: Data?
+  var booksMetadataRaw: Data?
 
   // Query fields
   var metaTitle: String
@@ -58,6 +58,16 @@ final class KomgaSeries {
       collectionIdsRaw.flatMap { try? JSONDecoder().decode([String].self, from: $0) } ?? []
     }
     set { collectionIdsRaw = try? JSONEncoder().encode(newValue) }
+  }
+
+  var metadata: SeriesMetadata? {
+    get { RawCodableStore.decode(SeriesMetadata.self, from: metadataRaw) }
+    set { metadataRaw = RawCodableStore.encodeOptional(newValue) }
+  }
+
+  var booksMetadata: SeriesBooksMetadata? {
+    get { RawCodableStore.decode(SeriesBooksMetadata.self, from: booksMetadataRaw) }
+    set { booksMetadataRaw = RawCodableStore.encodeOptional(newValue) }
   }
 
   /// Computed property for download status.
@@ -136,8 +146,8 @@ final class KomgaSeries {
     self.booksUnreadCount = booksUnreadCount
     self.booksInProgressCount = booksInProgressCount
 
-    self.metadata = metadata
-    self.booksMetadata = booksMetadata
+    self.metadataRaw = RawCodableStore.encode(metadata)
+    self.booksMetadataRaw = RawCodableStore.encode(booksMetadata)
     self.metaTitle = metadata.title
     self.metaTitleSort = metadata.titleSort
     self.metaPublisherIndex = MetadataIndex.encode(value: metadata.publisher)
@@ -156,34 +166,33 @@ final class KomgaSeries {
     self.collectionIdsRaw = try? JSONEncoder().encode([] as [String])
   }
 
+  func updateMetadata(_ metadata: SeriesMetadata, raw: Data?) {
+    metadataRaw = raw ?? RawCodableStore.encode(metadata)
+    syncMetadataFields(metadata)
+  }
+
+  func updateBooksMetadata(_ booksMetadata: SeriesBooksMetadata, raw: Data?) {
+    booksMetadataRaw = raw ?? RawCodableStore.encode(booksMetadata)
+    syncBooksMetadataFields(booksMetadata)
+  }
+
   func applyContent(metadata: SeriesMetadata, booksMetadata: SeriesBooksMetadata) {
-    self.metadata = metadata
-    self.booksMetadata = booksMetadata
-    syncQueryFields(metadata: metadata, booksMetadata: booksMetadata)
+    updateMetadata(metadata, raw: RawCodableStore.encode(metadata))
+    updateBooksMetadata(booksMetadata, raw: RawCodableStore.encode(booksMetadata))
   }
 
-  func hasDifferentContentFields(
-    metadata: SeriesMetadata,
-    booksMetadata: SeriesBooksMetadata
-  ) -> Bool {
-    return metaTitle != metadata.title
-      || metaTitleSort != metadata.titleSort
-      || metaPublisherIndex != MetadataIndex.encode(value: metadata.publisher)
-      || metaAuthorsIndex != MetadataIndex.encode(values: booksMetadata.authors?.map(\.name) ?? [])
-      || metaGenresIndex != MetadataIndex.encode(values: metadata.genres ?? [])
-      || metaTagsIndex != MetadataIndex.encode(values: metadata.tags ?? [])
-      || metaLanguageIndex != MetadataIndex.encode(value: metadata.language)
-  }
-
-  private func syncQueryFields(metadata: SeriesMetadata, booksMetadata: SeriesBooksMetadata) {
+  private func syncMetadataFields(_ metadata: SeriesMetadata) {
     metaTitle = metadata.title
     metaTitleSort = metadata.titleSort
 
     metaPublisherIndex = MetadataIndex.encode(value: metadata.publisher)
-    metaAuthorsIndex = MetadataIndex.encode(values: booksMetadata.authors?.map(\.name) ?? [])
     metaGenresIndex = MetadataIndex.encode(values: metadata.genres ?? [])
     metaTagsIndex = MetadataIndex.encode(values: metadata.tags ?? [])
     metaLanguageIndex = MetadataIndex.encode(value: metadata.language)
+  }
+
+  private func syncBooksMetadataFields(_ booksMetadata: SeriesBooksMetadata) {
+    metaAuthorsIndex = MetadataIndex.encode(values: booksMetadata.authors?.map(\.name) ?? [])
   }
 
   func toSeries() -> Series {

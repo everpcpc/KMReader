@@ -23,10 +23,10 @@ final class KomgaBook {
   var sizeBytes: Int64
   var size: String
 
-  // API-aligned fields
-  var media: Media?
-  var metadata: BookMetadata?
-  var readProgress: ReadProgress?
+  // API-aligned raw storage
+  var mediaRaw: Data?
+  var metadataRaw: Data?
+  var readProgressRaw: Data?
 
   // Query fields
   var mediaPagesCount: Int
@@ -76,6 +76,21 @@ final class KomgaBook {
   var epubPreferences: EpubReaderPreferences? {
     get { epubPreferencesRaw.flatMap { EpubReaderPreferences(rawValue: $0) } }
     set { epubPreferencesRaw = newValue?.rawValue }
+  }
+
+  var media: Media? {
+    get { RawCodableStore.decode(Media.self, from: mediaRaw) }
+    set { mediaRaw = RawCodableStore.encodeOptional(newValue) }
+  }
+
+  var metadata: BookMetadata? {
+    get { RawCodableStore.decode(BookMetadata.self, from: metadataRaw) }
+    set { metadataRaw = RawCodableStore.encodeOptional(newValue) }
+  }
+
+  var readProgress: ReadProgress? {
+    get { RawCodableStore.decode(ReadProgress.self, from: readProgressRaw) }
+    set { readProgressRaw = RawCodableStore.encodeOptional(newValue) }
   }
 
   /// Computed property for download status.
@@ -161,9 +176,9 @@ final class KomgaBook {
     self.sizeBytes = sizeBytes
     self.size = size
 
-    self.media = media
-    self.metadata = metadata
-    self.readProgress = readProgress
+    self.mediaRaw = RawCodableStore.encode(media)
+    self.metadataRaw = RawCodableStore.encode(metadata)
+    self.readProgressRaw = RawCodableStore.encodeOptional(readProgress)
 
     self.mediaPagesCount = media.pagesCount
     self.mediaProfile = media.mediaProfile
@@ -187,44 +202,37 @@ final class KomgaBook {
     self.epubProgressionRaw = nil
   }
 
+  func updateMedia(_ media: Media, raw: Data?) {
+    mediaRaw = raw ?? RawCodableStore.encode(media)
+    syncMediaFields(media)
+  }
+
+  func updateMetadata(_ metadata: BookMetadata, raw: Data?) {
+    metadataRaw = raw ?? RawCodableStore.encode(metadata)
+    syncMetadataFields(metadata)
+  }
+
   func applyContent(media: Media, metadata: BookMetadata, readProgress: ReadProgress?) {
-    self.media = media
-    self.metadata = metadata
-    self.readProgress = readProgress
-    syncQueryFields(media: media, metadata: metadata, readProgress: readProgress)
+    updateMedia(media, raw: RawCodableStore.encode(media))
+    updateMetadata(metadata, raw: RawCodableStore.encode(metadata))
+    updateReadProgress(readProgress, raw: RawCodableStore.encodeOptional(readProgress))
   }
 
   func updateReadProgress(_ readProgress: ReadProgress?) {
-    self.readProgress = readProgress
+    updateReadProgress(readProgress, raw: RawCodableStore.encodeOptional(readProgress))
+  }
+
+  func updateReadProgress(_ readProgress: ReadProgress?, raw: Data?) {
+    readProgressRaw = raw
     syncReadProgressFields(readProgress)
   }
 
-  func hasDifferentContentFields(
-    media: Media,
-    metadata: BookMetadata,
-    readProgress: ReadProgress?
-  ) -> Bool {
-    return mediaPagesCount != media.pagesCount
-      || mediaProfile != media.mediaProfile
-      || metaTitle != metadata.title
-      || metaNumber != metadata.number
-      || metaNumberSort != metadata.numberSort
-      || metaReleaseDate != metadata.releaseDate
-      || metaAuthorsIndex != MetadataIndex.encode(values: metadata.authors?.map(\.name) ?? [])
-      || metaTagsIndex != MetadataIndex.encode(values: metadata.tags ?? [])
-      || hasDifferentReadProgressFields(readProgress)
-  }
-
-  func hasDifferentReadProgressFields(_ readProgress: ReadProgress?) -> Bool {
-    return progressPage != readProgress?.page
-      || progressCompleted != readProgress?.completed
-      || progressReadDate != readProgress?.readDate
-  }
-
-  private func syncQueryFields(media: Media, metadata: BookMetadata, readProgress: ReadProgress?) {
+  private func syncMediaFields(_ media: Media) {
     mediaPagesCount = media.pagesCount
     mediaProfile = media.mediaProfile
+  }
 
+  private func syncMetadataFields(_ metadata: BookMetadata) {
     metaTitle = metadata.title
     metaNumber = metadata.number
     metaNumberSort = metadata.numberSort
@@ -232,7 +240,6 @@ final class KomgaBook {
     metaAuthorsIndex = MetadataIndex.encode(values: metadata.authors?.map(\.name) ?? [])
     metaTagsIndex = MetadataIndex.encode(values: metadata.tags ?? [])
 
-    syncReadProgressFields(readProgress)
   }
 
   private func syncReadProgressFields(_ readProgress: ReadProgress?) {

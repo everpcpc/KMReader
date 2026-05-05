@@ -19,10 +19,25 @@ nonisolated private struct MigrationSeriesSnapshot: Codable {
   let booksMetadata: SeriesBooksMetadata
 }
 
+nonisolated private struct MigrationBookRawSnapshot: Codable {
+  let id: String
+  let mediaRaw: Data?
+  let metadataRaw: Data?
+  let readProgressRaw: Data?
+}
+
+nonisolated private struct MigrationSeriesRawSnapshot: Codable {
+  let id: String
+  let metadataRaw: Data?
+  let booksMetadataRaw: Data?
+}
+
 nonisolated private enum MigrationSnapshotStore {
   private static let directoryName = "kmreader_swiftdata_v1_v2_migration"
   private static let booksPrefix = "books"
   private static let seriesPrefix = "series"
+  private static let rawBooksPrefix = "raw-books"
+  private static let rawSeriesPrefix = "raw-series"
 
   private static var directoryURL: URL {
     let baseURL =
@@ -48,11 +63,27 @@ nonisolated private enum MigrationSnapshotStore {
     try writeChunk(chunk, prefix: seriesPrefix, index: index)
   }
 
+  static func writeRawBookChunk(_ chunk: [MigrationBookRawSnapshot], index: Int) throws {
+    try writeChunk(chunk, prefix: rawBooksPrefix, index: index)
+  }
+
+  static func writeRawSeriesChunk(_ chunk: [MigrationSeriesRawSnapshot], index: Int) throws {
+    try writeChunk(chunk, prefix: rawSeriesPrefix, index: index)
+  }
+
   static func readBookChunk(at url: URL) throws -> [MigrationBookSnapshot] {
     try readChunk(at: url)
   }
 
   static func readSeriesChunk(at url: URL) throws -> [MigrationSeriesSnapshot] {
+    try readChunk(at: url)
+  }
+
+  static func readRawBookChunk(at url: URL) throws -> [MigrationBookRawSnapshot] {
+    try readChunk(at: url)
+  }
+
+  static func readRawSeriesChunk(at url: URL) throws -> [MigrationSeriesRawSnapshot] {
     try readChunk(at: url)
   }
 
@@ -62,6 +93,14 @@ nonisolated private enum MigrationSnapshotStore {
 
   static func seriesChunkURLs() -> [URL] {
     chunkURLs(prefix: seriesPrefix)
+  }
+
+  static func rawBookChunkURLs() -> [URL] {
+    chunkURLs(prefix: rawBooksPrefix)
+  }
+
+  static func rawSeriesChunkURLs() -> [URL] {
+    chunkURLs(prefix: rawSeriesPrefix)
   }
 
   private static func writeChunk<T: Encodable>(
@@ -112,6 +151,7 @@ enum KMReaderMigrationPlan: SchemaMigrationPlan {
       KMReaderSchemaV1.self,
       KMReaderSchemaV2.self,
       KMReaderSchemaV3.self,
+      KMReaderSchemaV4.self,
     ]
   }
 
@@ -119,6 +159,7 @@ enum KMReaderMigrationPlan: SchemaMigrationPlan {
     [
       migrateV1toV2,
       migrateV2toV3,
+      migrateV3toV4,
     ]
   }
 
@@ -145,6 +186,26 @@ enum KMReaderMigrationPlan: SchemaMigrationPlan {
   static let migrateV2toV3 = MigrationStage.lightweight(
     fromVersion: KMReaderSchemaV2.self,
     toVersion: KMReaderSchemaV3.self
+  )
+
+  static let migrateV3toV4 = MigrationStage.custom(
+    fromVersion: KMReaderSchemaV3.self,
+    toVersion: KMReaderSchemaV4.self,
+    willMigrate: { context in
+      try MigrationSnapshotStore.prepare()
+      try snapshotRawBooks(context: context)
+      try snapshotRawSeries(context: context)
+    },
+    didMigrate: { context in
+      defer { MigrationSnapshotStore.clear() }
+
+      try applyRawBookSnapshots(context: context)
+      try applyRawSeriesSnapshots(context: context)
+
+      if context.hasChanges {
+        try context.save()
+      }
+    }
   )
 
   private static func snapshotBooks(context: ModelContext) throws {
@@ -198,7 +259,7 @@ enum KMReaderMigrationPlan: SchemaMigrationPlan {
 
       let byID = Dictionary(uniqueKeysWithValues: snapshots.map { ($0.id, $0) })
       let ids = Set(byID.keys)
-      let descriptor = FetchDescriptor<KomgaBook>(
+      let descriptor = FetchDescriptor<KMReaderSchemaV2.KomgaBook>(
         predicate: #Predicate { ids.contains($0.id) }
       )
       let books = try context.fetch(descriptor)
@@ -225,7 +286,7 @@ enum KMReaderMigrationPlan: SchemaMigrationPlan {
 
       let byID = Dictionary(uniqueKeysWithValues: snapshots.map { ($0.id, $0) })
       let ids = Set(byID.keys)
-      let descriptor = FetchDescriptor<KomgaSeries>(
+      let descriptor = FetchDescriptor<KMReaderSchemaV2.KomgaSeries>(
         predicate: #Predicate { ids.contains($0.id) }
       )
       let seriesList = try context.fetch(descriptor)
@@ -236,6 +297,99 @@ enum KMReaderMigrationPlan: SchemaMigrationPlan {
           metadata: snapshot.metadata,
           booksMetadata: snapshot.booksMetadata
         )
+      }
+
+      if context.hasChanges {
+        try context.save()
+      }
+    }
+  }
+
+  private static func snapshotRawBooks(context: ModelContext) throws {
+    var offset = 0
+    var chunkIndex = 0
+
+    while true {
+      var descriptor = FetchDescriptor<KMReaderSchemaV3.KomgaBook>(
+        sortBy: [SortDescriptor(\KMReaderSchemaV3.KomgaBook.id, order: .forward)]
+      )
+      descriptor.fetchOffset = offset
+      descriptor.fetchLimit = migrationBatchSize
+
+      let books = try context.fetch(descriptor)
+      guard !books.isEmpty else { break }
+
+      let chunk = books.map(makeRawBookSnapshot)
+      try MigrationSnapshotStore.writeRawBookChunk(chunk, index: chunkIndex)
+
+      offset += books.count
+      chunkIndex += 1
+    }
+  }
+
+  private static func snapshotRawSeries(context: ModelContext) throws {
+    var offset = 0
+    var chunkIndex = 0
+
+    while true {
+      var descriptor = FetchDescriptor<KMReaderSchemaV3.KomgaSeries>(
+        sortBy: [SortDescriptor(\KMReaderSchemaV3.KomgaSeries.id, order: .forward)]
+      )
+      descriptor.fetchOffset = offset
+      descriptor.fetchLimit = migrationBatchSize
+
+      let series = try context.fetch(descriptor)
+      guard !series.isEmpty else { break }
+
+      let chunk = series.map(makeRawSeriesSnapshot)
+      try MigrationSnapshotStore.writeRawSeriesChunk(chunk, index: chunkIndex)
+
+      offset += series.count
+      chunkIndex += 1
+    }
+  }
+
+  private static func applyRawBookSnapshots(context: ModelContext) throws {
+    for chunkURL in MigrationSnapshotStore.rawBookChunkURLs() {
+      let snapshots = try MigrationSnapshotStore.readRawBookChunk(at: chunkURL)
+      guard !snapshots.isEmpty else { continue }
+
+      let byID = Dictionary(uniqueKeysWithValues: snapshots.map { ($0.id, $0) })
+      let ids = Set(byID.keys)
+      let descriptor = FetchDescriptor<KomgaBook>(
+        predicate: #Predicate { ids.contains($0.id) }
+      )
+      let books = try context.fetch(descriptor)
+
+      for book in books {
+        guard let snapshot = byID[book.id] else { continue }
+        book.mediaRaw = snapshot.mediaRaw
+        book.metadataRaw = snapshot.metadataRaw
+        book.readProgressRaw = snapshot.readProgressRaw
+      }
+
+      if context.hasChanges {
+        try context.save()
+      }
+    }
+  }
+
+  private static func applyRawSeriesSnapshots(context: ModelContext) throws {
+    for chunkURL in MigrationSnapshotStore.rawSeriesChunkURLs() {
+      let snapshots = try MigrationSnapshotStore.readRawSeriesChunk(at: chunkURL)
+      guard !snapshots.isEmpty else { continue }
+
+      let byID = Dictionary(uniqueKeysWithValues: snapshots.map { ($0.id, $0) })
+      let ids = Set(byID.keys)
+      let descriptor = FetchDescriptor<KomgaSeries>(
+        predicate: #Predicate { ids.contains($0.id) }
+      )
+      let seriesList = try context.fetch(descriptor)
+
+      for series in seriesList {
+        guard let snapshot = byID[series.id] else { continue }
+        series.metadataRaw = snapshot.metadataRaw
+        series.booksMetadataRaw = snapshot.booksMetadataRaw
       }
 
       if context.hasChanges {
@@ -304,6 +458,17 @@ enum KMReaderMigrationPlan: SchemaMigrationPlan {
     )
   }
 
+  private static func makeRawBookSnapshot(
+    _ book: KMReaderSchemaV3.KomgaBook
+  ) -> MigrationBookRawSnapshot {
+    MigrationBookRawSnapshot(
+      id: book.id,
+      mediaRaw: RawCodableStore.encode(book.media ?? Media.empty),
+      metadataRaw: RawCodableStore.encode(book.metadata ?? BookMetadata.empty),
+      readProgressRaw: RawCodableStore.encodeOptional(book.readProgress)
+    )
+  }
+
   private static func makeSeriesSnapshot(_ series: KMReaderSchemaV1.KomgaSeries) -> MigrationSeriesSnapshot {
     let metadata = SeriesMetadata(
       status: series.metaStatus,
@@ -352,6 +517,16 @@ enum KMReaderMigrationPlan: SchemaMigrationPlan {
       id: series.id,
       metadata: metadata,
       booksMetadata: booksMetadata
+    )
+  }
+
+  private static func makeRawSeriesSnapshot(
+    _ series: KMReaderSchemaV3.KomgaSeries
+  ) -> MigrationSeriesRawSnapshot {
+    MigrationSeriesRawSnapshot(
+      id: series.id,
+      metadataRaw: RawCodableStore.encode(series.metadata ?? SeriesMetadata.empty),
+      booksMetadataRaw: RawCodableStore.encode(series.booksMetadata ?? SeriesBooksMetadata.empty)
     )
   }
 

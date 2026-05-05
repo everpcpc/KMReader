@@ -210,10 +210,11 @@ actor DatabaseOperator {
           progressCompleted: existing.progressCompleted,
           progressPage: existing.progressPage
         )
+        let readProgressRaw = RawCodableStore.encodeOptional(book.readProgress)
 
-        guard existing.hasDifferentReadProgressFields(book.readProgress) else { continue }
+        guard existing.readProgressRaw != readProgressRaw else { continue }
 
-        existing.updateReadProgress(book.readProgress)
+        existing.updateReadProgress(book.readProgress, raw: readProgressRaw)
 
         let newStatus = readingStatus(
           progressCompleted: existing.progressCompleted,
@@ -860,13 +861,9 @@ actor DatabaseOperator {
   }
 
   private func applyBook(dto: Book, to existing: KomgaBook) {
-    let shouldApplyContent =
-      existing.lastModified != dto.lastModified
-      || existing.hasDifferentContentFields(
-        media: dto.media,
-        metadata: dto.metadata,
-        readProgress: dto.readProgress
-      )
+    let mediaRaw = RawCodableStore.encode(dto.media)
+    let metadataRaw = RawCodableStore.encode(dto.metadata)
+    let readProgressRaw = RawCodableStore.encodeOptional(dto.readProgress)
 
     if existing.name != dto.name { existing.name = dto.name }
     if existing.url != dto.url { existing.url = dto.url }
@@ -874,8 +871,14 @@ actor DatabaseOperator {
     if existing.lastModified != dto.lastModified { existing.lastModified = dto.lastModified }
     if existing.sizeBytes != dto.sizeBytes { existing.sizeBytes = dto.sizeBytes }
     if existing.size != dto.size { existing.size = dto.size }
-    if shouldApplyContent {
-      existing.applyContent(media: dto.media, metadata: dto.metadata, readProgress: dto.readProgress)
+    if mediaRaw == nil || existing.mediaRaw != mediaRaw {
+      existing.updateMedia(dto.media, raw: mediaRaw)
+    }
+    if metadataRaw == nil || existing.metadataRaw != metadataRaw {
+      existing.updateMetadata(dto.metadata, raw: metadataRaw)
+    }
+    if existing.readProgressRaw != readProgressRaw {
+      existing.updateReadProgress(dto.readProgress, raw: readProgressRaw)
     }
     if existing.isUnavailable != dto.deleted { existing.isUnavailable = dto.deleted }
     if existing.oneshot != dto.oneshot { existing.oneshot = dto.oneshot }
@@ -883,12 +886,8 @@ actor DatabaseOperator {
   }
 
   private func applySeries(dto: Series, to existing: KomgaSeries) {
-    let shouldApplyContent =
-      existing.lastModified != dto.lastModified
-      || existing.hasDifferentContentFields(
-        metadata: dto.metadata,
-        booksMetadata: dto.booksMetadata
-      )
+    let metadataRaw = RawCodableStore.encode(dto.metadata)
+    let booksMetadataRaw = RawCodableStore.encode(dto.booksMetadata)
 
     if existing.name != dto.name { existing.name = dto.name }
     if existing.url != dto.url { existing.url = dto.url }
@@ -903,8 +902,11 @@ actor DatabaseOperator {
     if existing.booksInProgressCount != dto.booksInProgressCount {
       existing.booksInProgressCount = dto.booksInProgressCount
     }
-    if shouldApplyContent {
-      existing.applyContent(metadata: dto.metadata, booksMetadata: dto.booksMetadata)
+    if metadataRaw == nil || existing.metadataRaw != metadataRaw {
+      existing.updateMetadata(dto.metadata, raw: metadataRaw)
+    }
+    if booksMetadataRaw == nil || existing.booksMetadataRaw != booksMetadataRaw {
+      existing.updateBooksMetadata(dto.booksMetadata, raw: booksMetadataRaw)
     }
     if existing.isUnavailable != dto.deleted { existing.isUnavailable = dto.deleted }
     if existing.oneshot != dto.oneshot { existing.oneshot = dto.oneshot }
