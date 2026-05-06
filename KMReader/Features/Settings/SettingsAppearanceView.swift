@@ -9,6 +9,8 @@ import SwiftUI
 struct SettingsAppearanceView: View {
   @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
   @AppStorage("appColorScheme") private var appColorScheme: AppColorScheme = .system
+  @AppStorage("showDashboardSectionGradientBackground") private var showDashboardSectionGradientBackground: Bool =
+    AppConfig.showDashboardSectionGradientBackground
   @AppStorage("privacyProtection") private var privacyProtection: Bool = false
   #if os(iOS)
     @AppStorage("enableReaderLiveActivity") private var enableReaderLiveActivity: Bool = true
@@ -100,6 +102,14 @@ struct SettingsAppearanceView: View {
             supportsOpacity: false)
         #endif
 
+        Toggle(isOn: $showDashboardSectionGradientBackground) {
+          VStack(alignment: .leading, spacing: 4) {
+            Text(String(localized: "settings.appearance.dashboardSectionGradientBackground.title"))
+            Text(String(localized: "settings.appearance.dashboardSectionGradientBackground.caption"))
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
+        }
       }
 
       Section(header: Text(String(localized: "settings.appearance.privacy"))) {
