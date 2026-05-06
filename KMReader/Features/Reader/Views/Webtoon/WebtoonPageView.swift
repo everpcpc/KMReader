@@ -10,7 +10,7 @@
     let viewModel: ReaderViewModel
     let readListContext: ReaderReadListContext?
     let onDismiss: () -> Void
-    let onTapZoneAction: (TapZoneAction) -> Void
+    let onTapZoneTap: ReaderTapZoneTapHandler
     let scrollController: WebtoonScrollController
     let pageWidthPercentage: Double
     let renderConfig: ReaderRenderConfig
@@ -31,7 +31,7 @@
             renderConfig: renderConfig,
             readListContext: readListContext,
             onDismiss: onDismiss,
-            onTapZoneAction: onTapZoneAction,
+            onTapZoneTap: onTapZoneTap,
             onZoomRequest: { pageID, anchor in
               openZoomOverlay(pageID: pageID, anchor: anchor)
             },

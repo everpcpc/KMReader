@@ -651,7 +651,7 @@ struct DivinaReaderView: View {
                 viewModel: viewModel,
                 readListContext: readListContext,
                 onDismiss: { closeReader() },
-                onTapZoneAction: handleTapZoneAction,
+                onTapZoneTap: handleTapZoneTap,
                 scrollController: webtoonScrollController,
                 pageWidthPercentage: webtoonPageWidthPercentage,
                 renderConfig: renderConfig
@@ -667,7 +667,7 @@ struct DivinaReaderView: View {
                 viewModel: viewModel,
                 readListContext: readListContext,
                 onDismiss: { closeReader() },
-                onTapZoneAction: handleTapZoneAction
+                onTapZoneTap: handleTapZoneTap
               )
             #endif
           } else {
@@ -684,7 +684,7 @@ struct DivinaReaderView: View {
                     renderConfig: renderConfig,
                     readListContext: readListContext,
                     onDismiss: { closeReader() },
-                    onTapZoneAction: handleTapZoneAction
+                    onTapZoneTap: handleTapZoneTap
                   )
                 } else {
                   CurlPageView(
@@ -696,7 +696,7 @@ struct DivinaReaderView: View {
                     renderConfig: renderConfig,
                     readListContext: readListContext,
                     onDismiss: { closeReader() },
-                    onTapZoneAction: handleTapZoneAction
+                    onTapZoneTap: handleTapZoneTap
                   )
                 }
               #else
@@ -714,7 +714,7 @@ struct DivinaReaderView: View {
                 viewModel: viewModel,
                 readListContext: readListContext,
                 onDismiss: { closeReader() },
-                onTapZoneAction: handleTapZoneAction
+                onTapZoneTap: handleTapZoneTap
               )
             }
           }
@@ -764,7 +764,7 @@ struct DivinaReaderView: View {
       viewModel: viewModel,
       readListContext: readListContext,
       onDismiss: { closeReader() },
-      onTapZoneAction: handleTapZoneAction
+      onTapZoneTap: handleTapZoneTap
     )
   }
 
@@ -1508,6 +1508,17 @@ struct DivinaReaderView: View {
       )
     }
   #endif
+
+  private func handleTapZoneTap(normalizedX: CGFloat, normalizedY: CGFloat) {
+    let action = TapZoneHelper.action(
+      normalizedX: normalizedX,
+      normalizedY: normalizedY,
+      tapZoneMode: tapZoneMode,
+      tapZoneInversionMode: tapZoneInversionMode,
+      readingDirection: readingDirection
+    )
+    handleTapZoneAction(action)
+  }
 
   private func handleTapZoneAction(_ action: TapZoneAction) {
     guard viewModel.hasPages, !isPresentingModalSheet, !viewModel.isZoomed else { return }

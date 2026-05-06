@@ -15,7 +15,7 @@
     let renderConfig: ReaderRenderConfig
     let readListContext: ReaderReadListContext?
     let onDismiss: () -> Void
-    let onTapZoneAction: (TapZoneAction) -> Void
+    let onTapZoneTap: ReaderTapZoneTapHandler
 
     func makeCoordinator() -> Coordinator {
       Coordinator(self)
@@ -576,7 +576,7 @@
         let location = gesture.location(in: view)
         let workItem = DispatchWorkItem { [weak self, weak view] in
           guard let self, let view else { return }
-          self.dispatchTapZoneAction(at: location, in: view)
+          self.dispatchTapZoneTap(at: location, in: view)
         }
         let delay = max(parent.renderConfig.doubleTapZoomMode.tapDebounceDelay, 0)
         if delay > 0 {
@@ -596,19 +596,15 @@
         isTransitioning || parent.viewModel.isZoomed
       }
 
-      private func dispatchTapZoneAction(at location: CGPoint, in view: UIView) {
+      private func dispatchTapZoneTap(at location: CGPoint, in view: UIView) {
         singleTapWorkItem = nil
         guard !isTapZoneSuppressed else { return }
         let bounds = view.bounds
         guard bounds.width > 0, bounds.height > 0 else { return }
-        let action = TapZoneHelper.action(
-          normalizedX: min(max(location.x / bounds.width, 0), 1),
-          normalizedY: min(max(location.y / bounds.height, 0), 1),
-          tapZoneMode: parent.renderConfig.tapZoneMode,
-          tapZoneInversionMode: parent.renderConfig.tapZoneInversionMode,
-          readingDirection: parent.readingDirection
+        parent.onTapZoneTap(
+          min(max(location.x / bounds.width, 0), 1),
+          min(max(location.y / bounds.height, 0), 1)
         )
-        parent.onTapZoneAction(action)
       }
 
       func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
@@ -622,29 +618,6 @@
 
         let beforeExists = isValidIndex(beforeIndex(from: currentPageIndex))
         let afterExists = isValidIndex(afterIndex(from: currentPageIndex))
-
-        if let tap = gestureRecognizer as? UITapGestureRecognizer,
-          let view = tap.view,
-          view.bounds.width > 0,
-          view.bounds.height > 0
-        {
-          let location = tap.location(in: view)
-          let normalizedX = location.x / view.bounds.width
-          let normalizedY = location.y / view.bounds.height
-
-          let action = TapZoneHelper.action(
-            normalizedX: normalizedX,
-            normalizedY: normalizedY,
-            tapZoneMode: parent.renderConfig.tapZoneMode,
-            tapZoneInversionMode: parent.renderConfig.tapZoneInversionMode,
-            readingDirection: parent.readingDirection
-          )
-
-          switch action {
-          case .next, .previous, .toggleControls:
-            return true
-          }
-        }
 
         if let pan = gestureRecognizer as? UIPanGestureRecognizer {
           let primaryTranslation = primaryTranslation(for: pan)

@@ -43,7 +43,7 @@
     @Bindable var viewModel: ReaderViewModel
     let readListContext: ReaderReadListContext?
     let onDismiss: () -> Void
-    let onTapZoneAction: (TapZoneAction) -> Void
+    let onTapZoneTap: ReaderTapZoneTapHandler
 
     func makeCoordinator() -> Coordinator {
       Coordinator(self)
@@ -827,7 +827,7 @@
         let location = recognizer.location(in: containerView)
         let workItem = DispatchWorkItem { [weak self, weak containerView] in
           guard let self, let containerView else { return }
-          self.dispatchTapZoneAction(at: location, in: containerView)
+          self.dispatchTapZoneTap(at: location, in: containerView)
         }
         let delay = max(parent.renderConfig.doubleTapZoomMode.tapDebounceDelay, 0)
         if delay > 0 {
@@ -847,19 +847,15 @@
         parent.viewModel.isZoomed || isUserPanning || isAnimatingTransition
       }
 
-      private func dispatchTapZoneAction(at location: CGPoint, in containerView: NativeCoverContainerView) {
+      private func dispatchTapZoneTap(at location: CGPoint, in containerView: NativeCoverContainerView) {
         singleTapWorkItem = nil
         guard !isTapZoneSuppressed else { return }
         let bounds = containerView.bounds
         guard bounds.width > 0, bounds.height > 0 else { return }
-        let action = TapZoneHelper.action(
-          normalizedX: min(max(location.x / bounds.width, 0), 1),
-          normalizedY: min(max(location.y / bounds.height, 0), 1),
-          tapZoneMode: parent.renderConfig.tapZoneMode,
-          tapZoneInversionMode: parent.renderConfig.tapZoneInversionMode,
-          readingDirection: parent.readingDirection
+        parent.onTapZoneTap(
+          min(max(location.x / bounds.width, 0), 1),
+          min(max(location.y / bounds.height, 0), 1)
         )
-        parent.onTapZoneAction(action)
       }
 
       func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {

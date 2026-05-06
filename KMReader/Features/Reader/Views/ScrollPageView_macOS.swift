@@ -12,7 +12,7 @@
     @Bindable var viewModel: ReaderViewModel
     let readListContext: ReaderReadListContext?
     let onDismiss: () -> Void
-    let onTapZoneAction: (TapZoneAction) -> Void
+    let onTapZoneTap: ReaderTapZoneTapHandler
 
     init(
       mode: PageViewMode,
@@ -24,7 +24,7 @@
       viewModel: ReaderViewModel,
       readListContext: ReaderReadListContext?,
       onDismiss: @escaping () -> Void,
-      onTapZoneAction: @escaping (TapZoneAction) -> Void
+      onTapZoneTap: @escaping ReaderTapZoneTapHandler
     ) {
       self.mode = mode
       self.viewportSize = viewportSize
@@ -35,7 +35,7 @@
       self.viewModel = viewModel
       self.readListContext = readListContext
       self.onDismiss = onDismiss
-      self.onTapZoneAction = onTapZoneAction
+      self.onTapZoneTap = onTapZoneTap
     }
 
     func makeCoordinator() -> Coordinator {
@@ -916,14 +916,14 @@
       @objc func handleClick(_ gesture: NSClickGestureRecognizer) {
         singleClickWorkItem?.cancel()
         guard gesture.state == .ended else { return }
-        guard let scrollView, let collectionView else { return }
+        guard let scrollView else { return }
         guard !isTapZoneSuppressed(in: scrollView) else { return }
 
         let location = gesture.location(in: scrollView)
         guard !isInteractiveElement(at: location, in: scrollView) else { return }
-        let workItem = DispatchWorkItem { [weak self, weak scrollView, weak collectionView] in
-          guard let self, let scrollView, let collectionView else { return }
-          self.dispatchTapZoneAction(at: location, in: scrollView, collectionView: collectionView)
+        let workItem = DispatchWorkItem { [weak self, weak scrollView] in
+          guard let self, let scrollView else { return }
+          self.dispatchTapZoneTap(at: location, in: scrollView)
         }
         singleClickWorkItem = workItem
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: workItem)
@@ -940,10 +940,9 @@
           || engine.isInteractionActive
       }
 
-      private func dispatchTapZoneAction(
+      private func dispatchTapZoneTap(
         at location: CGPoint,
-        in scrollView: NSScrollView,
-        collectionView: NSCollectionView
+        in scrollView: NSScrollView
       ) {
         singleClickWorkItem = nil
         guard !isTapZoneSuppressed(in: scrollView) else { return }
@@ -952,14 +951,7 @@
         guard bounds.width > 0, bounds.height > 0 else { return }
         let normalizedX = min(max(location.x / bounds.width, 0), 1)
         let normalizedY = min(max(1 - (location.y / bounds.height), 0), 1)
-        let action = TapZoneHelper.action(
-          normalizedX: normalizedX,
-          normalizedY: normalizedY,
-          tapZoneMode: parent.renderConfig.tapZoneMode,
-          tapZoneInversionMode: parent.renderConfig.tapZoneInversionMode,
-          readingDirection: parent.readingDirection
-        )
-        parent.onTapZoneAction(action)
+        parent.onTapZoneTap(normalizedX, normalizedY)
       }
 
       func gestureRecognizer(
