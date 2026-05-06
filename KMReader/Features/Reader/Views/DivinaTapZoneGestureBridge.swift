@@ -19,6 +19,7 @@
     let tapZoneInversionMode: TapZoneInversionMode
     let doubleTapZoomMode: DoubleTapZoomMode
     let enableLiveText: Bool
+    let excludedHitTestRegions: [CGRect]
     let onAction: (TapZoneAction) -> Void
 
     var body: some View {
@@ -38,7 +39,8 @@
         tapZoneMode: tapZoneMode,
         tapZoneInversionMode: tapZoneInversionMode,
         tapDebounceDelay: doubleTapZoomMode.tapDebounceDelay,
-        enableLiveText: enableLiveText
+        enableLiveText: enableLiveText,
+        excludedHitTestRegions: excludedHitTestRegions
       )
     }
 
@@ -49,6 +51,7 @@
       let tapZoneInversionMode: TapZoneInversionMode
       let tapDebounceDelay: TimeInterval
       let enableLiveText: Bool
+      let excludedHitTestRegions: [CGRect]
     }
 
     #if os(iOS)
@@ -266,6 +269,9 @@
 
           func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
             guard configuration.isEnabled else { return false }
+            if isExcludedHitTestRegion(touch: touch) {
+              return false
+            }
             if isInteractiveElement(touch.view) {
               return false
             }
@@ -284,6 +290,13 @@
             }
 
             return true
+          }
+
+          private func isExcludedHitTestRegion(touch: UITouch) -> Bool {
+            guard !configuration.excludedHitTestRegions.isEmpty else { return false }
+            guard let window = touch.window ?? touch.view?.window else { return false }
+            let location = touch.location(in: window)
+            return configuration.excludedHitTestRegions.contains { $0.contains(location) }
           }
 
           func gestureRecognizer(
@@ -562,6 +575,9 @@
             guard let attachedView else { return false }
 
             let windowLocation = event.locationInWindow
+            if isExcludedHitTestRegion(windowLocation: windowLocation, attachedView: attachedView) {
+              return false
+            }
             let location = attachedView.convert(windowLocation, from: nil)
             guard
               let hitView = resolvedHitView(
@@ -584,6 +600,16 @@
             }
 
             return true
+          }
+
+          private func isExcludedHitTestRegion(
+            windowLocation: NSPoint,
+            attachedView: NSView
+          ) -> Bool {
+            guard !configuration.excludedHitTestRegions.isEmpty else { return false }
+            let contentHeight = attachedView.window?.contentView?.bounds.height ?? attachedView.bounds.height
+            let location = CGPoint(x: windowLocation.x, y: contentHeight - windowLocation.y)
+            return configuration.excludedHitTestRegions.contains { $0.contains(location) }
           }
 
           private func resolvedHitView(for windowLocation: NSPoint, attachedView: NSView) -> NSView? {

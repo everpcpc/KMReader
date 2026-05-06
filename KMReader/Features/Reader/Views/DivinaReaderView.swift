@@ -58,6 +58,7 @@ struct DivinaReaderView: View {
   @State private var nextBook: Book?
   @State private var previousBook: Book?
   @State private var showTapZoneOverlay = false
+  @State private var controlHitTestRegions: [CGRect] = []
   @State private var tapZoneOverlayTimer: Timer?
 
   @State private var showKeyboardHelp = false
@@ -651,7 +652,6 @@ struct DivinaReaderView: View {
                 viewModel: viewModel,
                 readListContext: readListContext,
                 onDismiss: { closeReader() },
-                toggleControls: { toggleControls() },
                 scrollController: webtoonScrollController,
                 pageWidthPercentage: webtoonPageWidthPercentage,
                 renderConfig: renderConfig
@@ -726,6 +726,7 @@ struct DivinaReaderView: View {
               tapZoneInversionMode: tapZoneInversionMode,
               doubleTapZoomMode: doubleTapZoomMode,
               enableLiveText: enableLiveText,
+              excludedHitTestRegions: controlHitTestRegions,
               onAction: handleTapZoneAction
             )
           )
@@ -838,6 +839,9 @@ struct DivinaReaderView: View {
       showingControls: showingControls,
       showGradientBackground: showControlsGradientBackground
     )
+    .onPreferenceChange(ReaderControlHitTestRegionPreferenceKey.self) { regions in
+      controlHitTestRegions = shouldShowControls ? regions : []
+    }
   }
 
   private var keyboardCommands: [ReaderKeyboardCommand] {
@@ -1520,7 +1524,7 @@ struct DivinaReaderView: View {
   #if os(iOS) || os(macOS)
     private var isTapZoneGestureEnabled: Bool {
       viewModel.hasPages
-        && readingDirection != .webtoon
+        && !isPresentingModalSheet
         && !viewModel.isZoomed
     }
   #endif

@@ -11,7 +11,6 @@
     let viewModel: ReaderViewModel
     let readListContext: ReaderReadListContext?
     let onDismiss: () -> Void
-    let onCenterTap: (() -> Void)?
     let onZoomRequest: ((ReaderPageID, CGPoint) -> Void)?
     let pageWidth: CGFloat
     let renderConfig: ReaderRenderConfig
@@ -23,7 +22,6 @@
       renderConfig: ReaderRenderConfig,
       readListContext: ReaderReadListContext? = nil,
       onDismiss: @escaping () -> Void = {},
-      onCenterTap: (() -> Void)? = nil,
       onZoomRequest: ((ReaderPageID, CGPoint) -> Void)? = nil,
       scrollController: WebtoonScrollController
     ) {
@@ -32,7 +30,6 @@
       self.renderConfig = renderConfig
       self.readListContext = readListContext
       self.onDismiss = onDismiss
-      self.onCenterTap = onCenterTap
       self.onZoomRequest = onZoomRequest
       self.scrollController = scrollController
     }
@@ -60,11 +57,6 @@
       // scrollView.autohidesScrollers = true
       scrollView.backgroundColor = NSColor(renderConfig.readerBackground.color)
       scrollView.contentView.postsBoundsChangedNotifications = true
-
-      let clickGesture = NSClickGestureRecognizer(
-        target: context.coordinator, action: #selector(Coordinator.handleClick(_:)))
-      clickGesture.delegate = context.coordinator
-      collectionView.addGestureRecognizer(clickGesture)
 
       let pressGesture = NSPressGestureRecognizer(
         target: context.coordinator, action: #selector(Coordinator.handlePress(_:)))
@@ -106,7 +98,6 @@
           viewModel: viewModel,
           readListContext: readListContext,
           onDismiss: onDismiss,
-          onCenterTap: onCenterTap,
           onZoomRequest: onZoomRequest,
           pageWidth: pageWidth,
           collectionView: collectionView,
@@ -135,7 +126,6 @@
       weak var viewModel: ReaderViewModel?
       var readListContext: ReaderReadListContext?
       var onDismiss: (() -> Void)?
-      var onCenterTap: (() -> Void)?
       var onZoomRequest: ((ReaderPageID, CGPoint) -> Void)?
       weak var scrollController: WebtoonScrollController?
       var lastPagesCount: Int = 0
@@ -167,7 +157,6 @@
         self.viewModel = parent.viewModel
         self.readListContext = parent.readListContext
         self.onDismiss = parent.onDismiss
-        self.onCenterTap = parent.onCenterTap
         self.onZoomRequest = parent.onZoomRequest
         self.scrollController = parent.scrollController
         self.lastPagesCount = parent.viewModel.pageCount
@@ -365,7 +354,6 @@
         viewModel: ReaderViewModel,
         readListContext: ReaderReadListContext?,
         onDismiss: @escaping () -> Void,
-        onCenterTap: (() -> Void)?,
         onZoomRequest: ((ReaderPageID, CGPoint) -> Void)?,
         pageWidth: CGFloat,
         collectionView: NSCollectionView,
@@ -374,7 +362,6 @@
         self.viewModel = viewModel
         self.readListContext = readListContext
         self.onDismiss = onDismiss
-        self.onCenterTap = onCenterTap
         self.onZoomRequest = onZoomRequest
         self.pageWidth = pageWidth
         self.readerBackground = renderConfig.readerBackground
@@ -846,55 +833,6 @@
             [weak self] in
             self?.isLongPress = false
           }
-        }
-      }
-
-      @objc func handleClick(_ gesture: NSClickGestureRecognizer) {
-        guard !isLongPress else { return }
-
-        if isUserScrolling { return }
-
-        if Date().timeIntervalSinceReferenceDate - lastScrollTime < WebtoonConstants.clickDebounceAfterScroll {
-          return
-        }
-
-        guard let sv = scrollView, let window = sv.window, let cv = collectionView else { return }
-
-        let locationInCollection = gesture.location(in: cv)
-        if let indexPath = cv.indexPathForItem(at: locationInCollection),
-          indexPath.item < scrollEngine.contentItems.count,
-          case .end = scrollEngine.contentItems[indexPath.item],
-          let footerCell = cv.item(at: indexPath) as? WebtoonFooterCell,
-          footerCell.isInteractingWithCloseButton(at: locationInCollection, in: cv)
-        {
-          return
-        }
-
-        let locInWindow = gesture.location(in: nil)
-        let windowHeight = window.contentView?.bounds.height ?? window.frame.height
-        let loc = NSPoint(x: locInWindow.x, y: windowHeight - locInWindow.y)
-
-        let h = windowHeight
-        let w = window.contentView?.bounds.width ?? window.frame.width
-
-        let normalizedX = loc.x / w
-        let normalizedY = loc.y / h
-
-        let action = TapZoneHelper.action(
-          normalizedX: normalizedX,
-          normalizedY: normalizedY,
-          tapZoneMode: tapZoneMode,
-          tapZoneInversionMode: tapZoneInversionMode,
-          readingDirection: .webtoon
-        )
-
-        switch action {
-        case .previous:
-          scrollUp(h)
-        case .next:
-          scrollDown(h)
-        case .toggleControls:
-          onCenterTap?()
         }
       }
 
