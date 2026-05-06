@@ -354,6 +354,18 @@ enum AppConfig {
     }
   }
 
+  static nonisolated var showDashboardSectionGradientBackground: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "showDashboardSectionGradientBackground") != nil {
+        return UserDefaults.standard.bool(forKey: "showDashboardSectionGradientBackground")
+      }
+      return true
+    }
+    set {
+      UserDefaults.standard.set(newValue, forKey: "showDashboardSectionGradientBackground")
+    }
+  }
+
   // MARK: - Browse Layouts
   static nonisolated var seriesBrowseLayout: BrowseLayoutMode {
     get {

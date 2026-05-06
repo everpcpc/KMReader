@@ -13,6 +13,9 @@ struct DashboardPinnedSectionView: View {
 
   @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
+  @AppStorage("showDashboardSectionGradientBackground")
+  private var showDashboardSectionGradientBackground: Bool =
+    AppConfig.showDashboardSectionGradientBackground
 
   @Query private var pinnedCollections: [KomgaCollection]
   @Query private var pinnedReadLists: [KomgaReadList]
@@ -121,11 +124,13 @@ struct DashboardPinnedSectionView: View {
     if isSupportedSection {
       ZStack {
         #if os(iOS) || os(macOS)
-          LinearGradient(
-            colors: backgroundColors,
-            startPoint: .top,
-            endPoint: .bottom
-          ).ignoresSafeArea()
+          if showDashboardSectionGradientBackground {
+            LinearGradient(
+              colors: backgroundColors,
+              startPoint: .top,
+              endPoint: .bottom
+            ).ignoresSafeArea()
+          }
         #endif
 
         VStack(alignment: .leading, spacing: 0) {
