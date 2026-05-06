@@ -11,6 +11,7 @@
     let viewModel: ReaderViewModel
     let readListContext: ReaderReadListContext?
     let onDismiss: () -> Void
+    let onTapZoneAction: (TapZoneAction) -> Void
     let onZoomRequest: ((ReaderPageID, CGPoint) -> Void)?
     let pageWidth: CGFloat
     let renderConfig: ReaderRenderConfig
@@ -22,6 +23,7 @@
       renderConfig: ReaderRenderConfig,
       readListContext: ReaderReadListContext? = nil,
       onDismiss: @escaping () -> Void = {},
+      onTapZoneAction: @escaping (TapZoneAction) -> Void,
       onZoomRequest: ((ReaderPageID, CGPoint) -> Void)? = nil,
       scrollController: WebtoonScrollController
     ) {
@@ -30,6 +32,7 @@
       self.renderConfig = renderConfig
       self.readListContext = readListContext
       self.onDismiss = onDismiss
+      self.onTapZoneAction = onTapZoneAction
       self.onZoomRequest = onZoomRequest
       self.scrollController = scrollController
     }
@@ -63,6 +66,22 @@
       pressGesture.minimumPressDuration = WebtoonConstants.longPressMinimumDuration
       pressGesture.delegate = context.coordinator
       collectionView.addGestureRecognizer(pressGesture)
+
+      let clickGesture = NSClickGestureRecognizer(
+        target: context.coordinator,
+        action: #selector(Coordinator.handleClick(_:))
+      )
+      clickGesture.numberOfClicksRequired = 1
+      clickGesture.delegate = context.coordinator
+      collectionView.addGestureRecognizer(clickGesture)
+
+      let doubleClickGesture = NSClickGestureRecognizer(
+        target: context.coordinator,
+        action: #selector(Coordinator.handleDoubleClick(_:))
+      )
+      doubleClickGesture.numberOfClicksRequired = 2
+      doubleClickGesture.delegate = context.coordinator
+      collectionView.addGestureRecognizer(doubleClickGesture)
 
       let magnifyGesture = NSMagnificationGestureRecognizer(
         target: context.coordinator,
@@ -98,6 +117,7 @@
           viewModel: viewModel,
           readListContext: readListContext,
           onDismiss: onDismiss,
+          onTapZoneAction: onTapZoneAction,
           onZoomRequest: onZoomRequest,
           pageWidth: pageWidth,
           collectionView: collectionView,
@@ -126,6 +146,7 @@
       weak var viewModel: ReaderViewModel?
       var readListContext: ReaderReadListContext?
       var onDismiss: (() -> Void)?
+      var onTapZoneAction: ((TapZoneAction) -> Void)?
       var onZoomRequest: ((ReaderPageID, CGPoint) -> Void)?
       weak var scrollController: WebtoonScrollController?
       var lastPagesCount: Int = 0
@@ -140,6 +161,7 @@
       var heightCache = WebtoonPageHeightCache()
       var lastScrollTime: TimeInterval = 0
       var hasTriggeredZoomGesture: Bool = false
+      private var singleClickWorkItem: DispatchWorkItem?
       private var deferredReloadWorkItem: DispatchWorkItem?
       private var deferredCleanupWorkItem: DispatchWorkItem?
       private var sizeProbeTasks: [ReaderPageID: Task<Void, Never>] = [:]
@@ -157,6 +179,7 @@
         self.viewModel = parent.viewModel
         self.readListContext = parent.readListContext
         self.onDismiss = parent.onDismiss
+        self.onTapZoneAction = parent.onTapZoneAction
         self.onZoomRequest = parent.onZoomRequest
         self.scrollController = parent.scrollController
         self.lastPagesCount = parent.viewModel.pageCount
@@ -180,6 +203,8 @@
 
       func teardown() {
         scrollController?.clearTarget(self)
+        singleClickWorkItem?.cancel()
+        singleClickWorkItem = nil
         cancelDeferredMaintenance()
         sizeProbeTasks.values.forEach { $0.cancel() }
         sizeProbeTasks.removeAll()
@@ -354,6 +379,7 @@
         viewModel: ReaderViewModel,
         readListContext: ReaderReadListContext?,
         onDismiss: @escaping () -> Void,
+        onTapZoneAction: @escaping (TapZoneAction) -> Void,
         onZoomRequest: ((ReaderPageID, CGPoint) -> Void)?,
         pageWidth: CGFloat,
         collectionView: NSCollectionView,
@@ -362,6 +388,7 @@
         self.viewModel = viewModel
         self.readListContext = readListContext
         self.onDismiss = onDismiss
+        self.onTapZoneAction = onTapZoneAction
         self.onZoomRequest = onZoomRequest
         self.pageWidth = pageWidth
         self.readerBackground = renderConfig.readerBackground
@@ -828,12 +855,37 @@
       @objc func handlePress(_ gesture: NSPressGestureRecognizer) {
         if gesture.state == .began {
           isLongPress = true
+          singleClickWorkItem?.cancel()
+          singleClickWorkItem = nil
         } else if gesture.state == .ended || gesture.state == .cancelled {
           DispatchQueue.main.asyncAfter(deadline: .now() + WebtoonConstants.longPressReleaseDelay) {
             [weak self] in
             self?.isLongPress = false
           }
         }
+      }
+
+      @objc func handleClick(_ gesture: NSClickGestureRecognizer) {
+        singleClickWorkItem?.cancel()
+        guard gesture.state == .ended else { return }
+        guard !isLongPress, !hasTriggeredZoomGesture else { return }
+        guard let cv = collectionView, let sv = scrollView else { return }
+        guard viewModel?.isZoomed != true else { return }
+        guard !isScrollInteractionActive else { return }
+
+        let location = gesture.location(in: cv)
+        guard !isInteractiveElement(at: location, in: cv) else { return }
+        let workItem = DispatchWorkItem { [weak self, weak cv, weak sv] in
+          guard let self, let cv, let sv else { return }
+          self.dispatchTapZoneAction(at: location, in: cv, scrollView: sv)
+        }
+        singleClickWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: workItem)
+      }
+
+      @objc func handleDoubleClick(_ gesture: NSClickGestureRecognizer) {
+        singleClickWorkItem?.cancel()
+        singleClickWorkItem = nil
       }
 
       @objc func handleMagnify(_ gesture: NSMagnificationGestureRecognizer) {
@@ -847,6 +899,8 @@
           let delta = gesture.magnification
           guard delta > 0.05 else { return }
           hasTriggeredZoomGesture = true
+          singleClickWorkItem?.cancel()
+          singleClickWorkItem = nil
           let location = gesture.location(in: cv)
           requestZoom(at: location)
         case .ended, .cancelled, .failed:
@@ -854,6 +908,30 @@
         default:
           break
         }
+      }
+
+      private func dispatchTapZoneAction(
+        at location: CGPoint,
+        in collectionView: NSCollectionView,
+        scrollView: NSScrollView
+      ) {
+        singleClickWorkItem = nil
+        guard viewModel?.isZoomed != true else { return }
+        guard !isScrollInteractionActive else { return }
+
+        let visibleBounds = scrollView.contentView.bounds
+        guard visibleBounds.width > 0, visibleBounds.height > 0 else { return }
+
+        let normalizedX = min(max((location.x - visibleBounds.minX) / visibleBounds.width, 0), 1)
+        let normalizedY = min(max(1 - ((location.y - visibleBounds.minY) / visibleBounds.height), 0), 1)
+        let action = TapZoneHelper.action(
+          normalizedX: normalizedX,
+          normalizedY: normalizedY,
+          tapZoneMode: tapZoneMode,
+          tapZoneInversionMode: tapZoneInversionMode,
+          readingDirection: .webtoon
+        )
+        onTapZoneAction?(action)
       }
 
       private func scrollUp(_ screenHeight: CGFloat) {
@@ -952,6 +1030,10 @@
         shouldRecognizeSimultaneouslyWith otherGestureRecognizer: NSGestureRecognizer
       ) -> Bool {
         return true
+      }
+
+      private func isInteractiveElement(at location: CGPoint, in collectionView: NSCollectionView) -> Bool {
+        collectionView.hitTest(location)?.hasInteractiveAncestor == true
       }
 
       private func requestZoom(at location: NSPoint) {

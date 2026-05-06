@@ -43,6 +43,7 @@
     @Bindable var viewModel: ReaderViewModel
     let readListContext: ReaderReadListContext?
     let onDismiss: () -> Void
+    let onTapZoneAction: (TapZoneAction) -> Void
 
     func makeCoordinator() -> Coordinator {
       Coordinator(self)
@@ -87,6 +88,9 @@
       private var lastViewportSize: CGSize = .zero
       private var postTransitionTask: Task<Void, Never>?
       private var panRecognizer: NSPanGestureRecognizer?
+      private var clickRecognizer: NSClickGestureRecognizer?
+      private var doubleClickRecognizer: NSClickGestureRecognizer?
+      private var singleClickWorkItem: DispatchWorkItem?
 
       init(_ parent: NativeCoverPageView) {
         self.parent = parent
@@ -99,6 +103,7 @@
         containerView.wantsLayer = true
         containerView.layer?.backgroundColor = NSColor(parent.renderConfig.readerBackground.color).cgColor
         attachPanRecognizerIfNeeded(to: containerView)
+        attachClickRecognizersIfNeeded(to: containerView)
       }
 
       func update(from parent: NativeCoverPageView) {
@@ -136,7 +141,17 @@
         if let panRecognizer {
           panRecognizer.view?.removeGestureRecognizer(panRecognizer)
         }
+        if let clickRecognizer {
+          clickRecognizer.view?.removeGestureRecognizer(clickRecognizer)
+        }
+        if let doubleClickRecognizer {
+          doubleClickRecognizer.view?.removeGestureRecognizer(doubleClickRecognizer)
+        }
+        singleClickWorkItem?.cancel()
+        singleClickWorkItem = nil
         panRecognizer = nil
+        clickRecognizer = nil
+        doubleClickRecognizer = nil
         pagePresentationCoordinator.teardown()
         containerView = nil
       }
@@ -206,6 +221,32 @@
         containerView.addGestureRecognizer(panRecognizer)
         self.panRecognizer = panRecognizer
         applyPanRecognizerState()
+      }
+
+      private func attachClickRecognizersIfNeeded(to containerView: NativeCoverContainerView) {
+        if clickRecognizer?.view === containerView, doubleClickRecognizer?.view === containerView {
+          return
+        }
+
+        if let clickRecognizer {
+          clickRecognizer.view?.removeGestureRecognizer(clickRecognizer)
+        }
+        if let doubleClickRecognizer {
+          doubleClickRecognizer.view?.removeGestureRecognizer(doubleClickRecognizer)
+        }
+
+        let clickRecognizer = NSClickGestureRecognizer(target: self, action: #selector(handleClick(_:)))
+        clickRecognizer.numberOfClicksRequired = 1
+        clickRecognizer.delegate = self
+        containerView.addGestureRecognizer(clickRecognizer)
+
+        let doubleClickRecognizer = NSClickGestureRecognizer(target: self, action: #selector(handleDoubleClick(_:)))
+        doubleClickRecognizer.numberOfClicksRequired = 2
+        doubleClickRecognizer.delegate = self
+        containerView.addGestureRecognizer(doubleClickRecognizer)
+
+        self.clickRecognizer = clickRecognizer
+        self.doubleClickRecognizer = doubleClickRecognizer
       }
 
       private func applyPanRecognizerState() {
@@ -797,8 +838,55 @@
         return max(min(raw, start), 0)
       }
 
+      @objc private func handleClick(_ recognizer: NSClickGestureRecognizer) {
+        singleClickWorkItem?.cancel()
+        guard recognizer.state == .ended else { return }
+        guard let containerView else { return }
+        guard !isTapZoneSuppressed else { return }
+
+        let location = recognizer.location(in: containerView)
+        guard !isInteractiveElement(at: location, in: containerView) else { return }
+        let workItem = DispatchWorkItem { [weak self, weak containerView] in
+          guard let self, let containerView else { return }
+          self.dispatchTapZoneAction(at: location, in: containerView)
+        }
+        singleClickWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: workItem)
+      }
+
+      @objc private func handleDoubleClick(_ recognizer: NSClickGestureRecognizer) {
+        singleClickWorkItem?.cancel()
+        singleClickWorkItem = nil
+      }
+
+      private var isTapZoneSuppressed: Bool {
+        parent.viewModel.isZoomed || isUserPanning || isAnimatingTransition
+      }
+
+      private func dispatchTapZoneAction(at location: CGPoint, in containerView: NativeCoverContainerView) {
+        singleClickWorkItem = nil
+        guard !isTapZoneSuppressed else { return }
+        let bounds = containerView.bounds
+        guard bounds.width > 0, bounds.height > 0 else { return }
+        let action = TapZoneHelper.action(
+          normalizedX: min(max(location.x / bounds.width, 0), 1),
+          normalizedY: min(max(1 - (location.y / bounds.height), 0), 1),
+          tapZoneMode: parent.renderConfig.tapZoneMode,
+          tapZoneInversionMode: parent.renderConfig.tapZoneInversionMode,
+          readingDirection: parent.readingDirection
+        )
+        parent.onTapZoneAction(action)
+      }
+
       func gestureRecognizerShouldBegin(_ gestureRecognizer: NSGestureRecognizer) -> Bool {
-        !parent.viewModel.isZoomed && !isAnimatingTransition
+        if gestureRecognizer === panRecognizer {
+          return !parent.viewModel.isZoomed && !isAnimatingTransition
+        }
+        return !isTapZoneSuppressed
+      }
+
+      private func isInteractiveElement(at location: CGPoint, in containerView: NativeCoverContainerView) -> Bool {
+        containerView.hitTest(location)?.hasInteractiveAncestor == true
       }
     }
   }

@@ -15,6 +15,7 @@
     let renderConfig: ReaderRenderConfig
     let readListContext: ReaderReadListContext?
     let onDismiss: () -> Void
+    let onTapZoneAction: (TapZoneAction) -> Void
 
     func makeCoordinator() -> Coordinator {
       Coordinator(self)
@@ -30,6 +31,7 @@
       context.coordinator.pageViewController = pageVC
       pageVC.dataSource = context.coordinator
       pageVC.delegate = context.coordinator
+      context.coordinator.installTapRecognizers(on: pageVC.view)
 
       for recognizer in pageVC.gestureRecognizers {
         recognizer.delegate = context.coordinator
@@ -213,6 +215,7 @@
       weak var pageViewController: UIPageViewController?
       var isTransitioning = false
       var hasCompletedInitialUpdate = false
+      private var singleTapWorkItem: DispatchWorkItem?
       private var lastViewItemsCount: Int = 0
       private var lastFirstViewItem: ReaderViewItem?
       private var lastLastViewItem: ReaderViewItem?
@@ -220,6 +223,20 @@
       init(_ parent: CurlPageView) {
         self.parent = parent
         self.currentItem = parent.viewModel.currentViewItem()
+      }
+
+      func installTapRecognizers(on view: UIView) {
+        let singleTap = UITapGestureRecognizer(target: self, action: #selector(handleSingleTap(_:)))
+        singleTap.numberOfTapsRequired = 1
+        singleTap.cancelsTouchesInView = false
+        singleTap.delegate = self
+        view.addGestureRecognizer(singleTap)
+
+        let doubleTap = UITapGestureRecognizer(target: self, action: #selector(handleDoubleTap(_:)))
+        doubleTap.numberOfTapsRequired = 2
+        doubleTap.cancelsTouchesInView = false
+        doubleTap.delegate = self
+        view.addGestureRecognizer(doubleTap)
       }
 
       var totalPages: Int {
@@ -550,6 +567,50 @@
         )
       }
 
+      @objc private func handleSingleTap(_ gesture: UITapGestureRecognizer) {
+        singleTapWorkItem?.cancel()
+        guard gesture.state == .ended else { return }
+        guard let view = gesture.view else { return }
+        guard !isTapZoneSuppressed else { return }
+
+        let location = gesture.location(in: view)
+        let workItem = DispatchWorkItem { [weak self, weak view] in
+          guard let self, let view else { return }
+          self.dispatchTapZoneAction(at: location, in: view)
+        }
+        let delay = max(parent.renderConfig.doubleTapZoomMode.tapDebounceDelay, 0)
+        if delay > 0 {
+          singleTapWorkItem = workItem
+          DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
+        } else {
+          workItem.perform()
+        }
+      }
+
+      @objc private func handleDoubleTap(_ gesture: UITapGestureRecognizer) {
+        singleTapWorkItem?.cancel()
+        singleTapWorkItem = nil
+      }
+
+      private var isTapZoneSuppressed: Bool {
+        isTransitioning || parent.viewModel.isZoomed
+      }
+
+      private func dispatchTapZoneAction(at location: CGPoint, in view: UIView) {
+        singleTapWorkItem = nil
+        guard !isTapZoneSuppressed else { return }
+        let bounds = view.bounds
+        guard bounds.width > 0, bounds.height > 0 else { return }
+        let action = TapZoneHelper.action(
+          normalizedX: min(max(location.x / bounds.width, 0), 1),
+          normalizedY: min(max(location.y / bounds.height, 0), 1),
+          tapZoneMode: parent.renderConfig.tapZoneMode,
+          tapZoneInversionMode: parent.renderConfig.tapZoneInversionMode,
+          readingDirection: parent.readingDirection
+        )
+        parent.onTapZoneAction(action)
+      }
+
       func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
         guard !isTransitioning else { return false }
         guard !parent.viewModel.isZoomed else { return false }
@@ -581,7 +642,7 @@
 
           switch action {
           case .next, .previous, .toggleControls:
-            return false
+            return true
           }
         }
 
@@ -620,6 +681,10 @@
         shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
       ) -> Bool {
         true
+      }
+
+      func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        touch.view?.hasInteractiveAncestor != true
       }
     }
   }

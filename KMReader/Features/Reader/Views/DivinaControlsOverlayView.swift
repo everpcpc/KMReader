@@ -146,7 +146,6 @@ struct DivinaControlsOverlayView: View {
     VStack(spacing: 0) {
       if controlsVisible {
         topBar
-          .readerControlHitTestRegion()
           .transition(
             .move(edge: .top)
               .combined(with: .opacity)
@@ -157,7 +156,6 @@ struct DivinaControlsOverlayView: View {
 
       if controlsVisible {
         bottomBar
-          .readerControlHitTestRegion()
           .transition(
             .move(edge: .bottom)
               .combined(with: .opacity)

@@ -12,6 +12,7 @@
     @Bindable var viewModel: ReaderViewModel
     let readListContext: ReaderReadListContext?
     let onDismiss: () -> Void
+    let onTapZoneAction: (TapZoneAction) -> Void
 
     init(
       mode: PageViewMode,
@@ -22,7 +23,8 @@
       renderConfig: ReaderRenderConfig,
       viewModel: ReaderViewModel,
       readListContext: ReaderReadListContext?,
-      onDismiss: @escaping () -> Void
+      onDismiss: @escaping () -> Void,
+      onTapZoneAction: @escaping (TapZoneAction) -> Void
     ) {
       self.mode = mode
       self.viewportSize = viewportSize
@@ -33,6 +35,7 @@
       self.viewModel = viewModel
       self.readListContext = readListContext
       self.onDismiss = onDismiss
+      self.onTapZoneAction = onTapZoneAction
     }
 
     private var shouldDisableScrollInteraction: Bool {
@@ -81,6 +84,24 @@
         forCellWithReuseIdentifier: Coordinator.endCellReuseIdentifier
       )
 
+      let singleTapGesture = UITapGestureRecognizer(
+        target: context.coordinator,
+        action: #selector(Coordinator.handleSingleTap(_:))
+      )
+      singleTapGesture.numberOfTapsRequired = 1
+      singleTapGesture.cancelsTouchesInView = false
+      singleTapGesture.delegate = context.coordinator
+      collectionView.addGestureRecognizer(singleTapGesture)
+
+      let doubleTapGesture = UITapGestureRecognizer(
+        target: context.coordinator,
+        action: #selector(Coordinator.handleDoubleTap(_:))
+      )
+      doubleTapGesture.numberOfTapsRequired = 2
+      doubleTapGesture.cancelsTouchesInView = false
+      doubleTapGesture.delegate = context.coordinator
+      collectionView.addGestureRecognizer(doubleTapGesture)
+
       context.coordinator.collectionView = collectionView
       collectionView.onDidLayout = { [weak coordinator = context.coordinator] in
         coordinator?.handleCollectionViewLayout()
@@ -109,7 +130,7 @@
 
     @MainActor
     final class Coordinator: NSObject, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout,
-      UIScrollViewDelegate, NativePagedPagePresentationHost
+      UIScrollViewDelegate, UIGestureRecognizerDelegate, NativePagedPagePresentationHost
     {
       private struct RenderInputs: Equatable {
         let readingDirection: ReadingDirection
@@ -135,6 +156,7 @@
       private var visiblePreloadTask: Task<Void, Never>?
       private var visiblePreloadItem: ReaderViewItem?
       private var applicationWillResignActiveObserver: NSObjectProtocol?
+      private var singleTapWorkItem: DispatchWorkItem?
 
       init(_ parent: ScrollPageView) {
         self.parent = parent
@@ -143,6 +165,8 @@
       }
 
       func teardown() {
+        singleTapWorkItem?.cancel()
+        singleTapWorkItem = nil
         deferredViewModelCommitTask?.cancel()
         deferredViewModelCommitTask = nil
         visiblePreloadTask?.cancel()
@@ -929,6 +953,68 @@
         sizeForItemAt indexPath: IndexPath
       ) -> CGSize {
         resolvedViewportSize(for: collectionView)
+      }
+
+      @objc func handleSingleTap(_ gesture: UITapGestureRecognizer) {
+        singleTapWorkItem?.cancel()
+        guard gesture.state == .ended else { return }
+        guard let collectionView else { return }
+        guard !isTapZoneSuppressed(in: collectionView) else { return }
+
+        let location = gesture.location(in: collectionView)
+        let workItem = DispatchWorkItem { [weak self, weak collectionView] in
+          guard let self, let collectionView else { return }
+          self.dispatchTapZoneAction(at: location, in: collectionView)
+        }
+        let delay = max(parent.renderConfig.doubleTapZoomMode.tapDebounceDelay, 0)
+        if delay > 0 {
+          singleTapWorkItem = workItem
+          DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
+        } else {
+          workItem.perform()
+        }
+      }
+
+      @objc func handleDoubleTap(_ gesture: UITapGestureRecognizer) {
+        singleTapWorkItem?.cancel()
+        singleTapWorkItem = nil
+      }
+
+      private func isTapZoneSuppressed(in collectionView: UICollectionView) -> Bool {
+        parent.viewModel.isZoomed
+          || engine.isInteractionActive
+          || collectionView.isDragging
+          || collectionView.isDecelerating
+          || collectionView.isTracking
+      }
+
+      private func dispatchTapZoneAction(at location: CGPoint, in collectionView: UICollectionView) {
+        singleTapWorkItem = nil
+        guard !isTapZoneSuppressed(in: collectionView) else { return }
+
+        let visibleBounds = collectionView.bounds
+        guard visibleBounds.width > 0, visibleBounds.height > 0 else { return }
+        let normalizedX = min(max((location.x - visibleBounds.minX) / visibleBounds.width, 0), 1)
+        let normalizedY = min(max((location.y - visibleBounds.minY) / visibleBounds.height, 0), 1)
+        let action = TapZoneHelper.action(
+          normalizedX: normalizedX,
+          normalizedY: normalizedY,
+          tapZoneMode: parent.renderConfig.tapZoneMode,
+          tapZoneInversionMode: parent.renderConfig.tapZoneInversionMode,
+          readingDirection: parent.readingDirection
+        )
+        parent.onTapZoneAction(action)
+      }
+
+      func gestureRecognizer(
+        _ gestureRecognizer: UIGestureRecognizer,
+        shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
+      ) -> Bool {
+        true
+      }
+
+      func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        touch.view?.hasInteractiveAncestor != true
       }
 
       func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
