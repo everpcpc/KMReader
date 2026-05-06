@@ -12,6 +12,7 @@
     @Bindable var viewModel: ReaderViewModel
     let readListContext: ReaderReadListContext?
     let onDismiss: () -> Void
+    let onTapZoneTap: ReaderTapZoneTapHandler
 
     init(
       mode: PageViewMode,
@@ -22,7 +23,8 @@
       renderConfig: ReaderRenderConfig,
       viewModel: ReaderViewModel,
       readListContext: ReaderReadListContext?,
-      onDismiss: @escaping () -> Void
+      onDismiss: @escaping () -> Void,
+      onTapZoneTap: @escaping ReaderTapZoneTapHandler
     ) {
       self.mode = mode
       self.viewportSize = viewportSize
@@ -33,6 +35,7 @@
       self.viewModel = viewModel
       self.readListContext = readListContext
       self.onDismiss = onDismiss
+      self.onTapZoneTap = onTapZoneTap
     }
 
     func makeCoordinator() -> Coordinator {
@@ -68,6 +71,22 @@
       scrollView.backgroundColor = NSColor(renderConfig.readerBackground.color)
       scrollView.drawsBackground = true
       scrollView.contentView.postsBoundsChangedNotifications = true
+
+      let clickGesture = NSClickGestureRecognizer(
+        target: context.coordinator,
+        action: #selector(Coordinator.handleClick(_:))
+      )
+      clickGesture.numberOfClicksRequired = 1
+      clickGesture.delegate = context.coordinator
+      scrollView.addGestureRecognizer(clickGesture)
+
+      let doubleClickGesture = NSClickGestureRecognizer(
+        target: context.coordinator,
+        action: #selector(Coordinator.handleDoubleClick(_:))
+      )
+      doubleClickGesture.numberOfClicksRequired = 2
+      doubleClickGesture.delegate = context.coordinator
+      scrollView.addGestureRecognizer(doubleClickGesture)
 
       collectionView.frame = CGRect(origin: .zero, size: scrollView.contentView.bounds.size)
       collectionView.autoresizingMask = [.width, .height]
@@ -106,7 +125,7 @@
 
     @MainActor
     final class Coordinator: NSObject, NSCollectionViewDataSource, NSCollectionViewDelegateFlowLayout,
-      NativePagedPagePresentationHost
+      NSGestureRecognizerDelegate, NativePagedPagePresentationHost
     {
       private struct RenderInputs: Equatable {
         let readingDirection: ReadingDirection
@@ -133,6 +152,7 @@
       private var visiblePreloadItem: ReaderViewItem?
       private var programmaticScrollToken: Int = 0
       private var lastObservedClipBounds: CGRect = .zero
+      private var singleClickWorkItem: DispatchWorkItem?
 
       init(_ parent: ScrollPageView) {
         self.parent = parent
@@ -160,6 +180,8 @@
 
       func teardown() {
         NotificationCenter.default.removeObserver(self)
+        singleClickWorkItem?.cancel()
+        singleClickWorkItem = nil
         deferredViewModelCommitTask?.cancel()
         deferredViewModelCommitTask = nil
         visiblePreloadTask?.cancel()
@@ -889,6 +911,59 @@
         if !appliedQueuedItems, parent.viewModel.navigationTarget == nil {
           snapToNearestItemIfNeeded(in: scrollView, collectionView: collectionView, animated: true)
         }
+      }
+
+      @objc func handleClick(_ gesture: NSClickGestureRecognizer) {
+        singleClickWorkItem?.cancel()
+        guard gesture.state == .ended else { return }
+        guard let scrollView else { return }
+        guard !isTapZoneSuppressed(in: scrollView) else { return }
+
+        let location = gesture.location(in: scrollView)
+        guard !isInteractiveElement(at: location, in: scrollView) else { return }
+        let workItem = DispatchWorkItem { [weak self, weak scrollView] in
+          guard let self, let scrollView else { return }
+          self.dispatchTapZoneTap(at: location, in: scrollView)
+        }
+        singleClickWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: workItem)
+      }
+
+      @objc func handleDoubleClick(_ gesture: NSClickGestureRecognizer) {
+        singleClickWorkItem?.cancel()
+        singleClickWorkItem = nil
+      }
+
+      private func isTapZoneSuppressed(in scrollView: NSScrollView) -> Bool {
+        parent.viewModel.isZoomed
+          || isAdjustingBounds
+          || engine.isInteractionActive
+      }
+
+      private func dispatchTapZoneTap(
+        at location: CGPoint,
+        in scrollView: NSScrollView
+      ) {
+        singleClickWorkItem = nil
+        guard !isTapZoneSuppressed(in: scrollView) else { return }
+
+        let bounds = scrollView.bounds
+        guard bounds.width > 0, bounds.height > 0 else { return }
+        let normalizedX = min(max(location.x / bounds.width, 0), 1)
+        let normalizedY = min(max(1 - (location.y / bounds.height), 0), 1)
+        parent.onTapZoneTap(normalizedX, normalizedY)
+      }
+
+      func gestureRecognizer(
+        _ gestureRecognizer: NSGestureRecognizer,
+        shouldRecognizeSimultaneouslyWith otherGestureRecognizer: NSGestureRecognizer
+      ) -> Bool {
+        true
+      }
+
+      private func isInteractiveElement(at location: CGPoint, in scrollView: NSScrollView) -> Bool {
+        let contentLocation = scrollView.contentView.convert(location, from: scrollView)
+        return scrollView.contentView.hitTest(contentLocation)?.hasInteractiveAncestor == true
       }
 
       func numberOfSections(in collectionView: NSCollectionView) -> Int {

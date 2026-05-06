@@ -11,6 +11,7 @@
     let viewModel: ReaderViewModel
     let readListContext: ReaderReadListContext?
     let onDismiss: () -> Void
+    let onTapZoneTap: ReaderTapZoneTapHandler
     let onZoomRequest: ((ReaderPageID, CGPoint) -> Void)?
     let pageWidth: CGFloat
     let renderConfig: ReaderRenderConfig
@@ -22,6 +23,7 @@
       renderConfig: ReaderRenderConfig,
       readListContext: ReaderReadListContext? = nil,
       onDismiss: @escaping () -> Void = {},
+      onTapZoneTap: @escaping ReaderTapZoneTapHandler,
       onZoomRequest: ((ReaderPageID, CGPoint) -> Void)? = nil,
       scrollController: WebtoonScrollController
     ) {
@@ -30,6 +32,7 @@
       self.renderConfig = renderConfig
       self.readListContext = readListContext
       self.onDismiss = onDismiss
+      self.onTapZoneTap = onTapZoneTap
       self.onZoomRequest = onZoomRequest
       self.scrollController = scrollController
     }
@@ -60,6 +63,15 @@
       doubleTapGesture.delegate = context.coordinator
       collectionView.addGestureRecognizer(doubleTapGesture)
 
+      let singleTapGesture = UITapGestureRecognizer(
+        target: context.coordinator,
+        action: #selector(Coordinator.handleSingleTap(_:))
+      )
+      singleTapGesture.numberOfTapsRequired = 1
+      singleTapGesture.cancelsTouchesInView = false
+      singleTapGesture.delegate = context.coordinator
+      collectionView.addGestureRecognizer(singleTapGesture)
+
       let longPressGesture = UILongPressGestureRecognizer(
         target: context.coordinator,
         action: #selector(Coordinator.handleLongPress(_:))
@@ -89,6 +101,7 @@
         viewModel: viewModel,
         readListContext: readListContext,
         onDismiss: onDismiss,
+        onTapZoneTap: onTapZoneTap,
         onZoomRequest: onZoomRequest,
         pageWidth: pageWidth,
         collectionView: collectionView,
@@ -116,6 +129,7 @@
       weak var viewModel: ReaderViewModel?
       var readListContext: ReaderReadListContext?
       var onDismiss: (() -> Void)?
+      var onTapZoneTap: ReaderTapZoneTapHandler?
       var onZoomRequest: ((ReaderPageID, CGPoint) -> Void)?
       weak var scrollController: WebtoonScrollController?
       var lastPagesCount: Int = 0
@@ -129,6 +143,7 @@
       var showPageNumber: Bool = true
       var isLongPress: Bool = false
       var hasTriggeredZoomGesture: Bool = false
+      private var singleTapWorkItem: DispatchWorkItem?
       private var deferredReloadWorkItem: DispatchWorkItem?
       private var deferredCleanupWorkItem: DispatchWorkItem?
       private var sizeProbeTasks: [ReaderPageID: Task<Void, Never>] = [:]
@@ -148,6 +163,7 @@
         self.viewModel = parent.viewModel
         self.readListContext = parent.readListContext
         self.onDismiss = parent.onDismiss
+        self.onTapZoneTap = parent.onTapZoneTap
         self.onZoomRequest = parent.onZoomRequest
         self.scrollController = parent.scrollController
         self.lastPagesCount = parent.viewModel.pageCount
@@ -355,6 +371,7 @@
         viewModel: ReaderViewModel,
         readListContext: ReaderReadListContext?,
         onDismiss: @escaping () -> Void,
+        onTapZoneTap: @escaping ReaderTapZoneTapHandler,
         onZoomRequest: ((ReaderPageID, CGPoint) -> Void)?,
         pageWidth: CGFloat,
         collectionView: UICollectionView,
@@ -364,6 +381,7 @@
         self.viewModel = viewModel
         self.readListContext = readListContext
         self.onDismiss = onDismiss
+        self.onTapZoneTap = onTapZoneTap
         self.onZoomRequest = onZoomRequest
         self.pageWidth = pageWidth
         self.readerBackground = renderConfig.readerBackground
@@ -569,6 +587,8 @@
 
       func teardown() {
         scrollController?.clearTarget(self)
+        singleTapWorkItem?.cancel()
+        singleTapWorkItem = nil
         cancelDeferredMaintenance()
         sizeProbeTasks.values.forEach { $0.cancel() }
         sizeProbeTasks.removeAll()
@@ -890,6 +910,8 @@
       @objc func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
         if gesture.state == .began {
           isLongPress = true
+          singleTapWorkItem?.cancel()
+          singleTapWorkItem = nil
         } else if gesture.state == .ended || gesture.state == .cancelled {
           DispatchQueue.main.asyncAfter(deadline: .now() + WebtoonConstants.longPressReleaseDelay) {
             [weak self] in
@@ -899,6 +921,8 @@
       }
 
       @objc func handleDoubleTap(_ gesture: UITapGestureRecognizer) {
+        singleTapWorkItem?.cancel()
+        singleTapWorkItem = nil
         guard !isLongPress else { return }
         guard let collectionView = collectionView else { return }
         if collectionView.isDragging || collectionView.isDecelerating { return }
@@ -906,6 +930,29 @@
 
         let location = gesture.location(in: collectionView)
         requestZoom(at: location)
+      }
+
+      @objc func handleSingleTap(_ gesture: UITapGestureRecognizer) {
+        singleTapWorkItem?.cancel()
+        guard gesture.state == .ended else { return }
+        guard !isLongPress, !hasTriggeredZoomGesture else { return }
+        guard let collectionView else { return }
+        guard viewModel?.isZoomed != true else { return }
+        guard !isScrollInteractionActive else { return }
+
+        let location = gesture.location(in: collectionView)
+        let workItem = DispatchWorkItem { [weak self, weak collectionView] in
+          guard let self, let collectionView else { return }
+          self.dispatchTapZoneTap(at: location, in: collectionView)
+        }
+
+        let delay = max(doubleTapZoomMode.tapDebounceDelay, 0)
+        if delay > 0 {
+          singleTapWorkItem = workItem
+          DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
+        } else {
+          workItem.perform()
+        }
       }
 
       @objc func handlePinch(_ gesture: UIPinchGestureRecognizer) {
@@ -919,6 +966,8 @@
           let delta = gesture.scale - 1.0
           guard delta > 0.05 else { return }
           hasTriggeredZoomGesture = true
+          singleTapWorkItem?.cancel()
+          singleTapWorkItem = nil
           let location = gesture.location(in: collectionView)
           requestZoom(at: location)
         case .ended, .cancelled, .failed:
@@ -933,14 +982,7 @@
       func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch)
         -> Bool
       {
-        var touchedView: UIView? = touch.view
-        while let currentView = touchedView {
-          if currentView is UIControl {
-            return false
-          }
-          touchedView = currentView.superview
-        }
-        return true
+        touch.view?.hasInteractiveAncestor != true
       }
 
       func gestureRecognizer(
@@ -954,6 +996,19 @@
       private func requestZoom(at location: CGPoint) {
         guard let result = pageIndexAndAnchor(for: location) else { return }
         onZoomRequest?(result.pageID, result.anchor)
+      }
+
+      private func dispatchTapZoneTap(at location: CGPoint, in collectionView: UICollectionView) {
+        singleTapWorkItem = nil
+        guard viewModel?.isZoomed != true else { return }
+        guard !isScrollInteractionActive else { return }
+
+        let visibleBounds = collectionView.bounds
+        guard visibleBounds.width > 0, visibleBounds.height > 0 else { return }
+
+        let normalizedX = min(max((location.x - visibleBounds.minX) / visibleBounds.width, 0), 1)
+        let normalizedY = min(max((location.y - visibleBounds.minY) / visibleBounds.height, 0), 1)
+        onTapZoneTap?(normalizedX, normalizedY)
       }
 
       private func pageIndexAndAnchor(for location: CGPoint) -> (pageID: ReaderPageID, anchor: CGPoint)? {

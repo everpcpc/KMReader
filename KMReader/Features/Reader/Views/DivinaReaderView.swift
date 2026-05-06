@@ -58,7 +58,6 @@ struct DivinaReaderView: View {
   @State private var nextBook: Book?
   @State private var previousBook: Book?
   @State private var showTapZoneOverlay = false
-  @State private var controlHitTestRegions: [CGRect] = []
   @State private var tapZoneOverlayTimer: Timer?
 
   @State private var showKeyboardHelp = false
@@ -652,6 +651,7 @@ struct DivinaReaderView: View {
                 viewModel: viewModel,
                 readListContext: readListContext,
                 onDismiss: { closeReader() },
+                onTapZoneTap: handleTapZoneTap,
                 scrollController: webtoonScrollController,
                 pageWidthPercentage: webtoonPageWidthPercentage,
                 renderConfig: renderConfig
@@ -666,7 +666,8 @@ struct DivinaReaderView: View {
                 renderConfig: renderConfig,
                 viewModel: viewModel,
                 readListContext: readListContext,
-                onDismiss: { closeReader() }
+                onDismiss: { closeReader() },
+                onTapZoneTap: handleTapZoneTap
               )
             #endif
           } else {
@@ -682,7 +683,8 @@ struct DivinaReaderView: View {
                     animateTapTurns: animateTapTurns,
                     renderConfig: renderConfig,
                     readListContext: readListContext,
-                    onDismiss: { closeReader() }
+                    onDismiss: { closeReader() },
+                    onTapZoneTap: handleTapZoneTap
                   )
                 } else {
                   CurlPageView(
@@ -693,7 +695,8 @@ struct DivinaReaderView: View {
                     animateTapTurns: animateTapTurns,
                     renderConfig: renderConfig,
                     readListContext: readListContext,
-                    onDismiss: { closeReader() }
+                    onDismiss: { closeReader() },
+                    onTapZoneTap: handleTapZoneTap
                   )
                 }
               #else
@@ -710,27 +713,14 @@ struct DivinaReaderView: View {
                 renderConfig: renderConfig,
                 viewModel: viewModel,
                 readListContext: readListContext,
-                onDismiss: { closeReader() }
+                onDismiss: { closeReader() },
+                onTapZoneTap: handleTapZoneTap
               )
             }
           }
         }
         .readerIgnoresSafeArea()
         .id(contentKey)
-        #if os(iOS) || os(macOS)
-          .background(
-            DivinaTapZoneGestureBridge(
-              isEnabled: isTapZoneGestureEnabled,
-              readingDirection: readingDirection,
-              tapZoneMode: tapZoneMode,
-              tapZoneInversionMode: tapZoneInversionMode,
-              doubleTapZoomMode: doubleTapZoomMode,
-              enableLiveText: enableLiveText,
-              excludedHitTestRegions: controlHitTestRegions,
-              onAction: handleTapZoneAction
-            )
-          )
-        #endif
         .onChange(of: viewModel.currentReaderPage?.id) { _, _ in
           updateHandoff()
           #if os(iOS)
@@ -773,7 +763,8 @@ struct DivinaReaderView: View {
       renderConfig: renderConfig,
       viewModel: viewModel,
       readListContext: readListContext,
-      onDismiss: { closeReader() }
+      onDismiss: { closeReader() },
+      onTapZoneTap: handleTapZoneTap
     )
   }
 
@@ -839,9 +830,6 @@ struct DivinaReaderView: View {
       showingControls: showingControls,
       showGradientBackground: showControlsGradientBackground
     )
-    .onPreferenceChange(ReaderControlHitTestRegionPreferenceKey.self) { regions in
-      controlHitTestRegions = shouldShowControls ? regions : []
-    }
   }
 
   private var keyboardCommands: [ReaderKeyboardCommand] {
@@ -1521,15 +1509,19 @@ struct DivinaReaderView: View {
     }
   #endif
 
-  #if os(iOS) || os(macOS)
-    private var isTapZoneGestureEnabled: Bool {
-      viewModel.hasPages
-        && !isPresentingModalSheet
-        && !viewModel.isZoomed
-    }
-  #endif
+  private func handleTapZoneTap(normalizedX: CGFloat, normalizedY: CGFloat) {
+    let action = TapZoneHelper.action(
+      normalizedX: normalizedX,
+      normalizedY: normalizedY,
+      tapZoneMode: tapZoneMode,
+      tapZoneInversionMode: tapZoneInversionMode,
+      readingDirection: readingDirection
+    )
+    handleTapZoneAction(action)
+  }
 
   private func handleTapZoneAction(_ action: TapZoneAction) {
+    guard viewModel.hasPages, !isPresentingModalSheet, !viewModel.isZoomed else { return }
     switch action {
     case .previous:
       goToReaderPosition(.previous)

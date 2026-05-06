@@ -43,6 +43,7 @@
     @Bindable var viewModel: ReaderViewModel
     let readListContext: ReaderReadListContext?
     let onDismiss: () -> Void
+    let onTapZoneTap: ReaderTapZoneTapHandler
 
     func makeCoordinator() -> Coordinator {
       Coordinator(self)
@@ -87,6 +88,9 @@
       private var lastViewportSize: CGSize = .zero
       private var postTransitionTask: Task<Void, Never>?
       private var panRecognizer: UIPanGestureRecognizer?
+      private var singleTapRecognizer: UITapGestureRecognizer?
+      private var doubleTapRecognizer: UITapGestureRecognizer?
+      private var singleTapWorkItem: DispatchWorkItem?
 
       init(_ parent: NativeCoverPageView) {
         self.parent = parent
@@ -98,6 +102,7 @@
         self.containerView = containerView
         containerView.backgroundColor = UIColor(parent.renderConfig.readerBackground.color)
         attachPanRecognizerIfNeeded(to: containerView)
+        attachTapRecognizersIfNeeded(to: containerView)
       }
 
       func update(from parent: NativeCoverPageView) {
@@ -135,7 +140,17 @@
         if let panRecognizer {
           panRecognizer.view?.removeGestureRecognizer(panRecognizer)
         }
+        if let singleTapRecognizer {
+          singleTapRecognizer.view?.removeGestureRecognizer(singleTapRecognizer)
+        }
+        if let doubleTapRecognizer {
+          doubleTapRecognizer.view?.removeGestureRecognizer(doubleTapRecognizer)
+        }
+        singleTapWorkItem?.cancel()
+        singleTapWorkItem = nil
         panRecognizer = nil
+        singleTapRecognizer = nil
+        doubleTapRecognizer = nil
         pagePresentationCoordinator.teardown()
         containerView = nil
       }
@@ -211,6 +226,34 @@
           self.panRecognizer = panRecognizer
           applyPanRecognizerState()
         #endif
+      }
+
+      private func attachTapRecognizersIfNeeded(to containerView: NativeCoverContainerView) {
+        if singleTapRecognizer?.view === containerView, doubleTapRecognizer?.view === containerView {
+          return
+        }
+
+        if let singleTapRecognizer {
+          singleTapRecognizer.view?.removeGestureRecognizer(singleTapRecognizer)
+        }
+        if let doubleTapRecognizer {
+          doubleTapRecognizer.view?.removeGestureRecognizer(doubleTapRecognizer)
+        }
+
+        let singleTapRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleSingleTap(_:)))
+        singleTapRecognizer.numberOfTapsRequired = 1
+        singleTapRecognizer.cancelsTouchesInView = false
+        singleTapRecognizer.delegate = self
+        containerView.addGestureRecognizer(singleTapRecognizer)
+
+        let doubleTapRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleDoubleTap(_:)))
+        doubleTapRecognizer.numberOfTapsRequired = 2
+        doubleTapRecognizer.cancelsTouchesInView = false
+        doubleTapRecognizer.delegate = self
+        containerView.addGestureRecognizer(doubleTapRecognizer)
+
+        self.singleTapRecognizer = singleTapRecognizer
+        self.doubleTapRecognizer = doubleTapRecognizer
       }
 
       private func applyPanRecognizerState() {
@@ -775,6 +818,46 @@
         return max(min(raw, start), 0)
       }
 
+      @objc private func handleSingleTap(_ recognizer: UITapGestureRecognizer) {
+        singleTapWorkItem?.cancel()
+        guard recognizer.state == .ended else { return }
+        guard let containerView else { return }
+        guard !isTapZoneSuppressed else { return }
+
+        let location = recognizer.location(in: containerView)
+        let workItem = DispatchWorkItem { [weak self, weak containerView] in
+          guard let self, let containerView else { return }
+          self.dispatchTapZoneTap(at: location, in: containerView)
+        }
+        let delay = max(parent.renderConfig.doubleTapZoomMode.tapDebounceDelay, 0)
+        if delay > 0 {
+          singleTapWorkItem = workItem
+          DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
+        } else {
+          workItem.perform()
+        }
+      }
+
+      @objc private func handleDoubleTap(_ recognizer: UITapGestureRecognizer) {
+        singleTapWorkItem?.cancel()
+        singleTapWorkItem = nil
+      }
+
+      private var isTapZoneSuppressed: Bool {
+        parent.viewModel.isZoomed || isUserPanning || isAnimatingTransition
+      }
+
+      private func dispatchTapZoneTap(at location: CGPoint, in containerView: NativeCoverContainerView) {
+        singleTapWorkItem = nil
+        guard !isTapZoneSuppressed else { return }
+        let bounds = containerView.bounds
+        guard bounds.width > 0, bounds.height > 0 else { return }
+        parent.onTapZoneTap(
+          min(max(location.x / bounds.width, 0), 1),
+          min(max(location.y / bounds.height, 0), 1)
+        )
+      }
+
       func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
         guard gestureRecognizer === panRecognizer else { return true }
         guard !parent.viewModel.isZoomed else { return false }
@@ -792,10 +875,7 @@
         _ gestureRecognizer: UIGestureRecognizer,
         shouldReceive touch: UITouch
       ) -> Bool {
-        if let view = touch.view, view is UIControl {
-          return false
-        }
-        return true
+        touch.view?.hasInteractiveAncestor != true
       }
 
       func gestureRecognizer(

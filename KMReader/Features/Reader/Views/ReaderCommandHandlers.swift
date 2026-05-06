@@ -1,5 +1,7 @@
 import Foundation
 
+typealias ReaderTapZoneTapHandler = (_ normalizedX: CGFloat, _ normalizedY: CGFloat) -> Void
+
 struct ReaderCommandHandlers {
   let showReaderSettings: () -> Void
   let showBookDetails: () -> Void
