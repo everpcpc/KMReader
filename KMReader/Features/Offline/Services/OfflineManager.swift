@@ -2424,7 +2424,14 @@ actor OfflineManager {
   }
 
   private static func normalizeArchivePath(_ path: String) -> String? {
-    let components = path.split(separator: "/").map(String.init)
+    // Treat both `/` and `\` as separators. CBR archives created on Windows tooling
+    // use backslashes inside entry paths, and Komga returns those verbatim in
+    // `BookPage.fileName`. libarchive normalizes RAR `\` to `/` when extracting, so
+    // matching the dictionary key and the staged relative path requires both sides
+    // to canonicalize to the same form.
+    let components = path
+      .split(whereSeparator: { $0 == "/" || $0 == "\\" })
+      .map(String.init)
     guard !components.isEmpty else { return nil }
 
     var normalized: [String] = []
