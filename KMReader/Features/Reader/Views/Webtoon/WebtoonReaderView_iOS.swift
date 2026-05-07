@@ -854,11 +854,23 @@
         }
 
         if scrollEngine.currentPageID != resolvedPageID {
+          commitLastPageBeforeBookBoundaryIfNeeded(nextPageID: resolvedPageID)
           scrollEngine.currentPageID = resolvedPageID
         }
         if commitToViewModel, viewModel?.currentReaderPage?.id != resolvedPageID {
           viewModel?.updateCurrentPosition(pageID: resolvedPageID)
         }
+      }
+
+      private func commitLastPageBeforeBookBoundaryIfNeeded(nextPageID: ReaderPageID) {
+        let currentBookId = scrollEngine.currentPageID?.bookId ?? viewModel?.currentReaderPage?.bookId
+        guard let currentBookId,
+          currentBookId != nextPageID.bookId,
+          let lastPageID = viewModel?.lastPageID(forSegmentBookId: currentBookId),
+          viewModel?.currentReaderPage?.id != lastPageID
+        else { return }
+
+        viewModel?.updateCurrentPosition(pageID: lastPageID)
       }
 
       // MARK: - Image Loading
