@@ -1,16 +1,12 @@
-Reader Settings and Controls
-- DIVINA and PDF reader settings are now more consistent between global Settings and in-reader controls.
-- PDF reading now supports an optional continuous scrolling mode, while page-by-page reading remains the default.
-- Reader controls can show optional gradient backgrounds for better contrast over page artwork.
-- Tap page-turn animation settings are simpler, with separate controls for DIVINA/Webtoon and EPUB.
-- Reader progress bars are easier to see over comics, PDFs, and EPUB content.
-- Reader overlay buttons have better contrast on older system versions.
+Reader Controls
+- Tap zone layout presets make it easier to choose how page turns and controls respond while reading.
+- Reader tap zones now stay separate from buttons and controls, reducing accidental actions.
+- Live Activity options have been moved to a more appropriate Settings location.
 
 Reader Reliability
-- Cover-mode table of contents and page jumps are more stable and should no longer snap back to the previous page.
-- Webtoon scrolling is smoother when moving between book segments.
-- PDF display mode changes preserve the current reading position more reliably.
+- Webtoon navigation is more consistent across scrolling and page-turn actions.
+- Webtoon books now preserve progress more reliably when reaching the final page.
 
-Offline and Recovery
-- Offline archive extraction is more consistent for EPUB, CBZ, and CBR downloads.
-- If local storage damage prevents KMReader from opening, the startup failure screen now offers a Reset Local Data recovery action.
+Offline and Library Reliability
+- Downloaded archives with mixed path styles open more reliably.
+- Library details refresh more consistently after changes made on the server.

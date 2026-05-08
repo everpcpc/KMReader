@@ -22,7 +22,7 @@
 
 ### Readers
 
-- DIVINA reader on iOS, macOS, and tvOS with LTR, RTL, vertical, Webtoon, spreads, zoom, page curl on iOS, cover transitions, custom tap zones, keyboard support, and per-book preferences.
+- DIVINA reader on iOS, macOS, and tvOS with LTR, RTL, vertical, Webtoon, spreads, zoom, page curl on iOS, cover transitions, tap zone layout presets, keyboard support, and per-book preferences.
 - EPUB reader on iOS/macOS with paged, scrolled, or cover layouts, custom fonts, themes, typography controls, status/footer overlays, multi-column reading, and nested table of contents.
 - PDF reader on iOS/macOS with native PDF or DIVINA mode, search, table of contents, page jump, spread layouts, configurable render quality, and optional continuous scrolling.
 - Animated GIF and WebP pages play inline. Incognito mode, page image actions, reader progress overlays, and iOS Live Text are supported where available.
