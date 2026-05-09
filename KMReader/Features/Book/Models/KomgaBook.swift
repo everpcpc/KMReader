@@ -61,6 +61,7 @@ final class KomgaBook {
   var readListIdsRaw: Data?
 
   var isolatePagesRaw: Data?
+  var pageRotationsRaw: Data?
   var epubPreferencesRaw: String?
 
   var readListIds: [String] {
@@ -71,6 +72,12 @@ final class KomgaBook {
   var isolatePages: [Int] {
     get { isolatePagesRaw.flatMap { try? JSONDecoder().decode([Int].self, from: $0) } ?? [] }
     set { isolatePagesRaw = try? JSONEncoder().encode(newValue) }
+  }
+
+  /// Page rotations stored as [pageIndex: degrees]
+  var pageRotations: [Int: Int] {
+    get { pageRotationsRaw.flatMap { try? JSONDecoder().decode([Int: Int].self, from: $0) } ?? [:] }
+    set { pageRotationsRaw = try? JSONEncoder().encode(newValue) }
   }
 
   var epubPreferences: EpubReaderPreferences? {
@@ -198,6 +205,7 @@ final class KomgaBook {
     self.downloadedSize = downloadedSize
     self.readListIdsRaw = try? JSONEncoder().encode([] as [String])
     self.isolatePagesRaw = try? JSONEncoder().encode([] as [Int])
+    self.pageRotationsRaw = nil
     self.epubPreferencesRaw = nil
     self.epubProgressionRaw = nil
   }

@@ -15,6 +15,9 @@ struct ReaderCommandState: Equatable {
   var pageLayout: PageLayout = .auto
   var isolateCoverPage: Bool = true
   var pageIsolationActions: [ReaderPageIsolationActions.Action] = []
+  var commandPageIDs: [ReaderPageID] = []
+  var displayPageNumbersByID: [ReaderPageID: Int] = [:]
+  var pageRotationsByID: [ReaderPageID: Int] = [:]
   var splitWidePageMode: SplitWidePageMode = .none
   var continuousScroll: Bool = false
   var supportsSearch: Bool = false

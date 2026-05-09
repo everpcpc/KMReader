@@ -137,9 +137,10 @@ struct DivinaControlsOverlayView: View {
       sharePages(ids: [id])
     }
 
-    private var sharePageFormat: String {
-      String(localized: "Share Page %d")
+    private var pageFormat: String {
+      String(localized: "Page %d")
     }
+
   #endif
 
   var body: some View {
@@ -332,10 +333,6 @@ struct DivinaControlsOverlayView: View {
           Label(String(localized: "Page Layout"), systemImage: pageLayout.icon)
         }
         .pickerStyle(.menu)
-
-        if enableDualPageOptions {
-          pageIsolation()
-        }
       }
 
       if readingDirection != .webtoon {
@@ -374,14 +371,17 @@ struct DivinaControlsOverlayView: View {
       if currentPageID != nil {
         Section {
           if dualPage, let pair = viewModel.currentViewItem()?.pagePairIDs {
-            share(firstPage: pair.first, secondPage: pair.second)
+            pageActionsMenu(for: pair.first)
+            if let second = pair.second {
+              pageActionsMenu(for: second)
+            }
           } else if let currentPageID {
-            share(firstPage: currentPageID, secondPage: nil)
+            pageActionsMenu(for: currentPageID)
           } else {
             EmptyView()
           }
         } header: {
-          Text(String(localized: "Share"))
+          Text(String(localized: "Current Page"))
         }
       }
     #endif
@@ -402,26 +402,6 @@ struct DivinaControlsOverlayView: View {
         startPoint: startPoint,
         endPoint: endPoint
       )
-    }
-  }
-
-  @ViewBuilder
-  private func pageIsolation() -> some View {
-    Button {
-      isolateCoverPage.toggle()
-    } label: {
-      Label(
-        String(localized: "Isolate Cover Page"),
-        systemImage: isolateCoverPage ? "checkmark.rectangle.portrait" : "rectangle.portrait"
-      )
-    }
-
-    ForEach(pageIsolationActions) { action in
-      Button {
-        viewModel.toggleIsolatePage(action.pageID)
-      } label: {
-        Label(action.title, systemImage: action.systemImage)
-      }
     }
   }
 
@@ -478,25 +458,59 @@ struct DivinaControlsOverlayView: View {
 
   #if os(iOS) || os(macOS)
     @ViewBuilder
-    private func share(firstPage: ReaderPageID, secondPage: ReaderPageID?) -> some View {
-      Button {
-        sharePage(id: firstPage)
+    private func pageActionsMenu(for pageID: ReaderPageID) -> some View {
+      let displayedPageNumber = displayPageNumber(for: pageID)
+      let currentRotation = viewModel.pageRotationDegrees(for: pageID)
+      Menu {
+        Button {
+          sharePage(id: pageID)
+        } label: {
+          Label(String(localized: "Share"), systemImage: "square.and.arrow.up")
+        }
+
+        if let isolationAction = pageIsolationAction(for: pageID) {
+          Button {
+            viewModel.toggleIsolatePage(isolationAction.pageID)
+          } label: {
+            Label(pageIsolationMenuTitle(for: isolationAction), systemImage: isolationAction.systemImage)
+          }
+        }
+
+        Menu {
+          pageRotationActions(for: pageID, currentRotation: currentRotation)
+        } label: {
+          Label("Rotate: \(currentRotation)°", systemImage: "rotate.right")
+        }
       } label: {
-        let displayedPageNumber = displayPageNumber(for: firstPage)
         Label(
-          String.localizedStringWithFormat(sharePageFormat, displayedPageNumber),
-          systemImage: "square.and.arrow.up"
+          String.localizedStringWithFormat(pageFormat, displayedPageNumber),
+          systemImage: "doc"
         )
       }
-      if let secondPage {
+    }
+
+    private func pageIsolationAction(for pageID: ReaderPageID) -> ReaderPageIsolationActions.Action? {
+      pageIsolationActions.first { $0.pageID == pageID }
+    }
+
+    private func pageIsolationMenuTitle(for action: ReaderPageIsolationActions.Action) -> String {
+      if action.title == String(localized: "Cancel Isolation") {
+        return action.title
+      }
+      return String(localized: "Isolate")
+    }
+
+    @ViewBuilder
+    private func pageRotationActions(for pageID: ReaderPageID, currentRotation: Int) -> some View {
+      ForEach([0, 90, 180, 270], id: \.self) { degrees in
         Button {
-          sharePage(id: secondPage)
+          viewModel.setPageRotation(degrees, for: pageID)
         } label: {
-          let displayedPageNumber = displayPageNumber(for: secondPage)
-          Label(
-            String.localizedStringWithFormat(sharePageFormat, displayedPageNumber),
-            systemImage: "square.and.arrow.up.on.square"
-          )
+          if currentRotation == degrees {
+            Label("\(degrees)°", systemImage: "checkmark")
+          } else {
+            Text("\(degrees)°")
+          }
         }
       }
     }

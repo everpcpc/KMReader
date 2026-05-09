@@ -2429,7 +2429,8 @@ actor OfflineManager {
     // `BookPage.fileName`. libarchive normalizes RAR `\` to `/` when extracting, so
     // matching the dictionary key and the staged relative path requires both sides
     // to canonicalize to the same form.
-    let components = path
+    let components =
+      path
       .split(whereSeparator: { $0 == "/" || $0 == "\\" })
       .map(String.init)
     guard !components.isEmpty else { return nil }
