@@ -606,6 +606,8 @@
               isolateCoverPage.toggle()
             },
             toggleIsolatePage: { _ in },
+            sharePage: { _ in },
+            setPageRotation: { _, _ in },
             setSplitWidePageMode: { _ in },
             toggleContinuousScroll: {
               continuousScroll.toggle()

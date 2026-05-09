@@ -368,6 +368,22 @@ actor DatabaseOperator {
     }
   }
 
+  func fetchPageRotations(id: String) -> [Int: Int]? {
+    let instanceId = AppConfig.current.instanceId
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: id)
+    let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
+    return try? modelContext.fetch(descriptor).first?.pageRotations
+  }
+
+  func updatePageRotations(bookId: String, rotations: [Int: Int]) {
+    let instanceId = AppConfig.current.instanceId
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
+    let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
+    if let book = try? modelContext.fetch(descriptor).first {
+      book.pageRotations = rotations
+    }
+  }
+
   func fetchBookEpubPreferences(bookId: String) -> EpubReaderPreferences? {
     let instanceId = AppConfig.current.instanceId
     let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
