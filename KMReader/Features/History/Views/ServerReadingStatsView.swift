@@ -148,15 +148,6 @@ struct ServerReadingStatsView: View {
           .truncationMode(.tail)
       }
 
-      if viewModel.isUsingCachedData {
-        Text(String(localized: "Cached"))
-          .font(.caption)
-          .fontWeight(.semibold)
-          .padding(.horizontal, 8)
-          .padding(.vertical, 4)
-          .background(Color.orange.opacity(0.2), in: Capsule())
-          .foregroundStyle(.orange)
-      }
     }
     .padding(12)
     .background(.thinMaterial)

@@ -13,7 +13,6 @@ final class ReadingStatsViewModel {
   var selectedTimeRange: ReadingStatsTimeRange = .last30Days
   var isLoading = false
   var isRefreshing = false
-  var isUsingCachedData = false
   var errorMessage: String?
 
   // Cached stats are immediately displayed; if last refresh is older than this interval, refresh in background.
@@ -26,14 +25,13 @@ final class ReadingStatsViewModel {
       payload = nil
       lastUpdatedAt = nil
       errorMessage = nil
-      isUsingCachedData = false
       return
     }
 
     let cachedSnapshot = cacheStore.snapshot(instanceId: instanceId, libraryId: libraryId)
 
     if let cachedSnapshot {
-      apply(snapshot: cachedSnapshot, usingCache: true)
+      apply(snapshot: cachedSnapshot)
 
       let cacheAge = Date().timeIntervalSince(cachedSnapshot.cachedAt)
       if forceRefresh == false && cacheAge <= autoRefreshInterval {
@@ -52,10 +50,10 @@ final class ReadingStatsViewModel {
       let fetched = try await service.fetchReadingStats(libraryId: normalizedLibraryId(libraryId))
       let snapshot = ReadingStatsSnapshot(libraryId: normalizedLibraryId(libraryId), cachedAt: Date(), payload: fetched)
       cacheStore.upsert(snapshot: snapshot, instanceId: instanceId, libraryId: libraryId)
-      apply(snapshot: snapshot, usingCache: false)
+      apply(snapshot: snapshot)
     } catch {
       if let cachedSnapshot {
-        apply(snapshot: cachedSnapshot, usingCache: true)
+        apply(snapshot: cachedSnapshot)
         errorMessage = String(localized: "Failed to refresh reading stats. Showing cached data.")
       } else {
         payload = nil
@@ -262,10 +260,9 @@ final class ReadingStatsViewModel {
     return nil
   }
 
-  private func apply(snapshot: ReadingStatsSnapshot, usingCache: Bool) {
+  private func apply(snapshot: ReadingStatsSnapshot) {
     payload = snapshot.payload
     lastUpdatedAt = snapshot.cachedAt
-    isUsingCachedData = usingCache
   }
 
   private func normalizedLibraryId(_ libraryId: String) -> String {
