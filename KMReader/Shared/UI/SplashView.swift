@@ -13,10 +13,16 @@ struct SplashView: View {
 
   let initializer: InstanceInitializer?
   let isMigration: Bool
+  let enterOfflineMode: (() -> Void)?
 
-  init(initializer: InstanceInitializer? = nil, isMigration: Bool = false) {
+  init(
+    initializer: InstanceInitializer? = nil,
+    isMigration: Bool = false,
+    enterOfflineMode: (() -> Void)? = nil
+  ) {
     self.initializer = initializer
     self.isMigration = isMigration
+    self.enterOfflineMode = enterOfflineMode
     _isVisible = State(initialValue: isMigration)
   }
 
@@ -153,6 +159,20 @@ struct SplashView: View {
             .foregroundStyle(.tertiary)
             .multilineTextAlignment(.center)
             .frame(maxWidth: 320)
+          } else if let enterOfflineMode {
+            Button {
+              enterOfflineMode()
+            } label: {
+              Label(
+                String(
+                  localized: "splash.offline.enter",
+                  defaultValue: "Enter Offline Mode"
+                ),
+                systemImage: "wifi.slash"
+              )
+              .fontWeight(.semibold)
+            }
+            .adaptiveButtonStyle(.bordered)
           }
         }
       }

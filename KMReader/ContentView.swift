@@ -71,7 +71,9 @@ struct ContentView: View {
               }
             #endif
           } else {
-            SplashView(initializer: instanceInitializer)
+            SplashView(initializer: instanceInitializer) {
+              isOffline = true
+            }
           }
         }
         .task(id: isLoggedIn) {
