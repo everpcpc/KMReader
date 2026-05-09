@@ -39,13 +39,6 @@ struct ServerReadingStatsView: View {
     return hasNeverSynced && !hasAnyLocalBook
   }
 
-  private var selectedLibraryName: String {
-    guard !selectedLibraryId.isEmpty else {
-      return String(localized: "All Libraries")
-    }
-    return libraries.first { $0.libraryId == selectedLibraryId }?.name ?? String(localized: "All Libraries")
-  }
-
   var body: some View {
     ScrollView {
       VStack(alignment: .leading, spacing: 16) {
@@ -128,18 +121,13 @@ struct ServerReadingStatsView: View {
 
   private var controlsSection: some View {
     HStack(spacing: 8) {
-      Picker(selection: $selectedLibraryId) {
+      Picker(String(localized: "Library"), selection: $selectedLibraryId) {
         Text(String(localized: "All Libraries"))
           .tag("")
         ForEach(libraries) { library in
           Text(library.name)
             .tag(library.libraryId)
         }
-      } label: {
-        Text(selectedLibraryName)
-          .lineLimit(1)
-          .truncationMode(.tail)
-          .frame(maxWidth: .infinity, alignment: .leading)
       }
       .pickerStyle(.menu)
       .frame(maxWidth: .infinity, alignment: .leading)
