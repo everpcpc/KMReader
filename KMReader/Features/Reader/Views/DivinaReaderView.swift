@@ -1430,6 +1430,34 @@ struct DivinaReaderView: View {
       )
     }
 
+    private var macCommandPageIDs: [ReaderPageID] {
+      if let pair = viewModel.currentViewItem()?.pagePairIDs {
+        return [pair.first, pair.second].compactMap(\.self)
+      }
+      guard let pageID = viewModel.currentReaderPage?.id else { return [] }
+      return [pageID]
+    }
+
+    private var macDisplayPageNumbersByID: [ReaderPageID: Int] {
+      Dictionary(
+        uniqueKeysWithValues: macCommandPageIDs.map { pageID in
+          (pageID, displayPageNumber(for: pageID))
+        })
+    }
+
+    private var macPageRotationsByID: [ReaderPageID: Int] {
+      Dictionary(
+        uniqueKeysWithValues: macCommandPageIDs.map { pageID in
+          (pageID, viewModel.pageRotationDegrees(for: pageID))
+        })
+    }
+
+    private func sharePageFromCommand(_ pageID: ReaderPageID) {
+      guard let image = viewModel.preloadedImage(for: pageID) else { return }
+      let fileName = viewModel.page(for: pageID)?.fileName
+      ImageShareHelper.share(image: image, fileName: fileName)
+    }
+
     private var readerCommandState: ReaderCommandState {
       let supportsDualPageOptions =
         readingDirection != .webtoon
@@ -1454,6 +1482,9 @@ struct DivinaReaderView: View {
         pageLayout: pageLayout,
         isolateCoverPage: isolateCoverPage,
         pageIsolationActions: macPageIsolationActions,
+        commandPageIDs: macCommandPageIDs,
+        displayPageNumbersByID: macDisplayPageNumbersByID,
+        pageRotationsByID: macPageRotationsByID,
         splitWidePageMode: splitWidePageMode,
         supportsSearch: false,
         canSearch: false,
@@ -1508,6 +1539,12 @@ struct DivinaReaderView: View {
           },
           toggleIsolatePage: { pageID in
             viewModel.toggleIsolatePage(pageID)
+          },
+          sharePage: { pageID in
+            sharePageFromCommand(pageID)
+          },
+          setPageRotation: { pageID, degrees in
+            viewModel.setPageRotation(degrees, for: pageID)
           },
           setSplitWidePageMode: { mode in
             splitWidePageMode = mode

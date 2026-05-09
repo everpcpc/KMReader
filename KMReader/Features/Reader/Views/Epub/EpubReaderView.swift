@@ -913,6 +913,8 @@
             setPageLayout: { _ in },
             toggleIsolateCoverPage: {},
             toggleIsolatePage: { _ in },
+            sharePage: { _ in },
+            setPageRotation: { _, _ in },
             setSplitWidePageMode: { _ in },
             toggleContinuousScroll: {}
           )

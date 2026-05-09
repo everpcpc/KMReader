@@ -280,6 +280,14 @@ final class ReaderPresentationManager {
       readerCommandHandlers?.toggleIsolatePage(pageID)
     }
 
+    func sharePageFromCommand(_ pageID: ReaderPageID) {
+      readerCommandHandlers?.sharePage(pageID)
+    }
+
+    func setPageRotationFromCommand(_ pageID: ReaderPageID, degrees: Int) {
+      readerCommandHandlers?.setPageRotation(pageID, degrees)
+    }
+
     func setSplitWidePageModeFromCommand(_ mode: SplitWidePageMode) {
       readerCommandHandlers?.setSplitWidePageMode(mode)
     }

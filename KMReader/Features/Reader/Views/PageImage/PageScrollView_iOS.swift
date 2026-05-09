@@ -270,7 +270,7 @@
         guard width > 0 else { return parent.screenSize.height }
 
         if let image = image {
-          let imageSize = image.size
+          let imageSize = rotatedSize(image.size, degrees: data.rotationDegrees)
           if imageSize.width > 0, imageSize.height > 0 {
             let height = width * imageSize.height / imageSize.width
             if height.isFinite && height > 0 {
@@ -292,6 +292,14 @@
         }
 
         return parent.screenSize.height
+      }
+
+      private func rotatedSize(_ size: CGSize, degrees: Int) -> CGSize {
+        let normalized = ((degrees % 360) + 360) % 360
+        if normalized == 90 || normalized == 270 {
+          return CGSize(width: size.height, height: size.width)
+        }
+        return size
       }
 
       @objc func handleDoubleTap(_ gesture: UITapGestureRecognizer) {

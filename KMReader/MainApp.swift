@@ -75,7 +75,7 @@ struct MainApp: App {
   }
 
   private func makeModelContainer() throws -> ModelContainer {
-    let schema = Schema(versionedSchema: KMReaderSchemaV4.self)
+    let schema = Schema(versionedSchema: KMReaderSchemaV5.self)
     let configuration = ModelConfiguration(schema: schema)
     return try ModelContainer(
       for: schema,
@@ -267,6 +267,44 @@ struct MainApp: App {
           .disabled(!state.isActive)
         }
 
+        if !state.commandPageIDs.isEmpty {
+          ForEach(state.commandPageIDs, id: \.self) { pageID in
+            let displayPageNumber = state.displayPageNumbersByID[pageID] ?? pageID.pageNumber + 1
+            let currentRotation = state.pageRotationsByID[pageID] ?? 0
+            Menu("Page \(displayPageNumber)") {
+              Button("Share") {
+                readerPresentation.sharePageFromCommand(pageID)
+              }
+              .disabled(!state.isActive)
+
+              if let isolationAction = state.pageIsolationActions.first(where: { $0.pageID == pageID }) {
+                Divider()
+                Button(readerPageIsolationTitle(for: isolationAction)) {
+                  readerPresentation.toggleIsolatePageFromCommand(isolationAction.pageID)
+                }
+                .disabled(!state.isActive)
+              }
+
+              Divider()
+              Menu("Rotate: \(currentRotation)°") {
+                ForEach([0, 90, 180, 270], id: \.self) { degrees in
+                  Button {
+                    readerPresentation.setPageRotationFromCommand(pageID, degrees: degrees)
+                  } label: {
+                    if currentRotation == degrees {
+                      Label("\(degrees)°", systemImage: "checkmark")
+                    } else {
+                      Text("\(degrees)°")
+                    }
+                  }
+                  .disabled(!state.isActive)
+                }
+              }
+            }
+            .disabled(!state.isActive)
+          }
+        }
+
         if state.supportsDualPageOptions {
           Button {
             readerPresentation.toggleIsolateCoverPageFromCommand()
@@ -278,13 +316,6 @@ struct MainApp: App {
             }
           }
           .disabled(!state.isActive)
-
-          ForEach(state.pageIsolationActions) { action in
-            Button(action.title) {
-              readerPresentation.toggleIsolatePageFromCommand(action.pageID)
-            }
-            .disabled(!state.isActive)
-          }
         }
 
         if state.supportsSplitWidePageMode {
@@ -336,6 +367,14 @@ struct MainApp: App {
         }
       }
     }
+
+    private func readerPageIsolationTitle(for action: ReaderPageIsolationActions.Action) -> String {
+      if action.title == String(localized: "Cancel Isolation") {
+        return action.title
+      }
+      return String(localized: "Isolate")
+    }
+
   #endif
 
   var body: some Scene {
