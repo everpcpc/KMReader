@@ -196,6 +196,35 @@ actor ProgressSyncService {
       logger.info(
         "⏭️ Skipping stale pending for book \(item.bookId): server.lastModified=\(serverProgress.lastModified.ISO8601Format()) is newer than pending.createdAt=\(item.createdAt.ISO8601Format()) (+ \(Int(Self.staleDetectionClockSkewTolerance))s tolerance)"
       )
+
+      // For EPUB pendings, also refresh the local `epubProgressionRaw` locator from
+      // the server. The caller's post-loop `SyncService.syncBook` only refreshes the
+      // Book DTO via `applyBook`, which does not touch `epubProgressionRaw` — that
+      // field is written only by `updateBookEpubProgression`. Without this extra
+      // fetch, the stale local locator would persist after a stale-skip and the
+      // next EPUB resume would use it (especially when the user reopens the book
+      // offline). Best-effort: failures here are logged but do not fail the skip.
+      if item.progressionData != nil {
+        do {
+          let serverProgression = try await BookService.shared.getWebPubProgression(
+            bookId: item.bookId
+          )
+          if let database = try? await DatabaseOperator.database() {
+            await database.updateBookEpubProgression(
+              bookId: item.bookId,
+              progression: serverProgression
+            )
+            logger.debug(
+              "💾 Refreshed local EPUB progression from server after stale-skip: book=\(item.bookId)"
+            )
+          }
+        } catch {
+          logger.warning(
+            "⚠️ Failed to refresh EPUB progression from server after stale-skip for book \(item.bookId): \(error.localizedDescription)"
+          )
+        }
+      }
+
       return .skippedStale
     }
 
