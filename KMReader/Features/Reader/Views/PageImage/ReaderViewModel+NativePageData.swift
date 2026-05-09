@@ -107,6 +107,7 @@ extension ReaderViewModel {
       error: nil,
       alignment: alignment,
       splitMode: splitMode,
+      rotationDegrees: pageRotationDegrees(for: pageID),
       animatedSourceFileURL: isPlaybackActive ? animatedSourceFileURL(for: pageID) : nil
     )
   }

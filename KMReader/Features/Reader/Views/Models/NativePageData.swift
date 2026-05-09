@@ -19,6 +19,7 @@ struct NativePageData {
   let error: String?
   let alignment: HorizontalAlignment
   let splitMode: PageSplitMode
+  let rotationDegrees: Int
   let animatedSourceFileURL: URL?
 
   init(
@@ -27,6 +28,7 @@ struct NativePageData {
     error: String?,
     alignment: HorizontalAlignment,
     splitMode: PageSplitMode = .none,
+    rotationDegrees: Int = 0,
     animatedSourceFileURL: URL? = nil
   ) {
     self.pageID = pageID
@@ -34,6 +36,7 @@ struct NativePageData {
     self.error = error
     self.alignment = alignment
     self.splitMode = splitMode
+    self.rotationDegrees = rotationDegrees
     self.animatedSourceFileURL = animatedSourceFileURL
   }
 }

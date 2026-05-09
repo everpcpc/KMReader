@@ -78,12 +78,11 @@
         prepareForDismantle()
       } else {
         if imageView.image == nil, let data = currentData {
-          let pageSourceImage: UIImage?
-          if let image = viewModel?.preloadedImage(for: data.pageID), data.splitMode != .none {
-            pageSourceImage = cropImageForSplitMode(image: image, splitMode: data.splitMode)
-          } else {
-            pageSourceImage = viewModel?.preloadedImage(for: data.pageID)
-          }
+          let pageSourceImage = preparedImage(
+            from: viewModel?.preloadedImage(for: data.pageID),
+            splitMode: data.splitMode,
+            rotationDegrees: data.rotationDegrees
+          )
           #if os(iOS) || os(macOS)
             analysisSourceImage = pageSourceImage
           #endif
@@ -183,12 +182,11 @@
       self.supportsPageIsolationActions = supportsPageIsolationActions
       self.canIsolatePageFromCurrentPresentation = canIsolatePageFromCurrentPresentation
 
-      let pageSourceImage: PlatformImage?
-      if let image = image, data.splitMode != .none {
-        pageSourceImage = cropImageForSplitMode(image: image, splitMode: data.splitMode)
-      } else {
-        pageSourceImage = image
-      }
+      let pageSourceImage = preparedImage(
+        from: image,
+        splitMode: data.splitMode,
+        rotationDegrees: data.rotationDegrees
+      )
 
       #if os(iOS) || os(macOS)
         analysisSourceImage = shouldEnableLiveText ? pageSourceImage : nil
@@ -255,6 +253,36 @@
       imageView.layer.shadowOpacity = shadowOpacity
       if shadowOpacity == 0 {
         imageView.layer.shadowPath = nil
+      }
+    }
+
+    private func preparedImage(from image: UIImage?, splitMode: PageSplitMode, rotationDegrees: Int) -> UIImage? {
+      guard let image else { return nil }
+      let rotatedImage = rotateImage(image, degrees: rotationDegrees)
+      guard splitMode != .none else { return rotatedImage }
+      return cropImageForSplitMode(image: rotatedImage, splitMode: splitMode)
+    }
+
+    private func rotateImage(_ image: UIImage, degrees: Int) -> UIImage {
+      let normalized = ((degrees % 360) + 360) % 360
+      guard normalized != 0 else { return image }
+
+      let radians = CGFloat(normalized) * .pi / 180
+      var rotatedRect = CGRect(origin: .zero, size: image.size)
+        .applying(CGAffineTransform(rotationAngle: radians))
+      rotatedRect.origin = .zero
+
+      let renderer = UIGraphicsImageRenderer(size: rotatedRect.size)
+      return renderer.image { context in
+        context.cgContext.translateBy(x: rotatedRect.size.width / 2, y: rotatedRect.size.height / 2)
+        context.cgContext.rotate(by: radians)
+        image.draw(
+          in: CGRect(
+            x: -image.size.width / 2,
+            y: -image.size.height / 2,
+            width: image.size.width,
+            height: image.size.height
+          ))
       }
     }
 
@@ -537,21 +565,19 @@
       private func makeContextMenu() -> UIMenu? {
         guard let currentData, imageView.image != nil else { return nil }
 
-        var actions: [UIMenuElement] = [makeShareAction(for: currentData.pageID)]
+        var sections: [UIMenuElement] = [
+          UIMenu(options: .displayInline, children: [makeShareAction(for: currentData.pageID)])
+        ]
         if let isolateAction = makePageIsolationAction(for: currentData.pageID) {
-          actions.append(isolateAction)
+          sections.append(UIMenu(options: .displayInline, children: [isolateAction]))
         }
+        sections.append(makePageRotationMenu(for: currentData.pageID))
 
-        return UIMenu(children: actions)
+        return UIMenu(children: sections)
       }
 
       private func makeShareAction(for pageID: ReaderPageID) -> UIAction {
-        let displayPageNumber = viewModel?.displayPageNumber(for: pageID) ?? pageID.pageNumber + 1
-        let title = String.localizedStringWithFormat(
-          String(localized: "Share Page %d"),
-          displayPageNumber
-        )
-        return UIAction(title: title, image: UIImage(systemName: "square.and.arrow.up")) {
+        UIAction(title: String(localized: "Share"), image: UIImage(systemName: "square.and.arrow.up")) {
           [weak self] _ in
           self?.shareCurrentImage(for: pageID)
         }
@@ -559,9 +585,17 @@
 
       private func makePageIsolationAction(for pageID: ReaderPageID) -> UIAction? {
         guard supportsPageIsolationActions, let viewModel else { return nil }
-        guard let readerPage = viewModel.readerPage(for: pageID), readerPage.page.isPortrait else {
-          return nil
+        guard let readerPage = viewModel.readerPage(for: pageID) else { return nil }
+        // Check effective portrait considering rotation
+        let rotation = viewModel.pageRotationDegrees(for: pageID)
+        let normalized = ((rotation % 360) + 360) % 360
+        let effectivelyPortrait: Bool
+        if normalized == 90 || normalized == 270 {
+          effectivelyPortrait = (readerPage.page.width ?? 0) > (readerPage.page.height ?? 0)
+        } else {
+          effectivelyPortrait = readerPage.page.isPortrait
         }
+        guard effectivelyPortrait else { return nil }
 
         if viewModel.isPageIsolated(pageID) {
           return UIAction(
@@ -573,17 +607,29 @@
         }
 
         guard canIsolatePageFromCurrentPresentation else { return nil }
-        let displayPageNumber = viewModel.displayPageNumber(for: pageID) ?? pageID.pageNumber + 1
-        let title = String.localizedStringWithFormat(
-          String(localized: "Isolate Page %d"),
-          displayPageNumber
-        )
         return UIAction(
-          title: title,
+          title: String(localized: "Isolate"),
           image: UIImage(systemName: "rectangle.portrait")
         ) { [weak self] _ in
           self?.viewModel?.toggleIsolatePage(pageID)
         }
+      }
+
+      private func makePageRotationMenu(for pageID: ReaderPageID) -> UIMenu {
+        let currentRotation = viewModel?.pageRotationDegrees(for: pageID) ?? 0
+        let actions = [0, 90, 180, 270].map { degrees in
+          UIAction(
+            title: "\(degrees)°",
+            image: currentRotation == degrees ? UIImage(systemName: "checkmark") : nil
+          ) { [weak self] _ in
+            self?.viewModel?.setPageRotation(degrees, for: pageID)
+          }
+        }
+        return UIMenu(
+          title: "\(String(localized: "Rotate")): \(currentRotation)°",
+          image: UIImage(systemName: "rotate.right"),
+          children: actions
+        )
       }
 
       private func shareCurrentImage(for pageID: ReaderPageID) {
