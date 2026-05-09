@@ -139,12 +139,13 @@ struct ServerReadingStatsView: View {
         Text(selectedLibraryName)
           .lineLimit(1)
           .truncationMode(.tail)
-          .frame(maxWidth: 220, alignment: .leading)
+          .frame(maxWidth: .infinity, alignment: .leading)
       }
       .pickerStyle(.menu)
-      .frame(maxWidth: 220, alignment: .leading)
+      .frame(maxWidth: .infinity, alignment: .leading)
       .lineLimit(1)
       .truncationMode(.tail)
+      .layoutPriority(1)
       .accessibilityLabel(String(localized: "Library"))
 
       Spacer()
@@ -155,6 +156,7 @@ struct ServerReadingStatsView: View {
           .foregroundStyle(.secondary)
           .lineLimit(1)
           .truncationMode(.tail)
+          .fixedSize(horizontal: true, vertical: false)
       }
 
     }
