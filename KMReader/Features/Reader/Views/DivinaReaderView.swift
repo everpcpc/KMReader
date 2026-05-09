@@ -246,8 +246,17 @@ struct DivinaReaderView: View {
   }
 
   private func handleScenePhaseChange(_ phase: ScenePhase) {
-    guard phase != .active || !shouldShowControls else { return }
-    showingControls = true
+    if phase != .active || !shouldShowControls {
+      showingControls = true
+    }
+
+    #if os(iOS)
+      // Flush in-flight read progress to the server before iOS suspends the app, so
+      // the trailing pages of the reading session are not lost to URLSession cancellation.
+      if phase == .background {
+        readerPresentation.flushForBackgrounding()
+      }
+    #endif
   }
 
   private func schedulePageMaintenanceAfterPageChange() {
