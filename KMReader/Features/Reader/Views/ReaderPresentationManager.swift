@@ -102,9 +102,16 @@ final class ReaderPresentationManager {
       guard let session = currentSession else { return }
       guard !session.incognito else { return }
       guard let flushHandler = flushHandlers[session.id] else { return }
-      // If a previous background flush is still in flight, do not start another. The
-      // existing in-flight task continues to keep iOS background time alive.
-      guard backgroundFlushTaskID == .invalid else { return }
+
+      // Drain any previous in-flight background flush before starting a fresh one.
+      // Without this, a rapid background → foreground → switch-book → background
+      // sequence within the 20s checkpoint window of the previous flush would skip
+      // flushing the new session entirely (the old `backgroundFlushTaskID` is still
+      // valid until its awaiter resolves), risking lost trailing pages on the new
+      // session's suspension. iOS keeps the app alive while any UIBackgroundTask is
+      // active, so ending the previous one and starting a fresh one is safe — the
+      // newly-requested task carries the new session through suspension.
+      endBackgroundFlushTask()
 
       backgroundFlushTaskID = UIApplication.shared.beginBackgroundTask(
         withName: "ReaderProgressFlush"
