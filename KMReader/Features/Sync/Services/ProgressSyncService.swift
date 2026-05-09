@@ -52,21 +52,30 @@ actor ProgressSyncService {
     var failureCount = 0
     var ignoredConflictCount = 0
     var ignoredNonRetryableCount = 0
+    var skippedStaleCount = 0
     var completedBookIds = Set<String>()
+    var staleSkippedBookIds = Set<String>()
 
     for item in pending {
       logger.debug(
         "🧾 Sync pending item id=\(item.id), book=\(item.bookId), page=\(item.page), completed=\(item.completed), hasProgressionData=\(item.progressionData != nil), createdAt=\(item.createdAt.ISO8601Format())"
       )
       do {
-        try await syncProgressItem(item)
+        let outcome = try await syncProgressItem(item)
         await database.deletePendingProgress(id: item.id)
         await database.commit()
-        successCount += 1
-        logger.debug("🧹 Removed synced pending item id=\(item.id)")
 
-        if item.completed {
-          completedBookIds.insert(item.bookId)
+        switch outcome {
+        case .replayed:
+          successCount += 1
+          logger.debug("🧹 Removed synced pending item id=\(item.id)")
+          if item.completed {
+            completedBookIds.insert(item.bookId)
+          }
+        case .skippedStale:
+          skippedStaleCount += 1
+          logger.debug("🧹 Removed stale pending item id=\(item.id) without replaying to server")
+          staleSkippedBookIds.insert(item.bookId)
         }
       } catch {
         if let apiError = error as? APIError {
@@ -102,17 +111,24 @@ actor ProgressSyncService {
       }
     }
 
-    // Batch sync books and series after individual progress items are processed
-    var completedSeriesIds = Set<String>()
-    for bookId in completedBookIds {
-      logger.debug("🔄 Refreshing completed book after progress sync: book=\(bookId)")
+    // Batch sync books and series after individual progress items are processed.
+    // Stale-skipped books are also refreshed so the local cache catches up to the
+    // server's authoritative state (the local cache holds the offline-written value
+    // from before the pending was discarded).
+    var seriesIdsToRefresh = Set<String>()
+    let booksToRefresh = completedBookIds.union(staleSkippedBookIds)
+    for bookId in booksToRefresh {
+      let isStaleSkip = staleSkippedBookIds.contains(bookId)
+      logger.debug(
+        "🔄 Refreshing book after progress sync: book=\(bookId), reason=\(isStaleSkip ? "stale-skip" : "completed")"
+      )
       if let book = try? await SyncService.shared.syncBook(bookId: bookId) {
-        completedSeriesIds.insert(book.seriesId)
+        seriesIdsToRefresh.insert(book.seriesId)
       }
     }
 
-    for seriesId in completedSeriesIds {
-      logger.debug("🔄 Refreshing series after completed book sync: series=\(seriesId)")
+    for seriesId in seriesIdsToRefresh {
+      logger.debug("🔄 Refreshing series after progress sync: series=\(seriesId)")
       _ = try? await SyncService.shared.syncSeriesDetail(seriesId: seriesId)
     }
 
@@ -135,6 +151,12 @@ actor ProgressSyncService {
       logger.info("⏭️ Ignored \(ignoredNonRetryableCount) non-retryable progress errors (4xx)")
     }
 
+    if skippedStaleCount > 0 {
+      logger.info(
+        "⏭️ Skipped \(skippedStaleCount) stale pending items (server had a newer write than the queued pending)"
+      )
+    }
+
     if failureCount > 0 {
       logger.warning("⚠️ Failed to sync \(failureCount) progress items, will retry later")
       await MainActor.run {
@@ -145,7 +167,67 @@ actor ProgressSyncService {
     }
   }
 
-  private func syncProgressItem(_ item: PendingProgressSummary) async throws {
+  private enum ProgressItemSyncOutcome {
+    case replayed
+    case skippedStale
+  }
+
+  /// Tolerance for client/server clock skew when comparing pending `createdAt` against
+  /// server-side `readProgress.lastModified`. NTP-synced devices typically agree within
+  /// a second; 60s is generous and avoids false positives without weakening the guard.
+  private static let staleDetectionClockSkewTolerance: TimeInterval = 60
+
+  private func syncProgressItem(_ item: PendingProgressSummary) async throws -> ProgressItemSyncOutcome {
+    // Defensive guard against replaying a pending entry that the server has already
+    // moved past via some other path (markAsRead from this device, completion via the
+    // Komga web UI, completion on another client, etc.). If the server's read-progress
+    // was last modified after this pending was queued, the pending is by definition
+    // stale — replaying it would silently regress the server's state.
+    //
+    // This is the first conflict-resolution use of `lastModified` in the codebase. It
+    // does not cover every regression path (notably: pending queued *after* a server
+    // completion, where the lastModified is older than the pending's createdAt — that
+    // case would need intent tracking that we don't have today).
+    if let serverBook = try? await BookService.shared.getBook(id: item.bookId),
+      let serverProgress = serverBook.readProgress,
+      serverProgress.lastModified
+        > item.createdAt.addingTimeInterval(Self.staleDetectionClockSkewTolerance)
+    {
+      logger.info(
+        "⏭️ Skipping stale pending for book \(item.bookId): server.lastModified=\(serverProgress.lastModified.ISO8601Format()) is newer than pending.createdAt=\(item.createdAt.ISO8601Format()) (+ \(Int(Self.staleDetectionClockSkewTolerance))s tolerance)"
+      )
+
+      // For EPUB pendings, also refresh the local `epubProgressionRaw` locator from
+      // the server. The caller's post-loop `SyncService.syncBook` only refreshes the
+      // Book DTO via `applyBook`, which does not touch `epubProgressionRaw` — that
+      // field is written only by `updateBookEpubProgression`. Without this extra
+      // fetch, the stale local locator would persist after a stale-skip and the
+      // next EPUB resume would use it (especially when the user reopens the book
+      // offline). Best-effort: failures here are logged but do not fail the skip.
+      if item.progressionData != nil {
+        do {
+          let serverProgression = try await BookService.shared.getWebPubProgression(
+            bookId: item.bookId
+          )
+          if let database = try? await DatabaseOperator.database() {
+            await database.updateBookEpubProgression(
+              bookId: item.bookId,
+              progression: serverProgression
+            )
+            logger.debug(
+              "💾 Refreshed local EPUB progression from server after stale-skip: book=\(item.bookId)"
+            )
+          }
+        } catch {
+          logger.warning(
+            "⚠️ Failed to refresh EPUB progression from server after stale-skip for book \(item.bookId): \(error.localizedDescription)"
+          )
+        }
+      }
+
+      return .skippedStale
+    }
+
     // Check if this is EPUB progression or page-based progress
     if let progressionData = item.progressionData {
       logger.debug(
@@ -180,5 +262,7 @@ actor ProgressSyncService {
       )
       logger.debug("✅ Synced page progress for book \(item.bookId) - page \(item.page)")
     }
+
+    return .replayed
   }
 }
