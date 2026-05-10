@@ -377,7 +377,7 @@
         collectionView: UICollectionView,
         renderConfig: ReaderRenderConfig
       ) {
-        applySafeAreaInsetsIfNeeded(for: collectionView)
+        resetContentInsetsIfNeeded(for: collectionView)
         self.viewModel = viewModel
         self.readListContext = readListContext
         self.onDismiss = onDismiss
@@ -449,23 +449,17 @@
         }
       }
 
-      private func applySafeAreaInsetsIfNeeded(for collectionView: UICollectionView) {
-        guard collectionView.traitCollection.userInterfaceIdiom == .phone else {
-          if collectionView.contentInset != .zero {
-            collectionView.contentInset = .zero
-            collectionView.scrollIndicatorInsets = .zero
-          }
+      private func resetContentInsetsIfNeeded(for collectionView: UICollectionView) {
+        guard
+          collectionView.contentInset != .zero
+            || collectionView.verticalScrollIndicatorInsets != .zero
+            || collectionView.horizontalScrollIndicatorInsets != .zero
+        else {
           return
         }
-
-        let safeInsets = collectionView.safeAreaInsets
-        let newInsets = UIEdgeInsets(
-          top: safeInsets.top, left: 0, bottom: safeInsets.bottom, right: 0)
-
-        if collectionView.contentInset != newInsets {
-          collectionView.contentInset = newInsets
-          collectionView.scrollIndicatorInsets = newInsets
-        }
+        collectionView.contentInset = .zero
+        collectionView.verticalScrollIndicatorInsets = .zero
+        collectionView.horizontalScrollIndicatorInsets = .zero
       }
 
       private func handleDataReload(
@@ -630,11 +624,13 @@
         guard let collectionView = collectionView else { return }
         guard let itemIndex = itemIndex(forPageID: pageID) else { return }
 
-        let indexPath = IndexPath(item: itemIndex, section: 0)
-
         if collectionView.contentSize.height > 0 {
           isProgrammaticAnimatedScroll = animated
-          collectionView.scrollToItem(at: indexPath, at: .top, animated: animated)
+          collectionView.scrollToItem(
+            at: IndexPath(item: itemIndex, section: 0),
+            at: .top,
+            animated: animated
+          )
         } else {
           requestScrollToPage(
             pageID, animated: animated, delay: WebtoonConstants.layoutReadyDelay)
