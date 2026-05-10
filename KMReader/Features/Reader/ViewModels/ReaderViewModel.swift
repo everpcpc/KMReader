@@ -507,6 +507,26 @@ class ReaderViewModel {
     )
   }
 
+  /// Update the adjacent-book metadata for an existing segment. Called when the
+  /// reader's deferred adjacent-book fetch resolves so the segment's
+  /// `previousBook`/`nextBook` reflect the freshly-fetched values, preventing
+  /// redundant re-fetches from later code paths such as `resolveSegmentPreloadContext`
+  /// that read these from the segment.
+  ///
+  /// No-op when no segment matches `bookId` — e.g., the user has navigated away
+  /// before the deferred fetch resolved.
+  func updateAdjacentBooksForSegment(
+    bookId: String,
+    previousBook: Book?,
+    nextBook: Book?
+  ) {
+    updateSegmentContext(
+      forCurrentBookId: bookId,
+      previousBook: previousBook,
+      nextBook: nextBook
+    )
+  }
+
   private func appendSegment(
     currentBook: Book,
     previousBook: Book?,

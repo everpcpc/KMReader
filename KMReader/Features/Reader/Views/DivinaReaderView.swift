@@ -79,6 +79,7 @@ struct DivinaReaderView: View {
   @State private var inFlightNextSegmentPreloads: [String: Task<Void, Never>] = [:]
   @State private var inFlightPreviousSegmentPreloads: [String: Task<Void, Never>] = [:]
   @State private var deferredPageMaintenanceTask: Task<Void, Never>?
+  @State private var deferredAdjacentBookTask: Task<Void, Never>?
 
   #if os(tvOS)
     @State private var lastTVRemoteMoveSignature: String = ""
@@ -573,6 +574,8 @@ struct DivinaReaderView: View {
       }
       deferredPageMaintenanceTask?.cancel()
       deferredPageMaintenanceTask = nil
+      deferredAdjacentBookTask?.cancel()
+      deferredAdjacentBookTask = nil
       requestedNextSegmentPreloads.removeAll()
       requestedPreviousSegmentPreloads.removeAll()
       inFlightNextSegmentPreloads.values.forEach { $0.cancel() }
@@ -606,6 +609,8 @@ struct DivinaReaderView: View {
       keyboardHelpTimer?.invalidate()
       deferredPageMaintenanceTask?.cancel()
       deferredPageMaintenanceTask = nil
+      deferredAdjacentBookTask?.cancel()
+      deferredAdjacentBookTask = nil
       inFlightNextSegmentPreloads.values.forEach { $0.cancel() }
       inFlightPreviousSegmentPreloads.values.forEach { $0.cancel() }
       inFlightNextSegmentPreloads.removeAll()
@@ -1113,10 +1118,30 @@ struct DivinaReaderView: View {
         }
       }
 
-      // 4. Resolve adjacent books for current segment context
-      let adjacentBooks = await resolveAdjacentBooks(for: bookId)
-      self.previousBook = adjacentBooks.previous
-      self.nextBook = adjacentBooks.next
+      // 4. Defer adjacent-book resolution to a background task. The two server
+      // round trips (`/books/{id}/previous` + `/.../next`) account for ~2/3 of the
+      // open-time network latency on a typical setup, but neither result affects
+      // the initial render — `previousBook`/`nextBook` are consumed only by
+      // post-open features (next/prev navigation buttons, end-page hints,
+      // adjacent-segment preloading). The active segment's `activeSegmentContext`
+      // already falls back to the view's @State when the segment metadata is nil,
+      // so the open path doesn't need to wait on these.
+      self.previousBook = nil
+      self.nextBook = nil
+      deferredAdjacentBookTask?.cancel()
+      deferredAdjacentBookTask = Task { [bookId] in
+        let adjacentBooks = await resolveAdjacentBooks(for: bookId)
+        guard !Task.isCancelled, currentBookId == bookId else { return }
+        previousBook = adjacentBooks.previous
+        nextBook = adjacentBooks.next
+        // Also write the resolved values back into the segment so `resolveSegmentPreloadContext`
+        // does not redundantly re-fetch when the user navigates near the start/end.
+        viewModel.updateAdjacentBooksForSegment(
+          bookId: bookId,
+          previousBook: adjacentBooks.previous,
+          nextBook: adjacentBooks.next
+        )
+      }
     }
 
     let resumePageNumber = viewModel.currentPage?.number ?? initialPageNumber
@@ -1129,8 +1154,8 @@ struct DivinaReaderView: View {
     await viewModel.loadPages(
       book: activeBook,
       initialPageNumber: resumePageNumber,
-      previousBook: previousBook,
-      nextBook: nextBook
+      previousBook: nil,
+      nextBook: nil
     )
 
     // Only preload pages if pages are available
