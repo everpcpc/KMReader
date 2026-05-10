@@ -177,10 +177,6 @@ struct DivinaControlsOverlayView: View {
     #endif
   }
 
-  private var progressHorizontalPadding: CGFloat {
-    controlsVisible ? 0 : 48
-  }
-
   private var bottomControlsTransition: AnyTransition {
     guard showProgressBarWhileReading else {
       return .move(edge: .bottom).combined(with: .opacity)
@@ -314,15 +310,21 @@ struct DivinaControlsOverlayView: View {
   private var hiddenProgressBar: some View {
     ZStack(alignment: .bottom) {
       Color.clear
-      bottomOverlayContent(showPageButton: false)
-        .frame(maxWidth: .infinity)
+      bottomOverlayContent(
+        showPageButton: false,
+        progressHorizontalPadding: PlatformHelper.bottomEdgeHorizontalPadding
+      )
+      .frame(maxWidth: .infinity)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .readerIgnoresSafeArea()
     .allowsHitTesting(false)
   }
 
-  private func bottomOverlayContent(showPageButton: Bool) -> some View {
+  private func bottomOverlayContent(
+    showPageButton: Bool,
+    progressHorizontalPadding: CGFloat = 0
+  ) -> some View {
     VStack(spacing: 12) {
       if showPageButton {
         HStack {
