@@ -123,20 +123,18 @@ struct ServerReadingStatsView: View {
     HStack(spacing: 8) {
       Picker(String(localized: "Library"), selection: $selectedLibraryId) {
         Text(String(localized: "All Libraries"))
-          .lineLimit(1)
-          .truncationMode(.tail)
           .tag("")
         ForEach(libraries) { library in
           Text(library.name)
-            .lineLimit(1)
-            .truncationMode(.tail)
             .tag(library.libraryId)
         }
       }
       .pickerStyle(.menu)
-      .frame(maxWidth: 220, alignment: .leading)
+      .frame(maxWidth: .infinity, alignment: .leading)
       .lineLimit(1)
       .truncationMode(.tail)
+      .layoutPriority(1)
+      .accessibilityLabel(String(localized: "Library"))
 
       Spacer()
 
@@ -146,17 +144,9 @@ struct ServerReadingStatsView: View {
           .foregroundStyle(.secondary)
           .lineLimit(1)
           .truncationMode(.tail)
+          .fixedSize(horizontal: true, vertical: false)
       }
 
-      if viewModel.isUsingCachedData {
-        Text(String(localized: "Cached"))
-          .font(.caption)
-          .fontWeight(.semibold)
-          .padding(.horizontal, 8)
-          .padding(.vertical, 4)
-          .background(Color.orange.opacity(0.2), in: Capsule())
-          .foregroundStyle(.orange)
-      }
     }
     .padding(12)
     .background(.thinMaterial)
