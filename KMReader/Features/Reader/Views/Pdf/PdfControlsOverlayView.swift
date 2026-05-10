@@ -22,7 +22,10 @@
     let canSearch: Bool
     let controlsVisible: Bool
     let showGradientBackground: Bool
+    let showProgressBarWhileReading: Bool
     let onDismiss: () -> Void
+
+    @Namespace private var progressBarNamespace
 
     private var animation: Animation {
       .easeInOut(duration: 0.2)
@@ -43,6 +46,33 @@
     }
 
     var body: some View {
+      ZStack(alignment: .bottom) {
+        topControlsLayer
+        bottomControlsLayer
+        hiddenProgressLayer
+      }
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
+      .animation(animation, value: controlsVisible)
+      .animation(animation, value: showProgressBarWhileReading)
+      .allowsHitTesting(controlsVisible)
+      #if os(iOS)
+        .tint(.primary)
+      #endif
+    }
+
+    private var progressHorizontalPadding: CGFloat {
+      controlsVisible ? 0 : 48
+    }
+
+    private var bottomControlsTransition: AnyTransition {
+      guard showProgressBarWhileReading else {
+        return .move(edge: .bottom).combined(with: .opacity)
+      }
+      return .opacity
+    }
+
+    @ViewBuilder
+    private var topControlsLayer: some View {
       VStack(spacing: 0) {
         if controlsVisible {
           topBar
@@ -53,24 +83,27 @@
         }
 
         Spacer(minLength: 0)
-
-        if controlsVisible {
-          bottomBar
-            .transition(
-              .move(edge: .bottom)
-                .combined(with: .opacity)
-            )
-        }
       }
-      .animation(animation, value: controlsVisible)
-      .allowsHitTesting(controlsVisible)
-      #if os(iOS)
-        .tint(.primary)
-      #endif
+    }
+
+    @ViewBuilder
+    private var bottomControlsLayer: some View {
+      if controlsVisible {
+        visibleBottomOverlayBar
+          .transition(bottomControlsTransition)
+      }
+    }
+
+    @ViewBuilder
+    private var hiddenProgressLayer: some View {
+      if !controlsVisible && showProgressBarWhileReading {
+        hiddenProgressBar
+          .transition(.opacity)
+      }
     }
 
     private var topBar: some View {
-      HStack(alignment: .top) {
+      HStack {
         #if !os(macOS)
           Button {
             onDismiss()
@@ -112,6 +145,7 @@
             }
             .padding(.vertical, 2)
             .padding(.horizontal)
+            .readerHeaderTitleControlFrame()
             .contentShape(Capsule())
           }
           .optimizedControlSize()
@@ -142,38 +176,67 @@
       }
     }
 
-    private var bottomBar: some View {
-      VStack(spacing: 12) {
-        HStack {
-          Spacer(minLength: 0)
-
-          Button {
-            guard pageCount > 0 else { return }
-            showingPageJumpSheet = true
-          } label: {
-            HStack(spacing: 6) {
-              Image(systemName: "bookmark")
-              Text("\(displayedCurrentPage) / \(pageCount)")
-                .monospacedDigit()
-            }
-            .contentShape(Capsule())
-          }
-          .readerControlButtonStyle()
-          .disabled(pageCount <= 0)
-
-          Spacer(minLength: 0)
+    private var visibleBottomOverlayBar: some View {
+      bottomOverlayContent(showPageButton: true)
+        .padding()
+        .background {
+          gradientBackground(startPoint: .bottom, endPoint: .top)
+            .ignoresSafeArea(edges: .bottom)
         }
-        .optimizedControlSize()
-        .allowsHitTesting(true)
+    }
 
-        ReadingProgressBar(progress: progress, type: .reader)
-          .scaleEffect(x: readingDirection == .rtl ? -1 : 1, y: 1)
+    private var hiddenProgressBar: some View {
+      ZStack(alignment: .bottom) {
+        Color.clear
+        bottomOverlayContent(showPageButton: false)
+          .frame(maxWidth: .infinity)
       }
-      .padding()
-      .iPadIgnoresSafeArea(paddingTop: 24)
-      .background {
-        gradientBackground(startPoint: .bottom, endPoint: .top)
-          .ignoresSafeArea(edges: .bottom)
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
+      .readerIgnoresSafeArea()
+      .allowsHitTesting(false)
+    }
+
+    private func bottomOverlayContent(showPageButton: Bool) -> some View {
+      VStack(spacing: 12) {
+        if showPageButton {
+          HStack {
+            Spacer(minLength: 0)
+
+            Button {
+              guard pageCount > 0 else { return }
+              showingPageJumpSheet = true
+            } label: {
+              HStack(spacing: 6) {
+                Image(systemName: "bookmark")
+                Text("\(displayedCurrentPage) / \(pageCount)")
+                  .monospacedDigit()
+              }
+              .contentShape(Capsule())
+            }
+            .readerControlButtonStyle()
+            .disabled(pageCount <= 0)
+
+            Spacer(minLength: 0)
+          }
+          .optimizedControlSize()
+          .allowsHitTesting(true)
+        }
+
+        progressBar
+          .padding(.horizontal, progressHorizontalPadding)
+      }
+      .animation(animation, value: progressHorizontalPadding)
+    }
+
+    @ViewBuilder
+    private var progressBar: some View {
+      let bar = ReadingProgressBar(progress: progress, type: .reader)
+        .scaleEffect(x: readingDirection == .rtl ? -1 : 1, y: 1)
+
+      if showProgressBarWhileReading {
+        bar.matchedGeometryEffect(id: "readerProgressBar", in: progressBarNamespace)
+      } else {
+        bar
       }
     }
 

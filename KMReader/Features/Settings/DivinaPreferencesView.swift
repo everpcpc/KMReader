@@ -38,6 +38,9 @@ struct DivinaPreferencesView: View {
   @AppStorage("showDivinaControlsGradientBackground")
   private var showControlsGradientBackground: Bool =
     AppConfig.showDivinaControlsGradientBackground
+  @AppStorage("showDivinaProgressBarWhileReading")
+  private var showProgressBarWhileReading: Bool =
+    AppConfig.showDivinaProgressBarWhileReading
   @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
 
   private var forcedReadingDirection: ReadingDirection? {
@@ -161,6 +164,15 @@ struct DivinaPreferencesView: View {
           VStack(alignment: .leading, spacing: 4) {
             Text("Controls Gradient Background")
             Text("Add a gradient behind reader controls for better contrast over pages.")
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
+        }
+
+        Toggle(isOn: $showProgressBarWhileReading) {
+          VStack(alignment: .leading, spacing: 4) {
+            Text("Show Progress Bar While Reading")
+            Text("Keep book progress pinned to the bottom until reader controls are shown.")
               .font(.caption)
               .foregroundColor(.secondary)
           }

@@ -38,6 +38,9 @@ struct ReaderSettingsSheet: View {
   @AppStorage("showDivinaControlsGradientBackground")
   private var showControlsGradientBackground: Bool =
     AppConfig.showDivinaControlsGradientBackground
+  @AppStorage("showDivinaProgressBarWhileReading")
+  private var showProgressBarWhileReading: Bool =
+    AppConfig.showDivinaProgressBarWhileReading
 
   private var isWebtoonDirection: Bool {
     readingDirection == .webtoon
@@ -76,6 +79,10 @@ struct ReaderSettingsSheet: View {
 
           Toggle(isOn: $showControlsGradientBackground) {
             Text("Controls Gradient Background")
+          }
+
+          Toggle(isOn: $showProgressBarWhileReading) {
+            Text("Show Progress Bar While Reading")
           }
 
           #if os(iOS) || os(macOS)

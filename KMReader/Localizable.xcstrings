@@ -30688,6 +30688,70 @@
         }
       }
     },
+    "Keep book progress pinned to the bottom until reader controls are shown." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buchfortschritt unten angeheftet lassen, bis die Lesersteuerung angezeigt wird."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep book progress pinned to the bottom until reader controls are shown."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantén el progreso del libro fijado abajo hasta que se muestren los controles de lectura."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gardez la progression du livre épinglée en bas jusqu’à l’affichage des commandes de lecture."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantieni l’avanzamento del libro fissato in basso finché non vengono mostrati i controlli di lettura."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リーダー操作部が表示されるまで、本の進捗を下部に固定します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "리더 컨트롤이 표시될 때까지 책 진행률을 하단에 고정합니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Закреплять прогресс книги внизу, пока не будут показаны элементы управления чтением."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在显示阅读控制前，将书籍进度固定在底部。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在顯示閱讀控制項前，將書籍進度固定在底部。"
+          }
+        }
+      }
+    },
     "Keep time and battery visible when controls are hidden." : {
       "localizations" : {
         "de" : {
@@ -67998,6 +68062,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "顯示頁面陰影"
+          }
+        }
+      }
+    },
+    "Show Progress Bar While Reading" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fortschrittsleiste beim Lesen anzeigen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Progress Bar While Reading"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar la barra de progreso durante la lectura"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Afficher la barre de progression pendant la lecture"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra la barra di avanzamento durante la lettura"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読書中に進捗バーを表示"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "읽는 동안 진행률 막대 표시"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывать индикатор прогресса при чтении"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "阅读时显示进度条"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "閱讀時顯示進度條"
           }
         }
       }

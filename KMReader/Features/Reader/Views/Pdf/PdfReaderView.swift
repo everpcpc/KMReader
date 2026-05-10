@@ -23,6 +23,9 @@
     @AppStorage("showPdfControlsGradientBackground")
     private var showControlsGradientBackground: Bool =
       AppConfig.showPdfControlsGradientBackground
+    @AppStorage("showPdfProgressBarWhileReading")
+    private var showProgressBarWhileReading: Bool =
+      AppConfig.showPdfProgressBarWhileReading
 
     @State private var viewModel: PdfReaderViewModel
     @State private var readingDirection: ReadingDirection
@@ -334,6 +337,7 @@
         canSearch: viewModel.documentURL != nil,
         controlsVisible: shouldShowControls,
         showGradientBackground: showControlsGradientBackground,
+        showProgressBarWhileReading: showProgressBarWhileReading,
         onDismiss: closeReader
       )
     }
