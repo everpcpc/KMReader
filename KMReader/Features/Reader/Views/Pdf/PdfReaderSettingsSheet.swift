@@ -8,6 +8,9 @@
     @AppStorage("showPdfControlsGradientBackground")
     private var showControlsGradientBackground: Bool =
       AppConfig.showPdfControlsGradientBackground
+    @AppStorage("showPdfProgressBarWhileReading")
+    private var showProgressBarWhileReading: Bool =
+      AppConfig.showPdfProgressBarWhileReading
 
     var body: some View {
       SheetView(
@@ -28,6 +31,10 @@
           Section(header: Text("Reader Overlay")) {
             Toggle(isOn: $showControlsGradientBackground) {
               Text("Controls Gradient Background")
+            }
+
+            Toggle(isOn: $showProgressBarWhileReading) {
+              Text("Show Progress Bar While Reading")
             }
 
             Toggle(isOn: $showKeyboardHelpOverlay) {

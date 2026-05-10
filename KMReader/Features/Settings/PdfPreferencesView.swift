@@ -19,6 +19,9 @@
     @AppStorage("showPdfControlsGradientBackground")
     private var showControlsGradientBackground: Bool =
       AppConfig.showPdfControlsGradientBackground
+    @AppStorage("showPdfProgressBarWhileReading")
+    private var showProgressBarWhileReading: Bool =
+      AppConfig.showPdfProgressBarWhileReading
     @AppStorage("pdfOfflineRenderQuality")
     private var pdfOfflineRenderQuality: PdfOfflineRenderQuality = AppConfig.pdfOfflineRenderQuality
 
@@ -112,6 +115,15 @@
               VStack(alignment: .leading, spacing: 4) {
                 Text("Controls Gradient Background")
                 Text("Add a gradient behind reader controls for better contrast over pages.")
+                  .font(.caption)
+                  .foregroundColor(.secondary)
+              }
+            }
+
+            Toggle(isOn: $showProgressBarWhileReading) {
+              VStack(alignment: .leading, spacing: 4) {
+                Text("Show Progress Bar While Reading")
+                Text("Keep book progress pinned to the bottom until reader controls are shown.")
                   .font(.caption)
                   .foregroundColor(.secondary)
               }

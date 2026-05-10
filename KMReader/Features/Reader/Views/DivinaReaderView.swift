@@ -38,6 +38,9 @@ struct DivinaReaderView: View {
   @AppStorage("showDivinaControlsGradientBackground")
   private var showControlsGradientBackground: Bool =
     AppConfig.showDivinaControlsGradientBackground
+  @AppStorage("showDivinaProgressBarWhileReading")
+  private var showProgressBarWhileReading: Bool =
+    AppConfig.showDivinaProgressBarWhileReading
   @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 3.0
   @AppStorage("doubleTapZoomMode") private var doubleTapZoomMode: DoubleTapZoomMode = .fast
   @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
@@ -837,7 +840,8 @@ struct DivinaReaderView: View {
       onNextBook: { openNextBook(nextBookId: $0) },
       controlsVisible: shouldShowControls,
       showingControls: showingControls,
-      showGradientBackground: showControlsGradientBackground
+      showGradientBackground: showControlsGradientBackground,
+      showProgressBarWhileReading: showProgressBarWhileReading
     )
   }
 

@@ -137,6 +137,16 @@ enum AppConfig {
     set { UserDefaults.standard.set(newValue, forKey: "showDivinaControlsGradientBackground") }
   }
 
+  static nonisolated var showDivinaProgressBarWhileReading: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "showDivinaProgressBarWhileReading") != nil {
+        return UserDefaults.standard.bool(forKey: "showDivinaProgressBarWhileReading")
+      }
+      return false
+    }
+    set { UserDefaults.standard.set(newValue, forKey: "showDivinaProgressBarWhileReading") }
+  }
+
   static nonisolated var pdfOfflineRenderQuality: PdfOfflineRenderQuality {
     get {
       if let stored = UserDefaults.standard.string(forKey: "pdfOfflineRenderQuality"),
@@ -189,6 +199,16 @@ enum AppConfig {
       return false
     }
     set { UserDefaults.standard.set(newValue, forKey: "showPdfControlsGradientBackground") }
+  }
+
+  static nonisolated var showPdfProgressBarWhileReading: Bool {
+    get {
+      if UserDefaults.standard.object(forKey: "showPdfProgressBarWhileReading") != nil {
+        return UserDefaults.standard.bool(forKey: "showPdfProgressBarWhileReading")
+      }
+      return false
+    }
+    set { UserDefaults.standard.set(newValue, forKey: "showPdfProgressBarWhileReading") }
   }
 
   static nonisolated var isOffline: Bool {
