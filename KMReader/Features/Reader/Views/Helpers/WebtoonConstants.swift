@@ -11,6 +11,7 @@ enum WebtoonConstants {
   static let initialScrollMaxRetries: Int = 8
   static let layoutReadyDelay: TimeInterval = 0.2
   static let bottomThreshold: CGFloat = 60
+  static let topContentPadding: CGFloat = 120
   static let footerHeight: CGFloat = 480
   static let measuringPlaceholderHeight: CGFloat = 120
   static let scrollAnimationDuration: TimeInterval = 0.3
