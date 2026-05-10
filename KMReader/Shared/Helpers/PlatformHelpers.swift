@@ -160,6 +160,31 @@ enum PlatformHelper {
   }
 
   @MainActor
+  static var bottomEdgeHorizontalPadding: CGFloat {
+    #if os(iOS)
+      if isPad {
+        return 24
+      }
+
+      let width = min(UIScreen.main.bounds.width, UIScreen.main.bounds.height)
+
+      if width >= 420 {
+        return 64
+      }
+
+      if width <= 375 {
+        return 36
+      }
+
+      return 48
+    #elseif os(macOS)
+      return 24
+    #else
+      return 24
+    #endif
+  }
+
+  @MainActor
   static var pageNumberFontSize: CGFloat {
     #if os(tvOS)
       return 24
