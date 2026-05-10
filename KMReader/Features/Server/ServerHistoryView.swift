@@ -135,12 +135,16 @@ struct ServerHistoryView: View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
           Text(event.type)
             .lineLimit(1)
+            .truncationMode(.tail)
+            .layoutPriority(1)
 
           Spacer()
 
           Text(event.timestamp.formattedMediumDateTime)
             .font(.caption)
             .foregroundColor(.secondary)
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
 
           Button {
             selectedEvent = event
@@ -149,6 +153,7 @@ struct ServerHistoryView: View {
           }
           .buttonStyle(.borderless)
           .disabled(event.properties.isEmpty)
+          .frame(width: 24)
         }
 
         if let seriesId = event.seriesId, !seriesId.isEmpty {
