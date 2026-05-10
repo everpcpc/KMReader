@@ -187,7 +187,7 @@ struct DivinaControlsOverlayView: View {
   }
 
   private var topBar: some View {
-    HStack(alignment: .top) {
+    HStack {
       #if !os(macOS)
         Button {
           onDismiss()
@@ -231,6 +231,7 @@ struct DivinaControlsOverlayView: View {
           }
           .padding(.vertical, 2)
           .padding(.horizontal)
+          .readerHeaderTitleControlFrame()
           .contentShape(Capsule())
         }
         .optimizedControlSize()
