@@ -224,12 +224,7 @@ struct MainApp: App {
           .disabled(!state.isActive || !state.canSearch)
         }
 
-        if state.supportsReadingDirectionSelection
-          || state.supportsPageLayoutSelection
-          || state.supportsDualPageOptions
-          || state.supportsSplitWidePageMode
-          || state.supportsContinuousScrollToggle
-        {
+        if state.supportsReadingDirectionSelection || state.supportsPageLayoutSelection {
           Divider()
         }
 
@@ -267,42 +262,11 @@ struct MainApp: App {
           .disabled(!state.isActive)
         }
 
-        if !state.commandPageIDs.isEmpty {
-          ForEach(state.commandPageIDs, id: \.self) { pageID in
-            let displayPageNumber = state.displayPageNumbersByID[pageID] ?? pageID.pageNumber + 1
-            let currentRotation = state.pageRotationsByID[pageID] ?? 0
-            Menu("Page \(displayPageNumber)") {
-              Button("Share") {
-                readerPresentation.sharePageFromCommand(pageID)
-              }
-              .disabled(!state.isActive)
-
-              if let isolationAction = state.pageIsolationActions.first(where: { $0.pageID == pageID }) {
-                Divider()
-                Button(readerPageIsolationTitle(for: isolationAction)) {
-                  readerPresentation.toggleIsolatePageFromCommand(isolationAction.pageID)
-                }
-                .disabled(!state.isActive)
-              }
-
-              Divider()
-              Menu("Rotate: \(currentRotation)°") {
-                ForEach([0, 90, 180, 270], id: \.self) { degrees in
-                  Button {
-                    readerPresentation.setPageRotationFromCommand(pageID, degrees: degrees)
-                  } label: {
-                    if currentRotation == degrees {
-                      Label("\(degrees)°", systemImage: "checkmark")
-                    } else {
-                      Text("\(degrees)°")
-                    }
-                  }
-                  .disabled(!state.isActive)
-                }
-              }
-            }
-            .disabled(!state.isActive)
-          }
+        if state.supportsDualPageOptions
+          || state.supportsSplitWidePageMode
+          || state.supportsContinuousScrollToggle
+        {
+          Divider()
         }
 
         if state.supportsDualPageOptions {
@@ -364,6 +328,46 @@ struct MainApp: App {
             readerPresentation.openNextBookFromCommand()
           }
           .disabled(!state.isActive || !state.canOpenNextBook)
+        }
+
+        if !state.commandPageIDs.isEmpty {
+          Divider()
+
+          ForEach(state.commandPageIDs, id: \.self) { pageID in
+            let displayPageNumber = state.displayPageNumbersByID[pageID] ?? pageID.pageNumber + 1
+            let currentRotation = state.pageRotationsByID[pageID] ?? 0
+            Menu("Page \(displayPageNumber)") {
+              Button("Share") {
+                readerPresentation.sharePageFromCommand(pageID)
+              }
+              .disabled(!state.isActive)
+
+              if let isolationAction = state.pageIsolationActions.first(where: { $0.pageID == pageID }) {
+                Divider()
+                Button(readerPageIsolationTitle(for: isolationAction)) {
+                  readerPresentation.toggleIsolatePageFromCommand(isolationAction.pageID)
+                }
+                .disabled(!state.isActive)
+              }
+
+              Divider()
+              Menu("Rotate: \(currentRotation)°") {
+                ForEach([0, 90, 180, 270], id: \.self) { degrees in
+                  Button {
+                    readerPresentation.setPageRotationFromCommand(pageID, degrees: degrees)
+                  } label: {
+                    if currentRotation == degrees {
+                      Label("\(degrees)°", systemImage: "checkmark")
+                    } else {
+                      Text("\(degrees)°")
+                    }
+                  }
+                  .disabled(!state.isActive)
+                }
+              }
+            }
+            .disabled(!state.isActive)
+          }
         }
       }
     }
