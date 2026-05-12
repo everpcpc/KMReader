@@ -216,6 +216,52 @@ enum AppConfig {
     set { UserDefaults.standard.set(newValue, forKey: "isOffline") }
   }
 
+  /// Records whether the current offline-mode state was entered automatically
+  /// (e.g., from connection failures, bootstrap failures) vs. manually (the user
+  /// explicitly tapped "Enter Offline Mode" in the dashboard menu).
+  ///
+  /// Used to gate automatic recovery: only auto-entered offline mode should be
+  /// auto-exited when the network returns. Manually-entered offline mode is
+  /// sticky and only exits via an explicit user action (tap the wifi-slash
+  /// icon, log in, etc.).
+  static nonisolated var offlineWasAutomatic: Bool {
+    get { UserDefaults.standard.bool(forKey: "offlineWasAutomatic") }
+    set { UserDefaults.standard.set(newValue, forKey: "offlineWasAutomatic") }
+  }
+
+  /// Transition to offline mode because a connection failure or bootstrap step
+  /// failed. Eligible for automatic recovery when the network returns.
+  ///
+  /// Sets `isOffline = true` and `offlineWasAutomatic = true` atomically. Use
+  /// this from every path that detects "the server is unreachable" rather than
+  /// writing the underlying flags directly — that way the two flags can never
+  /// drift out of sync.
+  ///
+  /// **No-op when already offline** — preserves the existing provenance flag.
+  /// This is important: a failed network probe at app boot must not silently
+  /// convert a user's previously-manual offline mode into auto-offline (which
+  /// would then become eligible for automatic recovery against their intent).
+  static nonisolated func enterAutoOfflineMode() {
+    guard !isOffline else { return }
+    isOffline = true
+    offlineWasAutomatic = true
+  }
+
+  /// Transition to offline mode because the user explicitly opted in via the
+  /// dashboard menu. NOT eligible for automatic recovery — the user has to
+  /// explicitly tap to reconnect.
+  static nonisolated func enterManualOfflineMode() {
+    isOffline = true
+    offlineWasAutomatic = false
+  }
+
+  /// Exit offline mode. Resets both flags so the next entry can correctly
+  /// classify itself. Safe to call when already online (idempotent).
+  static nonisolated func exitOfflineMode() {
+    isOffline = false
+    offlineWasAutomatic = false
+  }
+
   static nonisolated var maxPageCacheSize: Int {
     get {
       if UserDefaults.standard.object(forKey: "maxPageCacheSize") != nil {

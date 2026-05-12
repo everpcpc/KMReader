@@ -72,7 +72,7 @@ struct ContentView: View {
             #endif
           } else {
             SplashView(initializer: instanceInitializer) {
-              isOffline = true
+              AppConfig.enterAutoOfflineMode()
             }
           }
         }
@@ -81,7 +81,13 @@ struct ContentView: View {
 
           if authViewModel.bootstrapState == .requiresValidation {
             let serverReachable = await authViewModel.loadCurrentUser()
-            isOffline = !serverReachable
+            if serverReachable {
+              AppConfig.exitOfflineMode()
+            } else {
+              // No-op if we were already in manual offline mode (`enterAutoOfflineMode`
+              // is guarded against converting manual → auto).
+              AppConfig.enterAutoOfflineMode()
+            }
           }
 
           guard isLoggedIn else { return }
@@ -90,6 +96,15 @@ struct ContentView: View {
             await SSEService.shared.connect()
           }
           WidgetDataService.refreshWidgetData()
+
+          // Wire automatic recovery from auto-entered offline mode. Idempotent —
+          // re-fires on login state changes are safe (start is guarded; callback
+          // re-assignment replaces the previous closure with one capturing the
+          // current view state, which is what we want after a server switch).
+          NetworkPathMonitorService.shared.onPathBecameSatisfied = {
+            await attemptAutoOfflineRecovery()
+          }
+          NetworkPathMonitorService.shared.start()
         }
         .task(id: automaticReadingHistorySyncTrigger) {
           guard !automaticReadingHistorySyncTrigger.isEmpty else { return }
@@ -116,6 +131,11 @@ struct ContentView: View {
               showPrivacyBlur = false
             }
             Task {
+              // Run recovery probe first: if the path-monitor signal was missed
+              // while the app was suspended, this is the catch-up. Successful
+              // probe exits offline mode before the subsequent gated work runs.
+              await attemptAutoOfflineRecovery()
+
               if let database = await DatabaseOperator.databaseIfConfigured() {
                 await database.updateInstanceLastUsed(instanceId: AppConfig.current.instanceId)
               }
@@ -182,5 +202,36 @@ struct ContentView: View {
         .transition(.opacity)
       }
     }
+  }
+
+  /// Probe the server and exit offline mode on success, but only when we are
+  /// in auto-entered offline mode. Manually-entered offline mode is preserved
+  /// (the user explicitly opted in; only an explicit user action exits it).
+  ///
+  /// Invoked from two triggers:
+  /// 1. `NetworkPathMonitorService` callback — fires when the OS detects the
+  ///    network path transitioned from unsatisfied → satisfied.
+  /// 2. `scenePhase == .active` — catches recoveries the path-monitor may have
+  ///    missed while the app was suspended in the background.
+  ///
+  /// On successful exit, mirrors what `DashboardView.tryReconnect` does so the
+  /// auto and manual recovery paths converge on identical post-recovery state.
+  private func attemptAutoOfflineRecovery() async {
+    guard isLoggedIn else { return }
+    guard AppConfig.isOffline, AppConfig.offlineWasAutomatic else { return }
+
+    let reachable = await authViewModel.loadCurrentUser()
+    guard reachable else { return }
+
+    AppConfig.exitOfflineMode()
+    if enableSSE {
+      await SSEService.shared.connect()
+    }
+    ErrorManager.shared.notify(
+      message: String(localized: "settings.connection_restored")
+    )
+    // `ContentView.onChange(of: isOffline)` handles `syncPendingProgress` and
+    // `triggerSync` for offline downloads once the flag transitions back to
+    // online; nothing else to do here.
   }
 }

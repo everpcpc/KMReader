@@ -426,7 +426,13 @@ struct DashboardView: View {
   private func tryReconnect() async {
     isCheckingConnection = true
     let serverReachable = await authViewModel.loadCurrentUser()
-    isOffline = !serverReachable
+    if serverReachable {
+      AppConfig.exitOfflineMode()
+    }
+    // If unreachable: stay in current offline mode. We deliberately do not call
+    // `enterAutoOfflineMode()` here — the user invoked the reconnect manually
+    // from a state that may have been either auto or manual, and a failed retry
+    // should preserve that classification rather than reclassifying as auto.
     isCheckingConnection = false
 
     if serverReachable {
@@ -444,7 +450,7 @@ struct DashboardView: View {
     readerCloseRefreshTask?.cancel()
     readerCloseRefreshTask = nil
     shouldRefreshAfterReading = false
-    isOffline = true
+    AppConfig.enterManualOfflineMode()
 
     Task {
       await sseService.disconnect(notify: false)
