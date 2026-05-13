@@ -71,6 +71,7 @@ struct MainApp: App {
   init() {
     PlatformHelper.setup()
     AnimatedImageSupport.configureCoders()
+    AppConfig.migrateOfflineProvenanceIfNeeded()
     _authViewModel = State(initialValue: AuthViewModel())
   }
 
