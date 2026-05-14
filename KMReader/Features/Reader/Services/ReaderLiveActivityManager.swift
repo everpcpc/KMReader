@@ -82,8 +82,9 @@ import Foundation
       currentActivity = nil
       lastDeliveredState = nil
       guard let activity else { return }
+      let activityID = activity.id
       Task {
-        await activity.end(nil, dismissalPolicy: .immediate)
+        await Self.endActivity(id: activityID)
       }
     }
 
@@ -177,9 +178,25 @@ import Foundation
       with state: ReaderActivityAttributes.ContentState
     ) {
       lastDeliveredState = state
+      let activityID = activity.id
       Task {
-        await activity.update(.init(state: state, staleDate: nil))
+        await Self.updateActivity(id: activityID, state: state)
       }
+    }
+
+    private static nonisolated func updateActivity(
+      id: String,
+      state: ReaderActivityAttributes.ContentState
+    ) async {
+      guard let activity = Activity<ReaderActivityAttributes>.activities.first(where: { $0.id == id })
+      else { return }
+      await activity.update(.init(state: state, staleDate: nil))
+    }
+
+    private static nonisolated func endActivity(id: String) async {
+      guard let activity = Activity<ReaderActivityAttributes>.activities.first(where: { $0.id == id })
+      else { return }
+      await activity.end(nil, dismissalPolicy: .immediate)
     }
 
     private func resolveActivity() -> Activity<ReaderActivityAttributes>? {
