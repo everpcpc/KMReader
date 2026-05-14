@@ -10080,6 +10080,7 @@
         }
       }
     },
+    "Cached" : {},
     "Cached Covers" : {
       "localizations" : {
         "de" : {
@@ -15260,6 +15261,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "置頂閱讀列表"
+          }
+        }
+      }
+    },
+    "dashboard.queueOfflineAll" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Queue Offline All"
+          }
+        }
+      }
+    },
+    "dashboard.queueOfflineLatest" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Queue Offline Latest"
           }
         }
       }
@@ -58786,6 +58809,7 @@
         }
       }
     },
+    "Scroll through pages continuously instead of paging one page or spread at a time." : {},
     "Scrolls through one page at a time continuously." : {
       "localizations" : {
         "de" : {
@@ -76770,6 +76794,7 @@
         }
       }
     },
+    "Used for single and dual-page presentation" : {},
     "Used when a book or series doesn't specify a reading direction" : {
       "localizations" : {
         "de" : {
