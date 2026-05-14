@@ -27,6 +27,7 @@ struct DashboardView: View {
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
 
   private let sseService = SSEService.shared
+  private let sectionCacheStore = DashboardSectionCacheStore.shared
   private let debounceInterval: TimeInterval = 5.0  // 5 seconds debounce
   private let logger = AppLogger(.dashboard)
 
@@ -491,20 +492,14 @@ struct DashboardView: View {
       }
 
       do {
-        guard
-          let page = try await section.fetchBooks(
-            libraryIds: libraryIds,
-            page: 0,
-            size: 20
-          )
-        else {
+        let ids = try await bookIdsForOfflineQueue(section: section, libraryIds: libraryIds)
+        guard !ids.isEmpty else {
           ErrorManager.shared.notify(
             message: String(localized: "No books found to queue for offline reading.")
           )
           return
         }
 
-        let ids = page.content.map(\.id)
         let queuedCount =
           await DatabaseOperator.databaseIfConfigured()?.queueBooksOffline(
             bookIds: ids,
@@ -528,6 +523,30 @@ struct DashboardView: View {
         ErrorManager.shared.alert(error: error)
       }
     }
+  }
+
+  private func bookIdsForOfflineQueue(
+    section: DashboardSection,
+    libraryIds: [String]
+  ) async throws -> [String] {
+    let cachedIds = sectionCacheStore.ids(for: section)
+    if !cachedIds.isEmpty {
+      return cachedIds
+    }
+
+    guard
+      let page = try await section.fetchBooks(
+        libraryIds: libraryIds,
+        page: 0,
+        size: 20
+      )
+    else {
+      return []
+    }
+
+    let ids = page.content.map(\.id)
+    _ = sectionCacheStore.updateIfChanged(section: section, ids: ids)
+    return ids
   }
 
   private func enterOfflineMode() {
