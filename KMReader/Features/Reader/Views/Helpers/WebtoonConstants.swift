@@ -18,8 +18,8 @@ enum WebtoonConstants {
   static let clickDebounceAfterScroll: TimeInterval = 0.25
   static let preheatRadius: Int = 2
   static let offsetEpsilon: CGFloat = 0.5
-  static let longPressMinimumDuration: TimeInterval = 0.5
-  static let longPressReleaseDelay: TimeInterval = 0.1
+  static let longPressMinimumDuration = ReaderGestureConstants.longPressMinimumDuration
+  static let longPressReleaseDelay = ReaderGestureConstants.longPressReleaseDelay
   static let postScrollReloadDelay: TimeInterval = 0.12
   static let postScrollCleanupDelay: TimeInterval = 0.2
 }

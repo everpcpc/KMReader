@@ -170,8 +170,9 @@ struct SplashView: View {
                 ),
                 systemImage: "wifi.slash"
               )
-              .fontWeight(.semibold)
+              .font(.caption)
             }
+            .controlSize(.small)
             .adaptiveButtonStyle(.bordered)
           }
         }
