@@ -417,7 +417,10 @@ struct DashboardView: View {
                 }
                 .disabled(isQueueingDashboardOffline)
               } label: {
-                Label(String(localized: "Queue Offline"), systemImage: "arrow.down.circle")
+                Label(
+                  String(localized: "dashboard.queueOfflineLatest", defaultValue: "Queue Offline Latest"),
+                  systemImage: "arrow.down.circle"
+                )
               }
               .disabled(isOffline || isQueueingDashboardOffline)
 

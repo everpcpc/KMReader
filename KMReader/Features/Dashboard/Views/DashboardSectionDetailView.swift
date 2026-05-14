@@ -13,9 +13,11 @@ struct DashboardSectionDetailView: View {
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("dashboardSectionDetailLayout") private var browseLayout: BrowseLayoutMode = .grid
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
+  @AppStorage("isOffline") private var isOffline: Bool = false
 
   @State private var pagination = PaginationState<IdentifiedString>(pageSize: 50)
   @State private var isLoading = false
+  @State private var isQueueingAllOffline = false
   @State private var hasLoadedInitial = false
 
   @Environment(\.modelContext) private var modelContext
@@ -40,6 +42,19 @@ struct DashboardSectionDetailView: View {
           }
           .pickerStyle(.segmented)
           .padding()
+
+          if section.contentKind == .books {
+            Button {
+              queueAllBooksOffline()
+            } label: {
+              Label(
+                String(localized: "dashboard.queueOfflineAll", defaultValue: "Queue Offline All"),
+                systemImage: "arrow.down.circle"
+              )
+            }
+            .disabled(isOffline || isQueueingAllOffline)
+            .padding(.horizontal)
+          }
         #endif
 
         contentView
@@ -60,12 +75,30 @@ struct DashboardSectionDetailView: View {
       .toolbar {
         ToolbarItem(placement: .automatic) {
           Menu {
+            if section.contentKind == .books {
+              Button {
+                queueAllBooksOffline()
+              } label: {
+                Label(
+                  String(localized: "dashboard.queueOfflineAll", defaultValue: "Queue Offline All"),
+                  systemImage: "arrow.down.circle"
+                )
+              }
+              .disabled(isOffline || isQueueingAllOffline)
+
+              Divider()
+            }
+
             LayoutModePicker(
               selection: $browseLayout,
               showGridDensity: true
             )
           } label: {
-            Image(systemName: "ellipsis")
+            if isQueueingAllOffline {
+              LoadingIcon()
+            } else {
+              Image(systemName: "ellipsis")
+            }
           }
         }
       }
@@ -226,6 +259,90 @@ struct DashboardSectionDetailView: View {
     withAnimation {
       isLoading = false
     }
+  }
+
+  private func queueAllBooksOffline() {
+    guard section.contentKind == .books, !isOffline else { return }
+    guard !isQueueingAllOffline else { return }
+
+    isQueueingAllOffline = true
+    let libraryIds = dashboard.libraryIds
+    let instanceId = AppConfig.current.instanceId
+
+    Task {
+      defer {
+        Task { @MainActor in
+          isQueueingAllOffline = false
+        }
+      }
+
+      do {
+        let result = try await queueAllBookPagesOffline(
+          libraryIds: libraryIds,
+          instanceId: instanceId
+        )
+
+        guard result.foundBooks else {
+          ErrorManager.shared.notify(
+            message: String(localized: "No books found to queue for offline reading.")
+          )
+          return
+        }
+
+        if result.queuedCount > 0 {
+          OfflineManager.shared.triggerSync(instanceId: instanceId)
+          ErrorManager.shared.notify(
+            message: String(
+              format: String(localized: "Queued %lld books for offline reading."),
+              Int64(result.queuedCount)
+            )
+          )
+        } else {
+          ErrorManager.shared.notify(
+            message: String(localized: "No new books were added to the offline queue.")
+          )
+        }
+      } catch {
+        ErrorManager.shared.alert(error: error)
+      }
+    }
+  }
+
+  private func queueAllBookPagesOffline(
+    libraryIds: [String],
+    instanceId: String,
+    pageSize: Int = 100
+  ) async throws -> (queuedCount: Int, foundBooks: Bool) {
+    guard !instanceId.isEmpty else { return (0, false) }
+
+    var pageIndex = 0
+    var queuedCount = 0
+    var foundBooks = false
+
+    while true {
+      guard
+        let page = try await section.fetchBooks(
+          libraryIds: libraryIds,
+          page: pageIndex,
+          size: pageSize
+        )
+      else {
+        break
+      }
+
+      foundBooks = foundBooks || !page.content.isEmpty
+      let ids = page.content.map(\.id)
+      queuedCount +=
+        await DatabaseOperator.databaseIfConfigured()?.queueBooksOffline(
+          bookIds: ids,
+          instanceId: instanceId
+        ) ?? 0
+
+      guard !page.last else { break }
+      pageIndex += 1
+    }
+
+    return (queuedCount, foundBooks)
   }
 
   private func applyPage(ids: [String], moreAvailable: Bool) {
