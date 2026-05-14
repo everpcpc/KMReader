@@ -2209,6 +2209,54 @@ actor DatabaseOperator {
     }
   }
 
+  @discardableResult
+  func queueBooksOffline(bookIds: [String], instanceId: String) -> Int {
+    guard !bookIds.isEmpty else { return 0 }
+
+    let bookIdSet = Set(bookIds)
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { $0.instanceId == instanceId }
+    )
+    let books = ((try? modelContext.fetch(descriptor)) ?? [])
+      .filter { bookIdSet.contains($0.bookId) }
+
+    let orderedBooks = books.sorted { lhs, rhs in
+      let lhsIndex = bookIds.firstIndex(of: lhs.bookId) ?? Int.max
+      let rhsIndex = bookIds.firstIndex(of: rhs.bookId) ?? Int.max
+      return lhsIndex < rhsIndex
+    }
+
+    let now = Date.now
+    var queuedCount = 0
+    var affectedSeriesIds = Set<String>()
+    var affectedBookIds: [String] = []
+
+    for (index, book) in orderedBooks.enumerated() {
+      if AppConfig.offlineAutoDeleteRead && book.progressCompleted == true {
+        continue
+      }
+      if book.downloadStatusRaw == "downloaded" || book.downloadStatusRaw == "pending" {
+        continue
+      }
+      book.downloadStatusRaw = "pending"
+      book.downloadError = nil
+      book.downloadAt = now.addingTimeInterval(Double(index) * 0.001)
+      queuedCount += 1
+      affectedSeriesIds.insert(book.seriesId)
+      affectedBookIds.append(book.bookId)
+    }
+
+    for seriesId in affectedSeriesIds {
+      syncSeriesDownloadStatus(seriesId: seriesId, instanceId: instanceId)
+    }
+    syncReadListsContainingBooks(bookIds: affectedBookIds, instanceId: instanceId)
+
+    if queuedCount > 0 {
+      commit()
+    }
+    return queuedCount
+  }
+
   func fetchDownloadQueueSummary(instanceId: String) -> DownloadQueueSummary {
     let downloadingCount = fetchBooksCount(
       instanceId: instanceId,

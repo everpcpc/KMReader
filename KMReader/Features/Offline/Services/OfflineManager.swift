@@ -56,6 +56,8 @@ actor OfflineManager {
   static let shared = OfflineManager()
 
   private var activeTasks: [String: Task<Void, Never>] = [:]
+  private var readingDownloadRequests: [String: (instanceId: String, info: DownloadInfo)] = [:]
+  private var readingDownloadRequestOrder: [String] = []
   private var syncTask: Task<Void, Never>?
   private var syncTaskID: UUID?
   private var isProcessingQueue = false
@@ -316,6 +318,30 @@ actor OfflineManager {
     try? await DatabaseOperator.database().commit()
     await refreshQueueStatus(instanceId: instanceId)
     await syncDownloadQueue(instanceId: instanceId)
+  }
+
+  func downloadForReading(instanceId: String, info: DownloadInfo) async {
+    let status = await getDownloadStatus(bookId: info.bookId)
+
+    switch status {
+    case .downloaded:
+      removeReadingDownloadRequest(bookId: info.bookId)
+      return
+    case .notDownloaded, .failed:
+      try? await DatabaseOperator.database().updateBookDownloadStatus(
+        bookId: info.bookId,
+        instanceId: instanceId,
+        status: .pending,
+        downloadAt: .now
+      )
+      try? await DatabaseOperator.database().commit()
+    case .pending:
+      break
+    }
+
+    addReadingDownloadRequest(instanceId: instanceId, info: info)
+    await refreshQueueStatus(instanceId: instanceId)
+    _ = await startNextReadingDownload(instanceId: instanceId)
   }
 
   func deleteBook(
@@ -621,6 +647,10 @@ actor OfflineManager {
     // Check if offline
     guard !AppConfig.isOffline else { return }
 
+    if await startNextReadingDownload(instanceId: instanceId) {
+      return
+    }
+
     // Check if paused
     guard !AppConfig.offlinePaused else { return }
     guard !isProcessingQueue else { return }
@@ -668,6 +698,44 @@ actor OfflineManager {
 
     // Proceed to download even if it's read, as it was likely manually requested or reader is opening it.
     await startDownload(instanceId: instanceId, info: nextBook.downloadInfo)
+  }
+
+  private func addReadingDownloadRequest(instanceId: String, info: DownloadInfo) {
+    if readingDownloadRequests[info.bookId] == nil {
+      readingDownloadRequestOrder.append(info.bookId)
+    }
+    readingDownloadRequests[info.bookId] = (instanceId: instanceId, info: info)
+  }
+
+  private func removeReadingDownloadRequest(bookId: String) {
+    readingDownloadRequests.removeValue(forKey: bookId)
+    readingDownloadRequestOrder.removeAll { $0 == bookId }
+  }
+
+  private func startNextReadingDownload(instanceId: String) async -> Bool {
+    guard !AppConfig.isOffline else { return false }
+    guard activeTasks.isEmpty else { return false }
+
+    while let bookId = readingDownloadRequestOrder.first(where: {
+      readingDownloadRequests[$0]?.instanceId == instanceId
+    }) {
+      guard let request = readingDownloadRequests[bookId] else {
+        readingDownloadRequestOrder.removeAll { $0 == bookId }
+        continue
+      }
+
+      let status = await getDownloadStatus(bookId: bookId)
+      switch status {
+      case .pending:
+        removeReadingDownloadRequest(bookId: bookId)
+        await startDownload(instanceId: request.instanceId, info: request.info)
+        return true
+      case .downloaded, .notDownloaded, .failed:
+        removeReadingDownloadRequest(bookId: bookId)
+      }
+    }
+
+    return false
   }
 
   private func syncMissingOfflineEpubProgressions(instanceId: String) async {

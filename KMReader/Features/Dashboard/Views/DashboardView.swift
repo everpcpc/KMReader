@@ -17,6 +17,7 @@ struct DashboardView: View {
   @State private var showLibraryPicker = false
   @State private var shouldRefreshAfterReading = false
   @State private var isCheckingConnection = false
+  @State private var offlineQueueingSections: Set<DashboardSection> = []
 
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("currentAccount") private var current: Current = .init()
@@ -38,6 +39,10 @@ struct DashboardView: View {
       get: { GridDensity.closest(to: gridDensity) },
       set: { gridDensity = $0.rawValue }
     )
+  }
+
+  private var isQueueingDashboardOffline: Bool {
+    !offlineQueueingSections.isEmpty
   }
 
   @ViewBuilder
@@ -390,6 +395,33 @@ struct DashboardView: View {
 
               Divider()
 
+              Menu {
+                Button {
+                  queueDashboardSectionOffline(.keepReading)
+                } label: {
+                  Label(
+                    DashboardSection.keepReading.displayName,
+                    systemImage: DashboardSection.keepReading.icon
+                  )
+                }
+                .disabled(isQueueingDashboardOffline)
+
+                Button {
+                  queueDashboardSectionOffline(.onDeck)
+                } label: {
+                  Label(
+                    DashboardSection.onDeck.displayName,
+                    systemImage: DashboardSection.onDeck.icon
+                  )
+                }
+                .disabled(isQueueingDashboardOffline)
+              } label: {
+                Label(String(localized: "Queue Offline"), systemImage: "arrow.down.circle")
+              }
+              .disabled(isOffline || isQueueingDashboardOffline)
+
+              Divider()
+
               Button {
                 refreshDashboard(reason: "Manual toolbar button")
               } label: {
@@ -440,6 +472,61 @@ struct DashboardView: View {
       await sseService.connect()
       ErrorManager.shared.notify(message: String(localized: "settings.connection_restored"))
       refreshDashboard(reason: "Reconnected")
+    }
+  }
+
+  private func queueDashboardSectionOffline(_ section: DashboardSection) {
+    guard !current.instanceId.isEmpty, !isOffline else { return }
+    guard !offlineQueueingSections.contains(section) else { return }
+
+    offlineQueueingSections.insert(section)
+    let instanceId = current.instanceId
+    let libraryIds = dashboard.libraryIds
+
+    Task {
+      defer {
+        Task { @MainActor in
+          offlineQueueingSections.remove(section)
+        }
+      }
+
+      do {
+        guard
+          let page = try await section.fetchBooks(
+            libraryIds: libraryIds,
+            page: 0,
+            size: 20
+          )
+        else {
+          ErrorManager.shared.notify(
+            message: String(localized: "No books found to queue for offline reading.")
+          )
+          return
+        }
+
+        let ids = page.content.map(\.id)
+        let queuedCount =
+          await DatabaseOperator.databaseIfConfigured()?.queueBooksOffline(
+            bookIds: ids,
+            instanceId: instanceId
+          ) ?? 0
+
+        if queuedCount > 0 {
+          OfflineManager.shared.triggerSync(instanceId: instanceId)
+          ErrorManager.shared.notify(
+            message: String(
+              format: String(localized: "Queued %lld books for offline reading."),
+              Int64(queuedCount)
+            )
+          )
+        } else {
+          ErrorManager.shared.notify(
+            message: String(localized: "No new books were added to the offline queue.")
+          )
+        }
+      } catch {
+        ErrorManager.shared.alert(error: error)
+      }
     }
   }
 
