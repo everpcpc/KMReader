@@ -358,7 +358,7 @@ enum KMReaderMigrationPlan: SchemaMigrationPlan {
 
       let byID = Dictionary(uniqueKeysWithValues: snapshots.map { ($0.id, $0) })
       let ids = Set(byID.keys)
-      let descriptor = FetchDescriptor<KomgaBook>(
+      let descriptor = FetchDescriptor<KMReaderSchemaV4.KomgaBook>(
         predicate: #Predicate { ids.contains($0.id) }
       )
       let books = try context.fetch(descriptor)
@@ -383,7 +383,7 @@ enum KMReaderMigrationPlan: SchemaMigrationPlan {
 
       let byID = Dictionary(uniqueKeysWithValues: snapshots.map { ($0.id, $0) })
       let ids = Set(byID.keys)
-      let descriptor = FetchDescriptor<KomgaSeries>(
+      let descriptor = FetchDescriptor<KMReaderSchemaV4.KomgaSeries>(
         predicate: #Predicate { ids.contains($0.id) }
       )
       let seriesList = try context.fetch(descriptor)

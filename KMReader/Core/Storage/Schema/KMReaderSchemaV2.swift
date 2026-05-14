@@ -13,17 +13,52 @@ enum KMReaderSchemaV2: VersionedSchema {
 
   static var models: [any PersistentModel.Type] {
     [
-      KomgaInstance.self,
-      KomgaLibrary.self,
+      KMReaderSchemaV2.KomgaInstance.self,
+      KMReaderSchemaV2.KomgaLibrary.self,
       KMReaderSchemaV2.KomgaSeries.self,
       KMReaderSchemaV2.KomgaBook.self,
       KMReaderSchemaV2.KomgaCollection.self,
       KMReaderSchemaV2.KomgaReadList.self,
-      CustomFont.self,
-      PendingProgress.self,
-      SavedFilter.self,
-      EpubThemePreset.self,
+      KMReaderSchemaV2.CustomFont.self,
+      KMReaderSchemaV2.PendingProgress.self,
+      KMReaderSchemaV2.SavedFilter.self,
+      KMReaderSchemaV2.EpubThemePreset.self,
     ]
+  }
+
+  @Model
+  final class KomgaInstance {
+    @Attribute(.unique) var id: UUID = UUID()
+    var name: String = ""
+    var serverURL: String = ""
+    var username: String = ""
+    var authToken: String = ""
+    var isAdmin: Bool = false
+    var authMethod: AuthenticationMethod? = AuthenticationMethod.basicAuth
+    var createdAt: Date = Date(timeIntervalSince1970: 0)
+    var lastUsedAt: Date = Date(timeIntervalSince1970: 0)
+    var seriesLastSyncedAt: Date = Date(timeIntervalSince1970: 0)
+    var booksLastSyncedAt: Date = Date(timeIntervalSince1970: 0)
+
+    init() {}
+  }
+
+  @Model
+  final class KomgaLibrary {
+    @Attribute(.unique) var id: UUID = UUID()
+    var instanceId: String = ""
+    var libraryId: String = ""
+    var name: String = ""
+    var createdAt: Date = Date(timeIntervalSince1970: 0)
+
+    var fileSize: Double?
+    var booksCount: Double?
+    var seriesCount: Double?
+    var sidecarsCount: Double?
+    var collectionsCount: Double?
+    var readlistsCount: Double?
+
+    init() {}
   }
 
   @Model
@@ -196,6 +231,53 @@ enum KMReaderSchemaV2: VersionedSchema {
     var downloadedSize: Int64 = 0
     var downloadedBooks: Int = 0
     var pendingBooks: Int = 0
+
+    init() {}
+  }
+
+  @Model
+  final class CustomFont {
+    @Attribute(.unique) var name: String = ""
+    var path: String?
+    var fileName: String?
+    var fileSize: Int64?
+    var createdAt: Date = Date(timeIntervalSince1970: 0)
+
+    init() {}
+  }
+
+  @Model
+  final class PendingProgress {
+    @Attribute(.unique) var id: String = ""
+    var instanceId: String = ""
+    var bookId: String = ""
+    var page: Int = 0
+    var completed: Bool = false
+    var createdAt: Date = Date(timeIntervalSince1970: 0)
+    var progressionData: Data?
+
+    init() {}
+  }
+
+  @Model
+  final class SavedFilter {
+    @Attribute(.unique) var id: UUID = UUID()
+    var name: String = ""
+    var filterTypeRaw: String = ""
+    var filterDataJSON: String = ""
+    var createdAt: Date = Date(timeIntervalSince1970: 0)
+    var updatedAt: Date = Date(timeIntervalSince1970: 0)
+
+    init() {}
+  }
+
+  @Model
+  final class EpubThemePreset {
+    @Attribute(.unique) var id: UUID = UUID()
+    var name: String = ""
+    var preferencesJSON: String = ""
+    var createdAt: Date = Date(timeIntervalSince1970: 0)
+    var updatedAt: Date = Date(timeIntervalSince1970: 0)
 
     init() {}
   }
