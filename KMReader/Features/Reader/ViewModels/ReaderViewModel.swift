@@ -563,6 +563,18 @@ class ReaderViewModel {
 
   private func fetchSegmentPages(for book: Book) async -> [BookPage]? {
     let database = await DatabaseOperator.databaseIfConfigured()
+
+    if AppConfig.offlineFirstReading {
+      do {
+        try await ensureOfflineReady(book: book, updatesLoadingState: false)
+      } catch {
+        logger.error("❌ Failed to prepare offline segment for book \(book.id): \(error)")
+        return nil
+      }
+
+      return await database?.fetchPages(id: book.id)
+    }
+
     if let cachedPages = await database?.fetchPages(id: book.id) {
       return cachedPages
     }
@@ -740,6 +752,9 @@ class ReaderViewModel {
     resetStateForBookLoad()
 
     do {
+      if AppConfig.offlineFirstReading {
+        try await ensureOfflineReady(book: book, updatesLoadingState: true)
+      }
       await prepareOfflinePDFForDivina(book: book)
       let database = await DatabaseOperator.databaseIfConfigured()
 
@@ -781,6 +796,67 @@ class ReaderViewModel {
     }
 
     isLoading = false
+  }
+
+  private func ensureOfflineReady(book: Book, updatesLoadingState: Bool) async throws {
+    let downloadInfo = book.downloadInfo
+    let status = await OfflineManager.shared.getDownloadStatus(bookId: book.id)
+    if case .downloaded = status {
+      if updatesLoadingState {
+        loadingProgress = 1.0
+      }
+      return
+    }
+
+    if AppConfig.isOffline {
+      throw AppErrorType.networkUnavailable
+    }
+
+    if updatesLoadingState {
+      loadingTitle = String(localized: "Downloading book...")
+      loadingDetail = nil
+      loadingProgress = 0.0
+    }
+
+    switch status {
+    case .notDownloaded, .failed, .pending:
+      await OfflineManager.shared.downloadForReading(
+        instanceId: AppConfig.current.instanceId,
+        info: downloadInfo
+      )
+    case .downloaded:
+      loadingProgress = 1.0
+      return
+    }
+
+    while true {
+      if AppConfig.isOffline {
+        throw AppErrorType.networkUnavailable
+      }
+
+      let currentStatus = await OfflineManager.shared.getDownloadStatus(bookId: book.id)
+      switch currentStatus {
+      case .downloaded:
+        if updatesLoadingState {
+          loadingProgress = 1.0
+        }
+        return
+      case .failed(let error):
+        throw AppErrorType.operationFailed(message: error)
+      case .notDownloaded:
+        throw AppErrorType.operationFailed(
+          message: String(localized: "Download did not start. Please try again.")
+        )
+      case .pending:
+        if updatesLoadingState,
+          let progress = DownloadProgressTracker.shared.progress[book.id]
+        {
+          loadingProgress = progress
+        }
+      }
+
+      try await Task.sleep(for: .milliseconds(200))
+    }
   }
 
   private func prepareOfflinePDFForDivina(book: Book) async {

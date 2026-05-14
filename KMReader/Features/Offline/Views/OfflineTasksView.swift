@@ -12,6 +12,7 @@ struct OfflineTasksView: View {
   private var instanceId: String { current.instanceId }
   @AppStorage("offlinePaused") private var isPaused: Bool = false
   @AppStorage("offlineAutoDeleteRead") private var autoDeleteRead: Bool = false
+  @AppStorage("offlineFirstReading") private var offlineFirstReading: Bool = false
   @State private var showingBulkAlert = false
   @State private var showingAutoDeleteAlert = false
   @State private var pendingBulkAction: BulkAction?
@@ -62,16 +63,18 @@ struct OfflineTasksView: View {
   var body: some View {
     Form {
       Section {
-        Toggle(
-          isOn: Binding(
-            get: { !isPaused },
-            set: { newValue in
-              isPaused = !newValue
+        Toggle(isOn: $offlineFirstReading) {
+          VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+              Image(systemName: offlineFirstReading ? "arrow.down.circle.fill" : "arrow.down.circle")
+              Text(String(localized: "Offline-first Reading"))
             }
-          )
-        ) {
-          Label(currentStatus.label, systemImage: currentStatus.icon)
-            .foregroundColor(currentStatus.color)
+            Text(
+              String(localized: "Download books before opening them, then read from local storage.")
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+          }
         }
 
         Toggle(
@@ -86,10 +89,31 @@ struct OfflineTasksView: View {
             }
           )
         ) {
-          Label(
-            String(localized: "settings.offline.auto_delete_read"),
-            systemImage: autoDeleteRead ? "checkmark.circle" : "circle"
+          VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+              Image(systemName: autoDeleteRead ? "checkmark.circle.fill" : "circle")
+              Text(String(localized: "settings.offline.auto_delete_read"))
+            }
+            Text(String(localized: "settings.offline.auto_delete_read.message"))
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          }
+        }
+      } header: {
+        Text(String(localized: "Offline Reading"))
+      }
+
+      Section {
+        Toggle(
+          isOn: Binding(
+            get: { !isPaused },
+            set: { newValue in
+              isPaused = !newValue
+            }
           )
+        ) {
+          Label(currentStatus.label, systemImage: currentStatus.icon)
+            .foregroundColor(currentStatus.color)
         }
       }
 
@@ -244,18 +268,21 @@ struct OfflineTaskRow: View {
         switch book.downloadStatus {
         case .pending:
           if let progress = progress {
-            let isProcessing = progress >= 1
-            ProgressView(value: isProcessing ? nil : progress) {
-              Text(
-                isProcessing
-                  ? String(localized: "Processing offline files...")
-                  : String(
+            if progress >= 1 {
+              Text(String(localized: "Processing offline files..."))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            } else {
+              ProgressView(value: progress) {
+                Text(
+                  String(
                     format: String(localized: "Downloading %lld%%"),
                     Int64(progress * 100)
                   )
-              )
-              .font(.caption)
-              .foregroundColor(.secondary)
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+              }
             }
           } else {
             Text("Pending in queue...")

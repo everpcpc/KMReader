@@ -365,6 +365,11 @@ enum AppConfig {
     set { UserDefaults.standard.set(newValue, forKey: "offlineAutoDeleteRead") }
   }
 
+  static nonisolated var offlineFirstReading: Bool {
+    get { UserDefaults.standard.bool(forKey: "offlineFirstReading") }
+    set { UserDefaults.standard.set(newValue, forKey: "offlineFirstReading") }
+  }
+
   static nonisolated var backgroundDownloadTasksData: Data? {
     get { UserDefaults.standard.data(forKey: "BackgroundDownloadTasks") }
     set {
