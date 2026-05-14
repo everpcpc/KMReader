@@ -29,9 +29,8 @@
 
     @State private var viewModel: PdfReaderViewModel
     @State private var readingDirection: ReadingDirection
-    @State private var pageLayout: PageLayout
+    @State private var pagePresentation: PdfPagePresentation
     @State private var isolateCoverPage: Bool
-    @State private var continuousScroll: Bool
     @State private var currentBook: Book?
     @State private var currentSeries: Series?
     @State private var showingControls = false
@@ -62,9 +61,8 @@
       self.onClose = onClose
       _viewModel = State(initialValue: PdfReaderViewModel(incognito: incognito))
       _readingDirection = State(initialValue: .ltr)
-      _pageLayout = State(initialValue: AppConfig.pdfPageLayout)
+      _pagePresentation = State(initialValue: AppConfig.pdfPagePresentation)
       _isolateCoverPage = State(initialValue: AppConfig.pdfIsolateCoverPage)
-      _continuousScroll = State(initialValue: AppConfig.pdfContinuousScroll)
       _currentBook = State(initialValue: book)
     }
 
@@ -237,8 +235,15 @@
       .default
     }
 
-    private var documentViewIdentity: String {
+    private var documentSourceIdentity: String {
       "native-pdf-\(book.id)"
+    }
+
+    private func documentViewIdentity(
+      documentURL: URL,
+      resolvedPresentation: PdfPagePresentation
+    ) -> String {
+      "\(documentURL.path)-\(documentSourceIdentity)-\(resolvedPresentation.rawValue)"
     }
 
     private var documentInitialPage: Int {
@@ -288,24 +293,27 @@
         }
         .padding()
       } else if let documentURL = viewModel.documentURL {
-        PdfDocumentView(
-          documentURL: documentURL,
-          pageLayout: pageLayout,
-          isolateCoverPage: isolateCoverPage,
-          continuousScroll: continuousScroll,
-          readingDirection: readingDirection,
-          initialPageNumber: documentInitialPage,
-          targetPageNumber: targetPageNumber,
-          navigationToken: navigationToken,
-          onPageChange: { pageNumber, totalPages in
-            viewModel.updateCurrentPage(pageNumber: pageNumber, totalPages: totalPages)
-          },
-          onSingleTap: { normalizedPoint in
-            handleSingleTap(normalizedPoint: normalizedPoint)
-          }
-        )
-        // Rebuild PDFView when the source file changes.
-        .id("\(documentURL.path)-\(documentViewIdentity)")
+        GeometryReader { proxy in
+          let resolvedPresentation = pagePresentation.resolved(for: proxy.size)
+          PdfDocumentView(
+            documentURL: documentURL,
+            pagePresentation: resolvedPresentation,
+            isolateCoverPage: isolateCoverPage,
+            readingDirection: readingDirection,
+            initialPageNumber: documentInitialPage,
+            targetPageNumber: targetPageNumber,
+            navigationToken: navigationToken,
+            onPageChange: { pageNumber, totalPages in
+              viewModel.updateCurrentPage(pageNumber: pageNumber, totalPages: totalPages)
+            },
+            onSingleTap: { normalizedPoint in
+              handleSingleTap(normalizedPoint: normalizedPoint)
+            }
+          )
+          // Rebuild PDFView when the source document or resolved presentation changes.
+          .id(documentViewIdentity(documentURL: documentURL, resolvedPresentation: resolvedPresentation))
+          .readerIgnoresSafeArea()
+        }
         .readerIgnoresSafeArea()
       } else {
         ReaderUnavailableView(
@@ -320,9 +328,8 @@
     private var controlsOverlay: some View {
       PdfControlsOverlayView(
         readingDirection: $readingDirection,
-        pageLayout: $pageLayout,
+        pagePresentation: $pagePresentation,
         isolateCoverPage: $isolateCoverPage,
-        continuousScroll: $continuousScroll,
         showingPageJumpSheet: $showingPageJumpSheet,
         showingSearchSheet: $showingSearchSheet,
         showingTOCSheet: $showingTOCSheet,
@@ -544,18 +551,18 @@
           canOpenNextBook: false,
           readingDirection: readingDirection,
           availableReadingDirections: ReadingDirection.pdfAvailableCases,
-          pageLayout: pageLayout,
+          pageLayout: pagePresentation.resolvedPageLayout,
           isolateCoverPage: isolateCoverPage,
           pageIsolationActions: [],
           splitWidePageMode: .none,
-          continuousScroll: continuousScroll,
+          continuousScroll: pagePresentation.resolvedContinuousScroll,
           supportsSearch: true,
           canSearch: viewModel.documentURL != nil,
           supportsReadingDirectionSelection: true,
-          supportsPageLayoutSelection: true,
-          supportsDualPageOptions: pageLayout.supportsDualPageOptions,
+          supportsPageLayoutSelection: false,
+          supportsDualPageOptions: pagePresentation.supportsCoverIsolation,
           supportsSplitWidePageMode: false,
-          supportsContinuousScrollToggle: true
+          supportsContinuousScrollToggle: false
         )
       }
     #endif
@@ -612,9 +619,7 @@
             setReadingDirection: { direction in
               readingDirection = pdfReadingDirection(from: direction)
             },
-            setPageLayout: { layout in
-              pageLayout = layout
-            },
+            setPageLayout: { _ in },
             toggleIsolateCoverPage: {
               isolateCoverPage.toggle()
             },
@@ -622,9 +627,7 @@
             sharePage: { _ in },
             setPageRotation: { _, _ in },
             setSplitWidePageMode: { _ in },
-            toggleContinuousScroll: {
-              continuousScroll.toggle()
-            }
+            toggleContinuousScroll: {}
           )
         )
       }
