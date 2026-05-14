@@ -202,6 +202,9 @@ struct ContentView: View {
       } else {
         LandingView(authViewModel: authViewModel)
           .onAppear {
+            OfflineRecoveryService.shared.stop()
+            OfflineRecoveryService.shared.probe = nil
+            NetworkPathMonitorService.shared.onPathBecameSatisfied = nil
             Task {
               await SSEService.shared.disconnect(notify: false)
             }

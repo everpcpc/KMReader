@@ -43,6 +43,8 @@ final class OfflineRecoveryService {
 
   private var task: Task<Void, Never>?
   private var taskID: UUID?
+  private var sleepTask: Task<Bool, Never>?
+  private var sleepID: UUID?
   private var nextBackoffSeconds: UInt64 = 5
   private let logger = AppLogger(.api)
 
@@ -56,14 +58,14 @@ final class OfflineRecoveryService {
   }
 
   /// Wake the loop by cancelling the current sleep and probing immediately,
-  /// while preserving the current backoff interval. If no loop is running,
-  /// starts one from the minimum backoff.
+  /// while preserving the current backoff interval. If a probe is already in
+  /// flight, this is a no-op so we do not duplicate server requests.
   func wakeNow() {
     guard task != nil else {
       startIfNeeded()
       return
     }
-    startTask(resetBackoff: false)
+    sleepTask?.cancel()
   }
 
   /// Cancel the recovery loop. Used when the app exits auto-offline mode by
@@ -71,8 +73,11 @@ final class OfflineRecoveryService {
   /// offline mode). Safe to call when no loop is running.
   func stop() {
     task?.cancel()
+    sleepTask?.cancel()
     task = nil
     taskID = nil
+    sleepTask = nil
+    sleepID = nil
     nextBackoffSeconds = 5
   }
 
@@ -95,6 +100,8 @@ final class OfflineRecoveryService {
       if taskID == id {
         task = nil
         taskID = nil
+        sleepTask = nil
+        sleepID = nil
       }
     }
 
@@ -114,9 +121,32 @@ final class OfflineRecoveryService {
       logger.debug(
         "⏳ [OfflineRecovery] Probe failed; sleeping \(sleepSeconds)s before retry"
       )
-      try? await Task.sleep(nanoseconds: sleepSeconds * 1_000_000_000)
+      let completedSleep = await sleep(seconds: sleepSeconds)
       if Task.isCancelled { return }
-      nextBackoffSeconds = min(sleepSeconds * 2, 300)
+      if completedSleep {
+        nextBackoffSeconds = min(sleepSeconds * 2, 300)
+      }
     }
+  }
+
+  private func sleep(seconds: UInt64) async -> Bool {
+    let id = UUID()
+    let sleeper = Task {
+      do {
+        try await Task.sleep(nanoseconds: seconds * 1_000_000_000)
+        return true
+      } catch {
+        return false
+      }
+    }
+    sleepID = id
+    sleepTask = sleeper
+
+    let completed = await sleeper.value
+    if sleepID == id {
+      sleepID = nil
+      sleepTask = nil
+    }
+    return completed
   }
 }
