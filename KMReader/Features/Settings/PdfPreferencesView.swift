@@ -8,12 +8,10 @@
     private var defaultReadingDirection: ReadingDirection = .ltr
     @AppStorage("pdfForceDefaultReadingDirection")
     private var forceDefaultReadingDirection: Bool = false
-    @AppStorage("pdfPageLayout")
-    private var pageLayout: PageLayout = .auto
+    @AppStorage("pdfPagePresentation")
+    private var pagePresentation: PdfPagePresentation = AppConfig.pdfPagePresentation
     @AppStorage("pdfIsolateCoverPage")
     private var isolateCoverPage: Bool = true
-    @AppStorage("pdfContinuousScroll")
-    private var continuousScroll: Bool = AppConfig.pdfContinuousScroll
     @AppStorage("pdfShowKeyboardHelpOverlay")
     private var showKeyboardHelpOverlay: Bool = AppConfig.pdfShowKeyboardHelpOverlay
     @AppStorage("showPdfControlsGradientBackground")
@@ -67,29 +65,20 @@
             }
 
             VStack(alignment: .leading, spacing: 8) {
-              Picker("Page Layout", selection: $pageLayout) {
-                ForEach(PageLayout.allCases, id: \.self) { layout in
-                  Label(layout.displayName, systemImage: layout.icon)
-                    .tag(layout)
+              Picker("Page Presentation", selection: $pagePresentation) {
+                ForEach(PdfPagePresentation.allCases, id: \.self) { presentation in
+                  Label(presentation.displayName, systemImage: presentation.icon)
+                    .tag(presentation)
                 }
               }
               .pickerStyle(.menu)
 
-              Text("Used for single and dual-page presentation")
+              Text(pagePresentation.detailText)
                 .font(.caption)
                 .foregroundColor(.secondary)
             }
 
-            Toggle(isOn: $continuousScroll) {
-              VStack(alignment: .leading, spacing: 4) {
-                Text("Continuous Scroll")
-                Text("Scroll through pages continuously instead of paging one page or spread at a time.")
-                  .font(.caption)
-                  .foregroundColor(.secondary)
-              }
-            }
-
-            if pageLayout.supportsDualPageOptions {
+            if pagePresentation.supportsCoverIsolation {
               Toggle(isOn: $isolateCoverPage) {
                 VStack(alignment: .leading, spacing: 4) {
                   Text("Isolate Cover Page")

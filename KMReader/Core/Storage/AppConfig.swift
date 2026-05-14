@@ -159,26 +159,16 @@ enum AppConfig {
     set { UserDefaults.standard.set(newValue.rawValue, forKey: "pdfOfflineRenderQuality") }
   }
 
-  static nonisolated var pdfContinuousScroll: Bool {
+  static nonisolated var pdfPagePresentation: PdfPagePresentation {
     get {
-      if UserDefaults.standard.object(forKey: "pdfContinuousScroll") != nil {
-        return UserDefaults.standard.bool(forKey: "pdfContinuousScroll")
-      }
-      return false
-    }
-    set { UserDefaults.standard.set(newValue, forKey: "pdfContinuousScroll") }
-  }
-
-  static nonisolated var pdfPageLayout: PageLayout {
-    get {
-      if let stored = UserDefaults.standard.string(forKey: "pdfPageLayout"),
-        let layout = PageLayout(rawValue: stored)
+      if let stored = UserDefaults.standard.string(forKey: "pdfPagePresentation"),
+        let presentation = PdfPagePresentation(rawValue: stored)
       {
-        return layout
+        return presentation
       }
       return .auto
     }
-    set { UserDefaults.standard.set(newValue.rawValue, forKey: "pdfPageLayout") }
+    set { UserDefaults.standard.set(newValue.rawValue, forKey: "pdfPagePresentation") }
   }
 
   static nonisolated var pdfIsolateCoverPage: Bool {

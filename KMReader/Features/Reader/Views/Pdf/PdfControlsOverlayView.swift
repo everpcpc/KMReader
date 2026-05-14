@@ -3,9 +3,8 @@
 
   struct PdfControlsOverlayView: View {
     @Binding var readingDirection: ReadingDirection
-    @Binding var pageLayout: PageLayout
+    @Binding var pagePresentation: PdfPagePresentation
     @Binding var isolateCoverPage: Bool
-    @Binding var continuousScroll: Bool
 
     @Binding var showingPageJumpSheet: Bool
     @Binding var showingSearchSheet: Bool
@@ -255,22 +254,18 @@
         }
         .pickerStyle(.menu)
 
-        Picker(selection: $pageLayout) {
-          ForEach(PageLayout.allCases, id: \.self) { layout in
-            Label(layout.displayName, systemImage: layout.icon)
-              .tag(layout)
+        Picker(selection: $pagePresentation) {
+          ForEach(PdfPagePresentation.allCases, id: \.self) { presentation in
+            Label(presentation.displayName, systemImage: presentation.icon)
+              .tag(presentation)
           }
         } label: {
-          Label(String(localized: "Page Layout"), systemImage: pageLayout.icon)
+          Label(String(localized: "Page Presentation"), systemImage: pagePresentation.icon)
         }
         .pickerStyle(.menu)
 
-        if pageLayout.supportsDualPageOptions {
+        if pagePresentation.supportsCoverIsolation {
           pageIsolation()
-        }
-
-        Toggle(isOn: $continuousScroll) {
-          Label(String(localized: "Continuous Scroll"), systemImage: "scroll")
         }
       } header: {
         Text(String(localized: "Current Reading Options"))
