@@ -416,6 +416,26 @@ struct DashboardView: View {
                   )
                 }
                 .disabled(isQueueingDashboardOffline)
+
+                Button {
+                  queueDashboardSectionOffline(.recentlyReleasedBooks)
+                } label: {
+                  Label(
+                    DashboardSection.recentlyReleasedBooks.displayName,
+                    systemImage: DashboardSection.recentlyReleasedBooks.icon
+                  )
+                }
+                .disabled(isQueueingDashboardOffline)
+
+                Button {
+                  queueDashboardSectionOffline(.recentlyAddedBooks)
+                } label: {
+                  Label(
+                    DashboardSection.recentlyAddedBooks.displayName,
+                    systemImage: DashboardSection.recentlyAddedBooks.icon
+                  )
+                }
+                .disabled(isQueueingDashboardOffline)
               } label: {
                 Label(
                   String(localized: "dashboard.queueOfflineLatest", defaultValue: "Queue Offline Latest"),
