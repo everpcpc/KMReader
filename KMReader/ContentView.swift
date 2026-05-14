@@ -72,7 +72,7 @@ struct ContentView: View {
             #endif
           } else {
             SplashView(initializer: instanceInitializer) {
-              isOffline = true
+              AppConfig.enterAutoOfflineMode()
             }
           }
         }
@@ -81,7 +81,13 @@ struct ContentView: View {
 
           if authViewModel.bootstrapState == .requiresValidation {
             let serverReachable = await authViewModel.loadCurrentUser()
-            isOffline = !serverReachable
+            if serverReachable {
+              AppConfig.exitOfflineMode()
+            } else {
+              // No-op if we were already in manual offline mode (`enterAutoOfflineMode`
+              // is guarded against converting manual → auto).
+              AppConfig.enterAutoOfflineMode()
+            }
           }
 
           guard isLoggedIn else { return }
@@ -90,6 +96,34 @@ struct ContentView: View {
             await SSEService.shared.connect()
           }
           WidgetDataService.refreshWidgetData()
+
+          // Wire automatic recovery from auto-entered offline mode. The
+          // primary mechanism is `OfflineRecoveryService`'s backoff probe
+          // loop, which runs while in auto-offline mode and probes the
+          // configured server periodically. `NWPathMonitor` is used as an
+          // opportunistic wake-up signal (skip the current backoff when the
+          // device network state changes) — it cannot serve as the primary
+          // trigger because the device network is typically still satisfied
+          // during a server-side outage.
+          //
+          // All three are idempotent: re-fires on login state changes simply
+          // replace the closures and (re)start the loop where applicable.
+          OfflineRecoveryService.shared.probe = {
+            await attemptAutoOfflineRecovery()
+          }
+          NetworkPathMonitorService.shared.onPathBecameSatisfied = {
+            guard AppConfig.isOffline, AppConfig.offlineWasAutomatic else { return }
+            OfflineRecoveryService.shared.wakeNow()
+          }
+          NetworkPathMonitorService.shared.start()
+
+          // If we are already in auto-offline at the time the user logs in
+          // (e.g., bootstrap probe just failed, or migration classified a
+          // persisted offline state as auto), begin the recovery loop now so
+          // we are not waiting on a network or scene transition to trigger it.
+          if AppConfig.isOffline, AppConfig.offlineWasAutomatic {
+            OfflineRecoveryService.shared.startIfNeeded()
+          }
         }
         .task(id: automaticReadingHistorySyncTrigger) {
           guard !automaticReadingHistorySyncTrigger.isEmpty else { return }
@@ -108,12 +142,29 @@ struct ContentView: View {
                   instanceId: AppConfig.current.instanceId, restart: true)
               }
             }
+            // Loop may still be running if the exit was driven by a non-probe
+            // path (login flow, manual reconnect). Stop it explicitly so no
+            // further wake-ups can spawn a stray probe.
+            OfflineRecoveryService.shared.stop()
+          }
+          if !oldValue && newValue && AppConfig.offlineWasAutomatic {
+            // Just entered auto-offline (e.g., `APIClient.handleNetworkError`
+            // fired). Begin the recovery probe loop so we are not waiting on
+            // an external trigger to start probing the server.
+            OfflineRecoveryService.shared.startIfNeeded()
           }
         }
         .onChange(of: scenePhase) { _, phase in
           if phase == .active {
             withAnimation(.easeInOut(duration: 0.2)) {
               showPrivacyBlur = false
+            }
+            // Wake the recovery loop if we're in auto-offline. Catches the
+            // case where the loop's `Task.sleep` was deferred by iOS while
+            // the app was suspended, or where a path-monitor transition fired
+            // during suspension and was missed.
+            if AppConfig.isOffline, AppConfig.offlineWasAutomatic {
+              OfflineRecoveryService.shared.wakeNow()
             }
             Task {
               if let database = await DatabaseOperator.databaseIfConfigured() {
@@ -151,6 +202,9 @@ struct ContentView: View {
       } else {
         LandingView(authViewModel: authViewModel)
           .onAppear {
+            OfflineRecoveryService.shared.stop()
+            OfflineRecoveryService.shared.probe = nil
+            NetworkPathMonitorService.shared.onPathBecameSatisfied = nil
             Task {
               await SSEService.shared.disconnect(notify: false)
             }
@@ -182,5 +236,54 @@ struct ContentView: View {
         .transition(.opacity)
       }
     }
+  }
+
+  /// Probe the configured Komga server and exit offline mode on success, but
+  /// only when we are in auto-entered offline mode. Manually-entered offline
+  /// mode is preserved (the user explicitly opted in; only an explicit user
+  /// action exits it).
+  ///
+  /// Invoked as the probe closure for `OfflineRecoveryService`, which calls
+  /// it from a backoff loop while we are in auto-offline mode and also wakes
+  /// it on `NWPathMonitor` path-satisfied signals and `scenePhase == .active`.
+  ///
+  /// Returns `.recovered` iff this call transitioned the app from offline →
+  /// online. Returns `.retry` when the server is still unreachable, and `.stop`
+  /// when recovery is no longer eligible.
+  ///
+  /// On successful exit, mirrors what `DashboardView.tryReconnect` does so
+  /// the auto and manual recovery paths converge on identical post-recovery
+  /// state.
+  private func attemptAutoOfflineRecovery() async -> OfflineRecoveryService.ProbeResult {
+    guard isLoggedIn else { return .stop }
+    guard AppConfig.isOffline, AppConfig.offlineWasAutomatic else { return .stop }
+
+    let reachable = await authViewModel.loadCurrentUser()
+
+    // Re-check before mutating state:
+    // - `loadCurrentUser` returns `true` even on `.unauthorized` (it calls
+    //   `logout()` and returns `true` to signal "server reachable, just not
+    //   authorized"). We must not treat that as a successful recovery —
+    //   otherwise we'd fire a misleading "connection restored" notification
+    //   while the user has actually been logged out. Re-checking `isLoggedIn`
+    //   here is the guard.
+    // - `AppConfig.isOffline` may have flipped false from another recovery path
+    //   while this probe was in flight. Re-checking ensures only one caller
+    //   fires the user-visible side effects (notification, SSE reconnect).
+    guard AppConfig.isLoggedIn else { return .stop }
+    guard AppConfig.isOffline, AppConfig.offlineWasAutomatic else { return .stop }
+    guard reachable else { return .retry }
+
+    AppConfig.exitOfflineMode()
+    if enableSSE {
+      await SSEService.shared.connect()
+    }
+    ErrorManager.shared.notify(
+      message: String(localized: "settings.connection_restored")
+    )
+    // `ContentView.onChange(of: isOffline)` handles `syncPendingProgress` and
+    // `triggerSync` for offline downloads once the flag transitions back to
+    // online; nothing else to do here.
+    return .recovered
   }
 }

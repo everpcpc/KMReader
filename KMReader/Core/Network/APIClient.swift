@@ -1235,7 +1235,7 @@ class APIClient {
       logger.info("🔌 Network issue detected, automatically switching to offline mode")
       await MainActor.run {
         guard !AppConfig.isOffline else { return }
-        AppConfig.isOffline = true
+        AppConfig.enterAutoOfflineMode()
       }
       await SSEService.shared.disconnect()
       await MainActor.run {

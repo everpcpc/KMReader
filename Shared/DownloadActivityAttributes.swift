@@ -11,8 +11,8 @@ import Foundation
 #if os(iOS)
   import ActivityKit
 
-  public struct DownloadActivityAttributes: ActivityAttributes {
-    public struct ContentState: Codable, Hashable {
+  public nonisolated struct DownloadActivityAttributes: ActivityAttributes {
+    public struct ContentState: Codable, Hashable, Sendable {
       /// Series title
       public var seriesTitle: String?
       /// Book info (e.g. "#1 - Chapter Title")

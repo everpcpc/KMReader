@@ -200,7 +200,7 @@ class AuthViewModel {
         AppConfig.serverLastUpdate = nil
 
         // Switch to offline mode
-        AppConfig.isOffline = true
+        AppConfig.enterAutoOfflineMode()
         await SSEService.shared.disconnect()
 
         // We cannot load the user object offline, but isLoggedIn=true allows entry
@@ -273,7 +273,7 @@ class AuthViewModel {
 
     // Reset offline mode on successful login/switch
     if AppConfig.isOffline {
-      AppConfig.isOffline = false
+      AppConfig.exitOfflineMode()
     }
 
     AppConfig.dashboard.libraryIds = []

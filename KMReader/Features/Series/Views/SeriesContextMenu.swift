@@ -3,6 +3,7 @@
 //
 //
 
+import SwiftData
 import SwiftUI
 
 struct SeriesContextMenu: View {
