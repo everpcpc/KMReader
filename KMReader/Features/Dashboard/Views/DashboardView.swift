@@ -46,6 +46,15 @@ struct DashboardView: View {
     !offlineQueueingSections.isEmpty
   }
 
+  private var latestOfflineQueueSections: [DashboardSection] {
+    [
+      .keepReading,
+      .onDeck,
+      .recentlyReleasedBooks,
+      .recentlyAddedBooks,
+    ]
+  }
+
   @ViewBuilder
   private var dashboardHeader: some View {
     HStack {
@@ -397,27 +406,22 @@ struct DashboardView: View {
               Divider()
 
               Menu {
-                Button {
-                  queueDashboardSectionOffline(.keepReading)
-                } label: {
-                  Label(
-                    DashboardSection.keepReading.displayName,
-                    systemImage: DashboardSection.keepReading.icon
-                  )
+                ForEach(latestOfflineQueueSections) { section in
+                  Button {
+                    queueDashboardSectionOffline(section)
+                  } label: {
+                    Label(
+                      section.displayName,
+                      systemImage: section.icon
+                    )
+                  }
+                  .disabled(isQueueingDashboardOffline)
                 }
-                .disabled(isQueueingDashboardOffline)
-
-                Button {
-                  queueDashboardSectionOffline(.onDeck)
-                } label: {
-                  Label(
-                    DashboardSection.onDeck.displayName,
-                    systemImage: DashboardSection.onDeck.icon
-                  )
-                }
-                .disabled(isQueueingDashboardOffline)
               } label: {
-                Label(String(localized: "Queue Offline"), systemImage: "arrow.down.circle")
+                Label(
+                  String(localized: "dashboard.downloadLatest", defaultValue: "Download Latest"),
+                  systemImage: "arrow.down.circle"
+                )
               }
               .disabled(isOffline || isQueueingDashboardOffline)
 
