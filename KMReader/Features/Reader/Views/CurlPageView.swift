@@ -219,6 +219,8 @@
       private var lastViewItemsCount: Int = 0
       private var lastFirstViewItem: ReaderViewItem?
       private var lastLastViewItem: ReaderViewItem?
+      private var lastLongPressEndTime: Date = .distantPast
+      private var isLongPressing = false
 
       init(_ parent: CurlPageView) {
         self.parent = parent
@@ -237,6 +239,12 @@
         doubleTap.cancelsTouchesInView = false
         doubleTap.delegate = self
         view.addGestureRecognizer(doubleTap)
+
+        let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
+        longPress.minimumPressDuration = ReaderGestureConstants.longPressMinimumDuration
+        longPress.cancelsTouchesInView = false
+        longPress.delegate = self
+        view.addGestureRecognizer(longPress)
       }
 
       var totalPages: Int {
@@ -592,8 +600,29 @@
         singleTapWorkItem = nil
       }
 
+      @objc private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
+        switch gesture.state {
+        case .began:
+          isLongPressing = true
+          singleTapWorkItem?.cancel()
+          singleTapWorkItem = nil
+        case .ended, .cancelled, .failed:
+          lastLongPressEndTime = Date()
+          DispatchQueue.main.asyncAfter(deadline: .now() + ReaderGestureConstants.longPressReleaseDelay) {
+            [weak self] in
+            self?.isLongPressing = false
+          }
+        default:
+          break
+        }
+      }
+
       private var isTapZoneSuppressed: Bool {
-        isTransitioning || parent.viewModel.isZoomed
+        isTransitioning
+          || parent.viewModel.isZoomed
+          || isLongPressing
+          || Date().timeIntervalSince(lastLongPressEndTime)
+            < ReaderGestureConstants.longPressTapSuppressionInterval
       }
 
       private func dispatchTapZoneTap(at location: CGPoint, in view: UIView) {

@@ -90,7 +90,10 @@
       private var panRecognizer: UIPanGestureRecognizer?
       private var singleTapRecognizer: UITapGestureRecognizer?
       private var doubleTapRecognizer: UITapGestureRecognizer?
+      private var longPressRecognizer: UILongPressGestureRecognizer?
       private var singleTapWorkItem: DispatchWorkItem?
+      private var lastLongPressEndTime: Date = .distantPast
+      private var isLongPressing = false
 
       init(_ parent: NativeCoverPageView) {
         self.parent = parent
@@ -146,11 +149,16 @@
         if let doubleTapRecognizer {
           doubleTapRecognizer.view?.removeGestureRecognizer(doubleTapRecognizer)
         }
+        if let longPressRecognizer {
+          longPressRecognizer.view?.removeGestureRecognizer(longPressRecognizer)
+        }
         singleTapWorkItem?.cancel()
         singleTapWorkItem = nil
+        isLongPressing = false
         panRecognizer = nil
         singleTapRecognizer = nil
         doubleTapRecognizer = nil
+        longPressRecognizer = nil
         pagePresentationCoordinator.teardown()
         containerView = nil
       }
@@ -229,7 +237,10 @@
       }
 
       private func attachTapRecognizersIfNeeded(to containerView: NativeCoverContainerView) {
-        if singleTapRecognizer?.view === containerView, doubleTapRecognizer?.view === containerView {
+        if singleTapRecognizer?.view === containerView,
+          doubleTapRecognizer?.view === containerView,
+          longPressRecognizer?.view === containerView
+        {
           return
         }
 
@@ -238,6 +249,9 @@
         }
         if let doubleTapRecognizer {
           doubleTapRecognizer.view?.removeGestureRecognizer(doubleTapRecognizer)
+        }
+        if let longPressRecognizer {
+          longPressRecognizer.view?.removeGestureRecognizer(longPressRecognizer)
         }
 
         let singleTapRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleSingleTap(_:)))
@@ -252,8 +266,15 @@
         doubleTapRecognizer.delegate = self
         containerView.addGestureRecognizer(doubleTapRecognizer)
 
+        let longPressRecognizer = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
+        longPressRecognizer.minimumPressDuration = ReaderGestureConstants.longPressMinimumDuration
+        longPressRecognizer.cancelsTouchesInView = false
+        longPressRecognizer.delegate = self
+        containerView.addGestureRecognizer(longPressRecognizer)
+
         self.singleTapRecognizer = singleTapRecognizer
         self.doubleTapRecognizer = doubleTapRecognizer
+        self.longPressRecognizer = longPressRecognizer
       }
 
       private func applyPanRecognizerState() {
@@ -843,8 +864,30 @@
         singleTapWorkItem = nil
       }
 
+      @objc private func handleLongPress(_ recognizer: UILongPressGestureRecognizer) {
+        switch recognizer.state {
+        case .began:
+          isLongPressing = true
+          singleTapWorkItem?.cancel()
+          singleTapWorkItem = nil
+        case .ended, .cancelled, .failed:
+          lastLongPressEndTime = Date()
+          DispatchQueue.main.asyncAfter(deadline: .now() + ReaderGestureConstants.longPressReleaseDelay) {
+            [weak self] in
+            self?.isLongPressing = false
+          }
+        default:
+          break
+        }
+      }
+
       private var isTapZoneSuppressed: Bool {
-        parent.viewModel.isZoomed || isUserPanning || isAnimatingTransition
+        parent.viewModel.isZoomed
+          || isUserPanning
+          || isAnimatingTransition
+          || isLongPressing
+          || Date().timeIntervalSince(lastLongPressEndTime)
+            < ReaderGestureConstants.longPressTapSuppressionInterval
       }
 
       private func dispatchTapZoneTap(at location: CGPoint, in containerView: NativeCoverContainerView) {

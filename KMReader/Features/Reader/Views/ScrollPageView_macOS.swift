@@ -88,6 +88,14 @@
       doubleClickGesture.delegate = context.coordinator
       scrollView.addGestureRecognizer(doubleClickGesture)
 
+      let longPressGesture = NSPressGestureRecognizer(
+        target: context.coordinator,
+        action: #selector(Coordinator.handleLongPress(_:))
+      )
+      longPressGesture.minimumPressDuration = ReaderGestureConstants.longPressMinimumDuration
+      longPressGesture.delegate = context.coordinator
+      scrollView.addGestureRecognizer(longPressGesture)
+
       collectionView.frame = CGRect(origin: .zero, size: scrollView.contentView.bounds.size)
       collectionView.autoresizingMask = [.width, .height]
 
@@ -153,6 +161,8 @@
       private var programmaticScrollToken: Int = 0
       private var lastObservedClipBounds: CGRect = .zero
       private var singleClickWorkItem: DispatchWorkItem?
+      private var lastLongPressEndTime: Date = .distantPast
+      private var isLongPressing = false
 
       init(_ parent: ScrollPageView) {
         self.parent = parent
@@ -182,6 +192,7 @@
         NotificationCenter.default.removeObserver(self)
         singleClickWorkItem?.cancel()
         singleClickWorkItem = nil
+        isLongPressing = false
         deferredViewModelCommitTask?.cancel()
         deferredViewModelCommitTask = nil
         visiblePreloadTask?.cancel()
@@ -934,8 +945,28 @@
         singleClickWorkItem = nil
       }
 
+      @objc func handleLongPress(_ gesture: NSPressGestureRecognizer) {
+        switch gesture.state {
+        case .began:
+          isLongPressing = true
+          singleClickWorkItem?.cancel()
+          singleClickWorkItem = nil
+        case .ended, .cancelled, .failed:
+          lastLongPressEndTime = Date()
+          DispatchQueue.main.asyncAfter(deadline: .now() + ReaderGestureConstants.longPressReleaseDelay) {
+            [weak self] in
+            self?.isLongPressing = false
+          }
+        default:
+          break
+        }
+      }
+
       private func isTapZoneSuppressed(in scrollView: NSScrollView) -> Bool {
         parent.viewModel.isZoomed
+          || isLongPressing
+          || Date().timeIntervalSince(lastLongPressEndTime)
+            < ReaderGestureConstants.longPressTapSuppressionInterval
           || isAdjustingBounds
           || engine.isInteractionActive
       }
