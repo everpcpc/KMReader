@@ -14945,6 +14945,28 @@
         }
       }
     },
+    "dashboard.downloadAll" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Download All"
+          }
+        }
+      }
+    },
+    "dashboard.downloadLatest" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Download Latest"
+          }
+        }
+      }
+    },
     "dashboard.hiddenSections" : {
       "localizations" : {
         "de" : {
@@ -15261,28 +15283,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "置頂閱讀列表"
-          }
-        }
-      }
-    },
-    "dashboard.queueOfflineAll" : {
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Queue Offline All"
-          }
-        }
-      }
-    },
-    "dashboard.queueOfflineLatest" : {
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Queue Offline Latest"
           }
         }
       }

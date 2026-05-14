@@ -419,7 +419,7 @@ struct DashboardView: View {
                 }
               } label: {
                 Label(
-                  String(localized: "dashboard.queueOfflineLatest", defaultValue: "Queue Offline Latest"),
+                  String(localized: "dashboard.downloadLatest", defaultValue: "Download Latest"),
                   systemImage: "arrow.down.circle"
                 )
               }

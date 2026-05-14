@@ -11,10 +11,14 @@ from pathlib import Path
 from localize_sort import sort_entries, sort_keys
 
 REQUIRED_PLATFORMS = ("ios", "macos", "tvos")
-BUILD_DESTINATIONS = {
+DEFAULT_BUILD_DESTINATIONS = {
     "ios": "generic/platform=iOS Simulator",
     "macos": "platform=macOS",
     "tvos": "generic/platform=tvOS Simulator",
+}
+SIMULATOR_DEVICE_KEYS = {
+    "ios": "ios_simulator",
+    "tvos": "tvos_simulator",
 }
 LOCALIZATION_KEY_ORDER = (
     "de",
@@ -48,8 +52,34 @@ def parse_build_settings(output: str) -> dict[str, str]:
     return settings
 
 
+def saved_simulator_udid(project_root: Path, platform: str) -> str | None:
+    device_key = SIMULATOR_DEVICE_KEYS.get(platform)
+    if device_key is None:
+        return None
+
+    devices_path = project_root / "devices.json"
+    if not devices_path.exists():
+        return None
+
+    try:
+        with devices_path.open("r", encoding="utf-8") as f:
+            saved_devices = json.load(f)
+    except (json.JSONDecodeError, OSError) as exc:
+        eprint(f"Warning: could not load devices.json: {exc}")
+        return None
+
+    udid = saved_devices.get(device_key)
+    return udid if isinstance(udid, str) and udid else None
+
+
+def build_destination_for_platform(project_root: Path, platform: str) -> str:
+    if udid := saved_simulator_udid(project_root, platform):
+        return f"id={udid}"
+    return DEFAULT_BUILD_DESTINATIONS[platform]
+
+
 def build_settings_for_platform(project_root: Path, platform: str) -> dict[str, str] | None:
-    destination = BUILD_DESTINATIONS[platform]
+    destination = build_destination_for_platform(project_root, platform)
     args = [
         "xcodebuild",
         "-project",

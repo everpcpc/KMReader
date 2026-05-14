@@ -48,7 +48,7 @@ struct DashboardSectionDetailView: View {
               queueAllBooksOffline()
             } label: {
               Label(
-                String(localized: "dashboard.queueOfflineAll", defaultValue: "Queue Offline All"),
+                String(localized: "dashboard.downloadAll", defaultValue: "Download All"),
                 systemImage: "arrow.down.circle"
               )
             }
@@ -80,7 +80,7 @@ struct DashboardSectionDetailView: View {
                 queueAllBooksOffline()
               } label: {
                 Label(
-                  String(localized: "dashboard.queueOfflineAll", defaultValue: "Queue Offline All"),
+                  String(localized: "dashboard.downloadAll", defaultValue: "Download All"),
                   systemImage: "arrow.down.circle"
                 )
               }
