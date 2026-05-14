@@ -142,7 +142,7 @@ enum AppConfig {
       if UserDefaults.standard.object(forKey: "showDivinaProgressBarWhileReading") != nil {
         return UserDefaults.standard.bool(forKey: "showDivinaProgressBarWhileReading")
       }
-      return false
+      return true
     }
     set { UserDefaults.standard.set(newValue, forKey: "showDivinaProgressBarWhileReading") }
   }
@@ -196,7 +196,7 @@ enum AppConfig {
       if UserDefaults.standard.object(forKey: "showPdfProgressBarWhileReading") != nil {
         return UserDefaults.standard.bool(forKey: "showPdfProgressBarWhileReading")
       }
-      return false
+      return true
     }
     set { UserDefaults.standard.set(newValue, forKey: "showPdfProgressBarWhileReading") }
   }
