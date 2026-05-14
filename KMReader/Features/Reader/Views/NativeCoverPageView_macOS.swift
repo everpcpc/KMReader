@@ -920,6 +920,12 @@
         if gestureRecognizer === panRecognizer {
           return !parent.viewModel.isZoomed && !isAnimatingTransition
         }
+        if gestureRecognizer === longPressRecognizer,
+          let containerView,
+          isInteractiveElement(at: gestureRecognizer.location(in: containerView), in: containerView)
+        {
+          return false
+        }
         return !isTapZoneSuppressed
       }
 

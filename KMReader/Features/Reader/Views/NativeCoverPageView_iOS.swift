@@ -925,7 +925,7 @@
         _ gestureRecognizer: UIGestureRecognizer,
         shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
       ) -> Bool {
-        false
+        gestureRecognizer === longPressRecognizer || otherGestureRecognizer === longPressRecognizer
       }
 
       func gestureRecognizer(
