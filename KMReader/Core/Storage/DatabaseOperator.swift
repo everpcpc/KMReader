@@ -2213,16 +2213,20 @@ actor DatabaseOperator {
   func queueBooksOffline(bookIds: [String], instanceId: String) -> Int {
     guard !bookIds.isEmpty else { return 0 }
 
-    let bookIdSet = Set(bookIds)
-    let descriptor = FetchDescriptor<KomgaBook>(
-      predicate: #Predicate { $0.instanceId == instanceId }
+    let compositeIds = Set(
+      bookIds.map { CompositeID.generate(instanceId: instanceId, id: $0) }
     )
-    let books = ((try? modelContext.fetch(descriptor)) ?? [])
-      .filter { bookIdSet.contains($0.bookId) }
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { compositeIds.contains($0.id) }
+    )
+    let books = (try? modelContext.fetch(descriptor)) ?? []
+    let orderByBookId = Dictionary(
+      uniqueKeysWithValues: bookIds.enumerated().map { ($0.element, $0.offset) }
+    )
 
     let orderedBooks = books.sorted { lhs, rhs in
-      let lhsIndex = bookIds.firstIndex(of: lhs.bookId) ?? Int.max
-      let rhsIndex = bookIds.firstIndex(of: rhs.bookId) ?? Int.max
+      let lhsIndex = orderByBookId[lhs.bookId] ?? Int.max
+      let rhsIndex = orderByBookId[rhs.bookId] ?? Int.max
       return lhsIndex < rhsIndex
     }
 
