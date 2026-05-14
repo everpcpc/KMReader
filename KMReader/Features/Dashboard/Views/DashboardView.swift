@@ -426,7 +426,8 @@ struct DashboardView: View {
   private func tryReconnect() async {
     isCheckingConnection = true
     let serverReachable = await authViewModel.loadCurrentUser()
-    if serverReachable {
+    let reconnected = serverReachable && AppConfig.isLoggedIn
+    if reconnected {
       AppConfig.exitOfflineMode()
     }
     // If unreachable: stay in current offline mode. We deliberately do not call
@@ -435,7 +436,7 @@ struct DashboardView: View {
     // should preserve that classification rather than reclassifying as auto.
     isCheckingConnection = false
 
-    if serverReachable {
+    if reconnected {
       await sseService.connect()
       ErrorManager.shared.notify(message: String(localized: "settings.connection_restored"))
       refreshDashboard(reason: "Reconnected")

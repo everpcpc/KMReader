@@ -8,7 +8,7 @@ import Foundation
 /// Drives the recovery probe loop that runs while the app is in auto-entered
 /// offline mode. Periodically invokes a consumer-provided `probe` closure with
 /// exponential backoff between attempts; exits when the probe reports a
-/// successful recovery.
+/// successful recovery or a no-longer-eligible state.
 ///
 /// Why a probe loop instead of relying on `NWPathMonitor` alone: in KMReader
 /// "offline mode" means "the configured Komga server is unreachable," not
@@ -16,7 +16,7 @@ import Foundation
 /// satisfied during a server-side hiccup (NAS rebooting, reverse proxy down,
 /// VPN flap, DNS dropout), so a pure `NWPathMonitor` trigger would never fire
 /// and the app would stay stuck in auto-offline indefinitely. `NWPathMonitor`
-/// is still useful as a wake-up signal (call `startOrWake` to skip the current
+/// is still useful as a wake-up signal (call `wakeNow` to skip the current
 /// backoff and probe immediately) but the loop is the workhorse.
 ///
 /// Backoff: 5s → 10s → 20s → 40s → 80s → 160s → 300s (capped at 5 minutes).
@@ -26,41 +26,44 @@ import Foundation
 /// between not hammering the server and recovering promptly once it's back.
 @MainActor
 final class OfflineRecoveryService {
+  enum ProbeResult {
+    case recovered
+    case retry
+    case stop
+  }
+
   static let shared = OfflineRecoveryService()
 
-  /// Closure that performs one server probe attempt. Returns `true` if the
-  /// probe transitioned the app from offline → online as a result (i.e., the
-  /// loop should stop). Returning `false` means the probe was either skipped
-  /// (no longer eligible) or the server is still unreachable; the loop will
-  /// sleep with backoff and retry.
+  /// Closure that performs one server probe attempt.
   ///
   /// The consumer is responsible for performing all post-recovery work (e.g.,
   /// calling `AppConfig.exitOfflineMode`, reconnecting SSE, notifying the
-  /// user) within the probe before returning `true`.
-  var probe: (() async -> Bool)?
+  /// user) within the probe before returning `.recovered`.
+  var probe: (() async -> ProbeResult)?
 
   private var task: Task<Void, Never>?
+  private var taskID: UUID?
+  private var nextBackoffSeconds: UInt64 = 5
   private let logger = AppLogger(.api)
 
   private init() {}
 
-  /// Begin or wake the recovery probe loop. Idempotent in that it can be
-  /// called any number of times: each call cancels any in-flight task and
-  /// starts a fresh one with backoff reset to the minimum. Used as both the
-  /// initial start (when transitioning into auto-offline mode) and as a
-  /// wake-up signal (from `NWPathMonitor` or `scenePhase == .active`) to skip
-  /// the current backoff sleep.
-  ///
-  /// A brief window of concurrent probes may exist between the cancellation
-  /// of the previous task and the next iteration of its loop noticing the
-  /// cancellation. The probe closure is expected to guard against this
-  /// (e.g., re-checking `AppConfig.isOffline` before flipping state and
-  /// firing user-visible notifications).
-  func startOrWake() {
-    task?.cancel()
-    task = Task { [weak self] in
-      await self?.runLoop()
+  /// Begin the recovery probe loop if it is not already running. A new loop
+  /// starts with the minimum backoff.
+  func startIfNeeded() {
+    guard task == nil else { return }
+    startTask(resetBackoff: true)
+  }
+
+  /// Wake the loop by cancelling the current sleep and probing immediately,
+  /// while preserving the current backoff interval. If no loop is running,
+  /// starts one from the minimum backoff.
+  func wakeNow() {
+    guard task != nil else {
+      startIfNeeded()
+      return
     }
+    startTask(resetBackoff: false)
   }
 
   /// Cancel the recovery loop. Used when the app exits auto-offline mode by
@@ -69,26 +72,51 @@ final class OfflineRecoveryService {
   func stop() {
     task?.cancel()
     task = nil
+    taskID = nil
+    nextBackoffSeconds = 5
   }
 
-  private func runLoop() async {
-    var backoffSeconds: UInt64 = 5
+  private func startTask(resetBackoff: Bool) {
+    task?.cancel()
+    if resetBackoff {
+      nextBackoffSeconds = 5
+    }
+    let id = UUID()
+    taskID = id
+    task = Task { [weak self] in
+      await self?.runLoop(taskID: id)
+    }
+  }
+
+  private func runLoop(taskID id: UUID) async {
     logger.debug("🔁 [OfflineRecovery] Loop started")
-    defer { logger.debug("🔁 [OfflineRecovery] Loop ended") }
+    defer {
+      logger.debug("🔁 [OfflineRecovery] Loop ended")
+      if taskID == id {
+        task = nil
+        taskID = nil
+      }
+    }
 
     while !Task.isCancelled {
-      let recovered = await (probe?() ?? false)
-      if recovered {
+      switch await (probe?() ?? .stop) {
+      case .recovered:
         logger.info("✅ [OfflineRecovery] Probe succeeded; exiting loop")
         return
+      case .stop:
+        logger.debug("🔁 [OfflineRecovery] Probe no longer eligible; exiting loop")
+        return
+      case .retry:
+        break
       }
 
+      let sleepSeconds = nextBackoffSeconds
       logger.debug(
-        "⏳ [OfflineRecovery] Probe failed; sleeping \(backoffSeconds)s before retry"
+        "⏳ [OfflineRecovery] Probe failed; sleeping \(sleepSeconds)s before retry"
       )
-      try? await Task.sleep(nanoseconds: backoffSeconds * 1_000_000_000)
+      try? await Task.sleep(nanoseconds: sleepSeconds * 1_000_000_000)
       if Task.isCancelled { return }
-      backoffSeconds = min(backoffSeconds * 2, 300)
+      nextBackoffSeconds = min(sleepSeconds * 2, 300)
     }
   }
 }
