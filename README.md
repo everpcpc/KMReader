@@ -22,23 +22,23 @@
 
 ### Readers
 
-- DIVINA reader on iOS, macOS, and tvOS with LTR, RTL, vertical, Webtoon, spreads, zoom, page curl on iOS, cover transitions, tap zone layout presets, keyboard support, and per-book preferences.
+- DIVINA reader on iOS, macOS, and tvOS with LTR, RTL, vertical, Webtoon, spreads, zoom, page curl on iOS, cover transitions, tap zone layout presets, keyboard support, per-page rotation, and per-book preferences.
 - EPUB reader on iOS/macOS with paged, scrolled, or cover layouts, custom fonts, themes, typography controls, status/footer overlays, multi-column reading, and nested table of contents.
-- PDF reader on iOS/macOS with native PDF or DIVINA mode, search, table of contents, page jump, spread layouts, configurable render quality, and optional continuous scrolling.
-- Animated GIF and WebP pages play inline. Incognito mode, page image actions, reader progress overlays, and iOS Live Text are supported where available.
+- PDF reader on iOS/macOS with native PDF or DIVINA mode, search, table of contents, page jump, automatic or explicit page presentation modes, spread layouts, configurable render quality, and continuous reading options.
+- Animated GIF and WebP pages play inline. Incognito mode, page image actions, persistent reader progress overlays, and iOS Live Text are supported where available.
 
 ### Browse and Discovery
 
-- Dashboard sections for Keep Reading, On Deck, Recently Added, Recently Updated, and pinned collections/read lists.
+- Dashboard sections for Keep Reading, On Deck, Recently Added, Recently Updated, and pinned collections/read lists, with quick offline actions for current or full book sections where supported.
 - Browse Series, Books, Collections, and Read Lists with metadata filters, all/any matching, saved filters, reading history, and optional unread-cover blur.
 - Spotlight indexing for downloaded content, plus iOS widgets and Home Screen quick actions for Keep Reading, Search, and Downloads.
 
 ### Offline and Sync
 
-- Download books for offline reading across DIVINA, EPUB, and PDF workflows.
+- Download books for offline reading across DIVINA, EPUB, and PDF workflows, with optional offline-first reading that prepares local content before opening the reader.
 - Per-series policies support manual, unread-only, unread + cleanup, and all-books downloads.
 - Large downloads stream to disk, and CBZ, CBR, PDF, and supported EPUB offline flows use local extraction or storage.
-- Progress and offline changes sync when reconnecting. Cache controls cover pages and thumbnails.
+- Progress and offline changes sync when reconnecting, with stale progress protection and automatic recovery from server outages when offline mode was entered automatically. Cache controls cover pages and thumbnails.
 - iOS background downloads and Live Activities show reader progress, incognito status, download progress, and processing state.
 
 ### Multi-Server and Management
