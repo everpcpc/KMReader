@@ -1,12 +1,17 @@
-Reader Controls
-- Tap zone layout presets make it easier to choose how page turns and controls respond while reading.
-- Reader tap zones now stay separate from buttons and controls, reducing accidental actions.
-- Live Activity options have been moved to a more appropriate Settings location.
+New
+- Added offline-first reading so downloaded books can be prepared locally before the reader opens.
+- Added dashboard download actions for recent, on-deck, and keep-reading sections, with clearer Download Latest and Download All choices where available.
+- Added per-page rotation for DIVINA pages.
+- Added reader progress options for DIVINA and PDF so lightweight progress can stay visible while controls are hidden.
 
-Reader Reliability
-- Webtoon navigation is more consistent across scrolling and page-turn actions.
-- Webtoon books now preserve progress more reliably when reaching the final page.
+Improvements
+- PDF reading now uses supported page presentation modes, including an Auto mode that adapts between portrait and landscape.
+- Automatic offline mode can now recover when your configured Komga server becomes reachable again, while manual offline mode stays under your control.
+- Reader opening is faster because adjacent-book loading no longer blocks the first page.
+- Webtoon spacing, history rows, reader menus, and reading stats controls have been tightened for cleaner scanning.
 
-Offline and Library Reliability
-- Downloaded archives with mixed path styles open more reliably.
-- Library details refresh more consistently after changes made on the server.
+Fixes
+- Progress is flushed when the app backgrounds, reducing the chance of losing the last pages you read.
+- Stale offline progress is skipped when the server already has newer progress, preventing older queued updates from moving books backward.
+- EPUB downloads with read-only archive folders extract more reliably.
+- Dashboard offline queue actions are faster and avoid unsupported bulk downloads.

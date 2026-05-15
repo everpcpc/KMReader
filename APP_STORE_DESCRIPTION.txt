@@ -6,12 +6,13 @@ IMPORTANT FEATURES
 
 - Native readers
 Read comics and books with DIVINA on iOS, macOS, and tvOS, plus EPUB and PDF on iOS and macOS. Readers support LTR, RTL, vertical, Webtoon, spreads, zoom, page curl or cover transitions, custom EPUB fonts and typography, nested EPUB tables of contents, PDF search, keyboard shortcuts, per-book preferences, animated pages, and incognito reading.
+Rotate individual pages, keep lightweight progress visible while reading, and choose native PDF presentation modes that adapt cleanly between portrait and landscape.
 
 - Browse and discover
 Use Keep Reading, On Deck, Recently Added, Recently Updated, pinned collections/read lists, reading history, saved filters, advanced metadata filters with all/any matching, optional unread-cover blur, Spotlight indexing, widgets, and Home Screen quick actions.
 
 - Offline and sync
-Download books for offline reading, set per-series download policies, browse downloaded items, keep reading with iOS background downloads and Live Activities, and sync progress when you reconnect.
+Download books for offline reading, set per-series download policies, browse downloaded items, queue dashboard sections, keep reading with iOS background downloads and Live Activities, prepare books before opening with offline-first reading, and sync progress when you reconnect.
 
 - Multi-server and admin tools
 Save multiple Komga servers and switch instantly.
