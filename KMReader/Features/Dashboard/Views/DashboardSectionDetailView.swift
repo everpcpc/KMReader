@@ -43,7 +43,7 @@ struct DashboardSectionDetailView: View {
           .pickerStyle(.segmented)
           .padding()
 
-          if section.contentKind == .books {
+          if section.supportsDownloadAll {
             Button {
               queueAllBooksOffline()
             } label: {
@@ -75,7 +75,7 @@ struct DashboardSectionDetailView: View {
       .toolbar {
         ToolbarItem(placement: .automatic) {
           Menu {
-            if section.contentKind == .books {
+            if section.supportsDownloadAll {
               Button {
                 queueAllBooksOffline()
               } label: {
@@ -262,7 +262,7 @@ struct DashboardSectionDetailView: View {
   }
 
   private func queueAllBooksOffline() {
-    guard section.contentKind == .books, !isOffline else { return }
+    guard section.supportsDownloadAll, !isOffline else { return }
     guard !isQueueingAllOffline else { return }
 
     isQueueingAllOffline = true

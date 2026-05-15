@@ -95,6 +95,28 @@ enum DashboardSection: String, CaseIterable, Identifiable, Codable {
     }
   }
 
+  static var latestOfflineQueueSections: [DashboardSection] {
+    allCases.filter(\.supportsDownloadLatest)
+  }
+
+  var supportsDownloadLatest: Bool {
+    switch self {
+    case .keepReading, .onDeck, .recentlyReleasedBooks, .recentlyAddedBooks:
+      return true
+    default:
+      return false
+    }
+  }
+
+  var supportsDownloadAll: Bool {
+    switch self {
+    case .keepReading, .onDeck:
+      return true
+    default:
+      return false
+    }
+  }
+
   func fetchBooks(libraryIds: [String], page: Int, size: Int) async throws -> Page<Book>? {
     switch self {
     case .keepReading:

@@ -46,15 +46,6 @@ struct DashboardView: View {
     !offlineQueueingSections.isEmpty
   }
 
-  private var latestOfflineQueueSections: [DashboardSection] {
-    [
-      .keepReading,
-      .onDeck,
-      .recentlyReleasedBooks,
-      .recentlyAddedBooks,
-    ]
-  }
-
   @ViewBuilder
   private var dashboardHeader: some View {
     HStack {
@@ -406,7 +397,7 @@ struct DashboardView: View {
               Divider()
 
               Menu {
-                ForEach(latestOfflineQueueSections) { section in
+                ForEach(DashboardSection.latestOfflineQueueSections) { section in
                   Button {
                     queueDashboardSectionOffline(section)
                   } label: {
@@ -481,7 +472,7 @@ struct DashboardView: View {
   }
 
   private func queueDashboardSectionOffline(_ section: DashboardSection) {
-    guard !current.instanceId.isEmpty, !isOffline else { return }
+    guard section.supportsDownloadLatest, !current.instanceId.isEmpty, !isOffline else { return }
     guard !offlineQueueingSections.contains(section) else { return }
 
     offlineQueueingSections.insert(section)
