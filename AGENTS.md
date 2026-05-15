@@ -375,13 +375,18 @@ When changing any SwiftData `@Model`, migration updates are mandatory.
 
 - Any persisted model shape change requires a new schema version: add/remove/rename field, type change, default semantics change, relationship/index/uniqueness change.
 - Never mutate already-shipped schema definitions in place. Keep historical versions frozen and add a new `VersionedSchema` (for example `KMReaderSchemaV3` -> `KMReaderSchemaV4`).
-- Historical schemas must define their own model snapshots for entities that may evolve (for example nested `KMReaderSchemaVx.KomgaCollection`) instead of pointing to current runtime model types.
+- Treat every shipped `VersionedSchema` as an immutable database migration artifact: do not change its `models` list, model nesting, field names, field types, defaults, uniqueness/index annotations, relationships, or `versionIdentifier` after release.
+- Historical schemas must define their own nested model snapshots for entities that may evolve (for example `KMReaderSchemaVx.KomgaCollection`) instead of pointing to current runtime model types such as `KomgaCollection.self`.
+- The app's current target schema must use the runtime model types that production code fetches/inserts; nested snapshot models are for historical migration sources only. Do not point `MainApp.makeModelContainer` at a schema whose models are nested snapshots unless the runtime code also uses those exact nested types.
+- The latest schema may reference runtime model types while it is the active app schema. Once it ships and a future persisted model change is needed, freeze the shipped shape into a historical snapshot and introduce a new runtime-backed target schema version.
 - Update `KMReaderMigrationPlan` in lockstep: append the new schema in `schemas`, add an explicit migration stage, and keep stage order strictly linear.
 - Update app container target schema to the latest version in `MainApp.makeModelContainer` (`Schema(versionedSchema: KMReaderSchemaVx.self)`).
-- Prefer lightweight migration only for additive/compatible changes; use custom migration when data transform/backfill is needed.
-- Do not change old `versionIdentifier` values and do not rewrite old migration stages after release.
+- Prefer lightweight migration only for additive/compatible changes that are verified against real stores; use custom migration when data transform/backfill is needed or when SwiftData's lightweight inference is fragile.
+- Do not rewrite old migration stages after release. Add a new compatibility stage/schema instead, or adjust only unreleased code.
 - Validation before merge:
-  - open existing DB from previous release and verify upgrade to latest schema;
+  - open an existing DB from the previous release and verify upgrade to latest schema;
+  - open an existing DB from at least one important older release and verify direct upgrade to latest schema;
+  - verify upgrade from any already-shipped broken/intermediate release that may have written a different store shape;
   - verify fresh install creates latest schema directly;
   - verify ModelContainer init does not fail and critical flows still work (login, dashboard load, reader open).
 
