@@ -6,15 +6,34 @@
 import Foundation
 
 enum LocalDataResetService {
+  enum ResetError: LocalizedError {
+    case persistentStoreStillExists([URL])
+
+    var errorDescription: String? {
+      switch self {
+      case .persistentStoreStillExists(let urls):
+        let files = urls.map(\.lastPathComponent).joined(separator: ", ")
+        return "Failed to remove local database files: \(files)"
+      }
+    }
+  }
+
   static func resetAllLocalData() throws {
     let fileManager = FileManager.default
 
+    removeSwiftDataStoreFiles(fileManager: fileManager)
+
     for directory in resetDirectories(fileManager: fileManager) {
-      try removeDirectoryContents(at: directory, fileManager: fileManager)
+      try? removeDirectoryContents(at: directory, fileManager: fileManager)
     }
 
     resetStandardDefaults()
     resetSharedDefaults()
+
+    let remainingStores = existingSwiftDataStoreFiles(fileManager: fileManager)
+    if !remainingStores.isEmpty {
+      throw ResetError.persistentStoreStillExists(remainingStores)
+    }
   }
 
   private static func resetDirectories(fileManager: FileManager) -> [URL] {
@@ -36,6 +55,7 @@ enum LocalDataResetService {
     }
 
     if let sharedContainer = WidgetDataStore.sharedContainerURL {
+      directories.append(sharedContainer.appendingPathComponent("Library/Application Support", isDirectory: true))
       directories.append(sharedContainer.appendingPathComponent("WidgetThumbnails", isDirectory: true))
     }
 
@@ -60,7 +80,44 @@ enum LocalDataResetService {
     )
 
     for item in contents {
-      try fileManager.removeItem(at: item)
+      try? fileManager.removeItem(at: item)
+    }
+  }
+
+  private static func removeSwiftDataStoreFiles(fileManager: FileManager) {
+    for url in swiftDataStoreFileCandidates(fileManager: fileManager) {
+      try? fileManager.removeItem(at: url)
+    }
+  }
+
+  private static func existingSwiftDataStoreFiles(fileManager: FileManager) -> [URL] {
+    swiftDataStoreFileCandidates(fileManager: fileManager).filter { url in
+      fileManager.fileExists(atPath: url.path)
+    }
+  }
+
+  private static func swiftDataStoreFileCandidates(fileManager: FileManager) -> [URL] {
+    var storeDirectories: [URL] = []
+
+    if let applicationSupport = fileManager.urls(
+      for: .applicationSupportDirectory,
+      in: .userDomainMask
+    ).first {
+      storeDirectories.append(applicationSupport)
+    }
+
+    if let sharedContainer = WidgetDataStore.sharedContainerURL {
+      storeDirectories.append(sharedContainer.appendingPathComponent("Library/Application Support", isDirectory: true))
+    }
+
+    let storeFileNames = [
+      "default.store",
+      "default.store-shm",
+      "default.store-wal",
+    ]
+
+    return storeDirectories.flatMap { directory in
+      storeFileNames.map { directory.appendingPathComponent($0) }
     }
   }
 

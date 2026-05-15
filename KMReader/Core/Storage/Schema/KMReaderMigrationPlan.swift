@@ -539,10 +539,16 @@ enum KMReaderMigrationPlan: SchemaMigrationPlan {
     return try? JSONDecoder().decode(type, from: data)
   }
 
-  // V4 → V5: Add pageRotationsRaw (optional Data?) to KomgaBook.
-  // Lightweight migration handles adding a new optional attribute automatically.
-  static let migrateV4toV5 = MigrationStage.lightweight(
+  // V4 → V5: v4.10 shipped V5 using runtime model types, so keep V5 stable
+  // and use an explicit staged migration for direct v4.9 → v4.11 upgrades.
+  static let migrateV4toV5 = MigrationStage.custom(
     fromVersion: KMReaderSchemaV4.self,
-    toVersion: KMReaderSchemaV5.self
+    toVersion: KMReaderSchemaV5.self,
+    willMigrate: { _ in },
+    didMigrate: { context in
+      if context.hasChanges {
+        try context.save()
+      }
+    }
   )
 }
