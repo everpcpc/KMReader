@@ -152,7 +152,7 @@ enum KMReaderMigrationPlan: SchemaMigrationPlan {
       KMReaderSchemaV2.self,
       KMReaderSchemaV3.self,
       KMReaderSchemaV4.self,
-      KMReaderSchemaV5.self,
+      KMReaderSchemaV6.self,
     ]
   }
 
@@ -161,7 +161,7 @@ enum KMReaderMigrationPlan: SchemaMigrationPlan {
       migrateV1toV2,
       migrateV2toV3,
       migrateV3toV4,
-      migrateV4toV5,
+      migrateV4toV6,
     ]
   }
 
@@ -539,11 +539,12 @@ enum KMReaderMigrationPlan: SchemaMigrationPlan {
     return try? JSONDecoder().decode(type, from: data)
   }
 
-  // V4 → V5: v4.10 shipped V5 using runtime model types, so keep V5 stable
-  // and use an explicit staged migration for direct v4.9 → v4.11 upgrades.
-  static let migrateV4toV5 = MigrationStage.custom(
+  // V4 → V6: bridge the historical snapshot chain to the schema-owned active
+  // model graph. Runtime-backed V4/V5 stores from shipped builds do not match
+  // these snapshot source schemas and are handled by MainApp's inferred fallback.
+  static let migrateV4toV6 = MigrationStage.custom(
     fromVersion: KMReaderSchemaV4.self,
-    toVersion: KMReaderSchemaV5.self,
+    toVersion: KMReaderSchemaV6.self,
     willMigrate: { _ in },
     didMigrate: { context in
       if context.hasChanges {

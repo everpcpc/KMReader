@@ -1,36 +1,13 @@
 //
 // EpubThemePreset.swift
 //
-//
 
 import Foundation
 import SwiftData
 
-typealias EpubThemePreset = EpubThemePresetV1
+typealias EpubThemePreset = KMReaderSchemaV6.EpubThemePresetV1
 
-@Model
-final class EpubThemePresetV1 {
-  @Attribute(.unique) var id: UUID
-
-  var name: String
-  var preferencesJSON: String
-  var createdAt: Date
-  var updatedAt: Date
-
-  init(
-    id: UUID = UUID(),
-    name: String,
-    preferencesJSON: String,
-    createdAt: Date = Date(),
-    updatedAt: Date = Date()
-  ) {
-    self.id = id
-    self.name = name
-    self.preferencesJSON = preferencesJSON
-    self.createdAt = createdAt
-    self.updatedAt = updatedAt
-  }
-
+extension EpubThemePreset {
   @MainActor
   func getPreferences() -> EpubReaderPreferences? {
     return EpubReaderPreferences(rawValue: preferencesJSON)

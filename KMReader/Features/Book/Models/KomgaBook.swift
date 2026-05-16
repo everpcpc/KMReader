@@ -1,69 +1,13 @@
 //
 // KomgaBook.swift
 //
-//
 
 import Foundation
 import SwiftData
 
-@Model
-final class KomgaBook {
-  @Attribute(.unique) var id: String  // Composite: CompositeID.generate
+typealias KomgaBook = KMReaderSchemaV6.KomgaBook
 
-  var bookId: String
-  var seriesId: String
-  var libraryId: String
-  var instanceId: String
-
-  var name: String
-  var url: String
-  var number: Double
-  var created: Date
-  var lastModified: Date
-  var sizeBytes: Int64
-  var size: String
-
-  // API-aligned raw storage
-  var mediaRaw: Data?
-  var metadataRaw: Data?
-  var readProgressRaw: Data?
-
-  // Query fields
-  var mediaPagesCount: Int
-  var mediaProfile: String?
-  var metaTitle: String
-  var metaNumber: String
-  var metaNumberSort: Double
-  var metaReleaseDate: String?
-  var progressPage: Int?
-  var progressCompleted: Bool?
-  var progressReadDate: Date?
-  var metaAuthorsIndex: String = "|"
-  var metaTagsIndex: String = "|"
-
-  var isUnavailable: Bool = false
-  var oneshot: Bool
-  var seriesTitle: String = ""
-
-  // Metadata storage
-  var pagesRaw: Data?
-  var tocRaw: Data?
-  var webPubManifestRaw: Data?
-  var epubProgressionRaw: Data?
-
-  // Track offline download status (managed locally)
-  var downloadStatusRaw: String = "notDownloaded"
-  var downloadError: String?
-  var downloadAt: Date?
-  var downloadedSize: Int64 = 0
-
-  // Cached read list IDs containing this book
-  var readListIdsRaw: Data?
-
-  var isolatePagesRaw: Data?
-  var pageRotationsRaw: Data?
-  var epubPreferencesRaw: String?
-
+extension KomgaBook {
   var readListIds: [String] {
     get { readListIdsRaw.flatMap { try? JSONDecoder().decode([String].self, from: $0) } ?? [] }
     set { readListIdsRaw = try? JSONEncoder().encode(newValue) }
@@ -147,67 +91,6 @@ final class KomgaBook {
 
   var isInProgress: Bool {
     hasStartedReading && !isCompleted
-  }
-
-  init(
-    id: String? = nil,
-    bookId: String,
-    seriesId: String,
-    libraryId: String,
-    instanceId: String,
-    name: String,
-    url: String,
-    number: Double,
-    created: Date,
-    lastModified: Date,
-    sizeBytes: Int64,
-    size: String,
-    media: Media,
-    metadata: BookMetadata,
-    readProgress: ReadProgress?,
-    isUnavailable: Bool,
-    oneshot: Bool,
-    seriesTitle: String = "",
-    downloadedSize: Int64 = 0
-  ) {
-    self.id = id ?? CompositeID.generate(instanceId: instanceId, id: bookId)
-    self.bookId = bookId
-    self.seriesId = seriesId
-    self.libraryId = libraryId
-    self.instanceId = instanceId
-    self.name = name
-    self.url = url
-    self.number = number
-    self.created = created
-    self.lastModified = lastModified
-    self.sizeBytes = sizeBytes
-    self.size = size
-
-    self.mediaRaw = RawCodableStore.encode(media)
-    self.metadataRaw = RawCodableStore.encode(metadata)
-    self.readProgressRaw = RawCodableStore.encodeOptional(readProgress)
-
-    self.mediaPagesCount = media.pagesCount
-    self.mediaProfile = media.mediaProfile
-    self.metaTitle = metadata.title
-    self.metaNumber = metadata.number
-    self.metaNumberSort = metadata.numberSort
-    self.metaReleaseDate = metadata.releaseDate
-    self.progressPage = readProgress?.page
-    self.progressCompleted = readProgress?.completed
-    self.progressReadDate = readProgress?.readDate
-    self.metaAuthorsIndex = MetadataIndex.encode(values: metadata.authors?.map(\.name) ?? [])
-    self.metaTagsIndex = MetadataIndex.encode(values: metadata.tags ?? [])
-
-    self.seriesTitle = seriesTitle
-    self.isUnavailable = isUnavailable
-    self.oneshot = oneshot
-    self.downloadedSize = downloadedSize
-    self.readListIdsRaw = try? JSONEncoder().encode([] as [String])
-    self.isolatePagesRaw = try? JSONEncoder().encode([] as [Int])
-    self.pageRotationsRaw = nil
-    self.epubPreferencesRaw = nil
-    self.epubProgressionRaw = nil
   }
 
   func updateMedia(_ media: Media, raw: Data?) {
