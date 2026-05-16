@@ -86,65 +86,12 @@ struct MainApp: App {
         configurations: [configuration]
       )
     } catch {
-      guard Self.isUnknownModelVersionError(error) else {
-        throw error
-      }
-
+      let stagedErrorMessage = String(describing: error)
       AppLogger(.database).warning(
-        "Staged SwiftData migration could not identify the source model version; retrying with inferred lightweight migration for legacy runtime-backed V4/V5 stores"
+        "Staged SwiftData migration failed; retrying with inferred lightweight migration for legacy runtime-backed V4/V5 stores: \(stagedErrorMessage)"
       )
       return try ModelContainer(for: schema, configurations: [configuration])
     }
-  }
-
-  private static func isUnknownModelVersionError(_ error: Error) -> Bool {
-    let nsError = error as NSError
-    return containsUnknownModelVersion(in: nsError, visited: [])
-  }
-
-  private static func containsUnknownModelVersion(
-    in error: NSError,
-    visited: Set<String>
-  ) -> Bool {
-    let key = "\(error.domain):\(error.code):\(Unmanaged.passUnretained(error).toOpaque())"
-    guard !visited.contains(key) else { return false }
-    var visited = visited
-    visited.insert(key)
-
-    let messages = [
-      error.localizedDescription,
-      error.localizedFailureReason,
-      error.localizedRecoverySuggestion,
-      String(describing: error),
-    ]
-    if messages.contains(where: { message in
-      message?.localizedCaseInsensitiveContains("unknown model version") == true
-        || message?.localizedCaseInsensitiveContains("Cannot use staged migration") == true
-    }) {
-      return true
-    }
-
-    if error.domain == NSCocoaErrorDomain, error.code == 134_504 {
-      return true
-    }
-
-    for value in error.userInfo.values {
-      if let nested = value as? NSError,
-        containsUnknownModelVersion(in: nested, visited: visited)
-      {
-        return true
-      }
-      if let nestedErrors = value as? [NSError],
-        nestedErrors.contains(where: { containsUnknownModelVersion(in: $0, visited: visited) })
-      {
-        return true
-      }
-      if String(describing: value).localizedCaseInsensitiveContains("unknown model version") {
-        return true
-      }
-    }
-
-    return false
   }
 
   @MainActor
