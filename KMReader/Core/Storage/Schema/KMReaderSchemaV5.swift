@@ -1,7 +1,6 @@
 //
 // KMReaderSchemaV5.swift
 //
-//
 
 import Foundation
 import SwiftData

@@ -1,40 +1,17 @@
 //
 // KomgaReadList.swift
 //
-//
 
 import Foundation
 import SwiftData
 
-@Model
-final class KomgaReadList {
-  @Attribute(.unique) var id: String  // Composite: CompositeID.generate
+typealias KomgaReadList = KMReaderSchemaV6.KomgaReadList
 
-  var readListId: String
-  var instanceId: String
-
-  var name: String
-  var summary: String
-  var ordered: Bool
-  var createdDate: Date
-  var lastModifiedDate: Date
-  var filtered: Bool
-  var isPinned: Bool = false
-
-  var bookIdsRaw: Data?
-
+extension KomgaReadList {
   var bookIds: [String] {
     get { bookIdsRaw.flatMap { try? JSONDecoder().decode([String].self, from: $0) } ?? [] }
     set { bookIdsRaw = try? JSONEncoder().encode(newValue) }
   }
-
-  // Track offline download status (managed locally, manual only)
-  var downloadStatusRaw: String = "notDownloaded"
-  var downloadError: String?
-  var downloadAt: Date?
-  var downloadedSize: Int64 = 0
-  var downloadedBooks: Int = 0
-  var pendingBooks: Int = 0
 
   /// Computed property for download status.
   var downloadStatus: SeriesDownloadStatus {
@@ -55,38 +32,6 @@ final class KomgaReadList {
     }
 
     return .notDownloaded
-  }
-
-  init(
-    id: String? = nil,
-    readListId: String,
-    instanceId: String,
-    name: String,
-    summary: String,
-    ordered: Bool,
-    createdDate: Date,
-    lastModifiedDate: Date,
-    filtered: Bool,
-    isPinned: Bool = false,
-    bookIds: [String] = [],
-    downloadedBooks: Int = 0,
-    pendingBooks: Int = 0,
-    downloadedSize: Int64 = 0
-  ) {
-    self.id = id ?? CompositeID.generate(instanceId: instanceId, id: readListId)
-    self.readListId = readListId
-    self.instanceId = instanceId
-    self.name = name
-    self.summary = summary
-    self.ordered = ordered
-    self.createdDate = createdDate
-    self.lastModifiedDate = lastModifiedDate
-    self.filtered = filtered
-    self.isPinned = isPinned
-    self.bookIdsRaw = try? JSONEncoder().encode(bookIds)
-    self.downloadedBooks = downloadedBooks
-    self.pendingBooks = pendingBooks
-    self.downloadedSize = downloadedSize
   }
 
   func toReadList() -> ReadList {
