@@ -42,7 +42,7 @@ enum TabItem: Hashable, Identifiable {
     case .home:
       return "house"
     case .browse:
-      return ContentIcon.browse
+      return "magnifyingglass"
     case .offline:
       return "tray.and.arrow.down"
     case .server:
