@@ -21,12 +21,6 @@ import SwiftUI
           }
         }
 
-        Tab(TabItem.browse.title, systemImage: TabItem.browse.icon, value: TabItem.browse) {
-          NavigationStack {
-            rootContent(for: .browse)
-          }
-        }
-
         Tab(TabItem.offline.title, systemImage: TabItem.offline.icon, value: TabItem.offline) {
           NavigationStack {
             rootContent(for: .offline)
@@ -39,12 +33,18 @@ import SwiftUI
           }
         }
 
+        Tab(TabItem.settings.title, systemImage: TabItem.settings.icon, value: TabItem.settings) {
+          NavigationStack {
+            rootContent(for: .settings)
+          }
+        }
+
         Tab(
-          TabItem.settings.title, systemImage: TabItem.settings.icon, value: TabItem.settings,
+          TabItem.browse.title, systemImage: TabItem.browse.icon, value: TabItem.browse,
           role: .search
         ) {
           NavigationStack {
-            rootContent(for: .settings)
+            rootContent(for: .browse)
           }
         }
       }

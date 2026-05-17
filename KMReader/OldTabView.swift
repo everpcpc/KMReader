@@ -20,12 +20,6 @@ struct OldTabView: View {
       .tag(TabItem.home)
 
       NavigationStack {
-        rootContent(for: .browse)
-      }
-      .tabItem { TabItem.browse.label }
-      .tag(TabItem.browse)
-
-      NavigationStack {
         rootContent(for: .offline)
       }
       .tabItem { TabItem.offline.label }
@@ -42,6 +36,12 @@ struct OldTabView: View {
       }
       .tabItem { TabItem.settings.label }
       .tag(TabItem.settings)
+
+      NavigationStack {
+        rootContent(for: .browse)
+      }
+      .tabItem { TabItem.browse.label }
+      .tag(TabItem.browse)
     }
     .onAppear {
       if let link = deepLinkRouter.pendingDeepLink {
