@@ -1419,7 +1419,7 @@ struct DivinaReaderView: View {
       return false
     }
     viewModel.requestNavigation(toViewItem: adjacentItem)
-    syncPresentedBookIfCrossedSegmentBoundary(to: adjacentItem)
+    syncPresentedBookIfCrossedSegmentBoundary(toSegmentBookId: adjacentItem.pageID.bookId)
     return true
   }
 
@@ -1440,8 +1440,15 @@ struct DivinaReaderView: View {
   ///     explicit Next/Previous Book entry points or a fresh cover init).
   ///   - `currentBook` / `session.book` follow the segment under the current
   ///     reader page.
-  private func syncPresentedBookIfCrossedSegmentBoundary(to adjacentItem: ReaderViewItem) {
-    let newSegmentBookId = adjacentItem.pageID.bookId
+  ///
+  /// Must be invoked from every view-level call site that hands a navigation
+  /// request to the viewmodel (`requestNavigation(toViewItem:)` /
+  /// `requestNavigation(toPageID:)`), because once the next/previous segment
+  /// has been proactively preloaded by `preloadNextSegmentForCurrentPositionIfNeeded`,
+  /// the common-case page turn near a boundary goes through the direct
+  /// adjacent-item branch in `goToPagedReaderPosition` rather than
+  /// `navigateAcrossBoundaryIfNeeded`.
+  private func syncPresentedBookIfCrossedSegmentBoundary(toSegmentBookId newSegmentBookId: String) {
     guard newSegmentBookId != currentBook?.id,
       let newBook = viewModel.currentBook(forSegmentBookId: newSegmentBookId)
     else {
@@ -1457,6 +1464,7 @@ struct DivinaReaderView: View {
   private func jumpToPageID(_ pageID: ReaderPageID) {
     guard pageID != viewModel.currentReaderPage?.id else { return }
     viewModel.requestNavigation(toPageID: pageID)
+    syncPresentedBookIfCrossedSegmentBoundary(toSegmentBookId: pageID.bookId)
   }
 
   private func displayPageNumber(for pageID: ReaderPageID) -> Int {
@@ -1660,6 +1668,7 @@ struct DivinaReaderView: View {
 
     if let item = viewModel.adjacentViewItem(offset: offset) {
       viewModel.requestNavigation(toViewItem: item)
+      syncPresentedBookIfCrossedSegmentBoundary(toSegmentBookId: item.pageID.bookId)
     } else {
       Task { @MainActor in
         _ = await navigateAcrossBoundaryIfNeeded(offset: offset)
