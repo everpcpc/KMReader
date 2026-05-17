@@ -1419,12 +1419,52 @@ struct DivinaReaderView: View {
       return false
     }
     viewModel.requestNavigation(toViewItem: adjacentItem)
+    syncPresentedBookIfCrossedSegmentBoundary(toSegmentBookId: adjacentItem.pageID.bookId)
     return true
+  }
+
+  /// Sync presented-book identity with the segment the user just navigated
+  /// into. Without this, `session.book` stays pinned to the originally-opened
+  /// book; a later rebuild of the reader cover (memory pressure, parent
+  /// dependency churn) re-initializes `currentBookId` from `session.book.id`,
+  /// reruns `loadBook` for the stale book, lands the user at its stale
+  /// `readProgress.page`, and regresses its server-side completed state via
+  /// the ensuing ambient `updateProgress` write. PR #785's body explicitly
+  /// calls out this multi-segment reader scenario as a gap not covered by
+  /// the pending-progress conflict-resolution work.
+  ///
+  /// `currentBookId` is intentionally left untouched so the seamless
+  /// cross-volume UX is preserved — changing it retriggers `.task(id:)` and
+  /// shows a loading overlay mid-flip. Post-cross-boundary invariant:
+  ///   - `currentBookId` is the reader's load anchor (only changed by the
+  ///     explicit Next/Previous Book entry points or a fresh cover init).
+  ///   - `currentBook` / `session.book` follow the segment under the current
+  ///     reader page.
+  ///
+  /// Must be invoked from every view-level call site that hands a navigation
+  /// request to the viewmodel (`requestNavigation(toViewItem:)` /
+  /// `requestNavigation(toPageID:)`), because once the next/previous segment
+  /// has been proactively preloaded by `preloadNextSegmentForCurrentPositionIfNeeded`,
+  /// the common-case page turn near a boundary goes through the direct
+  /// adjacent-item branch in `goToPagedReaderPosition` rather than
+  /// `navigateAcrossBoundaryIfNeeded`.
+  private func syncPresentedBookIfCrossedSegmentBoundary(toSegmentBookId newSegmentBookId: String) {
+    guard newSegmentBookId != currentBook?.id,
+      let newBook = viewModel.currentBook(forSegmentBookId: newSegmentBookId)
+    else {
+      return
+    }
+    // Flush the outgoing book's progress so any pending terminal state
+    // (e.g. freshly-completed) is durable before further writes for the
+    // new book.
+    viewModel.flushProgress()
+    currentBook = newBook
   }
 
   private func jumpToPageID(_ pageID: ReaderPageID) {
     guard pageID != viewModel.currentReaderPage?.id else { return }
     viewModel.requestNavigation(toPageID: pageID)
+    syncPresentedBookIfCrossedSegmentBoundary(toSegmentBookId: pageID.bookId)
   }
 
   private func displayPageNumber(for pageID: ReaderPageID) -> Int {
@@ -1628,6 +1668,7 @@ struct DivinaReaderView: View {
 
     if let item = viewModel.adjacentViewItem(offset: offset) {
       viewModel.requestNavigation(toViewItem: item)
+      syncPresentedBookIfCrossedSegmentBoundary(toSegmentBookId: item.pageID.bookId)
     } else {
       Task { @MainActor in
         _ = await navigateAcrossBoundaryIfNeeded(offset: offset)
