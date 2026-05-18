@@ -127,6 +127,18 @@ enum AppConfig {
     set { UserDefaults.standard.set(newValue, forKey: "enableDivinaImageContextMenu") }
   }
 
+  static nonisolated var divinaPreloadProfile: ReaderPreloadProfile {
+    get {
+      if let stored = UserDefaults.standard.string(forKey: "divinaPreloadProfile"),
+        let profile = ReaderPreloadProfile(rawValue: stored)
+      {
+        return profile
+      }
+      return .balanced
+    }
+    set { UserDefaults.standard.set(newValue.rawValue, forKey: "divinaPreloadProfile") }
+  }
+
   static nonisolated var showDivinaControlsGradientBackground: Bool {
     get {
       if UserDefaults.standard.object(forKey: "showDivinaControlsGradientBackground") != nil {

@@ -127,6 +127,7 @@ class ReaderViewModel {
       pageLayout: AppConfig.pageLayout,
       splitWidePageMode: AppConfig.splitWidePageMode,
       pageTransitionStyle: AppConfig.pageTransitionStyle,
+      preloadWindow: AppConfig.divinaPreloadProfile.window,
       incognitoMode: false
     )
   }
@@ -136,9 +137,10 @@ class ReaderViewModel {
     pageLayout: PageLayout,
     splitWidePageMode: SplitWidePageMode = .none,
     pageTransitionStyle: PageTransitionStyle = AppConfig.pageTransitionStyle,
+    preloadWindow: ReaderPreloadWindow = ReaderPreloadWindow.balanced,
     incognitoMode: Bool = false
   ) {
-    self.pageLoadScheduler = ReaderPageLoadScheduler()
+    self.pageLoadScheduler = ReaderPageLoadScheduler(preloadWindow: preloadWindow)
     self.isolateCoverPageEnabled = isolateCoverPage
     self.forceDualPagePairs = pageLayout == .dual
     self.splitWidePageMode = splitWidePageMode
@@ -232,6 +234,10 @@ class ReaderViewModel {
       preferredItem: item,
       preferredPageID: item?.pageID
     )
+  }
+
+  func updatePreloadWindow(_ preloadWindow: ReaderPreloadWindow) {
+    pageLoadScheduler.updatePreloadWindow(preloadWindow)
   }
 
   func preloadedImage(for pageID: ReaderPageID) -> PlatformImage? {

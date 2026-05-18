@@ -7328,6 +7328,70 @@
         }
       }
     },
+    "Balanced" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ausgewogen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Balanced"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Equilibrado"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Équilibré"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bilanciato"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "バランス"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "균형"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сбалансировано"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "均衡"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "均衡"
+          }
+        }
+      }
+    },
     "Balanced (3072 px)" : {
       "localizations" : {
         "de" : {
@@ -16028,6 +16092,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "天"
+          }
+        }
+      }
+    },
+    "Decode fewer nearby pages to reduce memory usage. Page turns may wait for loading more often." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dekodiert weniger Seiten in der Nähe, um Speicher zu sparen. Beim Umblättern kann häufiger auf das Laden gewartet werden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Decode fewer nearby pages to reduce memory usage. Page turns may wait for loading more often."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Decodifica menos páginas cercanas para reducir el uso de memoria. Al pasar página puede esperarse la carga con más frecuencia."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Décode moins de pages proches afin de réduire l’utilisation de la mémoire. Le changement de page peut attendre le chargement plus souvent."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Decodifica meno pagine vicine per ridurre l’uso della memoria. Il cambio pagina potrebbe attendere il caricamento più spesso."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メモリ使用量を抑えるため、周辺ページのデコード数を減らします。ページ送り時に読み込み待ちが増えることがあります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "메모리 사용량을 줄이기 위해 주변 페이지를 더 적게 디코딩합니다. 페이지를 넘길 때 로딩을 더 자주 기다릴 수 있습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Декодирует меньше соседних страниц, чтобы снизить расход памяти. При перелистывании загрузка может ожидаться чаще."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "减少附近页面的解码数量以降低内存占用。翻页时可能更常需要等待加载。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "減少附近頁面的解碼數量以降低記憶體使用量。翻頁時可能更常需要等待載入。"
           }
         }
       }
@@ -26720,6 +26848,70 @@
         }
       }
     },
+    "Fast Page Turns" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schnelle Seitenwechsel"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fast Page Turns"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paso de página rápido"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pages plus rapides"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volta pagina rapido"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "高速ページ送り"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "빠른 페이지 넘김"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Быстрое перелистывание"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "快速翻页"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "快速翻頁"
+          }
+        }
+      }
+    },
     "Feedback" : {
       "localizations" : {
         "de" : {
@@ -29088,6 +29280,70 @@
         }
       }
     },
+    "Image Preloading" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bildvorladen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image Preloading"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Precarga de imágenes"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Préchargement des images"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Precaricamento immagini"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像の先読み"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이미지 미리 불러오기"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Предзагрузка изображений"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "图片预加载"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "圖片預載入"
+          }
+        }
+      }
+    },
     "Image Upscaling" : {
       "localizations" : {
         "de" : {
@@ -31068,6 +31324,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在顯示閱讀控制項前，將書籍進度固定在底部。"
+          }
+        }
+      }
+    },
+    "Keep more nearby pages decoded for smoother page turns at the cost of higher memory usage." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hält mehr Seiten in der Nähe dekodiert, um flüssiger umzublättern, benötigt aber mehr Speicher."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep more nearby pages decoded for smoother page turns at the cost of higher memory usage."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantiene más páginas cercanas decodificadas para pasar página con mayor fluidez, a costa de más memoria."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Garde davantage de pages proches décodées pour des changements de page plus fluides, au prix d’une mémoire plus élevée."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantiene decodificate più pagine vicine per cambi pagina più fluidi, usando più memoria."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "よりスムーズにページを送るため周辺ページを多めにデコードして保持しますが、メモリ使用量は増えます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "더 부드럽게 페이지를 넘기기 위해 주변 페이지를 더 많이 디코딩해 유지하지만 메모리 사용량이 늘어납니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Держит больше соседних страниц декодированными для более плавного перелистывания ценой большего расхода памяти."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保留更多已解码的附近页面以获得更流畅的翻页，但会增加内存占用。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保留更多已解碼的附近頁面以獲得更流暢的翻頁，但會增加記憶體使用量。"
           }
         }
       }
@@ -37852,6 +38172,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "日誌"
+          }
+        }
+      }
+    },
+    "Low Memory" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wenig Speicher"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Low Memory"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bajo uso de memoria"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mémoire réduite"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Memoria ridotta"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "低メモリ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "낮은 메모리 사용"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Меньше памяти"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "低内存"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "低記憶體"
           }
         }
       }
@@ -50398,6 +50782,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "隊列中等待..."
+          }
+        }
+      }
+    },
+    "Performance" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leistung"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Performance"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rendimiento"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Performances"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prestazioni"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "パフォーマンス"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "성능"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Производительность"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "性能"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "效能"
           }
         }
       }
@@ -76766,6 +77214,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用原生 PDF 閱讀器"
+          }
+        }
+      }
+    },
+    "Use the default preloading window for a balance between memory usage and smooth page turns." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwendet das Standard-Vorladefenster für ein Gleichgewicht zwischen Speicherverbrauch und flüssigem Umblättern."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use the default preloading window for a balance between memory usage and smooth page turns."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa la ventana de precarga predeterminada para equilibrar memoria y fluidez al pasar página."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilise la fenêtre de préchargement par défaut pour équilibrer mémoire et fluidité du changement de page."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa la finestra di precaricamento predefinita per bilanciare memoria e fluidità del cambio pagina."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "標準の先読み範囲を使い、メモリ使用量とスムーズなページ送りのバランスを取ります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "기본 미리 불러오기 범위를 사용해 메모리 사용량과 부드러운 페이지 넘김의 균형을 맞춥니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Использует стандартное окно предзагрузки для баланса между памятью и плавным перелистыванием."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用默认预加载窗口，在内存占用和流畅翻页之间取得平衡。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用預設預載入範圍，在記憶體使用量與流暢翻頁之間取得平衡。"
           }
         }
       }
