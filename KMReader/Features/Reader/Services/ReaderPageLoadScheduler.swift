@@ -47,17 +47,6 @@ final class ReaderPageLoadScheduler {
   private var preloadTask: Task<Void, Never>?
   private var visiblePageIDs: [ReaderPageID] = []
 
-  #if os(iOS) || os(tvOS)
-    // Sendable container holding the memory-warning observation Task.
-    // `OSAllocatedUnfairLock<State>` is Sendable when `State` is Sendable
-    // (`Task<Void, Never>?` is), so the property is reachable from the
-    // nonisolated `deinit` even though the class is `@MainActor`.
-    // Initialization via a stored-property initializer runs before the
-    // init body, sidestepping Swift 6's "self used before init" rule
-    // that blocks `[weak self]` capture inside a property initializer.
-    private let memoryWarningTaskBox = OSAllocatedUnfairLock<Task<Void, Never>?>(initialState: nil)
-  #endif
-
   init(
     preloadBefore: Int = ReaderConstants.preloadBefore,
     preloadAfter: Int = ReaderConstants.preloadAfter,
@@ -70,16 +59,7 @@ final class ReaderPageLoadScheduler {
     self.keepRangeAfter = keepRangeAfter
 
     #if os(iOS) || os(tvOS)
-      installMemoryWarningObservation()
-    #endif
-  }
-
-  deinit {
-    #if os(iOS) || os(tvOS)
-      memoryWarningTaskBox.withLock { task in
-        task?.cancel()
-        task = nil
-      }
+      MemoryWarningCenter.shared.addListener(self)
     #endif
   }
 
@@ -233,43 +213,6 @@ final class ReaderPageLoadScheduler {
       "🧹 [Reader/Memory] Pruned to visible pages: kept=\(keepPageIDs.count), removed=\(imageKeysToRemove.count)"
     )
   }
-
-  #if os(iOS) || os(tvOS)
-    /// Start the memory-warning observation Task. Called from `init` once
-    /// all stored properties are initialized — capturing `[weak self]`
-    /// inside an init-property initializer trips Swift 6's "self used
-    /// before init" rule, so the capture is hoisted into a method.
-    ///
-    /// The Task is stored in `memoryWarningTaskBox` (an
-    /// `OSAllocatedUnfairLock<Task<Void, Never>?>`, which is Sendable)
-    /// so `deinit` can cancel it regardless of which thread the deinit
-    /// runs on. Cancellation terminates the AsyncSequence iteration and
-    /// releases the Task immediately rather than waiting for the next
-    /// memory warning to wake it.
-    private func installMemoryWarningObservation() {
-      // `UIApplication.didReceiveMemoryWarningNotification` is posted by
-      // UIKit when the system needs memory back. Without this observation,
-      // iOS's only recourse is to evict view bodies / hosting controllers
-      // — which forces a full `DivinaReaderView` rebuild and exercises the
-      // exact path PR #818 fixed against. Responding explicitly lets us
-      // release the in-memory bitmap cache (~10 decoded pages, frequently
-      // tens of MB each) gracefully without disturbing the view tree.
-      let task = Task { @MainActor [weak self] in
-        for await _ in NotificationCenter.default.notifications(
-          named: UIApplication.didReceiveMemoryWarningNotification
-        ) {
-          guard !Task.isCancelled, let self else { return }
-          self.handleMemoryWarning()
-        }
-      }
-      memoryWarningTaskBox.withLock { $0 = task }
-    }
-
-    private func handleMemoryWarning() {
-      logger.warning("⚠️ [Reader/Memory] Received memory warning; pruning to visible pages only")
-      pruneToVisiblePagesOnly()
-    }
-  #endif
 
   func isAnimatedPage(for pageID: ReaderPageID) -> Bool {
     animatedPageStates[pageID] == true
@@ -969,3 +912,12 @@ final class ReaderPageLoadScheduler {
     return BookService.shared.getBookPageURL(bookId: bookId, page: page.number)
   }
 }
+
+#if os(iOS) || os(tvOS)
+  extension ReaderPageLoadScheduler: MemoryWarningListener {
+    func handleMemoryWarning() {
+      logger.warning("⚠️ [Reader/Memory] Received memory warning; pruning to visible pages only")
+      pruneToVisiblePagesOnly()
+    }
+  }
+#endif
