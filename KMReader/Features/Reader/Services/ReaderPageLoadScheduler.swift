@@ -46,14 +46,6 @@ final class ReaderPageLoadScheduler {
   private var preloadTask: Task<Void, Never>?
   private var visiblePageIDs: [ReaderPageID] = []
 
-  #if os(iOS) || os(tvOS)
-    // `Task<Void, Never>` is Sendable, so this property is reachable from
-    // the nonisolated `deinit` even though the class is `@MainActor`. The
-    // older `addObserver(forName:object:queue:using:)` pattern returns a
-    // non-Sendable `NSObjectProtocol`, which would not be.
-    private nonisolated let memoryWarningObservation: Task<Void, Never>
-  #endif
-
   init(
     preloadBefore: Int = ReaderConstants.preloadBefore,
     preloadAfter: Int = ReaderConstants.preloadAfter,
@@ -66,30 +58,7 @@ final class ReaderPageLoadScheduler {
     self.keepRangeAfter = keepRangeAfter
 
     #if os(iOS) || os(tvOS)
-      // `UIApplication.didReceiveMemoryWarningNotification` is posted by
-      // UIKit when the system needs memory back. Without this observation,
-      // iOS's only recourse is to evict view bodies / hosting controllers —
-      // which forces a full `DivinaReaderView` rebuild and exercises the
-      // exact path PR #818 fixed against. Responding explicitly lets us
-      // release the in-memory bitmap cache (~10 decoded pages, frequently
-      // tens of MB each) gracefully without disturbing the view tree.
-      //
-      // The Task suspends on the AsyncSequence until a notification fires;
-      // `deinit` cancels the task, which terminates the iteration.
-      self.memoryWarningObservation = Task { @MainActor [weak self] in
-        for await _ in NotificationCenter.default.notifications(
-          named: UIApplication.didReceiveMemoryWarningNotification
-        ) {
-          guard !Task.isCancelled else { break }
-          self?.handleMemoryWarning()
-        }
-      }
-    #endif
-  }
-
-  deinit {
-    #if os(iOS) || os(tvOS)
-      memoryWarningObservation.cancel()
+      installMemoryWarningObservation()
     #endif
   }
 
@@ -245,6 +214,42 @@ final class ReaderPageLoadScheduler {
   }
 
   #if os(iOS) || os(tvOS)
+    /// Start the memory-warning observation Task. Called from `init` once
+    /// all stored properties are initialized — capturing `[weak self]`
+    /// inside an init-property initializer would trip Swift 6's "self
+    /// used before init" rule, so the capture is hoisted into a method.
+    ///
+    /// The Task is intentionally fire-and-forget. It is held only by the
+    /// AsyncSequence iteration; the closure captures `[weak self]`. When
+    /// the scheduler deinits, the Task remains suspended until the next
+    /// memory warning fires, at which point `guard let self else { … }`
+    /// causes the Task to complete. The leak is bounded — at most one
+    /// suspended Task (a few kilobytes of task control block) per
+    /// scheduler instance between scheduler deinit and the next system
+    /// memory warning. Trying to store the Task on `self` for explicit
+    /// cancellation would either (a) hit the init-order rule above, or
+    /// (b) require accessing a non-Sendable property from nonisolated
+    /// deinit. The trade-off — a small bounded leak in exchange for a
+    /// simple Swift 6-clean implementation — is acceptable for a
+    /// per-reader-session scheduler.
+    private func installMemoryWarningObservation() {
+      // `UIApplication.didReceiveMemoryWarningNotification` is posted by
+      // UIKit when the system needs memory back. Without this observation,
+      // iOS's only recourse is to evict view bodies / hosting controllers
+      // — which forces a full `DivinaReaderView` rebuild and exercises the
+      // exact path PR #818 fixed against. Responding explicitly lets us
+      // release the in-memory bitmap cache (~10 decoded pages, frequently
+      // tens of MB each) gracefully without disturbing the view tree.
+      Task { @MainActor [weak self] in
+        for await _ in NotificationCenter.default.notifications(
+          named: UIApplication.didReceiveMemoryWarningNotification
+        ) {
+          guard let self else { return }
+          self.handleMemoryWarning()
+        }
+      }
+    }
+
     private func handleMemoryWarning() {
       logger.warning("⚠️ [Reader/Memory] Received memory warning; pruning to visible pages only")
       pruneToVisiblePagesOnly()
