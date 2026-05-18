@@ -89,10 +89,24 @@
           direction: .forward,
           animated: false
         )
+        context.coordinator.commitInstalledLocation(
+          chapterIndex: initialChapterIndex,
+          pageIndex: initialPageIndex
+        )
         if let initialVC = initialVC as? EpubPageViewController {
           context.coordinator.preloadAdjacentPages(for: initialVC, in: pageVC)
           context.coordinator.storeBacksideSnapshotIfReady(from: initialVC)
         }
+      } else {
+        PageCurlControllerPlanner.safeSetViewControllers(
+          PageCurlControllerPlanner.placeholderControllers(
+            in: pageVC,
+            backgroundColor: preferences.resolvedTheme(for: colorScheme).uiColorBackground
+          ),
+          on: pageVC,
+          direction: .forward,
+          animated: false
+        )
       }
 
       return pageVC
@@ -108,7 +122,12 @@
       let initialPageCount = viewModel.chapterPageCount(at: initialChapterIndex) ?? 1
       let initialPageIndex = max(0, min(viewModel.currentPageIndex, initialPageCount - 1))
 
-      if uiViewController.viewControllers?.isEmpty ?? true,
+      let visibleController = uiViewController.viewControllers?.first
+      let needsInitialControllers =
+        !context.coordinator.isAnimating
+        && !(visibleController is EpubPageViewController)
+        && !(visibleController is PageCurlBacksideViewController)
+      if needsInitialControllers,
         initialChapterIndex >= 0,
         initialChapterIndex < viewModel.chapterCount,
         let initialVC = context.coordinator.pageViewController(
@@ -130,17 +149,30 @@
           direction: .forward,
           animated: false
         )
-        context.coordinator.currentChapterIndex = initialChapterIndex
-        context.coordinator.currentPageIndex = initialPageIndex
+        context.coordinator.commitInstalledLocation(
+          chapterIndex: initialChapterIndex,
+          pageIndex: initialPageIndex
+        )
         if let initialVC = initialVC as? EpubPageViewController {
           context.coordinator.preloadAdjacentPages(for: initialVC, in: uiViewController)
           context.coordinator.storeBacksideSnapshotIfReady(from: initialVC)
         }
+      } else if needsInitialControllers {
+        PageCurlControllerPlanner.safeSetViewControllers(
+          PageCurlControllerPlanner.placeholderControllers(
+            in: uiViewController,
+            backgroundColor: preferences.resolvedTheme(for: colorScheme).uiColorBackground
+          ),
+          on: uiViewController,
+          direction: .forward,
+          animated: false
+        )
       }
 
       if let targetChapterIndex = viewModel.targetChapterIndex,
         let targetPageIndex = viewModel.targetPageIndex,
         !context.coordinator.isAnimating,
+        !(uiViewController.transitionCoordinator?.isAnimated ?? false),
         targetChapterIndex >= 0,
         targetChapterIndex < viewModel.chapterCount,
         targetChapterIndex != context.coordinator.currentChapterIndex
@@ -356,6 +388,23 @@
 
       private func cacheKey(chapterIndex: Int, pageIndex: Int) -> String {
         "\(chapterIndex)-\(pageIndex)"
+      }
+
+      func commitInstalledLocation(chapterIndex: Int, pageIndex: Int) {
+        currentChapterIndex = chapterIndex
+        currentPageIndex = pageIndex
+        if parent.viewModel.currentChapterIndex != chapterIndex {
+          parent.viewModel.currentChapterIndex = chapterIndex
+        }
+        if parent.viewModel.currentPageIndex != pageIndex {
+          parent.viewModel.currentPageIndex = pageIndex
+        }
+        if parent.viewModel.targetChapterIndex == chapterIndex,
+          parent.viewModel.targetPageIndex == pageIndex
+        {
+          parent.viewModel.targetChapterIndex = nil
+          parent.viewModel.targetPageIndex = nil
+        }
       }
 
       func storeBacksideSnapshotIfReady(from controller: EpubPageViewController) {
@@ -657,6 +706,7 @@
         willTransitionTo pendingViewControllers: [UIViewController]
       ) {
         guard !pendingViewControllers.isEmpty else { return }
+        isAnimating = true
         clearReservedControllers()
 
         for controller in pendingViewControllers {
@@ -698,6 +748,7 @@
         previousViewControllers: [UIViewController],
         transitionCompleted completed: Bool
       ) {
+        isAnimating = false
         pendingControllers.removeAll()
         clearReservedControllers()
 
@@ -740,8 +791,7 @@
         _ pageViewController: UIPageViewController,
         spineLocationFor orientation: UIInterfaceOrientation
       ) -> UIPageViewController.SpineLocation {
-        PageCurlControllerPlanner.configure(pageViewController: pageViewController)
-        return .min
+        .min
       }
 
       @objc func handleTap(_ recognizer: UITapGestureRecognizer) {

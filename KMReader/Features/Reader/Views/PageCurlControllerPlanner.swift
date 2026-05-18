@@ -53,14 +53,28 @@
       )
     }
 
+    static func placeholderControllers(
+      in pageViewController: UIPageViewController,
+      backgroundColor: UIColor = .clear
+    ) -> [UIViewController] {
+      normalizedControllers(
+        [placeholderController(backgroundColor: backgroundColor)],
+        in: pageViewController,
+        animated: false
+      )
+    }
+
     private static func requiredControllerCount(
       in pageViewController: UIPageViewController,
       animated: Bool
     ) -> Int {
+      if pageViewController.spineLocation == .mid {
+        return 2
+      }
       if animated && pageViewController.isDoubleSided {
         return 2
       }
-      return pageViewController.spineLocation == .mid ? 2 : 1
+      return 1
     }
 
     private static func normalizedControllers(
@@ -82,6 +96,12 @@
       let fallback = UIViewController()
       fallback.view.backgroundColor = primary.isViewLoaded ? primary.view.backgroundColor : .clear
       return fallback
+    }
+
+    private static func placeholderController(backgroundColor: UIColor) -> UIViewController {
+      let placeholder = UIViewController()
+      placeholder.view.backgroundColor = backgroundColor
+      return placeholder
     }
   }
 #endif

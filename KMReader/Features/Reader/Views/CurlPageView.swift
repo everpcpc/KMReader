@@ -66,6 +66,16 @@
           direction: .forward,
           animated: false
         )
+      } else {
+        PageCurlControllerPlanner.safeSetViewControllers(
+          PageCurlControllerPlanner.placeholderControllers(
+            in: pageVC,
+            backgroundColor: UIColor(renderConfig.readerBackground.color)
+          ),
+          on: pageVC,
+          direction: .forward,
+          animated: false
+        )
       }
 
       return pageVC
@@ -311,6 +321,7 @@
       }
 
       func refreshVisibleControllerConfiguration() {
+        guard !isTransitioning else { return }
         guard let pageViewController else { return }
         guard let visibleController = pageViewController.viewControllers?.first else { return }
         guard let index = resolvedIndex(for: visibleController) else { return }
@@ -488,11 +499,7 @@
         _ pageViewController: UIPageViewController,
         spineLocationFor orientation: UIInterfaceOrientation
       ) -> UIPageViewController.SpineLocation {
-        PageCurlControllerPlanner.configure(
-          pageViewController: pageViewController,
-          semanticContentAttribute: parent.mode.isRTL ? .forceRightToLeft : .forceLeftToRight
-        )
-        return parent.mode.isRTL ? .max : .min
+        parent.mode.isRTL ? .max : .min
       }
 
       // MARK: - UIGestureRecognizerDelegate

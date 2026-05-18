@@ -74,6 +74,16 @@
           direction: .forward,
           animated: false
         )
+      } else {
+        PageCurlControllerPlanner.safeSetViewControllers(
+          PageCurlControllerPlanner.placeholderControllers(
+            in: pageVC,
+            backgroundColor: UIColor(renderConfig.readerBackground.color)
+          ),
+          on: pageVC,
+          direction: .forward,
+          animated: false
+        )
       }
 
       return pageVC
@@ -508,6 +518,7 @@
       }
 
       func refreshVisibleControllerConfiguration() {
+        guard !isTransitioning else { return }
         guard let pageViewController else { return }
         guard let visibleControllers = pageViewController.viewControllers else { return }
         guard let spreadIndex = resolvedVisibleSpreadIndex() else { return }
@@ -639,11 +650,7 @@
         _ pageViewController: UIPageViewController,
         spineLocationFor orientation: UIInterfaceOrientation
       ) -> UIPageViewController.SpineLocation {
-        PageCurlControllerPlanner.configure(
-          pageViewController: pageViewController,
-          semanticContentAttribute: parent.mode.isRTL ? .forceRightToLeft : .forceLeftToRight
-        )
-        return .mid
+        .mid
       }
 
       @objc private func handleSingleTap(_ gesture: UITapGestureRecognizer) {
