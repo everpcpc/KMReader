@@ -41,6 +41,7 @@ struct ReaderSettingsSheet: View {
   @AppStorage("showDivinaProgressBarWhileReading")
   private var showProgressBarWhileReading: Bool =
     AppConfig.showDivinaProgressBarWhileReading
+  @AppStorage("divinaPreloadProfile") private var divinaPreloadProfile: ReaderPreloadProfile = .balanced
 
   private var isWebtoonDirection: Bool {
     readingDirection == .webtoon
@@ -171,6 +172,15 @@ struct ReaderSettingsSheet: View {
               }
             }
           #endif
+        }
+
+        Section(header: Text("Performance")) {
+          Picker("Image Preloading", selection: $divinaPreloadProfile) {
+            ForEach(ReaderPreloadProfile.allCases) { profile in
+              Text(profile.displayName).tag(profile)
+            }
+          }
+          .pickerStyle(.menu)
         }
 
         #if os(iOS)

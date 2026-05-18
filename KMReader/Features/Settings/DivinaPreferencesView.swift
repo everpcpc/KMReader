@@ -42,6 +42,7 @@ struct DivinaPreferencesView: View {
   private var showProgressBarWhileReading: Bool =
     AppConfig.showDivinaProgressBarWhileReading
   @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
+  @AppStorage("divinaPreloadProfile") private var divinaPreloadProfile: ReaderPreloadProfile = .balanced
 
   private var forcedReadingDirection: ReadingDirection? {
     forceDefaultReadingDirection ? readDirection : nil
@@ -333,6 +334,20 @@ struct DivinaPreferencesView: View {
           }
         }
       #endif
+
+      Section(header: Text("Performance")) {
+        VStack(alignment: .leading, spacing: 8) {
+          Picker("Image Preloading", selection: $divinaPreloadProfile) {
+            ForEach(ReaderPreloadProfile.allCases) { profile in
+              Text(profile.displayName).tag(profile)
+            }
+          }
+          .pickerStyle(.menu)
+          Text(divinaPreloadProfile.description)
+            .font(.caption)
+            .foregroundColor(.secondary)
+        }
+      }
 
       #if os(iOS) || os(macOS)
         Section(header: Text("Image Upscaling")) {

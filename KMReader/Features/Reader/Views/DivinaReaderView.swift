@@ -44,6 +44,7 @@ struct DivinaReaderView: View {
   @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 3.0
   @AppStorage("doubleTapZoomMode") private var doubleTapZoomMode: DoubleTapZoomMode = .fast
   @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
+  @AppStorage("divinaPreloadProfile") private var divinaPreloadProfile: ReaderPreloadProfile = .balanced
 
   @State private var readingDirection: ReadingDirection
   @State private var pageLayout: PageLayout
@@ -114,6 +115,7 @@ struct DivinaReaderView: View {
         pageLayout: AppConfig.pageLayout,
         splitWidePageMode: AppConfig.splitWidePageMode,
         pageTransitionStyle: AppConfig.pageTransitionStyle,
+        preloadWindow: AppConfig.divinaPreloadProfile.window,
         incognitoMode: incognito
       )
     )
@@ -567,6 +569,9 @@ struct DivinaReaderView: View {
     }
     .onChange(of: pageTransitionStyle) { _, newValue in
       viewModel.updatePageTransitionStyle(newValue)
+    }
+    .onChange(of: divinaPreloadProfile) { _, newValue in
+      viewModel.updatePreloadWindow(newValue.window)
     }
     .task(id: currentBookId) {
       readerPresentation.registerFlushHandler(for: sessionID) {
@@ -1813,6 +1818,7 @@ struct DivinaReaderView: View {
       isolateCoverPage: isolateCoverPage,
       pageLayout: pageLayout,
       splitWidePageMode: splitWidePageMode,
+      preloadWindow: divinaPreloadProfile.window,
       incognitoMode: incognito
     )
     // Reset overlay state
@@ -1834,6 +1840,7 @@ struct DivinaReaderView: View {
       isolateCoverPage: isolateCoverPage,
       pageLayout: pageLayout,
       splitWidePageMode: splitWidePageMode,
+      preloadWindow: divinaPreloadProfile.window,
       incognitoMode: incognito
     )
     // Reset overlay state
