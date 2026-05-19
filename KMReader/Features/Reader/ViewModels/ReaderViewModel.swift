@@ -39,6 +39,20 @@ class ReaderViewModel {
   @ObservationIgnored
   private var pagePresentationInvalidationHandlers: [UUID: PagePresentationInvalidationHandler] = [:]
 
+  private enum SegmentFetchPurpose {
+    case nextPreload
+    case previousPreload
+
+    var shouldEnsureOfflineReady: Bool {
+      switch self {
+      case .nextPreload:
+        return true
+      case .previousPreload:
+        return false
+      }
+    }
+  }
+
   private let logger = AppLogger(.reader)
   private let pageLoadScheduler: ReaderPageLoadScheduler
   private var bookMediaProfile: MediaProfile = .unknown
@@ -567,10 +581,10 @@ class ReaderViewModel {
     rebuildReaderPages()
   }
 
-  private func fetchSegmentPages(for book: Book) async -> [BookPage]? {
+  private func fetchSegmentPages(for book: Book, purpose: SegmentFetchPurpose) async -> [BookPage]? {
     let database = await DatabaseOperator.databaseIfConfigured()
 
-    if AppConfig.offlineFirstReading {
+    if AppConfig.offlineFirstReading, purpose.shouldEnsureOfflineReady {
       do {
         try await ensureOfflineReady(book: book, updatesLoadingState: false)
       } catch {
@@ -674,7 +688,7 @@ class ReaderViewModel {
       return
     }
 
-    guard let fetchedPages = await fetchSegmentPages(for: nextBook) else {
+    guard let fetchedPages = await fetchSegmentPages(for: nextBook, purpose: .nextPreload) else {
       regenerateViewState()
       return
     }
@@ -719,7 +733,7 @@ class ReaderViewModel {
       return
     }
 
-    guard let fetchedPages = await fetchSegmentPages(for: previousBook) else {
+    guard let fetchedPages = await fetchSegmentPages(for: previousBook, purpose: .previousPreload) else {
       regenerateViewState()
       return
     }
