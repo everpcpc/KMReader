@@ -32,6 +32,8 @@ struct DivinaPreferencesView: View {
   @AppStorage("imageUpscaleAlwaysMaxScreenScale")
   private var imageUpscaleAlwaysMaxScreenScale: Double =
     AppConfig.imageUpscaleAlwaysMaxScreenScale
+  @AppStorage("divinaPageBorderCropMode") private var divinaPageBorderCropMode: ReaderPageBorderCropMode =
+    AppConfig.divinaPageBorderCropMode
   @AppStorage("enableLiveText") private var enableLiveText: Bool = false
   @AppStorage("enableDivinaImageContextMenu")
   private var enableDivinaImageContextMenu: Bool = AppConfig.enableDivinaImageContextMenu
@@ -350,7 +352,19 @@ struct DivinaPreferencesView: View {
       }
 
       #if os(iOS) || os(macOS)
-        Section(header: Text("Image Upscaling")) {
+        Section(header: Text("Image Processing")) {
+          VStack(alignment: .leading, spacing: 8) {
+            Picker("Border Cropping", selection: $divinaPageBorderCropMode) {
+              ForEach(ReaderPageBorderCropMode.allCases, id: \.self) { mode in
+                Text(mode.displayName).tag(mode)
+              }
+            }
+            .pickerStyle(.menu)
+            Text("Automatically trim empty page borders.")
+              .font(.caption)
+              .foregroundColor(.secondary)
+          }
+
           VStack(alignment: .leading, spacing: 8) {
             Picker("Waifu2x Mode", selection: $imageUpscalingMode) {
               ForEach(ReaderImageUpscalingMode.allCases, id: \.self) { mode in
@@ -449,6 +463,7 @@ struct DivinaPreferencesView: View {
     .animation(.default, value: tapZoneMode)
     .animation(.default, value: doubleTapZoomMode)
     .animation(.default, value: imageUpscalingMode)
+    .animation(.default, value: divinaPageBorderCropMode)
     .animation(.default, value: pageTransitionStyle)
     .animation(.default, value: forceDefaultReadingDirection)
     .animation(.default, value: readDirection)
