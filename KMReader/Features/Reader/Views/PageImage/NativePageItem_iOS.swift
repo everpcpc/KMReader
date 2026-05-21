@@ -259,8 +259,17 @@
     private func preparedImage(from image: UIImage?, splitMode: PageSplitMode, rotationDegrees: Int) -> UIImage? {
       guard let image else { return nil }
       let rotatedImage = rotateImage(image, degrees: rotationDegrees)
-      guard splitMode != .none else { return rotatedImage }
-      return cropImageForSplitMode(image: rotatedImage, splitMode: splitMode)
+      let splitImage =
+        splitMode == .none ? rotatedImage : cropImageForSplitMode(image: rotatedImage, splitMode: splitMode)
+      return cropBordersIfNeeded(splitImage)
+    }
+
+    private func cropBordersIfNeeded(_ image: UIImage?) -> UIImage? {
+      guard let image else { return nil }
+      let mode = AppConfig.divinaPageBorderCropMode
+      guard mode != .disabled, let cgImage = image.cgImage else { return image }
+      guard let cropped = ReaderPageBorderCropper.crop(cgImage, mode: mode) else { return image }
+      return UIImage(cgImage: cropped, scale: image.scale, orientation: image.imageOrientation)
     }
 
     private func rotateImage(_ image: UIImage, degrees: Int) -> UIImage {

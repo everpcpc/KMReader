@@ -985,6 +985,21 @@ enum AppConfig {
       UserDefaults.standard.set(max(newValue, 1.0), forKey: "imageUpscaleAlwaysMaxScreenScale")
     }
   }
+
+  static nonisolated var divinaPageBorderCropMode: ReaderPageBorderCropMode {
+    get {
+      if let stored = UserDefaults.standard.string(forKey: "divinaPageBorderCropMode"),
+        let mode = ReaderPageBorderCropMode(rawValue: stored)
+      {
+        return mode
+      }
+      return .disabled
+    }
+    set {
+      UserDefaults.standard.set(newValue.rawValue, forKey: "divinaPageBorderCropMode")
+    }
+  }
+
   static nonisolated var shakeToOpenLiveText: Bool {
     get {
       if UserDefaults.standard.object(forKey: "shakeToOpenLiveText") != nil {
