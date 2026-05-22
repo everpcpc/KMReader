@@ -269,7 +269,8 @@ struct DivinaReaderView: View {
     // the overlay hidden (and therefore wants it back hidden after a glance)
     // or with it visible (and wants it to stay visible).
     if oldPhase == .active && newPhase != .active {
-      wasShowingControlsBeforeBackground = shouldShowControls
+      wasShowingControlsBeforeBackground = autoHideAfterResumeTask == nil && shouldShowControls
+      cancelAutoHideAfterResume()
     }
 
     // PR #682 force-show — unchanged. Keeps iOS's status-bar / safe-area state
@@ -304,7 +305,7 @@ struct DivinaReaderView: View {
   private func scheduleAutoHideAfterResume() {
     autoHideAfterResumeTask?.cancel()
     autoHideAfterResumeTask = Task { @MainActor in
-      try? await Task.sleep(for: .seconds(3))
+      try? await Task.sleep(for: .seconds(1))
       guard !Task.isCancelled else { return }
       withAnimation {
         showingControls = false
