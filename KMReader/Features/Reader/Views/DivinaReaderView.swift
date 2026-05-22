@@ -56,6 +56,16 @@ struct DivinaReaderView: View {
   @State private var currentBookId: String
   @State private var viewModel: ReaderViewModel
   @State private var showingControls = false
+  // Captures `shouldShowControls` on the active → non-active scene-phase
+  // transition (before the PR #682 force-show flips `showingControls`), so the
+  // subsequent resume can decide whether to auto-hide the overlay or leave it
+  // visible. See `handleScenePhaseChange(from:to:)`.
+  @State private var wasShowingControlsBeforeBackground: Bool = false
+  // Task that fades the resume-triggered overlay back to hidden after a brief
+  // glance window. Reset on user interaction (page change) to act as an idle
+  // timeout; cancelled on tap-toggle and reader close. Nil when no auto-hide
+  // is pending.
+  @State private var autoHideAfterResumeTask: Task<Void, Never>?
   @State private var currentSeries: Series?
   @State private var currentBook: Book?
   @State private var seriesId: String?
@@ -241,6 +251,7 @@ struct DivinaReaderView: View {
   #endif
 
   private func closeReader() {
+    cancelAutoHideAfterResume()
     logger.debug(
       "🚪 Closing DIVINA reader for book \(currentBookId), currentPage=\(viewModel.currentPage?.number ?? -1), totalPages=\(viewModel.pageCount)"
     )
@@ -251,18 +262,72 @@ struct DivinaReaderView: View {
     }
   }
 
-  private func handleScenePhaseChange(_ phase: ScenePhase) {
-    if phase != .active || !shouldShowControls {
+  private func handleScenePhaseChange(from oldPhase: ScenePhase, to newPhase: ScenePhase) {
+    // Capture pre-background overlay state once, on the active → non-active
+    // edge, BEFORE the force-show below flips `showingControls`. This is what
+    // tells `scheduleAutoHideAfterResume` whether the user was reading with
+    // the overlay hidden (and therefore wants it back hidden after a glance)
+    // or with it visible (and wants it to stay visible).
+    if oldPhase == .active && newPhase != .active {
+      wasShowingControlsBeforeBackground = autoHideAfterResumeTask == nil && shouldShowControls
+      cancelAutoHideAfterResume()
+    }
+
+    // PR #682 force-show — unchanged. Keeps iOS's status-bar / safe-area state
+    // in a known configuration across the background → foreground cycle so the
+    // dashboard inherits a clean safe-area on subsequent close. The historical
+    // UX cost (overlay flashing visible on every lock/unlock until tapped) is
+    // what the auto-hide below mitigates.
+    if newPhase != .active || !shouldShowControls {
       showingControls = true
+    }
+
+    // On returning to .active: if pre-background was hidden, schedule a brief
+    // auto-hide so the user gets a glance at title/progress and the overlay
+    // fades back to where it was.
+    if oldPhase != .active, newPhase == .active, !wasShowingControlsBeforeBackground {
+      scheduleAutoHideAfterResume()
     }
 
     #if os(iOS)
       // Flush in-flight read progress to the server before iOS suspends the app, so
       // the trailing pages of the reading session are not lost to URLSession cancellation.
-      if phase == .background {
+      if newPhase == .background {
         readerPresentation.flushForBackgrounding()
       }
     #endif
+  }
+
+  /// Fade the overlay back to hidden after a brief glance window. Used only
+  /// on the resume path when the user had the overlay hidden before going to
+  /// background; preserves visible-overlay sessions untouched. Sub-tasks are
+  /// idempotent — re-scheduling cancels and replaces.
+  private func scheduleAutoHideAfterResume() {
+    autoHideAfterResumeTask?.cancel()
+    autoHideAfterResumeTask = Task { @MainActor in
+      try? await Task.sleep(for: .seconds(1))
+      guard !Task.isCancelled else { return }
+      withAnimation {
+        showingControls = false
+      }
+      autoHideAfterResumeTask = nil
+    }
+  }
+
+  private func cancelAutoHideAfterResume() {
+    autoHideAfterResumeTask?.cancel()
+    autoHideAfterResumeTask = nil
+  }
+
+  /// Restart the auto-hide timer if one is currently pending. Called from
+  /// existing user-interaction observers (e.g., page changes) so the auto-
+  /// hide acts as an idle timeout: any interaction within the window resets
+  /// the clock, and the overlay only fades when the user actually stops
+  /// engaging. Does nothing when no auto-hide is pending (normal reading
+  /// outside the post-resume window).
+  private func resetAutoHideAfterResumeIfPending() {
+    guard autoHideAfterResumeTask != nil else { return }
+    scheduleAutoHideAfterResume()
   }
 
   private func schedulePageMaintenanceAfterPageChange() {
@@ -626,8 +691,8 @@ struct DivinaReaderView: View {
         readerPresentation.clearReaderCommands()
       #endif
     }
-    .onChange(of: scenePhase) { _, newPhase in
-      handleScenePhaseChange(newPhase)
+    .onChange(of: scenePhase) { oldPhase, newPhase in
+      handleScenePhaseChange(from: oldPhase, to: newPhase)
     }
     .onChange(of: viewModel.isZoomed) { _, newValue in
       if newValue {
@@ -753,6 +818,11 @@ struct DivinaReaderView: View {
             await viewModel.updateProgress()
           }
           schedulePageMaintenanceAfterPageChange()
+          // Treat page changes as user activity: if we're inside the post-
+          // resume auto-hide window, restart the timer so the overlay stays
+          // visible while the user is actively flipping pages and only fades
+          // after a real pause.
+          resetAutoHideAfterResumeIfPending()
         }
         #if os(tvOS)
           .onChange(of: isShowingEndPage) { oldValue, newValue in
@@ -1684,12 +1754,14 @@ struct DivinaReaderView: View {
   #if os(tvOS)
     private func toggleControls() {
       // On tvOS, allow toggling controls even at endpage to enable navigation back
+      cancelAutoHideAfterResume()
       withAnimation {
         showingControls.toggle()
       }
     }
   #else
     private func toggleControls() {
+      cancelAutoHideAfterResume()
       withAnimation {
         showingControls.toggle()
       }
