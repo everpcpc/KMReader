@@ -1279,122 +1279,13 @@
       readingProgression: WebPubReadingProgression?,
       completion: (() -> Void)? = nil
     ) {
-      let readiumAssets = ReadiumCSSLoader.cssAssets(
+      let js = WebPubPagedJavaScriptBuilder.makeInjectCSSScript(
+        contentCSS: css,
+        readiumProperties: readiumProperties,
+        readiumPropertyKeys: readiumPropertyKeys,
         language: language,
         readingProgression: readingProgression
       )
-      let readiumVariant = ReadiumCSSLoader.resolveVariantSubdirectory(
-        language: language,
-        readingProgression: readingProgression
-      )
-      let shouldSetDir = readiumVariant == "rtl"
-
-      let readiumBefore = Data(readiumAssets.before.utf8).base64EncodedString()
-      let readiumDefault = Data(readiumAssets.defaultCSS.utf8).base64EncodedString()
-      let readiumAfter = Data(readiumAssets.after.utf8).base64EncodedString()
-      let customCSS = Data(css.utf8).base64EncodedString()
-
-      var properties: [String: Any] = [:]
-      for (key, value) in readiumProperties {
-        properties[key] = value ?? NSNull()
-      }
-      let propertiesJSON: String = {
-        guard
-          let data = try? JSONSerialization.data(withJSONObject: properties, options: []),
-          let json = String(data: data, encoding: .utf8)
-        else {
-          return "{}"
-        }
-        return json
-      }()
-      let propertyKeysJSON: String = {
-        guard
-          let data = try? JSONSerialization.data(withJSONObject: readiumPropertyKeys, options: []),
-          let json = String(data: data, encoding: .utf8)
-        else {
-          return "[]"
-        }
-        return json
-      }()
-      let languageJSON: String = {
-        guard let language else { return "null" }
-        var escaped = language
-        escaped = escaped.replacingOccurrences(of: "\\", with: "\\\\")
-        escaped = escaped.replacingOccurrences(of: "\"", with: "\\\"")
-        escaped = escaped.replacingOccurrences(of: "\n", with: "\\n")
-        escaped = escaped.replacingOccurrences(of: "\r", with: "\\r")
-        escaped = escaped.replacingOccurrences(of: "\t", with: "\\t")
-        return "\"\(escaped)\""
-      }()
-
-      let js = """
-          (function() {
-            var root = document.documentElement;
-            var lang = \(languageJSON);
-            if (lang) {
-              if (!root.hasAttribute('lang')) {
-                root.setAttribute('lang', lang);
-              }
-              if (!root.hasAttribute('xml:lang')) {
-                root.setAttribute('xml:lang', lang);
-              }
-              if (document.body) {
-                if (!document.body.hasAttribute('lang')) {
-                  document.body.setAttribute('lang', lang);
-                }
-                if (!document.body.hasAttribute('xml:lang')) {
-                  document.body.setAttribute('xml:lang', lang);
-                }
-              }
-            }
-            if (\(shouldSetDir ? "true" : "false")) {
-              root.setAttribute('dir', 'rtl');
-              if (document.body) {
-                document.body.setAttribute('dir', 'rtl');
-              }
-            }
-
-            var props = \(propertiesJSON);
-            Object.keys(props).forEach(function(key) {
-              var value = props[key];
-              if (value === null || value === undefined) {
-                root.style.removeProperty(key);
-              } else {
-                root.style.setProperty(key, value, 'important');
-              }
-            });
-            var knownKeys = \(propertyKeysJSON);
-            knownKeys.forEach(function(key) {
-              if (!(key in props)) {
-                root.style.removeProperty(key);
-              }
-            });
-
-            var meta = document.querySelector('meta[name=viewport]');
-            if (!meta) {
-              meta = document.createElement('meta');
-              meta.name = 'viewport';
-              document.head.appendChild(meta);
-            }
-            meta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
-
-            var style = document.getElementById('kmreader-style');
-            if (!style) {
-              style = document.createElement('style');
-              style.id = 'kmreader-style';
-              document.head.appendChild(style);
-            }
-            var hasStyles = document.querySelector("link[rel~='stylesheet'], style:not(#kmreader-style)") !== null;
-            var css = atob('\(readiumBefore)') + "\\n"
-              + (hasStyles ? "" : atob('\(readiumDefault)') + "\\n")
-              + atob('\(readiumAfter)') + "\\n"
-              + atob('\(customCSS)');
-            style.textContent = css;
-
-            return true;
-          })();
-        """
-
       webView.evaluateJavaScript(js) { _, _ in
         completion?()
       }
