@@ -21,6 +21,9 @@
     @AppStorage("epubShowsProgressFooter") private var epubShowsProgressFooter: Bool = false
     @AppStorage("epubShowKeyboardHelpOverlay")
     private var showKeyboardHelpOverlay: Bool = AppConfig.epubShowKeyboardHelpOverlay
+    @AppStorage("epubTapZoneMode") private var epubTapZoneMode: TapZoneMode = AppConfig.epubTapZoneMode
+    @AppStorage("epubTapZoneInversionMode")
+    private var epubTapZoneInversionMode: TapZoneInversionMode = AppConfig.epubTapZoneInversionMode
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
@@ -197,6 +200,31 @@
               .pickerStyle(.menu)
 
               Text(epubPageTransitionStyle.description)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+          }
+
+          Section(String(localized: "Tap Zones")) {
+            TapZoneModePicker(
+              selection: $epubTapZoneMode,
+              tapZoneInversionMode: epubTapZoneInversionMode,
+              readingDirection: draft.flowStyle.isPaged ? .ltr : .vertical
+            )
+
+            Text("Choose how tap zones are laid out")
+              .font(.caption)
+              .foregroundStyle(.secondary)
+
+            if !epubTapZoneMode.isDisabled {
+              Picker("Tap Zone Mirroring", selection: $epubTapZoneInversionMode) {
+                ForEach(TapZoneInversionMode.allCases, id: \.self) { mode in
+                  Text(mode.displayName).tag(mode)
+                }
+              }
+              .pickerStyle(.menu)
+
+              Text("Mirror left and right tap zones manually or automatically for RTL reading")
                 .font(.caption)
                 .foregroundStyle(.secondary)
             }

@@ -686,6 +686,40 @@ enum AppConfig {
     }
   }
 
+  static nonisolated var epubTapZoneMode: TapZoneMode {
+    get {
+      if let stored = UserDefaults.standard.string(forKey: "epubTapZoneMode"),
+        let mode = TapZoneMode(rawValue: stored)
+      {
+        return mode
+      }
+
+      let migratedMode = tapZoneMode
+      UserDefaults.standard.set(migratedMode.rawValue, forKey: "epubTapZoneMode")
+      return migratedMode
+    }
+    set {
+      UserDefaults.standard.set(newValue.rawValue, forKey: "epubTapZoneMode")
+    }
+  }
+
+  static nonisolated var epubTapZoneInversionMode: TapZoneInversionMode {
+    get {
+      if let stored = UserDefaults.standard.string(forKey: "epubTapZoneInversionMode"),
+        let mode = TapZoneInversionMode(rawValue: stored)
+      {
+        return mode
+      }
+
+      let migratedMode = tapZoneInversionMode
+      UserDefaults.standard.set(migratedMode.rawValue, forKey: "epubTapZoneInversionMode")
+      return migratedMode
+    }
+    set {
+      UserDefaults.standard.set(newValue.rawValue, forKey: "epubTapZoneInversionMode")
+    }
+  }
+
   static nonisolated var showKeyboardHelpOverlay: Bool {
     get {
       if UserDefaults.standard.object(forKey: "showKeyboardHelpOverlay") != nil {
