@@ -55,6 +55,21 @@ class ReaderViewModel {
 
   private let logger = AppLogger(.reader)
   private let pageLoadScheduler: ReaderPageLoadScheduler
+
+  private func navTracePage(_ pageID: ReaderPageID?) -> String {
+    guard let pageID else { return "nil" }
+    return "\(pageID.bookId)#\(pageID.pageNumber + 1)"
+  }
+
+  private func navTraceItem(_ item: ReaderViewItem?) -> String {
+    guard let item else { return "nil" }
+    let suffix = item.isEnd ? ":end" : ""
+    return "\(navTracePage(item.pageID))\(suffix)"
+  }
+
+  private func logNavTrace(_ message: String) {
+    logger.debug("🧭 [DivinaNavTrace] VM \(message)")
+  }
   private var bookMediaProfile: MediaProfile = .unknown
 
   private var readerPageIndexByID: [ReaderPageID: Int] = [:]
@@ -640,8 +655,14 @@ class ReaderViewModel {
   }
 
   private func restoreCurrentPosition(using currentPageID: ReaderPageID?) {
+    logNavTrace(
+      "restoreCurrentPosition requested page=\(navTracePage(currentPageID)) navTarget=\(navTraceItem(navigationTarget)) current=\(navTraceItem(currentViewItemID)) resolved=\(navTracePage(resolvedCurrentPageID))"
+    )
     guard currentPageID != nil else { return }
-    guard navigationTarget == nil else { return }
+    guard navigationTarget == nil else {
+      logNavTrace("restoreCurrentPosition skipped: pending navTarget=\(navTraceItem(navigationTarget))")
+      return
+    }
     updateCurrentPosition(pageID: currentPageID)
   }
 
@@ -702,6 +723,9 @@ class ReaderViewModel {
     await hydrateIsolatePages(for: nextBook.id)
     await hydratePageRotations(for: nextBook.id)
     let currentPageID = currentReaderPage?.id
+    logNavTrace(
+      "preloadNext append begin currentBook=\(currentBook.id) nextBook=\(nextBook.id) captured=\(navTracePage(currentPageID)) navTarget=\(navTraceItem(navigationTarget)) current=\(navTraceItem(currentViewItemID))"
+    )
 
     appendSegment(
       currentBook: nextBook,
@@ -710,6 +734,9 @@ class ReaderViewModel {
       pages: fetchedPages
     )
     regenerateViewState()
+    logNavTrace(
+      "preload segment after regenerate captured=\(navTracePage(currentPageID)) navTarget=\(navTraceItem(navigationTarget)) current=\(navTraceItem(currentViewItemID)) resolved=\(navTracePage(resolvedCurrentPageID))"
+    )
     restoreCurrentPosition(using: currentPageID)
   }
 
@@ -747,6 +774,9 @@ class ReaderViewModel {
     await hydrateIsolatePages(for: previousBook.id)
     await hydratePageRotations(for: previousBook.id)
     let currentPageID = currentReaderPage?.id
+    logNavTrace(
+      "preloadPrevious prepend begin currentBook=\(currentBook.id) previousBook=\(previousBook.id) captured=\(navTracePage(currentPageID)) navTarget=\(navTraceItem(navigationTarget)) current=\(navTraceItem(currentViewItemID))"
+    )
 
     prependSegment(
       currentBook: previousBook,
@@ -755,6 +785,9 @@ class ReaderViewModel {
       pages: fetchedPages
     )
     regenerateViewState()
+    logNavTrace(
+      "preload segment after regenerate captured=\(navTracePage(currentPageID)) navTarget=\(navTraceItem(navigationTarget)) current=\(navTraceItem(currentViewItemID)) resolved=\(navTracePage(resolvedCurrentPageID))"
+    )
     restoreCurrentPosition(using: currentPageID)
   }
 
@@ -1171,6 +1204,10 @@ class ReaderViewModel {
   private func regenerateViewState() {
     let preservedCurrentItem = currentViewItemID
     let preservedCurrentPageID = resolvedCurrentPageID
+    let preservedNavigationTarget = navigationTarget
+    logNavTrace(
+      "regenerate begin current=\(navTraceItem(preservedCurrentItem)) resolved=\(navTracePage(preservedCurrentPageID)) navTarget=\(navTraceItem(preservedNavigationTarget)) segments=\(segments.map { $0.currentBook.id }.joined(separator: ","))"
+    )
 
     // Apply the split-wide preference consistently in single and dual presentations.
     let effectiveSplitWidePages = splitWidePageMode.isEnabled
@@ -1200,6 +1237,9 @@ class ReaderViewModel {
       for: currentViewItemID,
       preferredPageID: preservedCurrentPageID
     )
+    logNavTrace(
+      "regenerate end current=\(navTraceItem(currentViewItemID)) currentPage=\(navTracePage(currentPageID)) navTarget=\(navTraceItem(navigationTarget))"
+    )
     syncPageLoadSchedulerCurrentPage()
   }
 
@@ -1226,10 +1266,14 @@ class ReaderViewModel {
 
   func requestNavigation(toPageID pageID: ReaderPageID?) {
     guard let pageID else {
+      logNavTrace("requestNavigation page=nil -> clear")
       navigationTarget = nil
       return
     }
     navigationTarget = resolvedViewItem(preferredPageID: pageID)
+    logNavTrace(
+      "requestNavigation page=\(navTracePage(pageID)) -> navTarget=\(navTraceItem(navigationTarget)) current=\(navTraceItem(currentViewItemID))"
+    )
   }
 
   func requestNavigation(toViewItem viewItem: ReaderViewItem?) {
@@ -1239,13 +1283,17 @@ class ReaderViewModel {
         preferredPageID: viewItem?.pageID
       )
     else {
+      logNavTrace("requestNavigation item=\(navTraceItem(viewItem)) -> clear")
       navigationTarget = nil
       return
     }
     navigationTarget = viewItem
+    logNavTrace("requestNavigation item=\(navTraceItem(viewItem)) current=\(navTraceItem(currentViewItemID))")
   }
 
   func clearNavigationTarget() {
+    logNavTrace(
+      "clearNavigationTarget old=\(navTraceItem(navigationTarget)) current=\(navTraceItem(currentViewItemID))")
     navigationTarget = nil
   }
 
@@ -1262,6 +1310,9 @@ class ReaderViewModel {
 
   func updateCurrentPosition(pageID: ReaderPageID?) {
     guard let pageID else {
+      logNavTrace(
+        "updateCurrentPosition page=nil oldCurrent=\(navTraceItem(currentViewItemID)) navTarget=\(navTraceItem(navigationTarget))"
+      )
       currentPageID = nil
       currentViewItemID = nil
       syncPageLoadSchedulerCurrentPage()
@@ -1270,6 +1321,9 @@ class ReaderViewModel {
     currentPageID = pageID
     currentViewItemID = resolvedViewItem(
       preferredPageID: pageID
+    )
+    logNavTrace(
+      "updateCurrentPosition page=\(navTracePage(pageID)) -> current=\(navTraceItem(currentViewItemID)) navTarget=\(navTraceItem(navigationTarget))"
     )
     syncPageLoadSchedulerCurrentPage()
   }
@@ -1287,6 +1341,9 @@ class ReaderViewModel {
 
   func updateCurrentPosition(viewItem: ReaderViewItem?) {
     guard let viewItem else {
+      logNavTrace(
+        "updateCurrentPosition item=nil oldCurrent=\(navTraceItem(currentViewItemID)) navTarget=\(navTraceItem(navigationTarget))"
+      )
       currentViewItemID = nil
       currentPageID = nil
       syncPageLoadSchedulerCurrentPage()
@@ -1300,6 +1357,9 @@ class ReaderViewModel {
     currentPageID = resolvedCurrentPageID(
       for: currentViewItemID,
       preferredPageID: preferredPageID
+    )
+    logNavTrace(
+      "updateCurrentPosition item=\(navTraceItem(viewItem)) -> current=\(navTraceItem(currentViewItemID)) currentPage=\(navTracePage(currentPageID)) navTarget=\(navTraceItem(navigationTarget))"
     )
     syncPageLoadSchedulerCurrentPage()
   }

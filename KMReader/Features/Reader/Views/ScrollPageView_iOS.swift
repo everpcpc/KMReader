@@ -154,6 +154,7 @@
       var parent: ScrollPageView
       weak var collectionView: UICollectionView?
 
+      private let logger = AppLogger(.reader)
       private let engine = ScrollReaderEngine()
       private let pagePresentationCoordinator = NativePagedPagePresentationCoordinator()
       private var lastViewportSize: CGSize = .zero
@@ -168,6 +169,25 @@
       private var singleTapWorkItem: DispatchWorkItem?
       private var lastLongPressEndTime: Date = .distantPast
       private var isLongPressing = false
+
+      private func navTracePage(_ pageID: ReaderPageID?) -> String {
+        guard let pageID else { return "nil" }
+        return "\(pageID.bookId)#\(pageID.pageNumber + 1)"
+      }
+
+      private func navTraceItem(_ item: ReaderViewItem?) -> String {
+        guard let item else { return "nil" }
+        let suffix = item.isEnd ? ":end" : ""
+        return "\(navTracePage(item.pageID))\(suffix)"
+      }
+
+      private func navTraceOffset(_ point: CGPoint) -> String {
+        "(\(Int(point.x)),\(Int(point.y)))"
+      }
+
+      private func logNavTrace(_ message: String) {
+        logger.debug("🧭 [DivinaNavTrace] iOS \(message)")
+      }
 
       init(_ parent: ScrollPageView) {
         self.parent = parent
@@ -212,6 +232,9 @@
 
         let displayedItems = parent.mode.displayOrderedItems(parent.viewModel.viewItems)
         let anchorItem = currentAnchorItem(in: collectionView)
+        logNavTrace(
+          "update items=\(displayedItems.count) rendered=\(engine.renderedItems.count) currentVM=\(navTraceItem(parent.viewModel.currentViewItem())) navTarget=\(navTraceItem(parent.viewModel.navigationTarget)) anchor=\(navTraceItem(anchorItem)) committed=\(navTraceItem(engine.committedItem)) progTarget=\(navTraceItem(engine.programmaticTargetItem)) offset=\(navTraceOffset(collectionView.contentOffset))"
+        )
         let sizeChanged = updateLayoutIfNeeded(for: collectionView)
         let renderInputsChanged = updateRenderInputsIfNeeded()
         var refreshedVisibleContent = false
@@ -222,8 +245,12 @@
           refreshedVisibleContent = synchronizeInitialPositionIfPossible(in: collectionView)
         } else if displayedItems != engine.renderedItems {
           if isScrollInteractionActive(in: collectionView) || engine.isProgrammaticScrolling {
+            logNavTrace(
+              "queueRenderedItems reason=\(isScrollInteractionActive(in: collectionView) ? "scrollInteraction" : "programmatic") anchor=\(navTraceItem(anchorItem)) navTarget=\(navTraceItem(parent.viewModel.navigationTarget))"
+            )
             engine.queueRenderedItems(displayedItems, anchor: anchorItem)
           } else {
+            logNavTrace("applyRenderedItems immediate anchor=\(navTraceItem(anchorItem))")
             applyRenderedItems(
               displayedItems,
               anchor: anchorItem,
@@ -356,6 +383,9 @@
         commitAfterRestore: Bool,
         in collectionView: UICollectionView
       ) {
+        logNavTrace(
+          "applyRenderedItems begin items=\(items.count) anchor=\(navTraceItem(anchor)) commitAfterRestore=\(commitAfterRestore) offset=\(navTraceOffset(collectionView.contentOffset)) navTarget=\(navTraceItem(parent.viewModel.navigationTarget))"
+        )
         engine.replaceRenderedItems(items)
         collectionView.reloadData()
         collectionView.layoutIfNeeded()
@@ -365,6 +395,9 @@
         }
 
         refreshVisibleCells(in: collectionView)
+        logNavTrace(
+          "applyRenderedItems end centered=\(navTraceItem(centeredItem(in: collectionView))) committed=\(navTraceItem(engine.committedItem)) offset=\(navTraceOffset(collectionView.contentOffset))"
+        )
         if commitAfterRestore {
           commitRestoredItemIfNeeded(anchor: anchor, in: collectionView)
         }
@@ -390,6 +423,9 @@
         _ navigationTarget: ReaderViewItem,
         in collectionView: UICollectionView
       ) {
+        logNavTrace(
+          "handleNavigationChange target=\(navTraceItem(navigationTarget)) centered=\(navTraceItem(centeredItem(in: collectionView))) committed=\(navTraceItem(engine.committedItem)) prog=\(engine.isProgrammaticScrolling) offset=\(navTraceOffset(collectionView.contentOffset))"
+        )
         // While the user is in the middle of a swipe (drag or its deceleration), ignore
         // tap-initiated navigation. The drag's intent dominates; layering a programmatic
         // scroll over natural deceleration produces a double page advance.
@@ -430,7 +466,10 @@
         animated: Bool,
         in collectionView: UICollectionView
       ) -> Bool {
-        guard let index = engine.renderedItems.firstIndex(of: item) else { return false }
+        guard let index = engine.renderedItems.firstIndex(of: item) else {
+          logNavTrace("scrollToItem missing item=\(navTraceItem(item)) rendered=\(engine.renderedItems.count)")
+          return false
+        }
         let indexPath = IndexPath(item: index, section: 0)
         collectionView.layoutIfNeeded()
         guard let targetOffset = targetContentOffset(for: indexPath, in: collectionView) else {
@@ -451,6 +490,9 @@
         }
 
         let shouldAnimate = animated && parent.navigationAnimationDuration > 0
+        logNavTrace(
+          "scrollToItem item=\(navTraceItem(item)) index=\(index) animated=\(animated) shouldAnimate=\(shouldAnimate) from=\(navTraceOffset(collectionView.contentOffset)) target=\(navTraceOffset(targetOffset))"
+        )
 
         if shouldAnimate {
           engine.beginProgrammaticScroll(to: item)
@@ -671,6 +713,9 @@
           return false
         }
 
+        logNavTrace(
+          "finishProgrammaticScrollIfTargetReached target=\(navTraceItem(engine.programmaticTargetItem)) offset=\(navTraceOffset(collectionView.contentOffset))"
+        )
         finishProgrammaticScroll(in: collectionView)
         return true
       }
@@ -679,6 +724,7 @@
         guard let resolvedItem = engine.consumePendingProgrammaticCommit() else {
           return false
         }
+        logNavTrace("commitPendingProgrammatic item=\(navTraceItem(resolvedItem))")
         commitItemIfNeeded(resolvedItem, in: collectionView)
         return true
       }
@@ -693,6 +739,9 @@
         synchronizeViewModelImmediately: Bool
       ) {
         let previousCommittedItem = engine.committedItem
+        logNavTrace(
+          "commitItem item=\(navTraceItem(item)) previous=\(navTraceItem(previousCommittedItem)) syncImmediate=\(synchronizeViewModelImmediately) vmCurrent=\(navTraceItem(parent.viewModel.currentViewItem())) navTarget=\(navTraceItem(parent.viewModel.navigationTarget))"
+        )
         engine.commit(item)
         preloadVisiblePages(for: item)
         refreshCommittedPlaybackState(
@@ -885,6 +934,7 @@
 
         let interactionTargetItem =
           pendingUserInteractionTargetItem.flatMap { engine.resolveItem($0) } ?? pendingUserInteractionTargetItem
+        logNavTrace("finishScrollInteraction target=\(navTraceItem(interactionTargetItem))")
         let appliedQueuedItems = applyQueuedRenderedItemsIfNeeded(in: collectionView)
         let restoredViewport = finalizeDeferredViewportResyncIfNeeded(in: collectionView)
         if !appliedQueuedItems, !restoredViewport, parent.viewModel.navigationTarget == nil {
@@ -902,6 +952,9 @@
           return
         }
 
+        logNavTrace(
+          "finishProgrammaticScroll begin target=\(navTraceItem(engine.programmaticTargetItem)) offset=\(navTraceOffset(collectionView.contentOffset)) centered=\(navTraceItem(centeredItem(in: collectionView)))"
+        )
         pendingProgrammaticTargetOffset = nil
         _ = engine.endProgrammaticScroll()
         let appliedQueuedItems = applyQueuedRenderedItemsIfNeeded(in: collectionView)
@@ -1027,6 +1080,9 @@
         guard visibleBounds.width > 0, visibleBounds.height > 0 else { return }
         let normalizedX = min(max((location.x - visibleBounds.minX) / visibleBounds.width, 0), 1)
         let normalizedY = min(max((location.y - visibleBounds.minY) / visibleBounds.height, 0), 1)
+        logNavTrace(
+          "dispatchTap normalized=(\(String(format: "%.2f", normalizedX)),\(String(format: "%.2f", normalizedY))) current=\(navTraceItem(parent.viewModel.currentViewItem())) navTarget=\(navTraceItem(parent.viewModel.navigationTarget))"
+        )
         parent.onTapZoneTap(normalizedX, normalizedY)
       }
 
