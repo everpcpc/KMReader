@@ -639,8 +639,8 @@ class ReaderViewModel {
     return normalized >= 0 ? normalized : normalized + 360
   }
 
-  private func restoreCurrentPositionIfNotNavigating(using currentPageID: ReaderPageID?) {
-    guard navigationTarget == nil else { return }
+  private func restoreCurrentPosition(using currentPageID: ReaderPageID?) {
+    guard currentPageID != nil else { return }
     updateCurrentPosition(pageID: currentPageID)
   }
 
@@ -709,7 +709,7 @@ class ReaderViewModel {
       pages: fetchedPages
     )
     regenerateViewState()
-    restoreCurrentPositionIfNotNavigating(using: currentPageID)
+    restoreCurrentPosition(using: currentPageID)
   }
 
   func preloadPreviousSegmentIfNeeded(
@@ -754,7 +754,7 @@ class ReaderViewModel {
       pages: fetchedPages
     )
     regenerateViewState()
-    restoreCurrentPositionIfNotNavigating(using: currentPageID)
+    restoreCurrentPosition(using: currentPageID)
   }
 
   func loadPages(
@@ -1168,7 +1168,6 @@ class ReaderViewModel {
   }
 
   private func regenerateViewState() {
-    let preservedNavigationTarget = navigationTarget
     let preservedCurrentItem = currentViewItemID
     let preservedCurrentPageID = resolvedCurrentPageID
 
@@ -1192,10 +1191,6 @@ class ReaderViewModel {
       segmentPageRangeByBookId: segmentPageRangeByBookId
     )
     viewItemIndexByPage = generateViewItemIndexMap(items: viewItems)
-    navigationTarget = resolvedViewItem(
-      preferredItem: preservedNavigationTarget,
-      preferredPageID: preservedNavigationTarget?.pageID
-    )
     currentViewItemID = resolvedViewItem(
       preferredItem: preservedCurrentItem,
       preferredPageID: preservedCurrentPageID
@@ -1255,9 +1250,9 @@ class ReaderViewModel {
 
   func adjacentViewItem(from item: ReaderViewItem? = nil, offset: Int) -> ReaderViewItem? {
     guard offset != 0 else {
-      return item ?? navigationTarget ?? currentViewItem()
+      return item ?? currentViewItem()
     }
-    let anchorItem = item ?? navigationTarget ?? currentViewItem()
+    let anchorItem = item ?? currentViewItem()
     guard let anchorItem, let anchorIndex = viewItemIndex(for: anchorItem) else {
       return nil
     }
