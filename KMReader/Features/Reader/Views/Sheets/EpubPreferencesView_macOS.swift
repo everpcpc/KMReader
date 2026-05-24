@@ -21,6 +21,9 @@
     @AppStorage("epubShowsProgressFooter") private var epubShowsProgressFooter: Bool = false
     @AppStorage("epubShowKeyboardHelpOverlay")
     private var showKeyboardHelpOverlay: Bool = AppConfig.epubShowKeyboardHelpOverlay
+    @AppStorage("epubTapZoneMode") private var epubTapZoneMode: TapZoneMode = AppConfig.epubTapZoneMode
+    @AppStorage("epubTapZoneInversionMode")
+    private var epubTapZoneInversionMode: TapZoneInversionMode = AppConfig.epubTapZoneInversionMode
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
@@ -186,36 +189,18 @@
             }
 
             if draft.flowStyle.isPaged {
-              Picker(
-                String(localized: "Page Transition Style"),
-                selection: $epubPageTransitionStyle
-              ) {
-                ForEach(PageTransitionStyle.epubAvailableCases, id: \.self) { style in
-                  Text(style.displayName).tag(style)
+              VStack(alignment: .leading, spacing: 8) {
+                Picker(
+                  String(localized: "Page Transition Style"),
+                  selection: $epubPageTransitionStyle
+                ) {
+                  ForEach(PageTransitionStyle.epubAvailableCases, id: \.self) { style in
+                    Text(style.displayName).tag(style)
+                  }
                 }
-              }
-              .pickerStyle(.menu)
+                .pickerStyle(.menu)
 
-              Text(epubPageTransitionStyle.description)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            }
-          }
-
-          Section(String(localized: "Reader Overlay")) {
-            Toggle(isOn: $epubShowsProgressFooter) {
-              VStack(alignment: .leading, spacing: 4) {
-                Text(String(localized: "Show Progress Footer"))
-                Text(String(localized: "Show book progress at the bottom while reading."))
-                  .font(.caption)
-                  .foregroundStyle(.secondary)
-              }
-            }
-
-            Toggle(isOn: $showKeyboardHelpOverlay) {
-              VStack(alignment: .leading, spacing: 4) {
-                Text("Auto-Show Keyboard Help")
-                Text("Briefly show keyboard shortcuts when opening the reader")
+                Text(epubPageTransitionStyle.description)
                   .font(.caption)
                   .foregroundStyle(.secondary)
               }
@@ -258,21 +243,23 @@
               }
             }
 
-            HStack {
-              Text(fontWeightLabelText)
-              Spacer()
-              Toggle("", isOn: fontWeightEnabled)
-                .labelsHidden()
-            }
+            VStack(alignment: .leading, spacing: 8) {
+              HStack {
+                Text(fontWeightLabelText)
+                Spacer()
+                Toggle("", isOn: fontWeightEnabled)
+                  .labelsHidden()
+              }
 
-            Text(
-              String(
-                localized:
-                  "Font weight support depends on the current font. Some fonts may ignore this setting or only support part of the range."
+              Text(
+                String(
+                  localized:
+                    "Font weight support depends on the current font. Some fonts may ignore this setting or only support part of the range."
+                )
               )
-            )
-            .font(.caption)
-            .foregroundStyle(.secondary)
+              .font(.caption)
+              .foregroundStyle(.secondary)
+            }
 
             if draft.fontWeight != nil {
               Slider(
@@ -356,25 +343,27 @@
             }
 
             Section(String(localized: "Line & Paragraph")) {
-              Picker(
-                String(localized: "epub.text_alignment.title", defaultValue: "Text Alignment"),
-                selection: $draft.textAlignment
-              ) {
-                ForEach(EpubTextAlignment.allCases) { alignment in
-                  Text(alignment.displayName)
-                    .tag(alignment)
+              VStack(alignment: .leading, spacing: 8) {
+                Picker(
+                  String(localized: "epub.text_alignment.title", defaultValue: "Text Alignment"),
+                  selection: $draft.textAlignment
+                ) {
+                  ForEach(EpubTextAlignment.allCases) { alignment in
+                    Text(alignment.displayName)
+                      .tag(alignment)
+                  }
                 }
-              }
-              .pickerStyle(.menu)
+                .pickerStyle(.menu)
 
-              Text(
-                String(
-                  localized: "epub.text_alignment.justify.description",
-                  defaultValue: "Justify automatically enables hyphenation."
+                Text(
+                  String(
+                    localized: "epub.text_alignment.justify.description",
+                    defaultValue: "Justify automatically enables hyphenation."
+                  )
                 )
-              )
-              .font(.caption)
-              .foregroundStyle(.secondary)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+              }
 
               VStack(alignment: .leading) {
                 Slider(value: $draft.lineHeight, in: 0.5...2.5, step: 0.1)
@@ -399,6 +388,55 @@
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)
+              }
+            }
+          }
+
+          Section(String(localized: "Tap Zones")) {
+            VStack(alignment: .leading, spacing: 8) {
+              TapZoneModePicker(
+                selection: $epubTapZoneMode,
+                tapZoneInversionMode: epubTapZoneInversionMode,
+                readingDirection: draft.flowStyle.isPaged ? .ltr : .vertical
+              )
+
+              Text("Choose how tap zones are laid out")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+
+            if !epubTapZoneMode.isDisabled {
+              VStack(alignment: .leading, spacing: 8) {
+                Picker("Tap Zone Mirroring", selection: $epubTapZoneInversionMode) {
+                  ForEach(TapZoneInversionMode.allCases, id: \.self) { mode in
+                    Text(mode.displayName).tag(mode)
+                  }
+                }
+                .pickerStyle(.menu)
+
+                Text("Mirror left and right tap zones manually or automatically for RTL reading")
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+              }
+            }
+          }
+
+          Section(String(localized: "Reader Overlay")) {
+            Toggle(isOn: $epubShowsProgressFooter) {
+              VStack(alignment: .leading, spacing: 4) {
+                Text(String(localized: "Show Progress Footer"))
+                Text(String(localized: "Show book progress at the bottom while reading."))
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+              }
+            }
+
+            Toggle(isOn: $showKeyboardHelpOverlay) {
+              VStack(alignment: .leading, spacing: 4) {
+                Text("Auto-Show Keyboard Help")
+                Text("Briefly show keyboard shortcuts when opening the reader")
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
               }
             }
           }

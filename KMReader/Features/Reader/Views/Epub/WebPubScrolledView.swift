@@ -576,8 +576,8 @@
       let action = TapZoneHelper.action(
         normalizedX: normalizedX,
         normalizedY: normalizedY,
-        tapZoneMode: AppConfig.tapZoneMode,
-        tapZoneInversionMode: AppConfig.tapZoneInversionMode,
+        tapZoneMode: AppConfig.epubTapZoneMode,
+        tapZoneInversionMode: AppConfig.epubTapZoneInversionMode,
         readingDirection: tapReadingDirection()
       )
 
