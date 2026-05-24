@@ -1035,7 +1035,7 @@
           || isLongPressing
           || Date().timeIntervalSince(lastLongPressEndTime)
             < ReaderGestureConstants.longPressTapSuppressionInterval
-          || engine.isInteractionActive
+          || engine.isUserInteracting
           || collectionView.isDragging
           || collectionView.isDecelerating
           || collectionView.isTracking

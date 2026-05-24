@@ -1250,9 +1250,9 @@ class ReaderViewModel {
 
   func adjacentViewItem(from item: ReaderViewItem? = nil, offset: Int) -> ReaderViewItem? {
     guard offset != 0 else {
-      return item ?? currentViewItem()
+      return item ?? navigationTarget ?? currentViewItem()
     }
-    let anchorItem = item ?? currentViewItem()
+    let anchorItem = item ?? navigationTarget ?? currentViewItem()
     guard let anchorItem, let anchorIndex = viewItemIndex(for: anchorItem) else {
       return nil
     }
