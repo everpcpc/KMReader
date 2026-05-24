@@ -62,12 +62,19 @@ final class ScrollReaderEngine {
       ?? resolveItem(anchor, in: items)
   }
 
-  func consumeQueuedRenderedItems(anchorFallback: ReaderViewItem?) -> (
+  func consumeQueuedRenderedItems(
+    anchorFallback: ReaderViewItem?,
+    preferAnchorFallback: Bool = false
+  ) -> (
     items: [ReaderViewItem], anchor: ReaderViewItem?
   )? {
     guard let pendingRenderedItems else { return nil }
     self.pendingRenderedItems = nil
-    let anchor = deferredAnchorItem ?? resolveItem(anchorFallback, in: pendingRenderedItems)
+    let resolvedFallback = resolveItem(anchorFallback, in: pendingRenderedItems)
+    let anchor =
+      preferAnchorFallback
+      ? resolvedFallback ?? deferredAnchorItem
+      : deferredAnchorItem ?? resolvedFallback
     deferredAnchorItem = nil
     replaceRenderedItems(pendingRenderedItems)
     return (pendingRenderedItems, anchor)

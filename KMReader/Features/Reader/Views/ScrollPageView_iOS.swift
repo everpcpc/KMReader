@@ -404,8 +404,16 @@
       }
 
       @discardableResult
-      private func applyQueuedRenderedItemsIfNeeded(in collectionView: UICollectionView) -> Bool {
-        guard let update = engine.consumeQueuedRenderedItems(anchorFallback: currentAnchorItem(in: collectionView))
+      private func applyQueuedRenderedItemsIfNeeded(
+        in collectionView: UICollectionView,
+        anchorFallback: ReaderViewItem? = nil,
+        preferAnchorFallback: Bool = false
+      ) -> Bool {
+        guard
+          let update = engine.consumeQueuedRenderedItems(
+            anchorFallback: anchorFallback ?? currentAnchorItem(in: collectionView),
+            preferAnchorFallback: preferAnchorFallback
+          )
         else {
           return false
         }
@@ -952,12 +960,17 @@
           return
         }
 
+        let programmaticTargetItem = engine.programmaticTargetItem
         logNavTrace(
-          "finishProgrammaticScroll begin target=\(navTraceItem(engine.programmaticTargetItem)) offset=\(navTraceOffset(collectionView.contentOffset)) centered=\(navTraceItem(centeredItem(in: collectionView)))"
+          "finishProgrammaticScroll begin target=\(navTraceItem(programmaticTargetItem)) offset=\(navTraceOffset(collectionView.contentOffset)) centered=\(navTraceItem(centeredItem(in: collectionView)))"
         )
         pendingProgrammaticTargetOffset = nil
         _ = engine.endProgrammaticScroll()
-        let appliedQueuedItems = applyQueuedRenderedItemsIfNeeded(in: collectionView)
+        let appliedQueuedItems = applyQueuedRenderedItemsIfNeeded(
+          in: collectionView,
+          anchorFallback: programmaticTargetItem,
+          preferAnchorFallback: true
+        )
         let committedPendingItem = commitPendingProgrammaticItemIfNeeded(in: collectionView)
         let restoredViewport = finalizeDeferredViewportResyncIfNeeded(in: collectionView)
         if !committedPendingItem {
