@@ -968,7 +968,7 @@
           || Date().timeIntervalSince(lastLongPressEndTime)
             < ReaderGestureConstants.longPressTapSuppressionInterval
           || isAdjustingBounds
-          || engine.isInteractionActive
+          || engine.isUserInteracting
       }
 
       private func dispatchTapZoneTap(
