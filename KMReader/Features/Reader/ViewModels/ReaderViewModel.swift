@@ -639,6 +639,11 @@ class ReaderViewModel {
     return normalized >= 0 ? normalized : normalized + 360
   }
 
+  private func restoreCurrentPositionIfNotNavigating(using currentPageID: ReaderPageID?) {
+    guard navigationTarget == nil else { return }
+    updateCurrentPosition(pageID: currentPageID)
+  }
+
   private func syncPageLoadSchedulerCurrentPage() {
     pageLoadScheduler.updateCurrentPageID(resolvedCurrentPageID)
   }
@@ -695,6 +700,7 @@ class ReaderViewModel {
 
     await hydrateIsolatePages(for: nextBook.id)
     await hydratePageRotations(for: nextBook.id)
+    let currentPageID = currentReaderPage?.id
 
     appendSegment(
       currentBook: nextBook,
@@ -703,6 +709,7 @@ class ReaderViewModel {
       pages: fetchedPages
     )
     regenerateViewState()
+    restoreCurrentPositionIfNotNavigating(using: currentPageID)
   }
 
   func preloadPreviousSegmentIfNeeded(
@@ -738,6 +745,7 @@ class ReaderViewModel {
 
     await hydrateIsolatePages(for: previousBook.id)
     await hydratePageRotations(for: previousBook.id)
+    let currentPageID = currentReaderPage?.id
 
     prependSegment(
       currentBook: previousBook,
@@ -746,6 +754,7 @@ class ReaderViewModel {
       pages: fetchedPages
     )
     regenerateViewState()
+    restoreCurrentPositionIfNotNavigating(using: currentPageID)
   }
 
   func loadPages(
