@@ -276,6 +276,7 @@
 
         currentVC.configure(
           chapterURL: viewModel.chapterURL(at: chapterIndex),
+          chapterMediaType: viewModel.chapterMediaType(at: chapterIndex),
           rootURL: viewModel.resourceRootURL,
           containerInsets: containerInsets,
           theme: theme,
@@ -480,6 +481,7 @@
 
         let fontPath = parent.preferences.fontFamily.fontName.flatMap { CustomFontStore.shared.getFontPath(for: $0) }
         let chapterURL = parent.viewModel.chapterURL(at: chapterIndex)
+        let chapterMediaType = parent.viewModel.chapterMediaType(at: chapterIndex)
         let rootURL = parent.viewModel.resourceRootURL
         let readiumPayload = parent.preferences.makeReadiumPayload(
           theme: theme,
@@ -512,6 +514,7 @@
         if let cached = cachedControllers[key] {
           cached.configure(
             chapterURL: chapterURL,
+            chapterMediaType: chapterMediaType,
             rootURL: rootURL,
             containerInsets: containerInsets,
             theme: theme,
@@ -545,6 +548,7 @@
         }) {
           reusable.configure(
             chapterURL: chapterURL,
+            chapterMediaType: chapterMediaType,
             rootURL: rootURL,
             containerInsets: containerInsets,
             theme: theme,
@@ -577,6 +581,7 @@
 
         let controller = EpubPageViewController(
           chapterURL: chapterURL,
+          chapterMediaType: chapterMediaType,
           rootURL: rootURL,
           containerInsets: containerInsets,
           theme: theme,
@@ -1133,6 +1138,7 @@
     private var publicationLanguage: String?
     private var publicationReadingProgression: WebPubReadingProgression?
     private var chapterURL: URL?
+    private var chapterMediaType: String?
     private var rootURL: URL?
     private var lastLayoutSize: CGSize = .zero
     private var isContentLoaded = false
@@ -1158,6 +1164,7 @@
 
     init(
       chapterURL: URL?,
+      chapterMediaType: String?,
       rootURL: URL?,
       containerInsets: UIEdgeInsets,
       theme: ReaderTheme,
@@ -1178,6 +1185,7 @@
       onPageCountReady: ((Int) -> Void)?
     ) {
       self.chapterURL = chapterURL
+      self.chapterMediaType = chapterMediaType
       self.rootURL = rootURL
       self.containerInsets = containerInsets
       self.theme = theme
@@ -1266,6 +1274,7 @@
 
     func configure(
       chapterURL: URL?,
+      chapterMediaType: String?,
       rootURL: URL?,
       containerInsets: UIEdgeInsets,
       theme: ReaderTheme,
@@ -1287,7 +1296,8 @@
       targetProgressionOnReady: Double? = nil,
       onPageCountReady: ((Int) -> Void)?
     ) {
-      let shouldReload = chapterURL != self.chapterURL || rootURL != self.rootURL
+      let shouldReload =
+        chapterURL != self.chapterURL || chapterMediaType != self.chapterMediaType || rootURL != self.rootURL
       let appearanceChanged =
         theme != self.theme
         || containerInsets != self.containerInsets
@@ -1305,6 +1315,7 @@
       }
 
       self.chapterURL = chapterURL
+      self.chapterMediaType = chapterMediaType
       self.rootURL = rootURL
       self.containerInsets = containerInsets
       self.theme = theme
@@ -1533,7 +1544,7 @@
         loadingIndicator?.startAnimating()
       }
 
-      webView.loadFileURL(chapterURL, allowingReadAccessTo: rootURL)
+      webView.loadEPUBDocument(url: chapterURL, rootURL: rootURL, mediaType: chapterMediaType)
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {

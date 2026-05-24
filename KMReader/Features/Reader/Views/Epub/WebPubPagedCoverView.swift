@@ -235,6 +235,7 @@
           CustomFontStore.shared.getFontPath(for: $0)
         }
         let chapterURL = parent.viewModel.chapterURL(at: chapterIndex)
+        let chapterMediaType = parent.viewModel.chapterMediaType(at: chapterIndex)
         let rootURL = parent.viewModel.resourceRootURL
         let readiumPayload = parent.preferences.makeReadiumPayload(
           theme: theme,
@@ -268,6 +269,7 @@
         if let cached = cachedControllers[key] {
           cached.configure(
             chapterURL: chapterURL,
+            chapterMediaType: chapterMediaType,
             rootURL: rootURL,
             containerInsets: containerInsets,
             theme: theme,
@@ -303,6 +305,7 @@
         }) {
           reusable.configure(
             chapterURL: chapterURL,
+            chapterMediaType: chapterMediaType,
             rootURL: rootURL,
             containerInsets: containerInsets,
             theme: theme,
@@ -335,6 +338,7 @@
 
         let controller = EpubPageViewController(
           chapterURL: chapterURL,
+          chapterMediaType: chapterMediaType,
           rootURL: rootURL,
           containerInsets: containerInsets,
           theme: theme,
@@ -416,6 +420,7 @@
 
         controller.configure(
           chapterURL: parent.viewModel.chapterURL(at: chapterIndex),
+          chapterMediaType: parent.viewModel.chapterMediaType(at: chapterIndex),
           rootURL: parent.viewModel.resourceRootURL,
           containerInsets: containerInsets,
           theme: theme,

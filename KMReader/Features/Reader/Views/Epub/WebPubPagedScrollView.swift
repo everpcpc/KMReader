@@ -41,6 +41,7 @@
 
       let vc = PagedScrollEpubViewController(
         chapterURL: viewModel.chapterURL(at: chapterIndex),
+        chapterMediaType: viewModel.chapterMediaType(at: chapterIndex),
         rootURL: viewModel.resourceRootURL,
         containerInsets: viewModel.containerInsetsForLabels().uiEdgeInsets,
         theme: theme,
@@ -198,6 +199,7 @@
 
       uiViewController.configure(
         chapterURL: viewModel.chapterURL(at: chapterIndex),
+        chapterMediaType: viewModel.chapterMediaType(at: chapterIndex),
         rootURL: viewModel.resourceRootURL,
         containerInsets: containerInsets,
         theme: theme,
@@ -247,6 +249,7 @@
     private var publicationReadingProgression: WebPubReadingProgression?
     private var animatePageTransitions: Bool
     private var chapterURL: URL?
+    private var chapterMediaType: String?
     private var rootURL: URL?
     private var lastLayoutSize: CGSize = .zero
     private var isContentLoaded = false
@@ -300,6 +303,7 @@
 
     init(
       chapterURL: URL?,
+      chapterMediaType: String?,
       rootURL: URL?,
       containerInsets: UIEdgeInsets,
       theme: ReaderTheme,
@@ -321,6 +325,7 @@
       useSafeArea: Bool
     ) {
       self.chapterURL = chapterURL
+      self.chapterMediaType = chapterMediaType
       self.rootURL = rootURL
       self.containerInsets = containerInsets
       self.theme = theme
@@ -718,6 +723,7 @@
 
     func configure(
       chapterURL: URL?,
+      chapterMediaType: String?,
       rootURL: URL?,
       containerInsets: UIEdgeInsets,
       theme: ReaderTheme,
@@ -736,7 +742,8 @@
       labelBottomOffset: CGFloat,
       useSafeArea: Bool
     ) {
-      let shouldReload = chapterURL != self.chapterURL || rootURL != self.rootURL
+      let shouldReload =
+        chapterURL != self.chapterURL || chapterMediaType != self.chapterMediaType || rootURL != self.rootURL
       let appearanceChanged =
         theme != self.theme
         || containerInsets != self.containerInsets
@@ -749,6 +756,7 @@
         || useSafeArea != self.useSafeArea
 
       self.chapterURL = chapterURL
+      self.chapterMediaType = chapterMediaType
       self.rootURL = rootURL
       self.containerInsets = containerInsets
       self.theme = theme
@@ -801,7 +809,7 @@
       webView.alpha = 0.01
       loadingIndicator?.startAnimating()
 
-      webView.loadFileURL(chapterURL, allowingReadAccessTo: rootURL)
+      webView.loadEPUBDocument(url: chapterURL, rootURL: rootURL, mediaType: chapterMediaType)
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {

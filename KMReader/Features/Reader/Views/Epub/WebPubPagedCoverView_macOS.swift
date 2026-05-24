@@ -63,6 +63,7 @@
       let pageIndex: Int
       let rawPageIndex: Int
       let chapterURL: URL?
+      let chapterMediaType: String?
       let rootURL: URL?
       let contentCSS: String
       let readiumProperties: [String: String?]
@@ -100,6 +101,7 @@
     private var currentSubPageIndex: Int = 0
     private var totalPagesInChapter: Int = 1
     private var chapterURL: URL?
+    private var chapterMediaType: String?
     private var rootURL: URL?
     private var contentCSS: String = ""
     private var readiumProperties: [String: String?] = [:]
@@ -162,8 +164,10 @@
       )
 
       let nextChapterURL = parent.viewModel.chapterURL(at: requestedChapterIndex)
+      let nextChapterMediaType = parent.viewModel.chapterMediaType(at: requestedChapterIndex)
       let nextRootURL = parent.viewModel.resourceRootURL
-      let shouldReload = nextChapterURL != chapterURL || nextRootURL != rootURL
+      let shouldReload =
+        nextChapterURL != chapterURL || nextChapterMediaType != chapterMediaType || nextRootURL != rootURL
       let appearanceChanged =
         contentCSS != readiumPayload.css
         || readiumProperties != readiumPayload.properties
@@ -198,6 +202,7 @@
           pageIndex: requestedPageIndex,
           rawPageIndex: requestedRawPageIndex,
           chapterURL: nextChapterURL,
+          chapterMediaType: nextChapterMediaType,
           rootURL: nextRootURL,
           contentCSS: readiumPayload.css,
           readiumProperties: readiumPayload.properties,
@@ -219,6 +224,7 @@
         chapterIndex: requestedChapterIndex,
         pageIndex: requestedPageIndex,
         chapterURL: nextChapterURL,
+        chapterMediaType: nextChapterMediaType,
         rootURL: nextRootURL,
         contentCSS: readiumPayload.css,
         readiumProperties: readiumPayload.properties,
@@ -278,6 +284,7 @@
         chapterIndex: request.chapterIndex,
         pageIndex: request.pageIndex,
         chapterURL: request.chapterURL,
+        chapterMediaType: request.chapterMediaType,
         rootURL: request.rootURL,
         contentCSS: request.contentCSS,
         readiumProperties: request.readiumProperties,
@@ -433,6 +440,7 @@
       chapterIndex: Int,
       pageIndex: Int,
       chapterURL: URL?,
+      chapterMediaType: String?,
       rootURL: URL?,
       contentCSS: String,
       readiumProperties: [String: String?],
@@ -444,6 +452,7 @@
       self.chapterIndex = chapterIndex
       self.currentSubPageIndex = pageIndex
       self.chapterURL = chapterURL
+      self.chapterMediaType = chapterMediaType
       self.rootURL = rootURL
       self.contentCSS = contentCSS
       self.readiumProperties = readiumProperties
@@ -459,7 +468,7 @@
       totalPagesInChapter = 1
       isAwaitingPaginationReady = true
       webView.alphaValue = 0.01
-      webView.loadFileURL(chapterURL, allowingReadAccessTo: rootURL)
+      webView.loadEPUBDocument(url: chapterURL, rootURL: rootURL, mediaType: chapterMediaType)
     }
 
     private func installOverlayIfNeeded() {

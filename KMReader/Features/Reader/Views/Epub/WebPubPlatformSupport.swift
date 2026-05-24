@@ -54,6 +54,26 @@
     }
   }
 
+  extension WKWebView {
+    func loadEPUBDocument(
+      url: URL,
+      rootURL: URL,
+      mediaType: String?
+    ) {
+      guard let mediaType, let data = try? Data(contentsOf: url) else {
+        loadFileURL(url, allowingReadAccessTo: rootURL)
+        return
+      }
+
+      load(
+        data,
+        mimeType: mediaType,
+        characterEncodingName: "utf-8",
+        baseURL: url.deletingLastPathComponent()
+      )
+    }
+  }
+
   extension URL {
     var deletingFragment: URL {
       guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else {
