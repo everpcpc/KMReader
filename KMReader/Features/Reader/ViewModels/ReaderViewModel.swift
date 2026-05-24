@@ -641,6 +641,7 @@ class ReaderViewModel {
 
   private func restoreCurrentPosition(using currentPageID: ReaderPageID?) {
     guard currentPageID != nil else { return }
+    guard navigationTarget == nil else { return }
     updateCurrentPosition(pageID: currentPageID)
   }
 
