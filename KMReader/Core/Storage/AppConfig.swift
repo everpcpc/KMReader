@@ -694,9 +694,7 @@ enum AppConfig {
         return mode
       }
 
-      let migratedMode = tapZoneMode
-      UserDefaults.standard.set(migratedMode.rawValue, forKey: "epubTapZoneMode")
-      return migratedMode
+      return .defaultLayout
     }
     set {
       UserDefaults.standard.set(newValue.rawValue, forKey: "epubTapZoneMode")
@@ -711,9 +709,7 @@ enum AppConfig {
         return mode
       }
 
-      let migratedMode = tapZoneInversionMode
-      UserDefaults.standard.set(migratedMode.rawValue, forKey: "epubTapZoneInversionMode")
-      return migratedMode
+      return .auto
     }
     set {
       UserDefaults.standard.set(newValue.rawValue, forKey: "epubTapZoneInversionMode")

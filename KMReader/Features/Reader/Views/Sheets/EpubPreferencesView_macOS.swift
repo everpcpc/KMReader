@@ -206,27 +206,31 @@
           }
 
           Section(String(localized: "Tap Zones")) {
-            TapZoneModePicker(
-              selection: $epubTapZoneMode,
-              tapZoneInversionMode: epubTapZoneInversionMode,
-              readingDirection: draft.flowStyle.isPaged ? .ltr : .vertical
-            )
+            VStack(alignment: .leading, spacing: 8) {
+              TapZoneModePicker(
+                selection: $epubTapZoneMode,
+                tapZoneInversionMode: epubTapZoneInversionMode,
+                readingDirection: draft.flowStyle.isPaged ? .ltr : .vertical
+              )
 
-            Text("Choose how tap zones are laid out")
-              .font(.caption)
-              .foregroundStyle(.secondary)
-
-            if !epubTapZoneMode.isDisabled {
-              Picker("Tap Zone Mirroring", selection: $epubTapZoneInversionMode) {
-                ForEach(TapZoneInversionMode.allCases, id: \.self) { mode in
-                  Text(mode.displayName).tag(mode)
-                }
-              }
-              .pickerStyle(.menu)
-
-              Text("Mirror left and right tap zones manually or automatically for RTL reading")
+              Text("Choose how tap zones are laid out")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+            }
+
+            if !epubTapZoneMode.isDisabled {
+              VStack(alignment: .leading, spacing: 8) {
+                Picker("Tap Zone Mirroring", selection: $epubTapZoneInversionMode) {
+                  ForEach(TapZoneInversionMode.allCases, id: \.self) { mode in
+                    Text(mode.displayName).tag(mode)
+                  }
+                }
+                .pickerStyle(.menu)
+
+                Text("Mirror left and right tap zones manually or automatically for RTL reading")
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+              }
             }
           }
 
