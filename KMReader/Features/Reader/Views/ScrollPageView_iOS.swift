@@ -210,6 +210,8 @@
         installApplicationObserverIfNeeded()
         pagePresentationCoordinator.update(viewModel: parent.viewModel)
 
+        recoverStaleUserInteractionIfNeeded(in: collectionView)
+
         let displayedItems = parent.mode.displayOrderedItems(parent.viewModel.viewItems)
         let anchorItem = currentAnchorItem(in: collectionView)
         let sizeChanged = updateLayoutIfNeeded(for: collectionView)
@@ -992,6 +994,7 @@
         singleTapWorkItem?.cancel()
         guard gesture.state == .ended else { return }
         guard let collectionView else { return }
+        recoverStaleUserInteractionIfNeeded(in: collectionView)
         guard !isTapZoneSuppressed(in: collectionView) else { return }
 
         let location = gesture.location(in: collectionView)
@@ -1030,12 +1033,17 @@
         }
       }
 
+      private func recoverStaleUserInteractionIfNeeded(in collectionView: UICollectionView) {
+        guard engine.isUserInteracting else { return }
+        guard !collectionView.isDragging, !collectionView.isDecelerating, !collectionView.isTracking else { return }
+        finishScrollInteractionIfNeeded()
+      }
+
       private func isTapZoneSuppressed(in collectionView: UICollectionView) -> Bool {
         parent.viewModel.isZoomed
           || isLongPressing
           || Date().timeIntervalSince(lastLongPressEndTime)
             < ReaderGestureConstants.longPressTapSuppressionInterval
-          || engine.isUserInteracting
           || collectionView.isDragging
           || collectionView.isDecelerating
           || collectionView.isTracking
@@ -1043,6 +1051,7 @@
 
       private func dispatchTapZoneTap(at location: CGPoint, in collectionView: UICollectionView) {
         singleTapWorkItem = nil
+        recoverStaleUserInteractionIfNeeded(in: collectionView)
         guard !isTapZoneSuppressed(in: collectionView) else { return }
 
         let visibleBounds = collectionView.bounds
