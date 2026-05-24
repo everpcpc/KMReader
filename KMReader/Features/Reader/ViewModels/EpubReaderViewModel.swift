@@ -1000,8 +1000,36 @@
           )
           throw AppErrorType.unknown(message: offlineEpubRecoveryMessage())
         }
+        try normalizeKoboScriptedChapterIfNeeded(at: cachedURL)
         chapterURLCache[index] = cachedURL
       }
+    }
+
+    private func normalizeKoboScriptedChapterIfNeeded(at url: URL) throws {
+      guard url.pathExtension.lowercased() == "html" || url.pathExtension.lowercased() == "xhtml" else {
+        return
+      }
+
+      let data = try Data(contentsOf: url)
+      guard var html = String(data: data, encoding: .utf8) else { return }
+      guard html.range(of: "kobo.js", options: .caseInsensitive) != nil else { return }
+      guard
+        html.range(of: "koboSpan", options: .caseInsensitive) != nil
+          || html.range(of: "book-inner", options: .caseInsensitive) != nil
+      else {
+        return
+      }
+
+      let originalHTML = html
+      html = html.replacingOccurrences(
+        of: #"<script\b(?=[^>]*\bsrc\s*=\s*["'][^"']*kobo\.js(?:[?#][^"']*)?["'])[^>]*(?:/>|>\s*</script\s*>)"#,
+        with: "",
+        options: [.regularExpression, .caseInsensitive]
+      )
+
+      guard html != originalHTML else { return }
+      try html.data(using: .utf8)?.write(to: url, options: .atomic)
+      logger.debug("Normalized Kobo scripted EPUB chapter before WebView load: \(url.lastPathComponent)")
     }
 
     private func offlineEpubRecoveryMessage() -> String {
