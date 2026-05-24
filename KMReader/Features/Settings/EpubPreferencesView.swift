@@ -192,64 +192,6 @@
           }
         }
 
-        Section(String(localized: "Tap Zones")) {
-          VStack(alignment: .leading, spacing: 8) {
-            TapZoneModePicker(
-              selection: $epubTapZoneMode,
-              tapZoneInversionMode: epubTapZoneInversionMode,
-              readingDirection: draft.flowStyle.isPaged ? .ltr : .vertical
-            )
-
-            Text("Choose how tap zones are laid out")
-              .font(.caption)
-              .foregroundStyle(.secondary)
-          }
-
-          if !epubTapZoneMode.isDisabled {
-            VStack(alignment: .leading, spacing: 8) {
-              Picker("Tap Zone Mirroring", selection: $epubTapZoneInversionMode) {
-                ForEach(TapZoneInversionMode.allCases, id: \.self) { mode in
-                  Text(mode.displayName).tag(mode)
-                }
-              }
-              .pickerStyle(.menu)
-
-              Text("Mirror left and right tap zones manually or automatically for RTL reading")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            }
-          }
-        }
-
-        Section(String(localized: "Reader Overlay")) {
-          Toggle(isOn: $epubShowsStatusBarWhileReading) {
-            VStack(alignment: .leading, spacing: 4) {
-              Text(String(localized: "Show Status Bar While Reading"))
-              Text(String(localized: "Keep time and battery visible when controls are hidden."))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            }
-          }
-
-          Toggle(isOn: $epubShowsProgressFooter) {
-            VStack(alignment: .leading, spacing: 4) {
-              Text(String(localized: "Show Progress Footer"))
-              Text(String(localized: "Show book progress at the bottom while reading."))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            }
-          }
-
-          Toggle(isOn: $showKeyboardHelpOverlay) {
-            VStack(alignment: .leading, spacing: 4) {
-              Text("Auto-Show Keyboard Help")
-              Text("Briefly show keyboard shortcuts when opening the reader")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            }
-          }
-        }
-
         Section(String(localized: "Presets")) {
           Button {
             showPresetsSheet = true
@@ -445,6 +387,64 @@
               )
               .font(.caption)
               .foregroundStyle(.secondary)
+            }
+          }
+        }
+
+        Section(String(localized: "Tap Zones")) {
+          VStack(alignment: .leading, spacing: 8) {
+            TapZoneModePicker(
+              selection: $epubTapZoneMode,
+              tapZoneInversionMode: epubTapZoneInversionMode,
+              readingDirection: draft.flowStyle.isPaged ? .ltr : .vertical
+            )
+
+            Text("Choose how tap zones are laid out")
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          }
+
+          if !epubTapZoneMode.isDisabled {
+            VStack(alignment: .leading, spacing: 8) {
+              Picker("Tap Zone Mirroring", selection: $epubTapZoneInversionMode) {
+                ForEach(TapZoneInversionMode.allCases, id: \.self) { mode in
+                  Text(mode.displayName).tag(mode)
+                }
+              }
+              .pickerStyle(.menu)
+
+              Text("Mirror left and right tap zones manually or automatically for RTL reading")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+          }
+        }
+
+        Section(String(localized: "Reader Overlay")) {
+          Toggle(isOn: $epubShowsStatusBarWhileReading) {
+            VStack(alignment: .leading, spacing: 4) {
+              Text(String(localized: "Show Status Bar While Reading"))
+              Text(String(localized: "Keep time and battery visible when controls are hidden."))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+          }
+
+          Toggle(isOn: $epubShowsProgressFooter) {
+            VStack(alignment: .leading, spacing: 4) {
+              Text(String(localized: "Show Progress Footer"))
+              Text(String(localized: "Show book progress at the bottom while reading."))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+          }
+
+          Toggle(isOn: $showKeyboardHelpOverlay) {
+            VStack(alignment: .leading, spacing: 4) {
+              Text("Auto-Show Keyboard Help")
+              Text("Briefly show keyboard shortcuts when opening the reader")
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
           }
         }
