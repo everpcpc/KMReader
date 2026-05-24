@@ -943,7 +943,11 @@
         let interactionTargetItem =
           pendingUserInteractionTargetItem.flatMap { engine.resolveItem($0) } ?? pendingUserInteractionTargetItem
         logNavTrace("finishScrollInteraction target=\(navTraceItem(interactionTargetItem))")
-        let appliedQueuedItems = applyQueuedRenderedItemsIfNeeded(in: collectionView)
+        let appliedQueuedItems = applyQueuedRenderedItemsIfNeeded(
+          in: collectionView,
+          anchorFallback: interactionTargetItem,
+          preferAnchorFallback: interactionTargetItem != nil
+        )
         let restoredViewport = finalizeDeferredViewportResyncIfNeeded(in: collectionView)
         if !appliedQueuedItems, !restoredViewport, parent.viewModel.navigationTarget == nil {
           if let interactionTargetItem {
