@@ -189,19 +189,21 @@
             }
 
             if draft.flowStyle.isPaged {
-              Picker(
-                String(localized: "Page Transition Style"),
-                selection: $epubPageTransitionStyle
-              ) {
-                ForEach(PageTransitionStyle.epubAvailableCases, id: \.self) { style in
-                  Text(style.displayName).tag(style)
+              VStack(alignment: .leading, spacing: 8) {
+                Picker(
+                  String(localized: "Page Transition Style"),
+                  selection: $epubPageTransitionStyle
+                ) {
+                  ForEach(PageTransitionStyle.epubAvailableCases, id: \.self) { style in
+                    Text(style.displayName).tag(style)
+                  }
                 }
-              }
-              .pickerStyle(.menu)
+                .pickerStyle(.menu)
 
-              Text(epubPageTransitionStyle.description)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                Text(epubPageTransitionStyle.description)
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+              }
             }
           }
 
@@ -290,21 +292,23 @@
               }
             }
 
-            HStack {
-              Text(fontWeightLabelText)
-              Spacer()
-              Toggle("", isOn: fontWeightEnabled)
-                .labelsHidden()
-            }
+            VStack(alignment: .leading, spacing: 8) {
+              HStack {
+                Text(fontWeightLabelText)
+                Spacer()
+                Toggle("", isOn: fontWeightEnabled)
+                  .labelsHidden()
+              }
 
-            Text(
-              String(
-                localized:
-                  "Font weight support depends on the current font. Some fonts may ignore this setting or only support part of the range."
+              Text(
+                String(
+                  localized:
+                    "Font weight support depends on the current font. Some fonts may ignore this setting or only support part of the range."
+                )
               )
-            )
-            .font(.caption)
-            .foregroundStyle(.secondary)
+              .font(.caption)
+              .foregroundStyle(.secondary)
+            }
 
             if draft.fontWeight != nil {
               Slider(
@@ -388,25 +392,27 @@
             }
 
             Section(String(localized: "Line & Paragraph")) {
-              Picker(
-                String(localized: "epub.text_alignment.title", defaultValue: "Text Alignment"),
-                selection: $draft.textAlignment
-              ) {
-                ForEach(EpubTextAlignment.allCases) { alignment in
-                  Text(alignment.displayName)
-                    .tag(alignment)
+              VStack(alignment: .leading, spacing: 8) {
+                Picker(
+                  String(localized: "epub.text_alignment.title", defaultValue: "Text Alignment"),
+                  selection: $draft.textAlignment
+                ) {
+                  ForEach(EpubTextAlignment.allCases) { alignment in
+                    Text(alignment.displayName)
+                      .tag(alignment)
+                  }
                 }
-              }
-              .pickerStyle(.menu)
+                .pickerStyle(.menu)
 
-              Text(
-                String(
-                  localized: "epub.text_alignment.justify.description",
-                  defaultValue: "Justify automatically enables hyphenation."
+                Text(
+                  String(
+                    localized: "epub.text_alignment.justify.description",
+                    defaultValue: "Justify automatically enables hyphenation."
+                  )
                 )
-              )
-              .font(.caption)
-              .foregroundStyle(.secondary)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+              }
 
               VStack(alignment: .leading) {
                 Slider(value: $draft.lineHeight, in: 0.5...2.5, step: 0.1)

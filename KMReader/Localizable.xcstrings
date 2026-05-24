@@ -73826,9 +73826,7 @@
         }
       }
     },
-    "Tap Zones" : {
-
-    },
+    "Tap Zones" : {},
     "Task Queue Status" : {
       "localizations" : {
         "de" : {
