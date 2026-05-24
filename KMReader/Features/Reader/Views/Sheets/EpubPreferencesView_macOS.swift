@@ -149,278 +149,266 @@
     }
 
     var body: some View {
-      SheetView(title: navigationTitle, size: .large, onReset: resetPreferences, applyFormStyle: true) {
-        VStack(spacing: 0) {
-          EpubSettingsPreviewView(preferences: draft)
-            .frame(height: 160)
-            .background(backgroundColor)
-            .overlay(alignment: .bottom) {
-              LinearGradient(
-                colors: [
-                  backgroundColor,
-                  backgroundColor.opacity(0),
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-              )
-              .frame(height: 20)
-              .offset(y: 20)
-              .allowsHitTesting(false)
+      VStack(spacing: 0) {
+        EpubSettingsPreviewView(preferences: draft)
+          .frame(height: 160)
+          .background(backgroundColor)
+          .overlay(alignment: .bottom) {
+            LinearGradient(
+              colors: [
+                backgroundColor,
+                backgroundColor.opacity(0),
+              ],
+              startPoint: .top,
+              endPoint: .bottom
+            )
+            .frame(height: 20)
+            .offset(y: 20)
+            .allowsHitTesting(false)
+          }
+
+        Form {
+          Section(String(localized: "Page Turn")) {
+            Picker(String(localized: "epub.reading_flow"), selection: $draft.flowStyle) {
+              ForEach(EpubFlowStyle.allCases) { style in
+                Text(style.displayName).tag(style)
+              }
+            }
+            .pickerStyle(.menu)
+
+            Toggle(isOn: $animateEpubTapTurns) {
+              VStack(alignment: .leading, spacing: 4) {
+                Text("Animate Page Turns")
+                Text("Use animation when tapping zones to turn pages")
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+              }
             }
 
-          Form {
-            Section(String(localized: "Page Turn")) {
-              Picker(String(localized: "epub.reading_flow"), selection: $draft.flowStyle) {
-                ForEach(EpubFlowStyle.allCases) { style in
+            if draft.flowStyle.isPaged {
+              Picker(
+                String(localized: "Page Transition Style"),
+                selection: $epubPageTransitionStyle
+              ) {
+                ForEach(PageTransitionStyle.epubAvailableCases, id: \.self) { style in
                   Text(style.displayName).tag(style)
                 }
               }
               .pickerStyle(.menu)
 
-              Toggle(isOn: $animateEpubTapTurns) {
-                VStack(alignment: .leading, spacing: 4) {
-                  Text("Animate Page Turns")
-                  Text("Use animation when tapping zones to turn pages")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                }
-              }
+              Text(epubPageTransitionStyle.description)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+          }
 
-              if draft.flowStyle.isPaged {
-                Picker(
-                  String(localized: "Page Transition Style"),
-                  selection: $epubPageTransitionStyle
-                ) {
-                  ForEach(PageTransitionStyle.epubAvailableCases, id: \.self) { style in
-                    Text(style.displayName).tag(style)
-                  }
-                }
-                .pickerStyle(.menu)
-
-                Text(epubPageTransitionStyle.description)
+          Section(String(localized: "Reader Overlay")) {
+            Toggle(isOn: $epubShowsProgressFooter) {
+              VStack(alignment: .leading, spacing: 4) {
+                Text(String(localized: "Show Progress Footer"))
+                Text(String(localized: "Show book progress at the bottom while reading."))
                   .font(.caption)
                   .foregroundStyle(.secondary)
               }
             }
 
-            Section(String(localized: "Reader Overlay")) {
-              Toggle(isOn: $epubShowsProgressFooter) {
-                VStack(alignment: .leading, spacing: 4) {
-                  Text(String(localized: "Show Progress Footer"))
-                  Text(String(localized: "Show book progress at the bottom while reading."))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            Toggle(isOn: $showKeyboardHelpOverlay) {
+              VStack(alignment: .leading, spacing: 4) {
+                Text("Auto-Show Keyboard Help")
+                Text("Briefly show keyboard shortcuts when opening the reader")
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+              }
+            }
+          }
+
+          Section(String(localized: "Presets")) {
+            Button(String(localized: "Load Preset")) {
+              showPresetsSheet = true
+            }
+
+            Button(String(localized: "Save as Preset")) {
+              showSavePresetAlert = true
+            }
+          }
+
+          Section(String(localized: "Theme")) {
+            themePicker
+          }
+
+          Section(String(localized: "Font")) {
+            HStack {
+              Text(String(localized: "Typeface"))
+              Spacer()
+              Text(draft.fontFamily.displayName)
+                .foregroundStyle(.secondary)
+            }
+
+            HStack {
+              Button(String(localized: "Choose Font")) {
+                showSystemFontPicker = true
+              }
+
+              Spacer()
+
+              if selectedSystemFontName != nil {
+                Button(String(localized: "Publisher Default")) {
+                  draft.fontFamily = .publisher
                 }
               }
+            }
 
-              Toggle(isOn: $showKeyboardHelpOverlay) {
-                VStack(alignment: .leading, spacing: 4) {
-                  Text("Auto-Show Keyboard Help")
-                  Text("Briefly show keyboard shortcuts when opening the reader")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            HStack {
+              Text(fontWeightLabelText)
+              Spacer()
+              Toggle("", isOn: fontWeightEnabled)
+                .labelsHidden()
+            }
+
+            Text(
+              String(
+                localized:
+                  "Font weight support depends on the current font. Some fonts may ignore this setting or only support part of the range."
+              )
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+
+            if draft.fontWeight != nil {
+              Slider(
+                value: fontWeightValue,
+                in: EpubConstants.minimumFontWeight...EpubConstants.maximumFontWeight,
+                step: EpubConstants.fontWeightStep
+              )
+            }
+          }
+
+          Section(String(localized: "Page")) {
+            if draft.flowStyle.isPaged {
+              Picker(String(localized: "Page Layout"), selection: $draft.columnCount) {
+                ForEach(EpubColumnCount.allCases) { option in
+                  Text(option.label)
+                    .tag(option)
                 }
               }
+              .pickerStyle(.segmented)
             }
 
-            Section(String(localized: "Presets")) {
-              Button(String(localized: "Load Preset")) {
-                showPresetsSheet = true
+            if draft.flowStyle == .scrolled {
+              VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                  Text(String(localized: "epub.scrolled.tap_scroll_height"))
+                  Spacer()
+                  Text("\(Int(draft.tapScrollPercentage))%")
+                    .foregroundStyle(.secondary)
+                }
+                Slider(
+                  value: $draft.tapScrollPercentage,
+                  in: 25...100,
+                  step: 5
+                )
+                Text(String(localized: "epub.scrolled.tap_scroll_height.description"))
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
               }
-
-              Button(String(localized: "Save as Preset")) {
-                showSavePresetAlert = true
-              }
             }
 
-            Section(String(localized: "Theme")) {
-              themePicker
+            VStack(alignment: .leading) {
+              Slider(value: $draft.pageMargins, in: 0.25...2.0, step: 0.05)
+              Text(
+                String(localized: "Page Margins: \(String(format: "%.2f", draft.pageMargins))x")
+              )
+              .font(.caption)
+              .foregroundStyle(.secondary)
             }
+          }
 
-            Section(String(localized: "Font")) {
-              HStack {
-                Text(String(localized: "Typeface"))
-                Spacer()
-                Text(draft.fontFamily.displayName)
+          Section {
+            Toggle(String(localized: "Advanced Layout"), isOn: $draft.advancedLayout)
+          }
+
+          if draft.advancedLayout {
+            Section(String(localized: "Character & Word")) {
+              VStack(alignment: .leading) {
+                Slider(value: $draft.fontSize, in: 0.25...4.0, step: 0.05)
+                Text(String(localized: "Font Size: \(String(format: "%.2f", draft.fontSize))x"))
+                  .font(.caption)
                   .foregroundStyle(.secondary)
               }
 
-              HStack {
-                Button(String(localized: "Choose Font")) {
-                  showSystemFontPicker = true
-                }
-
-                Spacer()
-
-                if selectedSystemFontName != nil {
-                  Button(String(localized: "Publisher Default")) {
-                    draft.fontFamily = .publisher
-                  }
-                }
+              VStack(alignment: .leading) {
+                Slider(value: $draft.letterSpacing, in: 0.0...1.0, step: 0.01)
+                Text(
+                  String(localized: "Letter Spacing: \(String(format: "%.2f", draft.letterSpacing))")
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
               }
 
-              HStack {
-                Text(fontWeightLabelText)
-                Spacer()
-                Toggle("", isOn: fontWeightEnabled)
-                  .labelsHidden()
+              VStack(alignment: .leading) {
+                Slider(value: $draft.wordSpacing, in: 0.0...1.0, step: 0.01)
+                Text(
+                  String(localized: "Word Spacing: \(String(format: "%.2f", draft.wordSpacing))")
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
               }
+            }
+
+            Section(String(localized: "Line & Paragraph")) {
+              Picker(
+                String(localized: "epub.text_alignment.title", defaultValue: "Text Alignment"),
+                selection: $draft.textAlignment
+              ) {
+                ForEach(EpubTextAlignment.allCases) { alignment in
+                  Text(alignment.displayName)
+                    .tag(alignment)
+                }
+              }
+              .pickerStyle(.menu)
 
               Text(
                 String(
-                  localized:
-                    "Font weight support depends on the current font. Some fonts may ignore this setting or only support part of the range."
+                  localized: "epub.text_alignment.justify.description",
+                  defaultValue: "Justify automatically enables hyphenation."
                 )
               )
               .font(.caption)
               .foregroundStyle(.secondary)
 
-              if draft.fontWeight != nil {
-                Slider(
-                  value: fontWeightValue,
-                  in: EpubConstants.minimumFontWeight...EpubConstants.maximumFontWeight,
-                  step: EpubConstants.fontWeightStep
-                )
-              }
-            }
-
-            Section(String(localized: "Page")) {
-              if draft.flowStyle.isPaged {
-                Picker(String(localized: "Page Layout"), selection: $draft.columnCount) {
-                  ForEach(EpubColumnCount.allCases) { option in
-                    Text(option.label)
-                      .tag(option)
-                  }
-                }
-                .pickerStyle(.segmented)
-              }
-
-              if draft.flowStyle == .scrolled {
-                VStack(alignment: .leading, spacing: 8) {
-                  HStack {
-                    Text(String(localized: "epub.scrolled.tap_scroll_height"))
-                    Spacer()
-                    Text("\(Int(draft.tapScrollPercentage))%")
-                      .foregroundStyle(.secondary)
-                  }
-                  Slider(
-                    value: $draft.tapScrollPercentage,
-                    in: 25...100,
-                    step: 5
-                  )
-                  Text(String(localized: "epub.scrolled.tap_scroll_height.description"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                }
+              VStack(alignment: .leading) {
+                Slider(value: $draft.lineHeight, in: 0.5...2.5, step: 0.1)
+                Text(String(localized: "Line Height: \(String(format: "%.1f", draft.lineHeight))"))
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
               }
 
               VStack(alignment: .leading) {
-                Slider(value: $draft.pageMargins, in: 0.25...2.0, step: 0.05)
+                Slider(value: $draft.paragraphSpacing, in: 0.0...3.0, step: 0.1)
                 Text(
-                  String(localized: "Page Margins: \(String(format: "%.2f", draft.pageMargins))x")
+                  String(localized: "Paragraph Spacing: \(String(format: "%.1f", draft.paragraphSpacing))")
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+              }
+
+              VStack(alignment: .leading) {
+                Slider(value: $draft.paragraphIndent, in: 0.0...8.0, step: 0.5)
+                Text(
+                  String(localized: "Paragraph Indent: \(String(format: "%.1f", draft.paragraphIndent))")
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)
               }
             }
-
-            Section {
-              Toggle(String(localized: "Advanced Layout"), isOn: $draft.advancedLayout)
-            }
-
-            if draft.advancedLayout {
-              Section(String(localized: "Character & Word")) {
-                VStack(alignment: .leading) {
-                  Slider(value: $draft.fontSize, in: 0.25...4.0, step: 0.05)
-                  Text(String(localized: "Font Size: \(String(format: "%.2f", draft.fontSize))x"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                }
-
-                VStack(alignment: .leading) {
-                  Slider(value: $draft.letterSpacing, in: 0.0...1.0, step: 0.01)
-                  Text(
-                    String(localized: "Letter Spacing: \(String(format: "%.2f", draft.letterSpacing))")
-                  )
-                  .font(.caption)
-                  .foregroundStyle(.secondary)
-                }
-
-                VStack(alignment: .leading) {
-                  Slider(value: $draft.wordSpacing, in: 0.0...1.0, step: 0.01)
-                  Text(
-                    String(localized: "Word Spacing: \(String(format: "%.2f", draft.wordSpacing))")
-                  )
-                  .font(.caption)
-                  .foregroundStyle(.secondary)
-                }
-              }
-
-              Section(String(localized: "Line & Paragraph")) {
-                Picker(
-                  String(localized: "epub.text_alignment.title", defaultValue: "Text Alignment"),
-                  selection: $draft.textAlignment
-                ) {
-                  ForEach(EpubTextAlignment.allCases) { alignment in
-                    Text(alignment.displayName)
-                      .tag(alignment)
-                  }
-                }
-                .pickerStyle(.menu)
-
-                Text(
-                  String(
-                    localized: "epub.text_alignment.justify.description",
-                    defaultValue: "Justify automatically enables hyphenation."
-                  )
-                )
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-                VStack(alignment: .leading) {
-                  Slider(value: $draft.lineHeight, in: 0.5...2.5, step: 0.1)
-                  Text(String(localized: "Line Height: \(String(format: "%.1f", draft.lineHeight))"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                }
-
-                VStack(alignment: .leading) {
-                  Slider(value: $draft.paragraphSpacing, in: 0.0...3.0, step: 0.1)
-                  Text(
-                    String(localized: "Paragraph Spacing: \(String(format: "%.1f", draft.paragraphSpacing))")
-                  )
-                  .font(.caption)
-                  .foregroundStyle(.secondary)
-                }
-
-                VStack(alignment: .leading) {
-                  Slider(value: $draft.paragraphIndent, in: 0.0...8.0, step: 0.5)
-                  Text(
-                    String(localized: "Paragraph Indent: \(String(format: "%.1f", draft.paragraphIndent))")
-                  )
-                  .font(.caption)
-                  .foregroundStyle(.secondary)
-                }
-              }
-            }
           }
         }
-      } controls: {
-        if shouldShowResetToGlobal {
-          Button {
-            clearBookPreferences()
-          } label: {
-            Label(String(localized: "Reset to Global"), systemImage: "trash")
-          }
-        }
-
-        Button {
-          savePreferences()
-        } label: {
-          Label(String(localized: "Done"), systemImage: "checkmark")
-        }
-        .disabled(isSaveDisabled)
       }
+      .formStyle(.grouped)
+      .safeAreaInset(edge: .bottom, spacing: 0) {
+        controlsBar
+      }
+      .inlineNavigationBarTitle(navigationTitle)
       .sheet(isPresented: $showPresetsSheet) {
         EpubThemePresetsView(onApply: { preferences in
           draft = preferences
@@ -461,6 +449,37 @@
         draft.textAlignment = .publisherDefault
         draft.fontWeight = nil
       }
+    }
+
+    private var controlsBar: some View {
+      HStack(spacing: 12) {
+        Button {
+          resetPreferences()
+        } label: {
+          Label(String(localized: "Reset"), systemImage: "arrow.counterclockwise")
+        }
+
+        Spacer()
+
+        if shouldShowResetToGlobal {
+          Button {
+            clearBookPreferences()
+          } label: {
+            Label(String(localized: "Reset to Global"), systemImage: "trash")
+          }
+        }
+
+        Button {
+          savePreferences()
+        } label: {
+          Label(String(localized: "Done"), systemImage: "checkmark")
+        }
+        .keyboardShortcut(.defaultAction)
+        .disabled(isSaveDisabled)
+      }
+      .padding(.horizontal, 20)
+      .padding(.vertical, 12)
+      .background(.bar)
     }
 
     private func resetPreferences() {
