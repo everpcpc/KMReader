@@ -245,12 +245,7 @@
           }
         }
 
-        let finishedProgrammaticScroll = finishProgrammaticScrollIfTargetReached(in: collectionView)
-        if finishedProgrammaticScroll {
-          refreshedVisibleContent = true
-        }
-
-        if !finishedProgrammaticScroll, let navigationTarget = parent.viewModel.navigationTarget {
+        if let navigationTarget = parent.viewModel.navigationTarget {
           handleNavigationChange(navigationTarget, in: collectionView)
         } else if renderInputsChanged && !refreshedVisibleContent {
           refreshVisibleCells(in: collectionView)
@@ -661,30 +656,6 @@
         return true
       }
 
-      @discardableResult
-      private func finishProgrammaticScrollIfTargetReached(in collectionView: UICollectionView) -> Bool {
-        guard engine.isProgrammaticScrolling || engine.hasPendingProgrammaticCommit else {
-          return false
-        }
-        guard engine.programmaticTargetItem != nil else {
-          clearProgrammaticScrollState()
-          return false
-        }
-
-        let reachedTargetOffset =
-          pendingProgrammaticTargetOffset.map {
-            isEquivalentContentOffset($0, to: collectionView.contentOffset)
-          }
-          ?? false
-
-        guard reachedTargetOffset else {
-          return false
-        }
-
-        finishProgrammaticScroll(in: collectionView)
-        return true
-      }
-
       private func commitPendingProgrammaticItemIfNeeded(in collectionView: UICollectionView) -> Bool {
         guard let resolvedItem = engine.consumePendingProgrammaticCommit() else {
           return false
@@ -1082,7 +1053,6 @@
         if let item = centeredItem(in: collectionView) {
           preloadVisiblePages(for: item)
         }
-        _ = finishProgrammaticScrollIfTargetReached(in: collectionView)
       }
 
       func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
@@ -1090,13 +1060,11 @@
         if !decelerate {
           finishScrollInteractionIfNeeded()
         }
-        _ = finishProgrammaticScrollIfTargetReached(in: collectionView)
       }
 
       func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
         guard let collectionView else { return }
         finishScrollInteractionIfNeeded()
-        _ = finishProgrammaticScrollIfTargetReached(in: collectionView)
       }
 
       func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) {
