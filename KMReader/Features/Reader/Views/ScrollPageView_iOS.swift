@@ -1056,14 +1056,14 @@
       }
 
       func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
-        guard let collectionView else { return }
+        guard collectionView != nil else { return }
         if !decelerate {
           finishScrollInteractionIfNeeded()
         }
       }
 
       func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
-        guard let collectionView else { return }
+        guard collectionView != nil else { return }
         finishScrollInteractionIfNeeded()
       }
 
