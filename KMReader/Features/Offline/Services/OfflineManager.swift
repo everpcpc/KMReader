@@ -1943,7 +1943,7 @@ actor OfflineManager {
           try? FileManager.default.removeItem(at: archiveExtractionFile)
         } catch {
           logger.error(
-            "❌ Background archive extraction failed for book \(bookId), file=\(archiveExtractionFile.lastPathComponent), bookDir=\(bookDir.path), error=\(error.localizedDescription)"
+            "❌ Background archive extraction failed for book \(bookId), file=\(archiveExtractionFile.lastPathComponent), bookDir=\(bookDir.path), error=\(String(describing: error))"
           )
           await failArchiveExtraction(recoveryMessage)
           return

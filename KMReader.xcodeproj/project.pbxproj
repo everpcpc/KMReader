@@ -688,7 +688,7 @@
 			repositoryURL = "https://github.com/everpcpc/libarchive-swift";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.1.7;
+				minimumVersion = 0.1.8;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
