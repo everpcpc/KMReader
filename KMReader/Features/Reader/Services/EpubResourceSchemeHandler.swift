@@ -1,66 +1,71 @@
+import Foundation
+import UniformTypeIdentifiers
+
+nonisolated enum EpubResourceScheme {
+  static let scheme = "kmreader-resource"
+  static let host = "epub"
+  static let virtualFontsPrefix = "__fonts__"
+
+  static func url(for fileURL: URL, rootURL: URL) -> URL? {
+    let root = rootURL.standardizedFileURL.resolvingSymlinksInPath()
+    let file = deletingFragment(from: fileURL).standardizedFileURL.resolvingSymlinksInPath()
+    let rootPath = root.path.hasSuffix("/") ? root.path : root.path + "/"
+    guard file.path.hasPrefix(rootPath) || file.path == root.path else { return nil }
+
+    let relativePath = file.path == root.path ? "" : String(file.path.dropFirst(rootPath.count))
+    guard !relativePath.isEmpty else { return nil }
+    return url(forRelativePath: relativePath)
+  }
+
+  static func url(forRelativePath relativePath: String) -> URL? {
+    guard let safePath = EpubResourceSafeRelativePath(relativePath) else { return nil }
+    var components = URLComponents()
+    components.scheme = scheme
+    components.host = host
+    components.path =
+      "/"
+      + safePath.split(separator: "/").map {
+        String($0).addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? String($0)
+      }.joined(separator: "/")
+    return components.url
+  }
+
+  static func fontURL(fileName: String) -> URL? {
+    url(forRelativePath: "\(virtualFontsPrefix)/\(fileName)")
+  }
+
+  static func relativePath(from url: URL) -> String? {
+    guard url.scheme == scheme, url.host == host else { return nil }
+    let path = deletingFragment(from: url).path
+    let trimmed = path.hasPrefix("/") ? String(path.dropFirst()) : path
+    return EpubResourceSafeRelativePath(trimmed.removingPercentEncoding ?? trimmed)
+  }
+
+  private static func deletingFragment(from url: URL) -> URL {
+    guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+      return url
+    }
+    components.fragment = nil
+    return components.url ?? url
+  }
+}
+
+nonisolated func EpubResourceSafeRelativePath(_ path: String) -> String? {
+  let normalized = path.replacingOccurrences(of: "\\", with: "/")
+  guard !normalized.isEmpty, !normalized.hasPrefix("/") else { return nil }
+  var components: [String] = []
+  for component in normalized.split(separator: "/", omittingEmptySubsequences: true) {
+    let part = String(component)
+    if part == "." { continue }
+    guard part != ".." else { return nil }
+    components.append(part)
+  }
+  guard !components.isEmpty else { return nil }
+  return components.joined(separator: "/")
+}
+
 #if os(iOS) || os(macOS)
-  import Foundation
   import WebKit
-  import UniformTypeIdentifiers
-
-  nonisolated enum EpubResourceScheme {
-    static let scheme = "kmreader-resource"
-    static let host = "epub"
-    static let virtualFontsPrefix = "__fonts__"
-
-    static func url(for fileURL: URL, rootURL: URL) -> URL? {
-      let root = rootURL.standardizedFileURL.resolvingSymlinksInPath()
-      let file = deletingFragment(from: fileURL).standardizedFileURL.resolvingSymlinksInPath()
-      let rootPath = root.path.hasSuffix("/") ? root.path : root.path + "/"
-      guard file.path.hasPrefix(rootPath) || file.path == root.path else { return nil }
-
-      let relativePath = file.path == root.path ? "" : String(file.path.dropFirst(rootPath.count))
-      guard !relativePath.isEmpty else { return nil }
-      return url(forRelativePath: relativePath)
-    }
-
-    static func url(forRelativePath relativePath: String) -> URL? {
-      guard let safePath = EpubResourceSafeRelativePath(relativePath) else { return nil }
-      var components = URLComponents()
-      components.scheme = scheme
-      components.host = host
-      components.path = "/" + safePath.split(separator: "/").map { String($0).addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? String($0) }.joined(separator: "/")
-      return components.url
-    }
-
-    static func fontURL(fileName: String) -> URL? {
-      url(forRelativePath: "\(virtualFontsPrefix)/\(fileName)")
-    }
-
-    static func relativePath(from url: URL) -> String? {
-      guard url.scheme == scheme, url.host == host else { return nil }
-      let path = deletingFragment(from: url).path
-      let trimmed = path.hasPrefix("/") ? String(path.dropFirst()) : path
-      return EpubResourceSafeRelativePath(trimmed.removingPercentEncoding ?? trimmed)
-    }
-
-    private static func deletingFragment(from url: URL) -> URL {
-      guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
-        return url
-      }
-      components.fragment = nil
-      return components.url ?? url
-    }
-  }
-
-  nonisolated func EpubResourceSafeRelativePath(_ path: String) -> String? {
-    let normalized = path.replacingOccurrences(of: "\\", with: "/")
-    guard !normalized.isEmpty, !normalized.hasPrefix("/") else { return nil }
-    var components: [String] = []
-    for component in normalized.split(separator: "/", omittingEmptySubsequences: true) {
-      let part = String(component)
-      if part == "." { continue }
-      guard part != ".." else { return nil }
-      components.append(part)
-    }
-    guard !components.isEmpty else { return nil }
-    return components.joined(separator: "/")
-  }
 
   final class EpubResourceSchemeHandler: NSObject, WKURLSchemeHandler {
     private let lock = NSLock()
@@ -104,7 +109,8 @@
 
       do {
         let data = try Data(contentsOf: fileURL)
-        let mimeType = mediaType(for: relativePath, fileURL: fileURL, mediaTypesByRelativePath: configuration.mediaTypesByRelativePath)
+        let mimeType = mediaType(
+          for: relativePath, fileURL: fileURL, mediaTypesByRelativePath: configuration.mediaTypesByRelativePath)
         let response = URLResponse(
           url: requestURL,
           mimeType: mimeType,
@@ -139,7 +145,8 @@
       return name
     }
 
-    private func mediaType(for relativePath: String, fileURL: URL, mediaTypesByRelativePath: [String: String]) -> String {
+    private func mediaType(for relativePath: String, fileURL: URL, mediaTypesByRelativePath: [String: String]) -> String
+    {
       if let mappedType = mediaTypesByRelativePath[relativePath], !mappedType.isEmpty { return mappedType }
       return Self.mediaTypeForExtension(fileURL.pathExtension)
     }
