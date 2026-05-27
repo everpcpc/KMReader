@@ -22,7 +22,7 @@ struct SeriesBrowseView: View {
 
   @State private var browseOpts: SeriesBrowseOptions = SeriesBrowseOptions()
   @State private var viewModel = SeriesViewModel()
-  @State private var hasInitialized = false
+  @State private var initializedKey: String?
 
   var body: some View {
     VStack {
@@ -42,17 +42,17 @@ struct SeriesBrowseView: View {
         viewModel: viewModel
       )
     }
-    .task {
-      if !hasInitialized {
-        if let metadataFilter = metadataFilter {
-          var opts = SeriesBrowseOptions()
-          opts.metadataFilter = metadataFilter
-          browseOpts = opts
-        } else {
-          browseOpts = storedBrowseOpts
-        }
-        hasInitialized = true
+    .task(id: initializationKey) {
+      guard initializedKey != initializationKey else { return }
+
+      if let metadataFilter = metadataFilter {
+        var opts = SeriesBrowseOptions()
+        opts.metadataFilter = metadataFilter
+        browseOpts = opts
+      } else {
+        browseOpts = storedBrowseOpts
       }
+      initializedKey = initializationKey
       await loadSeries(refresh: true)
     }
     .onChange(of: refreshTrigger) { _, _ in
@@ -80,6 +80,13 @@ struct SeriesBrowseView: View {
         await loadSeries(refresh: true)
       }
     }
+  }
+
+  private var initializationKey: String {
+    [
+      libraryIds.joined(separator: ","),
+      metadataFilter?.rawValue ?? "",
+    ].joined(separator: "|")
   }
 
   private func loadSeries(refresh: Bool) async {
