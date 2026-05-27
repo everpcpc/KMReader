@@ -23,6 +23,7 @@ struct BrowseView: View {
   @AppStorage("readListBrowseLayout") private var readListBrowseLayout: BrowseLayoutMode = .grid
 
   @State private var refreshTrigger = UUID()
+  @State private var initializedLibraryIdsKey: String?
   @State private var isRefreshDisabled = false
   @State private var searchQuery: String = ""
   @State private var activeSearchText: String = ""
@@ -221,6 +222,8 @@ struct BrowseView: View {
     }
     .task(id: resolvedLibraryIdsKey) {
       guard !authViewModel.isSwitching else { return }
+      guard initializedLibraryIdsKey != resolvedLibraryIdsKey else { return }
+      initializedLibraryIdsKey = resolvedLibraryIdsKey
       refreshBrowse()
     }
   }

@@ -22,7 +22,7 @@ struct BooksBrowseView: View {
   @AppStorage("searchIgnoreFilters") private var searchIgnoreFilters: Bool = false
 
   @State private var viewModel = BookViewModel()
-  @State private var hasInitialized = false
+  @State private var initializedKey: String?
 
   var body: some View {
     VStack {
@@ -41,17 +41,17 @@ struct BooksBrowseView: View {
         browseLayout: browseLayout,
         viewModel: viewModel
       )
-      .task {
-        if !hasInitialized {
-          if let metadataFilter = metadataFilter {
-            var opts = BookBrowseOptions()
-            opts.metadataFilter = metadataFilter
-            browseOpts = opts
-          } else {
-            browseOpts = storedBrowseOpts
-          }
-          hasInitialized = true
+      .task(id: initializationKey) {
+        guard initializedKey != initializationKey else { return }
+
+        if let metadataFilter = metadataFilter {
+          var opts = BookBrowseOptions()
+          opts.metadataFilter = metadataFilter
+          browseOpts = opts
+        } else {
+          browseOpts = storedBrowseOpts
         }
+        initializedKey = initializationKey
         await loadBooks(refresh: true)
       }
       .onChange(of: refreshTrigger) { _, _ in
@@ -80,6 +80,13 @@ struct BooksBrowseView: View {
         }
       }
     }
+  }
+
+  private var initializationKey: String {
+    [
+      libraryIds.joined(separator: ","),
+      metadataFilter?.rawValue ?? "",
+    ].joined(separator: "|")
   }
 
   private func loadBooks(refresh: Bool) async {
