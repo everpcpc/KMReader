@@ -8,7 +8,7 @@
 
   struct EpubEndPageView: View {
     let bookTitle: String?
-    let preferences: EpubReaderPreferences
+    let preferences: EpubThemePreferences
     let colorScheme: ColorScheme
     let onReturn: () -> Void
     let onClose: () -> Void

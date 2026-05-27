@@ -3,27 +3,19 @@
   import SwiftData
   import SwiftUI
 
-  struct EpubPreferencesView: View {
+  struct EpubThemePreferencesView: View {
     let inSheet: Bool
     let bookId: String?
-    let hasBookPreferences: Bool
-    let onPreferencesSaved: ((EpubReaderPreferences) -> Void)?
-    let onPreferencesCleared: (() -> Void)?
+    let hasBookThemePreferences: Bool
+    let onThemePreferencesSaved: ((EpubThemePreferences) -> Void)?
+    let onThemePreferencesCleared: (() -> Void)?
 
-    private let baselinePreferences: EpubReaderPreferences
-    @State private var draft: EpubReaderPreferences
+    private let baselineThemePreferences: EpubThemePreferences
+    @State private var draft: EpubThemePreferences
     @State private var showPresetsSheet: Bool = false
     @State private var showSavePresetAlert: Bool = false
     @State private var newPresetName: String = ""
     @State private var showSystemFontPicker: Bool = false
-    @AppStorage("epubPageTransitionStyle") private var epubPageTransitionStyle: PageTransitionStyle = .scroll
-    @AppStorage("animateEpubTapTurns") private var animateEpubTapTurns: Bool = AppConfig.animateEpubTapTurns
-    @AppStorage("epubShowsProgressFooter") private var epubShowsProgressFooter: Bool = false
-    @AppStorage("epubShowKeyboardHelpOverlay")
-    private var showKeyboardHelpOverlay: Bool = AppConfig.epubShowKeyboardHelpOverlay
-    @AppStorage("epubTapZoneMode") private var epubTapZoneMode: TapZoneMode = AppConfig.epubTapZoneMode
-    @AppStorage("epubTapZoneInversionMode")
-    private var epubTapZoneInversionMode: TapZoneInversionMode = AppConfig.epubTapZoneInversionMode
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
@@ -32,31 +24,31 @@
     init(
       inSheet: Bool = false,
       bookId: String? = nil,
-      hasBookPreferences: Bool = false,
-      initialPreferences: EpubReaderPreferences? = nil,
-      onPreferencesSaved: ((EpubReaderPreferences) -> Void)? = nil,
-      onPreferencesCleared: (() -> Void)? = nil
+      hasBookThemePreferences: Bool = false,
+      initialThemePreferences: EpubThemePreferences? = nil,
+      onThemePreferencesSaved: ((EpubThemePreferences) -> Void)? = nil,
+      onThemePreferencesCleared: (() -> Void)? = nil
     ) {
       self.inSheet = inSheet
       self.bookId = bookId
-      self.hasBookPreferences = hasBookPreferences
-      self.onPreferencesSaved = onPreferencesSaved
-      self.onPreferencesCleared = onPreferencesCleared
-      let baseline = initialPreferences ?? AppConfig.epubPreferences
-      baselinePreferences = baseline
+      self.hasBookThemePreferences = hasBookThemePreferences
+      self.onThemePreferencesSaved = onThemePreferencesSaved
+      self.onThemePreferencesCleared = onThemePreferencesCleared
+      let baseline = initialThemePreferences ?? AppConfig.epubThemePreferences
+      baselineThemePreferences = baseline
       _draft = State(initialValue: baseline)
     }
 
     private var navigationTitle: String {
-      bookId == nil ? SettingsSection.epubReader.title : String(localized: "Current Book")
+      bookId == nil ? String(localized: "EPUB Theme") : String(localized: "Current Book")
     }
 
     private var shouldShowResetToGlobal: Bool {
-      bookId != nil && hasBookPreferences
+      bookId != nil && hasBookThemePreferences
     }
 
     private var isSaveDisabled: Bool {
-      draft == baselinePreferences
+      draft == baselineThemePreferences
     }
 
     private var readerTheme: ReaderTheme {
@@ -171,42 +163,6 @@
           }
 
         Form {
-          Section(String(localized: "Page Turn")) {
-            Picker(String(localized: "epub.reading_flow"), selection: $draft.flowStyle) {
-              ForEach(EpubFlowStyle.allCases) { style in
-                Text(style.displayName).tag(style)
-              }
-            }
-            .pickerStyle(.menu)
-
-            Toggle(isOn: $animateEpubTapTurns) {
-              VStack(alignment: .leading, spacing: 4) {
-                Text("Animate Page Turns")
-                Text("Use animation when tapping zones to turn pages")
-                  .font(.caption)
-                  .foregroundStyle(.secondary)
-              }
-            }
-
-            if draft.flowStyle.isPaged {
-              VStack(alignment: .leading, spacing: 8) {
-                Picker(
-                  String(localized: "Page Transition Style"),
-                  selection: $epubPageTransitionStyle
-                ) {
-                  ForEach(PageTransitionStyle.epubAvailableCases, id: \.self) { style in
-                    Text(style.displayName).tag(style)
-                  }
-                }
-                .pickerStyle(.menu)
-
-                Text(epubPageTransitionStyle.description)
-                  .font(.caption)
-                  .foregroundStyle(.secondary)
-              }
-            }
-          }
-
           Section(String(localized: "Presets")) {
             Button(String(localized: "Load Preset")) {
               showPresetsSheet = true
@@ -271,34 +227,13 @@
           }
 
           Section(String(localized: "Page")) {
-            if draft.flowStyle.isPaged {
-              Picker(String(localized: "Page Layout"), selection: $draft.columnCount) {
-                ForEach(EpubColumnCount.allCases) { option in
-                  Text(option.label)
-                    .tag(option)
-                }
-              }
-              .pickerStyle(.segmented)
-            }
-
-            if draft.flowStyle == .scrolled {
-              VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                  Text(String(localized: "epub.scrolled.tap_scroll_height"))
-                  Spacer()
-                  Text("\(Int(draft.tapScrollPercentage))%")
-                    .foregroundStyle(.secondary)
-                }
-                Slider(
-                  value: $draft.tapScrollPercentage,
-                  in: 25...100,
-                  step: 5
-                )
-                Text(String(localized: "epub.scrolled.tap_scroll_height.description"))
-                  .font(.caption)
-                  .foregroundStyle(.secondary)
+            Picker(String(localized: "Page Layout"), selection: $draft.columnCount) {
+              ForEach(EpubColumnCount.allCases) { option in
+                Text(option.label)
+                  .tag(option)
               }
             }
+            .pickerStyle(.segmented)
 
             VStack(alignment: .leading) {
               Slider(value: $draft.pageMargins, in: 0.25...2.0, step: 0.05)
@@ -392,54 +327,6 @@
             }
           }
 
-          Section(String(localized: "Tap Zones")) {
-            VStack(alignment: .leading, spacing: 8) {
-              TapZoneModePicker(
-                selection: $epubTapZoneMode,
-                tapZoneInversionMode: epubTapZoneInversionMode,
-                readingDirection: draft.flowStyle.isPaged ? .ltr : .vertical
-              )
-
-              Text("Choose how tap zones are laid out")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            }
-
-            if !epubTapZoneMode.isDisabled {
-              VStack(alignment: .leading, spacing: 8) {
-                Picker("Tap Zone Mirroring", selection: $epubTapZoneInversionMode) {
-                  ForEach(TapZoneInversionMode.allCases, id: \.self) { mode in
-                    Text(mode.displayName).tag(mode)
-                  }
-                }
-                .pickerStyle(.menu)
-
-                Text("Mirror left and right tap zones manually or automatically for RTL reading")
-                  .font(.caption)
-                  .foregroundStyle(.secondary)
-              }
-            }
-          }
-
-          Section(String(localized: "Reader Overlay")) {
-            Toggle(isOn: $epubShowsProgressFooter) {
-              VStack(alignment: .leading, spacing: 4) {
-                Text(String(localized: "Show Progress Footer"))
-                Text(String(localized: "Show book progress at the bottom while reading."))
-                  .font(.caption)
-                  .foregroundStyle(.secondary)
-              }
-            }
-
-            Toggle(isOn: $showKeyboardHelpOverlay) {
-              VStack(alignment: .leading, spacing: 4) {
-                Text("Auto-Show Keyboard Help")
-                Text("Briefly show keyboard shortcuts when opening the reader")
-                  .font(.caption)
-                  .foregroundStyle(.secondary)
-              }
-            }
-          }
         }
       }
       .formStyle(.grouped)
@@ -475,7 +362,6 @@
       }
       .animation(.easeInOut(duration: 0.2), value: draft.advancedLayout)
       .animation(.easeInOut(duration: 0.2), value: draft.fontWeight != nil)
-      .animation(.easeInOut(duration: 0.2), value: draft.flowStyle)
       .onChange(of: draft.advancedLayout) { _, newValue in
         guard !newValue else { return }
         draft.fontSize = EpubConstants.defaultFontScale
@@ -521,7 +407,7 @@
     }
 
     private func resetPreferences() {
-      draft = EpubReaderPreferences()
+      draft = EpubThemePreferences()
       ErrorManager.shared.notify(message: String(localized: "Reset"))
     }
 
@@ -539,15 +425,15 @@
     private func savePreferences() {
       if let bookId {
         Task {
-          try? await DatabaseOperator.database().updateBookEpubPreferences(
+          try? await DatabaseOperator.database().updateBookEpubThemePreferences(
             bookId: bookId,
             preferences: draft
           )
           try? await DatabaseOperator.database().commit()
         }
-        onPreferencesSaved?(draft)
+        onThemePreferencesSaved?(draft)
       } else {
-        AppConfig.epubPreferences = draft
+        AppConfig.epubThemePreferences = draft
       }
       dismiss()
     }
@@ -555,13 +441,13 @@
     private func clearBookPreferences() {
       guard let bookId else { return }
       Task {
-        try? await DatabaseOperator.database().updateBookEpubPreferences(
+        try? await DatabaseOperator.database().updateBookEpubThemePreferences(
           bookId: bookId,
           preferences: nil
         )
         try? await DatabaseOperator.database().commit()
       }
-      onPreferencesCleared?()
+      onThemePreferencesCleared?()
       ErrorManager.shared.notify(message: String(localized: "Reset to Global"))
       dismiss()
     }

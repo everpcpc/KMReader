@@ -5,7 +5,7 @@
   import WebKit
 
   struct EpubSettingsPreviewView: View {
-    let preferences: EpubReaderPreferences
+    let preferences: EpubThemePreferences
 
     @Environment(\.colorScheme) private var colorScheme
     @Query(sort: \CustomFont.name, order: .forward) private var customFonts: [CustomFont]
@@ -54,7 +54,7 @@
   }
 
   private func makePreviewPayload(
-    preferences: EpubReaderPreferences,
+    preferences: EpubThemePreferences,
     colorScheme: ColorScheme,
     customFontPath: String?
   ) -> PreviewPayload {
@@ -168,7 +168,7 @@
 
   #if os(iOS)
     private struct PlatformPreviewWebView: UIViewRepresentable {
-      let preferences: EpubReaderPreferences
+      let preferences: EpubThemePreferences
       let colorScheme: ColorScheme
       let customFontPath: String?
 
@@ -197,7 +197,7 @@
     }
   #elseif os(macOS)
     private struct PlatformPreviewWebView: NSViewRepresentable {
-      let preferences: EpubReaderPreferences
+      let preferences: EpubThemePreferences
       let colorScheme: ColorScheme
       let customFontPath: String?
 
@@ -244,7 +244,7 @@
 
       func update(
         webView: WKWebView,
-        preferences: EpubReaderPreferences,
+        preferences: EpubThemePreferences,
         colorScheme: ColorScheme,
         customFontPath: String?
       ) {

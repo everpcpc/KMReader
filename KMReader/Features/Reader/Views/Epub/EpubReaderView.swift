@@ -19,7 +19,10 @@
     @Environment(\.scenePhase) private var scenePhase
 
     @AppStorage("currentAccount") private var current: Current = .init()
-    @AppStorage("epubPreferences") private var globalPreferences: EpubReaderPreferences = .init()
+    @AppStorage("epubPreferences") private var globalThemePreferences: EpubThemePreferences = .init()
+    @AppStorage("epubFlowStyle") private var epubFlowStyle: EpubFlowStyle = .paged
+    @AppStorage("epubTapScrollPercentage") private var epubTapScrollPercentage: Double = AppConfig
+      .epubTapScrollPercentage
     @AppStorage("epubPageTransitionStyle") private var epubPageTransitionStyle: PageTransitionStyle = .scroll
     @AppStorage("epubShowsStatusBarWhileReading") private var epubShowsStatusBarWhileReading: Bool = false
     @AppStorage("animateEpubTapTurns") private var animateEpubTapTurns: Bool = AppConfig.animateEpubTapTurns
@@ -27,8 +30,8 @@
     private var showKeyboardHelpOverlay: Bool = AppConfig.epubShowKeyboardHelpOverlay
 
     @State private var viewModel: EpubReaderViewModel
-    @State private var activePreferences: EpubReaderPreferences
-    @State private var bookPreferences: EpubReaderPreferences?
+    @State private var activeThemePreferences: EpubThemePreferences
+    @State private var bookThemePreferences: EpubThemePreferences?
     @State private var showingControls = false
     // Captures `shouldShowControls` on the active → non-active scene-phase
     // transition (before the PR #682 force-show flips `showingControls`), so
@@ -42,7 +45,8 @@
     @State private var currentSeries: Series?
     @State private var currentBook: Book?
     @State private var showingChapterSheet = false
-    @State private var showingPreferencesSheet = false
+    @State private var showingThemeSheet = false
+    @State private var showingSettingsSheet = false
     @State private var showingDetailSheet = false
     @State private var showingQuickActions = false
     @State private var showingEndPage = false
@@ -66,8 +70,8 @@
       self.readerPresentation = readerPresentation
       self.onClose = onClose
       _viewModel = State(initialValue: EpubReaderViewModel(incognito: incognito))
-      _activePreferences = State(initialValue: AppConfig.epubPreferences)
-      _bookPreferences = State(initialValue: nil)
+      _activeThemePreferences = State(initialValue: AppConfig.epubThemePreferences)
+      _bookThemePreferences = State(initialValue: nil)
       _currentBook = State(initialValue: book)
     }
 
@@ -160,7 +164,8 @@
 
     private var isPresentingModalSheet: Bool {
       showingChapterSheet
-        || showingPreferencesSheet
+        || showingThemeSheet
+        || showingSettingsSheet
         || showingDetailSheet
     }
 
@@ -181,11 +186,11 @@
     }
 
     private var isUsingBookPreferences: Bool {
-      bookPreferences != nil
+      bookThemePreferences != nil
     }
 
     private var dismissGestureReadingDirection: ReadingDirection {
-      switch activePreferences.flowStyle {
+      switch epubFlowStyle {
       case .paged:
         return viewModel.publicationReadingProgression == .rtl ? .rtl : .ltr
       case .scrolled:
@@ -194,7 +199,7 @@
     }
 
     private var readerTheme: ReaderTheme {
-      activePreferences.resolvedTheme(for: colorScheme)
+      activeThemePreferences.resolvedTheme(for: colorScheme)
     }
 
     #if os(macOS)
@@ -245,7 +250,7 @@
         }
         .onAppear {
           updateHandoff()
-          viewModel.applyPreferences(activePreferences, colorScheme: colorScheme)
+          viewModel.applyPreferences(activeThemePreferences, colorScheme: colorScheme)
           #if os(macOS)
             configureReaderCommands()
           #endif
@@ -280,15 +285,15 @@
             ReaderLiveActivityManager.shared.updateReadingProgress(1)
           #endif
         }
-        .onChange(of: activePreferences) { _, newPrefs in
+        .onChange(of: activeThemePreferences) { _, newPrefs in
           viewModel.applyPreferences(newPrefs, colorScheme: colorScheme)
         }
-        .onChange(of: globalPreferences) { _, newPrefs in
+        .onChange(of: globalThemePreferences) { _, newPrefs in
           guard !isUsingBookPreferences else { return }
-          activePreferences = newPrefs
+          activeThemePreferences = newPrefs
         }
         .onChange(of: colorScheme) { _, newScheme in
-          viewModel.applyPreferences(activePreferences, colorScheme: newScheme)
+          viewModel.applyPreferences(activeThemePreferences, colorScheme: newScheme)
         }
         .onReceive(
           NotificationCenter.default.publisher(for: .fileDownloadProgress)
@@ -324,8 +329,8 @@
       viewModel.beginLoading()
 
       currentBook = book
-      bookPreferences = nil
-      activePreferences = globalPreferences
+      bookThemePreferences = nil
+      activeThemePreferences = globalThemePreferences
       do {
         currentBook = try await SyncService.shared.syncBook(bookId: book.id)
       } catch {
@@ -342,7 +347,7 @@
       }
 
       let database = await DatabaseOperator.databaseIfConfigured()
-      let savedPreferences = await database?.fetchBookEpubPreferences(bookId: activeBook.id)
+      let savedThemePreferences = await database?.fetchBookEpubThemePreferences(bookId: activeBook.id)
       if !incognito {
         readerPresentation.trackVisitedBook(
           sessionID: sessionID,
@@ -350,8 +355,8 @@
           seriesId: activeBook.seriesId
         )
       }
-      bookPreferences = savedPreferences
-      activePreferences = savedPreferences ?? globalPreferences
+      bookThemePreferences = savedThemePreferences
+      activeThemePreferences = savedThemePreferences ?? globalThemePreferences
 
       // Refresh WebPub manifest if online
       if !AppConfig.isOffline {
@@ -404,7 +409,7 @@
       if showingEndPage {
         EpubEndPageView(
           bookTitle: currentBook?.metadata.title,
-          preferences: activePreferences,
+          preferences: activeThemePreferences,
           colorScheme: colorScheme,
           onReturn: {
             // Hide end page first, then navigate to last page
@@ -492,13 +497,13 @@
     @ViewBuilder
     private var readerContent: some View {
       #if os(macOS)
-        switch activePreferences.flowStyle {
+        switch epubFlowStyle {
         case .paged:
           switch epubPageTransitionStyle {
           case .cover:
             WebPubPagedCoverView(
               viewModel: viewModel,
-              preferences: activePreferences,
+              preferences: activeThemePreferences,
               colorScheme: colorScheme,
               animateTapTurns: animateEpubTapTurns,
               showingControls: shouldShowControls,
@@ -517,7 +522,7 @@
             WebPubPagedScrollView(
               viewModel: viewModel,
               animatePageTransitions: animateEpubTapTurns,
-              preferences: activePreferences,
+              preferences: activeThemePreferences,
               colorScheme: colorScheme,
               showingControls: shouldShowControls,
               bookTitle: currentBook?.metadata.title,
@@ -535,8 +540,9 @@
         case .scrolled:
           WebPubScrolledView(
             viewModel: viewModel,
-            preferences: activePreferences,
+            preferences: activeThemePreferences,
             colorScheme: colorScheme,
+            tapScrollPercentage: epubTapScrollPercentage,
             animateTapTurns: animateEpubTapTurns,
             showingControls: shouldShowControls,
             bookTitle: currentBook?.metadata.title,
@@ -552,14 +558,14 @@
           )
         }
       #else
-        switch activePreferences.flowStyle {
+        switch epubFlowStyle {
         case .paged:
           switch epubPageTransitionStyle {
           case .scroll:
             WebPubPagedScrollView(
               viewModel: viewModel,
               animatePageTransitions: animateEpubTapTurns,
-              preferences: activePreferences,
+              preferences: activeThemePreferences,
               colorScheme: colorScheme,
               showingControls: shouldShowControls,
               bookTitle: currentBook?.metadata.title,
@@ -576,7 +582,7 @@
           case .cover:
             WebPubPagedCoverView(
               viewModel: viewModel,
-              preferences: activePreferences,
+              preferences: activeThemePreferences,
               colorScheme: colorScheme,
               animateTapTurns: animateEpubTapTurns,
               showingControls: shouldShowControls,
@@ -594,7 +600,7 @@
           case .pageCurl:
             WebPubPagedCurlView(
               viewModel: viewModel,
-              preferences: activePreferences,
+              preferences: activeThemePreferences,
               colorScheme: colorScheme,
               animateTapTurns: animateEpubTapTurns,
               showingControls: shouldShowControls,
@@ -613,8 +619,9 @@
         case .scrolled:
           WebPubScrolledView(
             viewModel: viewModel,
-            preferences: activePreferences,
+            preferences: activeThemePreferences,
             colorScheme: colorScheme,
+            tapScrollPercentage: epubTapScrollPercentage,
             animateTapTurns: animateEpubTapTurns,
             showingControls: shouldShowControls,
             bookTitle: currentBook?.metadata.title,
@@ -741,23 +748,26 @@
             }
           )
         }
-        .sheet(isPresented: $showingPreferencesSheet) {
+        .sheet(isPresented: $showingThemeSheet) {
           NavigationStack {
-            EpubPreferencesView(
+            EpubThemePreferencesView(
               inSheet: true,
               bookId: currentBook?.id ?? book.id,
-              hasBookPreferences: bookPreferences != nil,
-              initialPreferences: activePreferences,
-              onPreferencesSaved: { newPreferences in
-                activePreferences = newPreferences
-                bookPreferences = newPreferences
+              hasBookThemePreferences: bookThemePreferences != nil,
+              initialThemePreferences: activeThemePreferences,
+              onThemePreferencesSaved: { newPreferences in
+                activeThemePreferences = newPreferences
+                bookThemePreferences = newPreferences
               },
-              onPreferencesCleared: {
-                activePreferences = globalPreferences
-                bookPreferences = nil
+              onThemePreferencesCleared: {
+                activeThemePreferences = globalThemePreferences
+                bookThemePreferences = nil
               }
             )
           }
+        }
+        .sheet(isPresented: $showingSettingsSheet) {
+          EpubReaderSettingsView(inSheet: true)
         }
         .readerDetailSheet(
           isPresented: $showingDetailSheet,
@@ -789,12 +799,12 @@
         }
 
         Button {
-          showingPreferencesSheet = true
+          showingDetailSheet = true
         } label: {
           HStack {
-            Text("Themes & Settings")
+            Text("Book Info")
               .font(.callout)
-            Image(systemName: "textformat")
+            Image(systemName: "info.circle")
           }
           .contentShape(Capsule())
         }
@@ -803,12 +813,26 @@
         .controlSize(.large)
 
         Button {
-          showingDetailSheet = true
+          showingSettingsSheet = true
         } label: {
           HStack {
-            Text("Book Info")
+            Text("Settings")
               .font(.callout)
-            Image(systemName: "info.circle")
+            Image(systemName: "gearshape")
+          }
+          .contentShape(Capsule())
+        }
+        .readerControlButtonStyle()
+        .buttonBorderShape(.capsule)
+        .controlSize(.large)
+
+        Button {
+          showingThemeSheet = true
+        } label: {
+          HStack {
+            Text("Theme")
+              .font(.callout)
+            Image(systemName: "textformat")
           }
           .contentShape(Capsule())
         }
@@ -960,7 +984,7 @@
           state: readerCommandState,
           handlers: ReaderCommandHandlers(
             showReaderSettings: {
-              showingPreferencesSheet = true
+              showingSettingsSheet = true
             },
             showBookDetails: {
               if currentBook != nil && currentSeries != nil {

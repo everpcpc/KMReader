@@ -1,5 +1,5 @@
 //
-// EpubReaderPreferences.swift
+// EpubThemePreferences.swift
 //
 //
 
@@ -23,10 +23,9 @@ nonisolated enum EpubConstants {
   static let minimumFontWeight: Double = 100.0
   static let maximumFontWeight: Double = 1000.0
   static let fontWeightStep: Double = 10.0
-  static let defaultTapScrollPercentage: Double = 80.0
 }
 
-nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable, Sendable {
+nonisolated struct EpubThemePreferences: RawRepresentable, Equatable, Sendable {
   typealias RawValue = String
 
   // Keep this list in sync with makeReadiumPayload.
@@ -58,7 +57,6 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable, Sendable 
   ]
 
   var theme: ThemeChoice
-  var flowStyle: EpubFlowStyle
   var fontFamily: FontFamilyChoice
   var fontWeight: Double?
   var advancedLayout: Bool
@@ -71,11 +69,9 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable, Sendable 
   var columnCount: EpubColumnCount
   var textAlignment: EpubTextAlignment
   var pageMargins: Double
-  var tapScrollPercentage: Double
 
   init(
     theme: ThemeChoice = .system,
-    flowStyle: EpubFlowStyle = .paged,
     fontFamily: FontFamilyChoice = .publisher,
     fontWeight: Double? = nil,
     advancedLayout: Bool = false,
@@ -88,10 +84,8 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable, Sendable 
     columnCount: EpubColumnCount = .auto,
     textAlignment: EpubTextAlignment = .publisherDefault,
     pageMargins: Double = EpubConstants.defaultPageMargins,
-    tapScrollPercentage: Double = EpubConstants.defaultTapScrollPercentage,
   ) {
     self.theme = theme
-    self.flowStyle = flowStyle
     self.fontFamily = fontFamily
     self.fontSize = fontSize
     self.wordSpacing = wordSpacing
@@ -104,7 +98,6 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable, Sendable 
     self.textAlignment = textAlignment
     self.fontWeight = fontWeight
     self.advancedLayout = advancedLayout
-    self.tapScrollPercentage = Self.normalizedTapScrollPercentage(tapScrollPercentage)
   }
 
   init?(rawValue: String) {
@@ -121,8 +114,6 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable, Sendable 
     }
 
     let theme = (dict["theme"] as? String).flatMap(ThemeChoice.init) ?? .system
-    let flowStyleRaw = dict["flowStyle"] as? String ?? EpubFlowStyle.paged.rawValue
-    let flowStyle = EpubFlowStyle(rawValue: flowStyleRaw) ?? .paged
     let fontString = dict["fontFamily"] as? String ?? FontFamilyChoice.publisher.rawValue
     let font = FontFamilyChoice(rawValue: fontString)
     let rawFontWeight = dict["fontWeight"] as? Double
@@ -141,13 +132,9 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable, Sendable 
     let textAlignment = EpubTextAlignment(rawValue: textAlignmentRaw) ?? .publisherDefault
     let rawPageMargins = dict["pageMargins"] as? Double ?? EpubConstants.defaultPageMargins
     let pageMargins = Self.normalizedPageMargins(rawPageMargins)
-    let rawTapScrollPercentage =
-      dict["tapScrollPercentage"] as? Double ?? EpubConstants.defaultTapScrollPercentage
-    let tapScrollPercentage = Self.normalizedTapScrollPercentage(rawTapScrollPercentage)
 
     self.init(
       theme: theme,
-      flowStyle: flowStyle,
       fontFamily: font,
       fontWeight: fontWeight,
       advancedLayout: advancedLayout,
@@ -160,14 +147,12 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable, Sendable 
       columnCount: columnCount,
       textAlignment: textAlignment,
       pageMargins: pageMargins,
-      tapScrollPercentage: tapScrollPercentage,
     )
   }
 
   var rawValue: String {
     var dict: [String: Any] = [
       "theme": theme.rawValue,
-      "flowStyle": flowStyle.rawValue,
       "fontFamily": fontFamily.rawValue,
       "advancedLayout": advancedLayout,
       "fontSize": fontSize,
@@ -179,7 +164,6 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable, Sendable 
       "columnCount": columnCount.rawValue,
       "textAlignment": textAlignment.rawValue,
       "pageMargins": pageMargins,
-      "tapScrollPercentage": tapScrollPercentage,
     ]
     if let fontWeight {
       dict["fontWeight"] = fontWeight
@@ -199,6 +183,7 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable, Sendable 
   func makeReadiumPayload(
     theme: ReaderTheme,
     fontPath: String? = nil,
+    flowStyle: EpubFlowStyle = .paged,
     rootURL: URL? = nil,
     viewportSize: CGSize? = nil
   ) -> (css: String, properties: [String: String?]) {
@@ -210,8 +195,7 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable, Sendable 
       "--RS__backgroundColor": theme.backgroundColorHex,
     ]
     properties["--USER__view"] = flowStyle == .scrolled ? "readium-scroll-on" : nil
-    properties["--RS__disableOverflow"] =
-      flowStyle == .scrolled ? "readium-noOverflow-on" : nil
+    properties["--RS__disableOverflow"] = flowStyle == .scrolled ? "readium-noOverflow-on" : nil
     #if os(iOS)
       properties["--USER__iOSPatch"] = "readium-iOSPatch-on"
       properties["--USER__iPadOSPatch"] = nil
@@ -230,7 +214,7 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable, Sendable 
     } else {
       properties["--USER__fontWeight"] = nil
     }
-    properties["--USER__colCount"] = resolvedReadiumColumnCount(for: viewportSize)
+    properties["--USER__colCount"] = resolvedReadiumColumnCount(flowStyle: flowStyle, for: viewportSize)
     properties["--USER__lineLength"] = readiumLineLengthValue(for: pageMargins)
     properties["--USER__textAlign"] = nil
     properties["--USER__bodyHyphens"] = nil
@@ -293,18 +277,20 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable, Sendable 
   func makeCSS(
     theme: ReaderTheme,
     fontPath: String? = nil,
+    flowStyle: EpubFlowStyle = .paged,
     rootURL: URL? = nil,
     viewportSize: CGSize? = nil
   ) -> String {
     makeReadiumPayload(
       theme: theme,
       fontPath: fontPath,
+      flowStyle: flowStyle,
       rootURL: rootURL,
       viewportSize: viewportSize
     ).css
   }
 
-  private func resolvedReadiumColumnCount(for viewportSize: CGSize?) -> String? {
+  private func resolvedReadiumColumnCount(flowStyle: EpubFlowStyle, for viewportSize: CGSize?) -> String? {
     switch columnCount {
     case .one, .two:
       return columnCount.readiumValue

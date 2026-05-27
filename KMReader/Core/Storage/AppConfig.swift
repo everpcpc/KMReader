@@ -926,6 +926,18 @@ enum AppConfig {
     }
   }
 
+  static nonisolated var epubTapScrollPercentage: Double {
+    get {
+      if UserDefaults.standard.object(forKey: "epubTapScrollPercentage") != nil {
+        return UserDefaults.standard.double(forKey: "epubTapScrollPercentage")
+      }
+      return 80.0
+    }
+    set {
+      UserDefaults.standard.set(min(100.0, max(25.0, newValue)), forKey: "epubTapScrollPercentage")
+    }
+  }
+
   static nonisolated var pageTransitionStyle: PageTransitionStyle {
     get {
       if let stored = UserDefaults.standard.string(forKey: "pageTransitionStyle"),
@@ -1042,14 +1054,14 @@ enum AppConfig {
     }
   }
 
-  static nonisolated var epubPreferences: EpubReaderPreferences {
+  static nonisolated var epubThemePreferences: EpubThemePreferences {
     get {
       if let stored = UserDefaults.standard.string(forKey: "epubPreferences"),
-        let prefs = EpubReaderPreferences(rawValue: stored)
+        let prefs = EpubThemePreferences(rawValue: stored)
       {
         return prefs
       }
-      return EpubReaderPreferences()
+      return EpubThemePreferences()
     }
     set {
       UserDefaults.standard.set(newValue.rawValue, forKey: "epubPreferences")

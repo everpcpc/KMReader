@@ -5,8 +5,9 @@
 
   struct WebPubScrolledView: NSViewRepresentable {
     @Bindable var viewModel: EpubReaderViewModel
-    let preferences: EpubReaderPreferences
+    let preferences: EpubThemePreferences
     let colorScheme: ColorScheme
+    let tapScrollPercentage: Double
     let animateTapTurns: Bool
     let showingControls: Bool
     let bookTitle: String?
@@ -108,6 +109,7 @@
       let readiumPayload = parent.preferences.makeReadiumPayload(
         theme: theme,
         fontPath: fontPath,
+        flowStyle: .scrolled,
         rootURL: parent.viewModel.resourceRootURL,
         viewportSize: parent.viewModel.resolvedViewportSize
       )
@@ -246,7 +248,7 @@
         }
         return
       }
-      let step = pageHeight * CGFloat(parent.preferences.tapScrollPercentage / 100.0)
+      let step = pageHeight * CGFloat(parent.tapScrollPercentage / 100.0)
       scrollDocument(to: max(0, currentOffset - step))
     }
 
@@ -264,7 +266,7 @@
         }
         return
       }
-      let step = pageHeight * CGFloat(parent.preferences.tapScrollPercentage / 100.0)
+      let step = pageHeight * CGFloat(parent.tapScrollPercentage / 100.0)
       scrollDocument(to: min(maxOffset, currentOffset + step))
     }
 
@@ -601,7 +603,7 @@
       let js = WebPubPagedJavaScriptBuilder.makeInjectCSSScript(
         contentCSS: contentCSS,
         readiumProperties: readiumProperties,
-        readiumPropertyKeys: EpubReaderPreferences.readiumPropertyKeys,
+        readiumPropertyKeys: EpubThemePreferences.readiumPropertyKeys,
         language: publicationLanguage,
         readingProgression: publicationReadingProgression
       )

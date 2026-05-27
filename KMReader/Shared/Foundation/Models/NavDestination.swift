@@ -42,7 +42,8 @@ enum NavDestination: Hashable {
     case settingsPdfReader
   #endif
   #if os(iOS)
-    case settingsEpubReader
+    case settingsEpubTheme
+    case settingsEpubSettings
   #endif
   case settingsSSE
   case settingsSync
@@ -163,8 +164,10 @@ enum NavDestination: Hashable {
         PdfPreferencesView()
     #endif
     #if os(iOS)
-      case .settingsEpubReader:
-        EpubPreferencesView()
+      case .settingsEpubTheme:
+        EpubThemePreferencesView()
+      case .settingsEpubSettings:
+        EpubReaderSettingsView()
     #endif
     case .settingsSSE:
       SettingsSSEView()

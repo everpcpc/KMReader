@@ -82,7 +82,7 @@
     private let updateThrottleInterval: TimeInterval = 2.0
     private let logger = AppLogger(.reader)
     private var viewportSize: CGSize = .zero
-    private var preferences: EpubReaderPreferences = .init()
+    private var preferences: EpubThemePreferences = .init()
     private var theme: ReaderTheme = .lightSepia
 
     let incognito: Bool
@@ -107,7 +107,7 @@
       }
     }
 
-    func applyPreferences(_ prefs: EpubReaderPreferences, colorScheme: ColorScheme) {
+    func applyPreferences(_ prefs: EpubThemePreferences, colorScheme: ColorScheme) {
       preferences = prefs
       theme = prefs.resolvedTheme(for: colorScheme)
 

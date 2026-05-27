@@ -16,7 +16,8 @@ import SwiftUI
           Section(String(localized: "Reader")) {
             SettingsSectionRow(section: .divinaReader)
             SettingsSectionRow(section: .pdfReader)
-            SettingsSectionRow(section: .epubReader)
+            SettingsSectionRow(section: .epubTheme)
+            SettingsSectionRow(section: .epubSettings)
           }
 
           Section(String(localized: "Display")) {
@@ -74,8 +75,10 @@ import SwiftUI
         DivinaPreferencesView()
       case .pdfReader:
         PdfPreferencesView()
-      case .epubReader:
-        EpubPreferencesView()
+      case .epubTheme:
+        EpubThemePreferencesView()
+      case .epubSettings:
+        EpubReaderSettingsView()
       case .sse:
         SettingsSSEView()
       case .sync:

@@ -5,7 +5,7 @@
 
   struct WebPubPagedCoverView: NSViewRepresentable {
     @Bindable var viewModel: EpubReaderViewModel
-    let preferences: EpubReaderPreferences
+    let preferences: EpubThemePreferences
     let colorScheme: ColorScheme
     let animateTapTurns: Bool
     let showingControls: Bool
@@ -731,7 +731,7 @@
       let js = WebPubPagedJavaScriptBuilder.makeInjectCSSScript(
         contentCSS: contentCSS,
         readiumProperties: readiumProperties,
-        readiumPropertyKeys: EpubReaderPreferences.readiumPropertyKeys,
+        readiumPropertyKeys: EpubThemePreferences.readiumPropertyKeys,
         language: publicationLanguage,
         readingProgression: publicationReadingProgression
       )

@@ -384,22 +384,22 @@ actor DatabaseOperator {
     }
   }
 
-  func fetchBookEpubPreferences(bookId: String) -> EpubReaderPreferences? {
+  func fetchBookEpubThemePreferences(bookId: String) -> EpubThemePreferences? {
     let instanceId = AppConfig.current.instanceId
     let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
     let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
     guard let raw = try? modelContext.fetch(descriptor).first?.epubPreferencesRaw else {
       return nil
     }
-    return EpubReaderPreferences(rawValue: raw)
+    return EpubThemePreferences(rawValue: raw)
   }
 
-  func updateBookEpubPreferences(bookId: String, preferences: EpubReaderPreferences?) {
+  func updateBookEpubThemePreferences(bookId: String, preferences: EpubThemePreferences?) {
     let instanceId = AppConfig.current.instanceId
     let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
     let descriptor = FetchDescriptor<KomgaBook>(predicate: #Predicate { $0.id == compositeId })
     if let book = try? modelContext.fetch(descriptor).first {
-      book.epubPreferences = preferences
+      book.epubThemePreferences = preferences
     }
   }
 

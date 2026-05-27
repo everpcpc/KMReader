@@ -24,8 +24,8 @@ extension KomgaBook {
     set { pageRotationsRaw = try? JSONEncoder().encode(newValue) }
   }
 
-  var epubPreferences: EpubReaderPreferences? {
-    get { epubPreferencesRaw.flatMap { EpubReaderPreferences(rawValue: $0) } }
+  var epubThemePreferences: EpubThemePreferences? {
+    get { epubPreferencesRaw.flatMap { EpubThemePreferences(rawValue: $0) } }
     set { epubPreferencesRaw = newValue?.rawValue }
   }
 

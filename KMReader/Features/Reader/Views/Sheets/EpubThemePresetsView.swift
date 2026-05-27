@@ -7,7 +7,7 @@ import SwiftData
 import SwiftUI
 
 struct EpubThemePresetsView: View {
-  let onApply: ((EpubReaderPreferences) -> Void)?
+  let onApply: ((EpubThemePreferences) -> Void)?
 
   @Environment(\.dismiss) private var dismiss
   @Environment(\.modelContext) private var modelContext
@@ -16,7 +16,7 @@ struct EpubThemePresetsView: View {
   @State private var presetToRename: EpubThemePreset?
   @State private var newName: String = ""
 
-  init(onApply: ((EpubReaderPreferences) -> Void)? = nil) {
+  init(onApply: ((EpubThemePreferences) -> Void)? = nil) {
     self.onApply = onApply
   }
 
@@ -133,7 +133,7 @@ struct EpubThemePresetsView: View {
       if let onApply {
         onApply(preferences)
       } else {
-        AppConfig.epubPreferences = preferences
+        AppConfig.epubThemePreferences = preferences
       }
       ErrorManager.shared.notify(message: String(localized: "Preset applied: \(preset.name)"))
     }

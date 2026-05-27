@@ -6,7 +6,7 @@
   struct WebPubPagedScrollView: NSViewRepresentable {
     @Bindable var viewModel: EpubReaderViewModel
     let animatePageTransitions: Bool
-    let preferences: EpubReaderPreferences
+    let preferences: EpubThemePreferences
     let colorScheme: ColorScheme
     let showingControls: Bool
     let bookTitle: String?
@@ -375,7 +375,7 @@
       let js = WebPubPagedJavaScriptBuilder.makeInjectCSSScript(
         contentCSS: contentCSS,
         readiumProperties: readiumProperties,
-        readiumPropertyKeys: EpubReaderPreferences.readiumPropertyKeys,
+        readiumPropertyKeys: EpubThemePreferences.readiumPropertyKeys,
         language: publicationLanguage,
         readingProgression: publicationReadingProgression
       )

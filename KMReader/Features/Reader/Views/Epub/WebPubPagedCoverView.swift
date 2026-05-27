@@ -9,7 +9,7 @@
 
   struct WebPubPagedCoverView: UIViewControllerRepresentable {
     @Bindable var viewModel: EpubReaderViewModel
-    let preferences: EpubReaderPreferences
+    let preferences: EpubThemePreferences
     let colorScheme: ColorScheme
     let animateTapTurns: Bool
     let showingControls: Bool

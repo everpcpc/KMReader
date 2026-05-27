@@ -11,8 +11,9 @@
   /// A SwiftUI view that displays EPUB content in continuous vertical scroll mode.
   struct WebPubScrolledView: UIViewControllerRepresentable {
     @Bindable var viewModel: EpubReaderViewModel
-    let preferences: EpubReaderPreferences
+    let preferences: EpubThemePreferences
     let colorScheme: ColorScheme
+    let tapScrollPercentage: Double
     let animateTapTurns: Bool
     let showingControls: Bool
     let bookTitle: String?
@@ -34,6 +35,7 @@
       let readiumPayload = preferences.makeReadiumPayload(
         theme: theme,
         fontPath: fontPath,
+        flowStyle: .scrolled,
         rootURL: viewModel.resourceRootURL,
         viewportSize: viewModel.resolvedViewportSize
       )
@@ -44,7 +46,7 @@
         rootURL: viewModel.resourceRootURL,
         mediaTypesByRelativePath: viewModel.mediaTypesByRelativePath,
         containerInsets: viewModel.containerInsetsForLabels().uiEdgeInsets,
-        tapScrollPercentage: preferences.tapScrollPercentage,
+        tapScrollPercentage: tapScrollPercentage,
         animateTapTurns: animateTapTurns,
         theme: theme,
         contentCSS: readiumPayload.css,
@@ -178,6 +180,7 @@
       let readiumPayload = preferences.makeReadiumPayload(
         theme: theme,
         fontPath: fontPath,
+        flowStyle: .scrolled,
         rootURL: viewModel.resourceRootURL,
         viewportSize: viewModel.resolvedViewportSize
       )
@@ -199,7 +202,7 @@
         rootURL: viewModel.resourceRootURL,
         mediaTypesByRelativePath: viewModel.mediaTypesByRelativePath,
         containerInsets: containerInsets,
-        tapScrollPercentage: preferences.tapScrollPercentage,
+        tapScrollPercentage: tapScrollPercentage,
         animateTapTurns: animateTapTurns,
         theme: theme,
         contentCSS: readiumPayload.css,
@@ -849,7 +852,7 @@
       injectCSS(
         contentCSS,
         readiumProperties: readiumProperties,
-        readiumPropertyKeys: EpubReaderPreferences.readiumPropertyKeys,
+        readiumPropertyKeys: EpubThemePreferences.readiumPropertyKeys,
         language: publicationLanguage,
         readingProgression: publicationReadingProgression
       ) { [weak self] in

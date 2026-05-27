@@ -9,14 +9,14 @@ typealias EpubThemePreset = KMReaderSchemaV6.EpubThemePresetV1
 
 extension EpubThemePreset {
   @MainActor
-  func getPreferences() -> EpubReaderPreferences? {
-    return EpubReaderPreferences(rawValue: preferencesJSON)
+  func getPreferences() -> EpubThemePreferences? {
+    return EpubThemePreferences(rawValue: preferencesJSON)
   }
 
   @MainActor
   static func create(
     name: String,
-    preferences: EpubReaderPreferences
+    preferences: EpubThemePreferences
   ) -> EpubThemePreset {
     return EpubThemePreset(
       name: name,

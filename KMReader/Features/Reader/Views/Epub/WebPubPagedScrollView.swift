@@ -13,7 +13,7 @@
   struct WebPubPagedScrollView: UIViewControllerRepresentable {
     @Bindable var viewModel: EpubReaderViewModel
     let animatePageTransitions: Bool
-    let preferences: EpubReaderPreferences
+    let preferences: EpubThemePreferences
     let colorScheme: ColorScheme
     let showingControls: Bool
     let bookTitle: String?
@@ -868,7 +868,7 @@
       injectCSS(
         contentCSS,
         readiumProperties: readiumProperties,
-        readiumPropertyKeys: EpubReaderPreferences.readiumPropertyKeys,
+        readiumPropertyKeys: EpubThemePreferences.readiumPropertyKeys,
         language: publicationLanguage,
         readingProgression: publicationReadingProgression
       ) { [weak self] in

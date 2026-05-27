@@ -18,8 +18,11 @@ struct SettingsView: View {
           }
         #endif
         #if os(iOS)
-          NavigationLink(value: NavDestination.settingsEpubReader) {
-            SettingsSectionRow(section: .epubReader)
+          NavigationLink(value: NavDestination.settingsEpubTheme) {
+            SettingsSectionRow(section: .epubTheme)
+          }
+          NavigationLink(value: NavDestination.settingsEpubSettings) {
+            SettingsSectionRow(section: .epubSettings)
           }
         #endif
       }

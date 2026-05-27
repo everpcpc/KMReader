@@ -1,0 +1,150 @@
+//
+//  EpubReaderSettingsView.swift
+//
+
+#if os(iOS)
+  import SwiftUI
+
+  struct EpubReaderSettingsView: View {
+    let inSheet: Bool
+
+    init(inSheet: Bool = false) {
+      self.inSheet = inSheet
+    }
+
+    @AppStorage("epubFlowStyle") private var flowStyle: EpubFlowStyle = .paged
+    @AppStorage("epubTapScrollPercentage") private var tapScrollPercentage: Double = AppConfig.epubTapScrollPercentage
+    @AppStorage("epubPageTransitionStyle") private var epubPageTransitionStyle: PageTransitionStyle = .scroll
+    @AppStorage("animateEpubTapTurns") private var animateEpubTapTurns: Bool = AppConfig.animateEpubTapTurns
+    @AppStorage("epubShowsStatusBarWhileReading") private var epubShowsStatusBarWhileReading: Bool = false
+    @AppStorage("epubShowsProgressFooter") private var epubShowsProgressFooter: Bool = false
+    @AppStorage("epubShowKeyboardHelpOverlay") private var showKeyboardHelpOverlay: Bool = AppConfig
+      .epubShowKeyboardHelpOverlay
+    @AppStorage("epubTapZoneMode") private var epubTapZoneMode: TapZoneMode = AppConfig.epubTapZoneMode
+    @AppStorage("epubTapZoneInversionMode") private var epubTapZoneInversionMode: TapZoneInversionMode = AppConfig
+      .epubTapZoneInversionMode
+
+    var body: some View {
+      if inSheet {
+        SheetView(
+          title: String(localized: "EPUB Settings"),
+          size: .large,
+          applyFormStyle: true
+        ) {
+          settingsForm
+        }
+        .presentationDragIndicator(.visible)
+      } else {
+        settingsForm
+          .inlineNavigationBarTitle(String(localized: "EPUB Settings"))
+      }
+    }
+
+    private var settingsForm: some View {
+      Form { settingsSections }
+        .formStyle(.grouped)
+        .animation(.easeInOut(duration: 0.2), value: flowStyle)
+    }
+
+    @ViewBuilder
+    private var settingsSections: some View {
+      Section(String(localized: "Page Turn")) {
+        Picker(String(localized: "epub.reading_flow"), selection: $flowStyle) {
+          ForEach(EpubFlowStyle.allCases) { style in Text(style.displayName).tag(style) }
+        }
+        .pickerStyle(.menu)
+
+        Toggle(isOn: $animateEpubTapTurns) {
+          VStack(alignment: .leading, spacing: 4) {
+            Text("Animate Page Turns")
+            Text("Use animation when tapping zones to turn pages")
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          }
+        }
+
+        if flowStyle.isPaged {
+          VStack(alignment: .leading, spacing: 8) {
+            Picker(String(localized: "Page Transition Style"), selection: $epubPageTransitionStyle) {
+              ForEach(PageTransitionStyle.epubAvailableCases, id: \.self) { style in Text(style.displayName).tag(style)
+              }
+            }
+            .pickerStyle(.menu)
+            Text(epubPageTransitionStyle.description)
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          }
+        }
+
+        if flowStyle == .scrolled {
+          VStack(alignment: .leading, spacing: 8) {
+            HStack {
+              Text(String(localized: "epub.scrolled.tap_scroll_height"))
+              Spacer()
+              Text("\(Int(tapScrollPercentage))%")
+                .foregroundStyle(.secondary)
+            }
+            Slider(value: $tapScrollPercentage, in: 25...100, step: 5)
+            Text(String(localized: "epub.scrolled.tap_scroll_height.description"))
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          }
+        }
+      }
+
+      Section(String(localized: "Tap Zones")) {
+        VStack(alignment: .leading, spacing: 8) {
+          TapZoneModePicker(
+            selection: $epubTapZoneMode,
+            tapZoneInversionMode: epubTapZoneInversionMode,
+            readingDirection: flowStyle.isPaged ? .ltr : .vertical
+          )
+          Text("Choose how tap zones are laid out")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+
+        if !epubTapZoneMode.isDisabled {
+          VStack(alignment: .leading, spacing: 8) {
+            Picker("Tap Zone Mirroring", selection: $epubTapZoneInversionMode) {
+              ForEach(TapZoneInversionMode.allCases, id: \.self) { mode in Text(mode.displayName).tag(mode) }
+            }
+            .pickerStyle(.menu)
+            Text("Mirror left and right tap zones manually or automatically for RTL reading")
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          }
+        }
+      }
+
+      Section(String(localized: "Reader Overlay")) {
+        Toggle(isOn: $epubShowsStatusBarWhileReading) {
+          VStack(alignment: .leading, spacing: 4) {
+            Text(String(localized: "Show Status Bar While Reading"))
+            Text(String(localized: "Keep time and battery visible when controls are hidden."))
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          }
+        }
+
+        Toggle(isOn: $epubShowsProgressFooter) {
+          VStack(alignment: .leading, spacing: 4) {
+            Text(String(localized: "Show Progress Footer"))
+            Text(String(localized: "Show book progress at the bottom while reading."))
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          }
+        }
+
+        Toggle(isOn: $showKeyboardHelpOverlay) {
+          VStack(alignment: .leading, spacing: 4) {
+            Text("Auto-Show Keyboard Help")
+            Text("Briefly show keyboard shortcuts when opening the reader")
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          }
+        }
+      }
+    }
+  }
+#endif
