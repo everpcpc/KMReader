@@ -249,11 +249,6 @@
         let containerInsets = viewModel.containerInsetsForLabels().uiEdgeInsets
         let theme = preferences.resolvedTheme(for: colorScheme)
 
-        // Ensure the selected font is copied to the resource directory
-        if let fontName = preferences.fontFamily.fontName {
-          viewModel.ensureFontCopied(fontName: fontName)
-        }
-
         let fontPath = preferences.fontFamily.fontName.flatMap { CustomFontStore.shared.getFontPath(for: $0) }
         let readiumPayload = preferences.makeReadiumPayload(
           theme: theme,
@@ -268,7 +263,8 @@
             pageIndex: currentVC.currentSubPageIndex
           )
         else { return }
-        let chapterProgress = location.pageCount > 0 ? Double(location.pageIndex + 1) / Double(location.pageCount) : nil
+        let chapterProgress =
+          location.pageCount > 0 ? Double(location.pageIndex + 1) / Double(location.pageCount) : nil
         let totalProgression = viewModel.totalProgression(
           location: location,
           chapterProgress: chapterProgress
@@ -278,6 +274,7 @@
           chapterURL: viewModel.chapterURL(at: chapterIndex),
           chapterMediaType: viewModel.chapterMediaType(at: chapterIndex),
           rootURL: viewModel.resourceRootURL,
+          mediaTypesByRelativePath: viewModel.mediaTypesByRelativePath,
           containerInsets: containerInsets,
           theme: theme,
           contentCSS: readiumPayload.css,
@@ -475,9 +472,6 @@
         let theme = parent.preferences.resolvedTheme(for: parent.colorScheme)
 
         // Ensure the selected font is copied to the resource directory
-        if let fontName = parent.preferences.fontFamily.fontName {
-          parent.viewModel.ensureFontCopied(fontName: fontName)
-        }
 
         let fontPath = parent.preferences.fontFamily.fontName.flatMap { CustomFontStore.shared.getFontPath(for: $0) }
         let chapterURL = parent.viewModel.chapterURL(at: chapterIndex)
@@ -503,7 +497,8 @@
             pageIndex: locationPageIndex
           )
         else { return nil }
-        let chapterProgress = location.pageCount > 0 ? Double(location.pageIndex + 1) / Double(location.pageCount) : nil
+        let chapterProgress =
+          location.pageCount > 0 ? Double(location.pageIndex + 1) / Double(location.pageCount) : nil
         let totalProgression = parent.viewModel.totalProgression(
           location: location,
           chapterProgress: chapterProgress
@@ -516,6 +511,7 @@
             chapterURL: chapterURL,
             chapterMediaType: chapterMediaType,
             rootURL: rootURL,
+            mediaTypesByRelativePath: parent.viewModel.mediaTypesByRelativePath,
             containerInsets: containerInsets,
             theme: theme,
             contentCSS: readiumPayload.css,
@@ -550,6 +546,7 @@
             chapterURL: chapterURL,
             chapterMediaType: chapterMediaType,
             rootURL: rootURL,
+            mediaTypesByRelativePath: parent.viewModel.mediaTypesByRelativePath,
             containerInsets: containerInsets,
             theme: theme,
             contentCSS: readiumPayload.css,
@@ -583,6 +580,7 @@
           chapterURL: chapterURL,
           chapterMediaType: chapterMediaType,
           rootURL: rootURL,
+          mediaTypesByRelativePath: parent.viewModel.mediaTypesByRelativePath,
           containerInsets: containerInsets,
           theme: theme,
           contentCSS: readiumPayload.css,
@@ -1140,6 +1138,7 @@
     private var chapterURL: URL?
     private var chapterMediaType: String?
     private var rootURL: URL?
+    private var mediaTypesByRelativePath: [String: String]
     private var lastLayoutSize: CGSize = .zero
     private var isContentLoaded = false
     private var pendingPageIndex: Int?
@@ -1158,6 +1157,8 @@
     private var labelBottomOffset: CGFloat
     private var useSafeArea: Bool
 
+    private let epubResourceSchemeHandler = EpubResourceSchemeHandler()
+
     private var infoOverlay: WebPubInfoOverlaySupport.UIKitOverlay?
 
     private var loadingIndicator: UIActivityIndicatorView?
@@ -1166,6 +1167,7 @@
       chapterURL: URL?,
       chapterMediaType: String?,
       rootURL: URL?,
+      mediaTypesByRelativePath: [String: String],
       containerInsets: UIEdgeInsets,
       theme: ReaderTheme,
       contentCSS: String,
@@ -1187,6 +1189,7 @@
       self.chapterURL = chapterURL
       self.chapterMediaType = chapterMediaType
       self.rootURL = rootURL
+      self.mediaTypesByRelativePath = mediaTypesByRelativePath
       self.containerInsets = containerInsets
       self.theme = theme
       self.contentCSS = contentCSS
@@ -1276,6 +1279,7 @@
       chapterURL: URL?,
       chapterMediaType: String?,
       rootURL: URL?,
+      mediaTypesByRelativePath: [String: String],
       containerInsets: UIEdgeInsets,
       theme: ReaderTheme,
       contentCSS: String,
@@ -1297,7 +1301,10 @@
       onPageCountReady: ((Int) -> Void)?
     ) {
       let shouldReload =
-        chapterURL != self.chapterURL || chapterMediaType != self.chapterMediaType || rootURL != self.rootURL
+        chapterURL != self.chapterURL
+        || chapterMediaType != self.chapterMediaType
+        || rootURL != self.rootURL
+        || mediaTypesByRelativePath != self.mediaTypesByRelativePath
       let appearanceChanged =
         theme != self.theme
         || containerInsets != self.containerInsets
@@ -1317,6 +1324,8 @@
       self.chapterURL = chapterURL
       self.chapterMediaType = chapterMediaType
       self.rootURL = rootURL
+      self.mediaTypesByRelativePath = mediaTypesByRelativePath
+      epubResourceSchemeHandler.configure(rootURL: rootURL, mediaTypesByRelativePath: mediaTypesByRelativePath)
       self.containerInsets = containerInsets
       self.theme = theme
       self.contentCSS = contentCSS
@@ -1430,6 +1439,8 @@
 
     private func setupWebView() {
       let config = WKWebViewConfiguration()
+      epubResourceSchemeHandler.configure(rootURL: rootURL, mediaTypesByRelativePath: mediaTypesByRelativePath)
+      config.registerEpubResourceSchemeHandler(epubResourceSchemeHandler)
       config.defaultWebpagePreferences.preferredContentMode = .mobile
       let controller = WKUserContentController()
       // Use weak wrapper to avoid retain cycle (WKUserContentController retains handlers strongly)
@@ -1544,7 +1555,7 @@
         loadingIndicator?.startAnimating()
       }
 
-      webView.loadEPUBDocument(url: chapterURL, rootURL: rootURL, mediaType: chapterMediaType)
+      webView.loadEPUBDocument(url: chapterURL, rootURL: rootURL)
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {

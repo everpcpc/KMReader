@@ -42,6 +42,7 @@
         chapterURL: viewModel.chapterURL(at: chapterIndex),
         chapterMediaType: viewModel.chapterMediaType(at: chapterIndex),
         rootURL: viewModel.resourceRootURL,
+        mediaTypesByRelativePath: viewModel.mediaTypesByRelativePath,
         containerInsets: viewModel.containerInsetsForLabels().uiEdgeInsets,
         tapScrollPercentage: preferences.tapScrollPercentage,
         animateTapTurns: animateTapTurns,
@@ -173,11 +174,6 @@
       let containerInsets = viewModel.containerInsetsForLabels().uiEdgeInsets
       let theme = preferences.resolvedTheme(for: colorScheme)
 
-      // Ensure the selected font is copied to the resource directory
-      if let fontName = preferences.fontFamily.fontName {
-        viewModel.ensureFontCopied(fontName: fontName)
-      }
-
       let fontPath = preferences.fontFamily.fontName.flatMap { CustomFontStore.shared.getFontPath(for: $0) }
       let readiumPayload = preferences.makeReadiumPayload(
         theme: theme,
@@ -201,6 +197,7 @@
         chapterURL: viewModel.chapterURL(at: chapterIndex),
         chapterMediaType: viewModel.chapterMediaType(at: chapterIndex),
         rootURL: viewModel.resourceRootURL,
+        mediaTypesByRelativePath: viewModel.mediaTypesByRelativePath,
         containerInsets: containerInsets,
         tapScrollPercentage: preferences.tapScrollPercentage,
         animateTapTurns: animateTapTurns,
@@ -258,6 +255,7 @@
     private var chapterURL: URL?
     private var chapterMediaType: String?
     private var rootURL: URL?
+    private var mediaTypesByRelativePath: [String: String]
     private var lastLayoutSize: CGSize = .zero
     private var isContentLoaded = false
     private var pendingPageIndex: Int?
@@ -284,6 +282,8 @@
 
     var currentChapterIndex: Int { chapterIndex }
     var currentPageIndex: Int { currentSubPageIndex }
+
+    private let epubResourceSchemeHandler = EpubResourceSchemeHandler()
 
     private var containerView: UIView?
     private var containerConstraints:
@@ -321,6 +321,7 @@
       chapterURL: URL?,
       chapterMediaType: String?,
       rootURL: URL?,
+      mediaTypesByRelativePath: [String: String],
       containerInsets: UIEdgeInsets,
       tapScrollPercentage: Double,
       animateTapTurns: Bool,
@@ -344,6 +345,7 @@
       self.chapterURL = chapterURL
       self.chapterMediaType = chapterMediaType
       self.rootURL = rootURL
+      self.mediaTypesByRelativePath = mediaTypesByRelativePath
       self.containerInsets = containerInsets
       self.tapScrollPercentage = Self.normalizedTapScrollPercentage(tapScrollPercentage)
       self.animateTapTurns = animateTapTurns
@@ -403,6 +405,8 @@
 
     private func setupWebView() {
       let config = WKWebViewConfiguration()
+      epubResourceSchemeHandler.configure(rootURL: rootURL, mediaTypesByRelativePath: mediaTypesByRelativePath)
+      config.registerEpubResourceSchemeHandler(epubResourceSchemeHandler)
       config.defaultWebpagePreferences.preferredContentMode = .mobile
       let controller = WKUserContentController()
       // Use weak wrapper to avoid retain cycle
@@ -691,6 +695,7 @@
       chapterURL: URL?,
       chapterMediaType: String?,
       rootURL: URL?,
+      mediaTypesByRelativePath: [String: String],
       containerInsets: UIEdgeInsets,
       tapScrollPercentage: Double,
       animateTapTurns: Bool,
@@ -710,7 +715,10 @@
       useSafeArea: Bool
     ) {
       let shouldReload =
-        chapterURL != self.chapterURL || chapterMediaType != self.chapterMediaType || rootURL != self.rootURL
+        chapterURL != self.chapterURL
+        || chapterMediaType != self.chapterMediaType
+        || rootURL != self.rootURL
+        || mediaTypesByRelativePath != self.mediaTypesByRelativePath
       let normalizedTapScrollPercentage = Self.normalizedTapScrollPercentage(tapScrollPercentage)
       let appearanceChanged =
         theme != self.theme
@@ -728,6 +736,8 @@
       self.chapterURL = chapterURL
       self.chapterMediaType = chapterMediaType
       self.rootURL = rootURL
+      self.mediaTypesByRelativePath = mediaTypesByRelativePath
+      epubResourceSchemeHandler.configure(rootURL: rootURL, mediaTypesByRelativePath: mediaTypesByRelativePath)
       self.containerInsets = containerInsets
       self.tapScrollPercentage = normalizedTapScrollPercentage
       self.animateTapTurns = animateTapTurns
@@ -788,7 +798,7 @@
       webView.alpha = 0.01
       loadingIndicator?.startAnimating()
 
-      webView.loadEPUBDocument(url: chapterURL, rootURL: rootURL, mediaType: chapterMediaType)
+      webView.loadEPUBDocument(url: chapterURL, rootURL: rootURL)
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {

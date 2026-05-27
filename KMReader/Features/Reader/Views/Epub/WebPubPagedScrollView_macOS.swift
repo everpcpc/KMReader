@@ -19,6 +19,7 @@
 
     func makeNSView(context: Context) -> NSView {
       let configuration = WKWebViewConfiguration()
+      configuration.registerEpubResourceSchemeHandler(context.coordinator.epubResourceSchemeHandler)
       let userContentController = WKUserContentController()
       userContentController.add(
         WeakWKScriptMessageHandler(delegate: context.coordinator),
@@ -50,6 +51,7 @@
 
   @MainActor
   final class PagedCoordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler, NSGestureRecognizerDelegate {
+    let epubResourceSchemeHandler = EpubResourceSchemeHandler()
     private var parent: WebPubPagedScrollView
     private weak var rootView: NSView?
     private weak var webView: WKWebView?
@@ -94,10 +96,6 @@
       self.parent = parent
       guard let webView else { return }
 
-      if let fontName = parent.preferences.fontFamily.fontName {
-        parent.viewModel.ensureFontCopied(fontName: fontName)
-      }
-
       let selectedChapterIndex = parent.viewModel.targetChapterIndex ?? parent.viewModel.currentChapterIndex
       let selectedPageIndex = parent.viewModel.targetPageIndex ?? parent.viewModel.currentPageIndex
       let currentLocation = parent.viewModel.pageLocation(
@@ -117,6 +115,10 @@
       let nextChapterURL = parent.viewModel.chapterURL(at: selectedChapterIndex)
       let nextChapterMediaType = parent.viewModel.chapterMediaType(at: selectedChapterIndex)
       let nextRootURL = parent.viewModel.resourceRootURL
+      epubResourceSchemeHandler.configure(
+        rootURL: nextRootURL,
+        mediaTypesByRelativePath: parent.viewModel.mediaTypesByRelativePath
+      )
       let shouldReload =
         nextChapterURL != chapterURL || nextChapterMediaType != chapterMediaType || nextRootURL != rootURL
       let appearanceChanged =
@@ -172,7 +174,7 @@
       totalPagesInChapter = 1
       isAwaitingPaginationReady = true
       webView.alphaValue = 0.01
-      webView.loadEPUBDocument(url: chapterURL, rootURL: rootURL, mediaType: chapterMediaType)
+      webView.loadEPUBDocument(url: chapterURL, rootURL: rootURL)
     }
 
     private func installOverlayIfNeeded() {

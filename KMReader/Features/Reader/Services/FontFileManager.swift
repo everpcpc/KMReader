@@ -29,9 +29,17 @@ enum FontFileManager {
     return appSupportURL.appendingPathComponent(relativePath).path
   }
 
-  /// Creates a relative path for a font file
-  /// - Parameter fileName: The font file name
-  /// - Returns: Relative path like "CustomFonts/font.ttf"
+  /// Resolves a font file by its stored file name.
+  /// - Parameter fileName: Stored custom font file name.
+  /// - Returns: Absolute file URL, or nil if the file is not available.
+  static func resolveFontFile(named fileName: String) -> URL? {
+    guard !fileName.contains("/"), !fileName.contains("\\") else { return nil }
+    guard let fontsDir = fontsDirectory() else { return nil }
+    let fileURL = fontsDir.appendingPathComponent(fileName).standardizedFileURL
+    guard FileManager.default.fileExists(atPath: fileURL.path) else { return nil }
+    return fileURL
+  }
+
   static func relativePath(for fileName: String) -> String {
     return "CustomFonts/\(fileName)"
   }

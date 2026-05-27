@@ -228,9 +228,6 @@
 
         let containerInsets = parent.viewModel.containerInsetsForLabels().uiEdgeInsets
         let theme = parent.preferences.resolvedTheme(for: parent.colorScheme)
-        if let fontName = parent.preferences.fontFamily.fontName {
-          parent.viewModel.ensureFontCopied(fontName: fontName)
-        }
         let fontPath = parent.preferences.fontFamily.fontName.flatMap {
           CustomFontStore.shared.getFontPath(for: $0)
         }
@@ -271,6 +268,7 @@
             chapterURL: chapterURL,
             chapterMediaType: chapterMediaType,
             rootURL: rootURL,
+            mediaTypesByRelativePath: parent.viewModel.mediaTypesByRelativePath,
             containerInsets: containerInsets,
             theme: theme,
             contentCSS: readiumPayload.css,
@@ -307,6 +305,7 @@
             chapterURL: chapterURL,
             chapterMediaType: chapterMediaType,
             rootURL: rootURL,
+            mediaTypesByRelativePath: parent.viewModel.mediaTypesByRelativePath,
             containerInsets: containerInsets,
             theme: theme,
             contentCSS: readiumPayload.css,
@@ -340,6 +339,7 @@
           chapterURL: chapterURL,
           chapterMediaType: chapterMediaType,
           rootURL: rootURL,
+          mediaTypesByRelativePath: parent.viewModel.mediaTypesByRelativePath,
           containerInsets: containerInsets,
           theme: theme,
           contentCSS: readiumPayload.css,
@@ -392,9 +392,6 @@
         let chapterIndex = controller.chapterIndex
         let containerInsets = parent.viewModel.containerInsetsForLabels().uiEdgeInsets
         let theme = parent.preferences.resolvedTheme(for: parent.colorScheme)
-        if let fontName = parent.preferences.fontFamily.fontName {
-          parent.viewModel.ensureFontCopied(fontName: fontName)
-        }
         let fontPath = parent.preferences.fontFamily.fontName.flatMap {
           CustomFontStore.shared.getFontPath(for: $0)
         }
@@ -422,6 +419,7 @@
           chapterURL: parent.viewModel.chapterURL(at: chapterIndex),
           chapterMediaType: parent.viewModel.chapterMediaType(at: chapterIndex),
           rootURL: parent.viewModel.resourceRootURL,
+          mediaTypesByRelativePath: parent.viewModel.mediaTypesByRelativePath,
           containerInsets: containerInsets,
           theme: theme,
           contentCSS: readiumPayload.css,
