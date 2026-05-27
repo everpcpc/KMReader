@@ -339,12 +339,12 @@ nonisolated struct EpubReaderPreferences: RawRepresentable, Equatable, Sendable 
   }
 
   private func makeFontFaceCSS(fontName: String?, fontPath: String?, rootURL: URL?) -> String {
-    guard let fontName, let path = fontPath, let rootURL else {
+    guard let fontName, let path = fontPath, rootURL != nil else {
       return ""
     }
 
     let fileName = URL(fileURLWithPath: path).lastPathComponent
-    let fontURL = rootURL.appendingPathComponent(".fonts").appendingPathComponent(fileName)
+    guard let fontURL = EpubResourceScheme.fontURL(fileName: fileName) else { return "" }
     let fileURLString = fontURL.absoluteString
     let fontFormat = path.hasSuffix(".otf") ? "opentype" : "truetype"
 

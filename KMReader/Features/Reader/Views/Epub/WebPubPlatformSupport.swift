@@ -54,23 +54,19 @@
     }
   }
 
+  extension WKWebViewConfiguration {
+    func registerEpubResourceSchemeHandler(_ handler: EpubResourceSchemeHandler) {
+      setURLSchemeHandler(handler, forURLScheme: EpubResourceScheme.scheme)
+    }
+  }
+
   extension WKWebView {
     func loadEPUBDocument(
       url: URL,
-      rootURL: URL,
-      mediaType: String?
+      rootURL: URL
     ) {
-      guard let mediaType, let data = try? Data(contentsOf: url) else {
-        loadFileURL(url, allowingReadAccessTo: rootURL)
-        return
-      }
-
-      load(
-        data,
-        mimeType: mediaType,
-        characterEncodingName: "utf-8",
-        baseURL: url.deletingLastPathComponent()
-      )
+      guard let schemeURL = EpubResourceScheme.url(for: url, rootURL: rootURL) else { return }
+      load(URLRequest(url: schemeURL))
     }
   }
 

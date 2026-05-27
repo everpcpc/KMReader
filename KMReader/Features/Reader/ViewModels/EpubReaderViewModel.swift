@@ -57,6 +57,7 @@
     var targetPageIndex: Int?
     var currentLocation: WebPubLocation?
     var resourceRootURL: URL?
+    var mediaTypesByRelativePath: [String: String] = [:]
     var publicationLanguage: String?
     var publicationReadingProgression: WebPubReadingProgression?
 
@@ -168,6 +169,7 @@
       targetPageIndex = nil
       currentLocation = nil
       resourceRootURL = nil
+      mediaTypesByRelativePath = [:]
       publicationLanguage = nil
       publicationReadingProgression = nil
       chapterPageCounts = [:]
@@ -222,7 +224,7 @@
         tocTitleByHref = buildTOCTitleMap(from: tableOfContents)
 
         resourceRootURL = offlineRoot
-        copyCustomFontsToResourceDirectory()
+        mediaTypesByRelativePath = Self.mediaTypeMap(from: manifest)
         // Page count cache is memory-only, no file loading needed
         loadTextLengthCache()
         try await cacheChapterURLs()
@@ -301,6 +303,31 @@
         isLoading = false
         logger.error("WebPub load failed: \(message)")
       }
+    }
+
+    private static func mediaTypeMap(from manifest: WebPubPublication) -> [String: String] {
+      var map: [String: String] = [:]
+
+      func collect(_ links: [WebPubLink]) {
+        for link in links {
+          let normalized = normalizedHref(link.href)
+          if let safePath = EpubResourceSafeRelativePath(normalized), let type = link.type {
+            map[safePath] = type
+          }
+          if let children = link.children {
+            collect(children)
+          }
+        }
+      }
+
+      collect(manifest.readingOrder)
+      collect(manifest.resources)
+      collect(manifest.images)
+      collect(manifest.links)
+      collect(manifest.toc)
+      collect(manifest.pageList)
+      collect(manifest.landmarks)
+      return map
     }
 
     private func ensureOfflineReady(
@@ -1039,69 +1066,6 @@
     private func chapterIndexForHref(_ href: String) -> Int? {
       let normalized = Self.normalizedHref(href)
       return readingOrder.firstIndex { Self.normalizedHref($0.href) == normalized }
-    }
-
-    /// Ensures a specific font is copied to the resource directory
-    /// - Parameter fontName: The name of the font to copy
-    func ensureFontCopied(fontName: String) {
-      guard let rootURL = resourceRootURL else { return }
-      guard let sourcePath = CustomFontStore.shared.getFontPath(for: fontName) else { return }
-
-      let sourceURL = URL(fileURLWithPath: sourcePath)
-      guard FileManager.default.fileExists(atPath: sourceURL.path) else { return }
-
-      let fontsDirectory = rootURL.appendingPathComponent(".fonts", isDirectory: true)
-      try? FileManager.default.createDirectory(at: fontsDirectory, withIntermediateDirectories: true)
-
-      let fileName = sourceURL.lastPathComponent
-      let destinationURL = fontsDirectory.appendingPathComponent(fileName)
-
-      // Copy font file if it doesn't already exist
-      if !FileManager.default.fileExists(atPath: destinationURL.path) {
-        try? FileManager.default.copyItem(at: sourceURL, to: destinationURL)
-      }
-    }
-
-    private func copyCustomFontsToResourceDirectory() {
-      guard let rootURL = resourceRootURL else { return }
-
-      // Create .fonts directory
-      let fontsDirectory = rootURL.appendingPathComponent(".fonts", isDirectory: true)
-      do {
-        try FileManager.default.createDirectory(at: fontsDirectory, withIntermediateDirectories: true)
-      } catch {
-        print("⚠️ Failed to create fonts directory: \(error)")
-        return
-      }
-
-      // Get all custom fonts with paths
-      let customFonts = CustomFontStore.shared.fetchCustomFonts()
-
-      for fontName in customFonts {
-        guard let sourcePath = CustomFontStore.shared.getFontPath(for: fontName) else {
-          continue
-        }
-
-        let sourceURL = URL(fileURLWithPath: sourcePath)
-
-        // Check if source file exists
-        guard FileManager.default.fileExists(atPath: sourceURL.path) else {
-          print("⚠️ Font file not found for '\(fontName)': \(sourcePath)")
-          continue
-        }
-
-        let fileName = sourceURL.lastPathComponent
-        let destinationURL = fontsDirectory.appendingPathComponent(fileName)
-
-        // Copy font file if it doesn't already exist
-        if !FileManager.default.fileExists(atPath: destinationURL.path) {
-          do {
-            try FileManager.default.copyItem(at: sourceURL, to: destinationURL)
-          } catch {
-            print("⚠️ Failed to copy font '\(fontName)': \(error)")
-          }
-        }
-      }
     }
 
     private func syncRemoteProgressionToLocal(bookId: String) async {
