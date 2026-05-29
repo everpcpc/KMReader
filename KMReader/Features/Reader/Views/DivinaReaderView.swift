@@ -79,6 +79,8 @@ struct DivinaReaderView: View {
   @State private var preserveReaderOptions = false
   @State private var usesDualPagePresentation = false
   @State private var webtoonScrollController = WebtoonScrollController()
+  @State private var readerSafeAreaTop: CGFloat = 0
+  @State private var readerViewHeight: CGFloat = 0
 
   // UI Panels states
   @State private var showingPageJumpSheet = false
@@ -552,6 +554,8 @@ struct DivinaReaderView: View {
 
         keyboardHelpOverlay
       }
+      .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.top } action: { readerSafeAreaTop = $0 }
+      .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { readerViewHeight = $0 }
       .onChange(of: useDualPage, initial: true) { _, newValue in
         usesDualPagePresentation = newValue
         applyDualPagePresentationMode(newValue)
@@ -1699,13 +1703,29 @@ struct DivinaReaderView: View {
     }
   #endif
 
+  // T-Split controls strip height below the safe-area top, in points. Adaptive:
+  // thin while controls are hidden so the navigation halves stay large; taller
+  // while they're shown so a band below the toolbar can toggle them back off (a
+  // fixed strip sized to the toolbar leaves no tappable dismiss surface). Tunable;
+  // the shown band clears the ~80-85pt toolbar plus a dismiss margin.
+  private static let tSplitSummonBand: CGFloat = 44
+  private static let tSplitDismissBand: CGFloat = 128
+
   private func handleTapZoneTap(normalizedX: CGFloat, normalizedY: CGFloat) {
+    let stripHeightFraction: CGFloat?
+    if tapZoneMode == .tSplit, readerViewHeight > 0 {
+      let band = shouldShowControls ? Self.tSplitDismissBand : Self.tSplitSummonBand
+      stripHeightFraction = (readerSafeAreaTop + band) / readerViewHeight
+    } else {
+      stripHeightFraction = nil
+    }
     let action = TapZoneHelper.action(
       normalizedX: normalizedX,
       normalizedY: normalizedY,
       tapZoneMode: tapZoneMode,
       tapZoneInversionMode: tapZoneInversionMode,
-      readingDirection: readingDirection
+      readingDirection: readingDirection,
+      stripHeightFraction: stripHeightFraction
     )
     handleTapZoneAction(action)
   }
