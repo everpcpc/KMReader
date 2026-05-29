@@ -1707,9 +1707,10 @@ struct DivinaReaderView: View {
   // thin while controls are hidden so the navigation halves stay large; taller
   // while they're shown so a band below the toolbar can toggle them back off (a
   // fixed strip sized to the toolbar leaves no tappable dismiss surface). Tunable;
-  // the shown band clears the ~80-85pt toolbar plus a dismiss margin.
+  // the shown band clears the toolbar (~80pt iPhone, ~105pt iPad) plus a ~44pt
+  // tap row, so dismiss stays comfortable on both.
   private static let tSplitSummonBand: CGFloat = 44
-  private static let tSplitDismissBand: CGFloat = 128
+  private static let tSplitDismissBand: CGFloat = 150
 
   private func handleTapZoneTap(normalizedX: CGFloat, normalizedY: CGFloat) {
     let stripHeightFraction: CGFloat?
