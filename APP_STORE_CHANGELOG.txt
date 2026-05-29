@@ -1,17 +1,19 @@
 New
-- Added offline-first reading so downloaded books can be prepared locally before the reader opens.
-- Added dashboard download actions for recent, on-deck, and keep-reading sections, with clearer Download Latest and Download All choices where available.
-- Added per-page rotation for DIVINA pages.
-- Added reader progress options for DIVINA and PDF so lightweight progress can stay visible while controls are hidden.
+- Added optional border cropping for DIVINA pages, helping comics with large empty margins use more of the screen.
+- Added DIVINA image preloading profiles so you can choose between lower memory use and smoother page turns.
+- Added dedicated EPUB settings and EPUB theme controls, separating reading behavior from per-book theme and typography choices.
 
 Improvements
-- PDF reading now uses supported page presentation modes, including an Auto mode that adapts between portrait and landscape.
-- Automatic offline mode can now recover when your configured Komga server becomes reachable again, while manual offline mode stays under your control.
-- Reader opening is faster because adjacent-book loading no longer blocks the first page.
-- Webtoon spacing, history rows, reader menus, and reading stats controls have been tightened for cleaner scanning.
+- EPUB books with custom fonts, images, and mixed HTML/XHTML chapters now load publication resources more reliably.
+- EPUB tap zones now have their own settings instead of sharing DIVINA tap zone preferences.
+- DIVINA scroll and page-curl navigation is more stable, especially around rapid taps, animations, and book boundaries.
+- Reader memory handling is improved on iOS, with decoded pages pruned more gracefully under memory pressure.
+- Browse views avoid unnecessary refreshes when returning from detail pages.
+- The Browse tab is now positioned as the trailing search-style entry point on iPhone and Apple TV.
+- macOS Settings keeps its sidebar stable while using EPUB settings and log search.
 
 Fixes
-- Progress is flushed when the app backgrounds, reducing the chance of losing the last pages you read.
-- Stale offline progress is skipped when the server already has newer progress, preventing older queued updates from moving books backward.
-- EPUB downloads with read-only archive folders extract more reliably.
-- Dashboard offline queue actions are faster and avoid unsupported bulk downloads.
+- Fixed cases where continuing from one volume into the next could jump back or regress progress for the previous volume.
+- Fixed UTF-8 archive path handling for offline CBZ/ZIP extraction.
+- Fixed EPUB chapters that could appear blank when their manifest media type did not match the file extension.
+- Reduced unnecessary offline downloads for previous-book preloads while keeping forward offline-first preparation.
