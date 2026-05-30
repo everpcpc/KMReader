@@ -1812,7 +1812,13 @@ actor DatabaseOperator {
     let allBooks = (try? modelContext.fetch(descriptor)) ?? []
     let books = allBooks.filter { bookIds.contains($0.bookId) }
 
-    let sortedBooks = books.sorted { $0.metaNumberSort < $1.metaNumberSort }
+    // Preserve the read list's curated order, not per-series issue number.
+    let orderByBookId = Dictionary(
+      uniqueKeysWithValues: bookIds.enumerated().map { ($0.element, $0.offset) }
+    )
+    let sortedBooks = books.sorted {
+      (orderByBookId[$0.bookId] ?? Int.max) < (orderByBookId[$1.bookId] ?? Int.max)
+    }
     let unreadBooks = sortedBooks.filter { $0.progressCompleted != true }
     let limitValue = max(0, limit)
     let targetBooks = limitValue > 0 ? Array(unreadBooks.prefix(limitValue)) : unreadBooks
