@@ -205,6 +205,18 @@
       viewModel.isZoomed = false
     }
 
+    // Reset this slot's scroll view to minimum scale unconditionally, independent
+    // of tracksGlobalZoomState or item identity. Lets the cover coordinator clear
+    // a stale scale left on a slot that was zoomed while a page transition was in
+    // flight. Uses isUpdatingZoomState so it does not re-fire scrollViewDidZoom.
+    func forceResetZoom() {
+      guard scrollView.zoomScale != scrollView.minimumZoomScale else { return }
+      isUpdatingZoomState = true
+      scrollView.setZoomScale(scrollView.minimumZoomScale, animated: false)
+      scrollView.contentOffset = .zero
+      isUpdatingZoomState = false
+    }
+
     func viewForZooming(in scrollView: UIScrollView) -> UIView? {
       contentStack
     }
