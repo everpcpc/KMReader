@@ -27,10 +27,19 @@ enum TapZoneHelper {
     normalizedY: CGFloat,
     tapZoneMode: TapZoneMode,
     tapZoneInversionMode: TapZoneInversionMode,
-    readingDirection: ReadingDirection
+    readingDirection: ReadingDirection,
+    stripHeightFraction: CGFloat? = nil
   ) -> TapZoneAction {
     if tapZoneMode.isDisabled {
       return .toggleControls
+    }
+
+    if tapZoneMode == .tSplit {
+      let frac = stripHeightFraction ?? 0.12
+      if normalizedY <= frac { return .toggleControls }
+      let leftHalf = normalizedX < 0.5
+      let inverted = tapZoneInversionMode.isInverted(for: readingDirection)
+      return (leftHalf != inverted) ? .previous : .next
     }
 
     let column = columnIndex(
@@ -91,6 +100,8 @@ enum TapZoneHelper {
         return .previous
       }
       return .next
+    case .tSplit:
+      return .toggleControls
     }
   }
 
