@@ -1345,8 +1345,21 @@ private func generateViewItems(
 ) -> [ReaderViewItem] {
   guard !segments.isEmpty, !readerPages.isEmpty else { return [] }
 
-  // Helper: determine effective isPortrait considering rotation
-  func effectiveIsPortrait(at index: Int) -> Bool {
+  enum PageOrientation {
+    case portrait
+    case landscape
+    case unknown
+
+    var isKnownLandscape: Bool {
+      self == .landscape
+    }
+
+    var isPairableInForcedDual: Bool {
+      self != .landscape
+    }
+  }
+
+  func effectiveOrientation(at index: Int) -> PageOrientation {
     let page = readerPages[index].page
     let bookId = readerPages[index].bookId
     if let range = segmentPageRangeByBookId[bookId] {
@@ -1354,12 +1367,13 @@ private func generateViewItems(
       let rotation = pageRotationsByBookId[bookId]?[localIndex] ?? 0
       let normalized = ((rotation % 360) + 360) % 360
       if normalized == 90 || normalized == 270 {
-        // Swapped: portrait becomes landscape and vice versa
-        guard let width = page.width, let height = page.height else { return false }
-        return width > height
+        guard let width = page.width, let height = page.height else { return .unknown }
+        return width > height ? .portrait : .landscape
       }
     }
-    return page.isPortrait
+
+    guard let width = page.width, let height = page.height else { return .unknown }
+    return height > width ? .portrait : .landscape
   }
 
   var items: [ReaderViewItem] = []
@@ -1377,12 +1391,12 @@ private func generateViewItems(
 
     while index < segmentEndExclusive {
       if shouldForceDualPairs {
-        let currentIsPortrait = effectiveIsPortrait(at: index)
+        let currentOrientation = effectiveOrientation(at: index)
         let isCoverPage = !noCover && index == segmentStartIndex
-        let isWideCoverPage = isCoverPage && !currentIsPortrait
+        let isWideCoverPage = isCoverPage && currentOrientation.isKnownLandscape
         let isWidePageEligibleForSplit =
           (splitWidePages || pageCurl)
-          && !currentIsPortrait
+          && currentOrientation.isKnownLandscape
           && (noCover || isWideCoverPage || index != segmentStartIndex)
 
         if isWidePageEligibleForSplit {
@@ -1391,17 +1405,20 @@ private func generateViewItems(
           continue
         }
 
-        if !currentIsPortrait && !pageCurl {
+        if currentOrientation.isKnownLandscape && !pageCurl {
           items.append(.page(id: readerPages[index].id))
           index += 1
           continue
         }
 
-        let nextIsPortrait = index + 1 < segmentEndExclusive ? effectiveIsPortrait(at: index + 1) : true
+        let nextIsPairable =
+          index + 1 < segmentEndExclusive
+          ? effectiveOrientation(at: index + 1).isPairableInForcedDual
+          : true
         let shouldShowSingle =
-          (isCoverPage && currentIsPortrait) || index == segmentEndExclusive - 1
+          (isCoverPage && currentOrientation.isPairableInForcedDual) || index == segmentEndExclusive - 1
           || isolatePages.contains(index) || isolatePages.contains(index + 1)
-          || !nextIsPortrait  // next page is wide → keep it for its own item
+          || !nextIsPairable  // next page is wide → keep it for its own item
         if shouldShowSingle {
           items.append(.page(id: readerPages[index].id))
           index += 1
@@ -1413,7 +1430,8 @@ private func generateViewItems(
         continue
       }
 
-      let currentIsPortrait = effectiveIsPortrait(at: index)
+      let currentOrientation = effectiveOrientation(at: index)
+      let currentIsPortrait = currentOrientation == .portrait
 
       var useSinglePage = false
       var shouldSplitPage = false
@@ -1458,7 +1476,7 @@ private func generateViewItems(
         items.append(.page(id: readerPages[index].id))
         index += 1
       } else {
-        let nextIsPortrait = effectiveIsPortrait(at: index + 1)
+        let nextIsPortrait = effectiveOrientation(at: index + 1) == .portrait
         if allowDualPairs && index + 1 < segmentEndExclusive
           && nextIsPortrait
           && !isolatePages.contains(index + 1)

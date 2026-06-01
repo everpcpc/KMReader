@@ -32,6 +32,17 @@ enum PageLayout: String, CaseIterable, Hashable, Sendable {
     }
   }
 
+  var detailText: String {
+    switch self {
+    case .single:
+      return String(localized: "reader.pageLayout.single.detail")
+    case .auto:
+      return String(localized: "reader.pageLayout.auto.detail")
+    case .dual:
+      return String(localized: "reader.pageLayout.dual.detail")
+    }
+  }
+
   var supportsDualPageOptions: Bool {
     switch self {
     case .single:
