@@ -46,6 +46,10 @@
       representedItem
     }
 
+    func forceResetZoom() {
+      pageContentView.forceResetZoom()
+    }
+
     override init(frame: CGRect) {
       super.init(frame: frame)
       setupUI()

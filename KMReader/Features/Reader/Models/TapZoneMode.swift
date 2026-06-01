@@ -11,6 +11,7 @@ enum TapZoneMode: String, CaseIterable, Hashable, Sendable {
   case edge = "edge"
   case kindle = "kindle"
   case lShape = "lShape"
+  case tSplit = "tSplit"
 
   var displayName: String {
     switch self {
@@ -19,6 +20,7 @@ enum TapZoneMode: String, CaseIterable, Hashable, Sendable {
     case .edge: return String(localized: "reader.tapZoneMode.edge")
     case .kindle: return String(localized: "reader.tapZoneMode.kindle")
     case .lShape: return String(localized: "reader.tapZoneMode.lShape")
+    case .tSplit: return String(localized: "reader.tapZoneMode.tSplit")
     }
   }
 

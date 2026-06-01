@@ -547,6 +547,12 @@
         updateSlotLayout()
         applyCurrentItem(targetItem)
         applyPanRecognizerState()
+        // A freshly committed page is never zoomed. Clear any stale scale left on
+        // a slot that was zoomed while the transition animation was in flight
+        // (the animation allows user interaction), then reconcile the shared zoom
+        // flag so the tap zones, controls, and pan recognizer re-enable.
+        containerView?.slotViews.forEach { $0.forceResetZoom() }
+        parent.viewModel.isZoomed = false
       }
 
       private func cancelDragWithAnimation() {
