@@ -54370,6 +54370,70 @@
         }
       }
     },
+    "reader.pageLayout.auto.detail" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paart nur Seiten, deren Größe zeigt, dass sie für Doppelseiten geeignet sind."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pairs pages only when page size confirms they are suitable for spreads."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Empareja páginas solo cuando su tamaño confirma que son adecuadas para dobles páginas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Associe les pages uniquement lorsque leur taille confirme qu'elles conviennent aux doubles pages."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abbina le pagine solo quando le dimensioni confermano che sono adatte alle doppie pagine."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ページサイズから見開きに適していると確認できる場合のみページを組み合わせます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "페이지 크기로 펼침 보기에 적합하다고 확인될 때만 페이지를 짝지어 표시합니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Объединяет страницы только когда их размер подтверждает пригодность для разворота."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅在页面尺寸确认适合双页显示时才配对页面。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "只有在頁面尺寸確認適合雙頁顯示時才會配對頁面。"
+          }
+        }
+      }
+    },
     "reader.pageLayout.dual" : {
       "localizations" : {
         "de" : {
@@ -54434,6 +54498,70 @@
         }
       }
     },
+    "reader.pageLayout.dual.detail" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erzwingt Doppelseiten und trennt nur Seiten, die eindeutig Querformat oder breit sind."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forces two-page spreads, separating only pages known to be landscape or wide."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fuerza dobles páginas y separa solo las páginas que se sabe que son horizontales o anchas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Force les doubles pages et sépare uniquement les pages reconnues comme paysage ou larges."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forza le doppie pagine, separando solo le pagine note come orizzontali o larghe."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2ページ見開きを強制し、横向きまたは幅広と判明しているページだけを分離します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "두 페이지 펼침을 강제하며, 가로형 또는 넓은 페이지로 확인된 경우에만 분리합니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Принудительно включает развороты, отделяя только страницы, которые точно альбомные или широкие."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "强制双页显示，只会拆开已知为横向或宽页的页面。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "強制雙頁顯示，只會拆開已知為橫向或寬頁的頁面。"
+          }
+        }
+      }
+    },
     "reader.pageLayout.single" : {
       "localizations" : {
         "de" : {
@@ -54494,6 +54622,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "單頁"
+          }
+        }
+      }
+    },
+    "reader.pageLayout.single.detail" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Immer eine Seite pro Ansicht anzeigen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Always show one page at a time."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar siempre una página a la vez."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toujours afficher une page à la fois."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra sempre una pagina alla volta."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "常に1ページずつ表示します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "항상 한 번에 한 페이지씩 표시합니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Всегда показывать по одной странице."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "始终一次显示一页。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一律一次顯示一頁。"
           }
         }
       }

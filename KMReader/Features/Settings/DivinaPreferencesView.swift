@@ -101,7 +101,7 @@ struct DivinaPreferencesView: View {
             }
           }
           .pickerStyle(.menu)
-          Text("Opt for single page, auto-detected spreads, or forced dual pages (landscape only)")
+          Text(pageLayout.detailText)
             .font(.caption)
             .foregroundColor(.secondary)
         }
