@@ -554,8 +554,16 @@ struct DivinaReaderView: View {
 
         keyboardHelpOverlay
       }
-      .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.top } action: { readerSafeAreaTop = $0 }
-      .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { readerViewHeight = $0 }
+      .onGeometryChange(for: CGFloat.self) {
+        $0.safeAreaInsets.top
+      } action: {
+        readerSafeAreaTop = $0
+      }
+      .onGeometryChange(for: CGFloat.self) {
+        $0.size.height
+      } action: {
+        readerViewHeight = $0
+      }
       .onChange(of: useDualPage, initial: true) { _, newValue in
         usesDualPagePresentation = newValue
         applyDualPagePresentationMode(newValue)
@@ -574,11 +582,7 @@ struct DivinaReaderView: View {
         }
       #endif
       .background(
-        KeyboardEventHandler(
-          isEnabled: isKeyboardCaptureEnabled,
-          commands: keyboardCommands,
-          onKeyPress: handleKeyboardEvent
-        )
+        keyboardCaptureView
       )
     }
     .iPadIgnoresSafeArea()
@@ -890,11 +894,15 @@ struct DivinaReaderView: View {
     private var tvRemoteCommandOverlay: some View {
       TVRemoteCommandOverlay(
         isEnabled: shouldEnableUIKitRemoteCapture,
+        commands: keyboardCommands,
         onMoveCommand: { direction in
           handleTVMoveCommand(direction, source: "uikit.overlay")
         },
         onSelectCommand: {
           handleTVSelectCommand(source: "uikit.overlay")
+        },
+        onKeyPress: { event in
+          handleKeyboardEvent(event)
         }
       )
       .readerIgnoresSafeArea()
@@ -958,22 +966,50 @@ struct DivinaReaderView: View {
     return commands
   }
 
+  @ViewBuilder
+  private var keyboardCaptureView: some View {
+    #if os(tvOS)
+      EmptyView()
+    #else
+      KeyboardEventHandler(
+        isEnabled: isKeyboardCaptureEnabled,
+        commands: keyboardCommands,
+        onKeyPress: handleKeyboardEvent
+      )
+    #endif
+  }
+
+  @ViewBuilder
   private var keyboardHelpOverlay: some View {
-    KeyboardHelpOverlay(
-      readingDirection: readingDirection,
-      hasTOC: !viewModel.tableOfContents.isEmpty,
-      supportsFullscreenToggle: supportsFullscreenToggle,
-      supportsLiveText: supportsLiveTextKeyboardShortcut,
-      supportsJumpToPage: true,
-      supportsToggleControls: true,
-      hasNextBook: currentSegmentNextBook != nil,
-      onDismiss: {
-        hideKeyboardHelp()
-      }
-    )
-    .opacity(showKeyboardHelp ? 1.0 : 0.0)
-    .allowsHitTesting(showKeyboardHelp)
-    .animation(.default, value: showKeyboardHelp)
+    if showKeyboardHelp {
+      KeyboardHelpOverlay(
+        readingDirection: readingDirection,
+        hasTOC: !viewModel.tableOfContents.isEmpty,
+        supportsFullscreenToggle: supportsFullscreenToggle,
+        supportsLiveText: supportsLiveTextKeyboardShortcut,
+        supportsJumpToPage: true,
+        supportsToggleControls: true,
+        hasNextBook: currentSegmentNextBook != nil,
+        isInteractive: keyboardHelpOverlayIsInteractive,
+        onDismiss: {
+          hideKeyboardHelp()
+        }
+      )
+      #if os(tvOS)
+        .allowsHitTesting(false)
+      #else
+        .allowsHitTesting(true)
+      #endif
+      .transition(.opacity)
+    }
+  }
+
+  private var keyboardHelpOverlayIsInteractive: Bool {
+    #if os(tvOS)
+      false
+    #else
+      true
+    #endif
   }
 
   private func handleKeyboardEvent(_ event: ReaderKeyboardEvent) -> Bool {

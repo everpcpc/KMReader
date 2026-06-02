@@ -4,8 +4,10 @@
 
   struct TVRemoteCommandOverlay: UIViewRepresentable {
     let isEnabled: Bool
+    let commands: [ReaderKeyboardCommand]
     let onMoveCommand: (MoveCommandDirection) -> Bool
     let onSelectCommand: () -> Bool
+    let onKeyPress: (ReaderKeyboardEvent) -> Bool
 
     func makeCoordinator() -> Coordinator {
       Coordinator(parent: self)
@@ -15,6 +17,8 @@
       let view = RemoteCaptureView()
       view.backgroundColor = .clear
       view.coordinator = context.coordinator
+      view.commands = commands
+      view.onKeyPress = onKeyPress
       context.coordinator.installGestureRecognizersIfNeeded(on: view)
       context.coordinator.applyState(to: view)
       return view
@@ -22,6 +26,8 @@
 
     func updateUIView(_ uiView: RemoteCaptureView, context: Context) {
       context.coordinator.parent = self
+      uiView.commands = commands
+      uiView.onKeyPress = onKeyPress
       context.coordinator.installGestureRecognizersIfNeeded(on: uiView)
       context.coordinator.applyState(to: uiView)
     }
@@ -189,11 +195,18 @@
       weak var coordinator: Coordinator?
       var isCaptureEnabled = false
       var hasInstalledGestureRecognizers = false
+      var commands: [ReaderKeyboardCommand] = []
+      var onKeyPress: ((ReaderKeyboardEvent) -> Bool)?
       private var activeHandledPressTypes: Set<UIPress.PressType> = []
       private var responderRetryWorkItem: DispatchWorkItem?
 
       override var canBecomeFirstResponder: Bool {
         true
+      }
+
+      override var keyCommands: [UIKeyCommand]? {
+        guard isCaptureEnabled else { return nil }
+        return commands.compactMap(makeKeyCommand)
       }
 
       override func didMoveToWindow() {
@@ -249,6 +262,33 @@
         }
       }
 
+      override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
+        if action == #selector(handleKeyCommand(_:)) {
+          return isCaptureEnabled
+        }
+        return super.canPerformAction(action, withSender: sender)
+      }
+
+      private func makeKeyCommand(_ command: ReaderKeyboardCommand) -> UIKeyCommand? {
+        guard command.event.modifiers.contains(.command) else { return nil }
+        guard let input = command.event.key.uiKeyCommandInput else { return nil }
+
+        let keyCommand = UIKeyCommand(
+          input: input,
+          modifierFlags: UIKeyModifierFlags(command.event.modifiers),
+          action: #selector(handleKeyCommand(_:))
+        )
+        keyCommand.discoverabilityTitle = command.title
+        return keyCommand
+      }
+
+      @objc
+      private func handleKeyCommand(_ sender: UIKeyCommand) {
+        guard isCaptureEnabled else { return }
+        guard let command = commands.first(where: { $0.matches(sender) }) else { return }
+        _ = onKeyPress?(command.event)
+      }
+
       private func handlePressesBegan(_ presses: Set<UIPress>) -> Bool {
         guard let coordinator else { return false }
 
@@ -276,8 +316,32 @@
         return handledAny
       }
 
+      private func handleKeyboardPress(_ press: UIPress) -> Bool {
+        guard isCaptureEnabled else { return false }
+        guard let key = press.key else { return false }
+        guard let keyboardEvent = ReaderKeyboardEvent(key: key) else { return false }
+        guard !keyboardEvent.modifiers.contains(.command) else { return false }
+        return onKeyPress?(keyboardEvent) ?? false
+      }
+
       override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
-        if !handlePressesBegan(presses) {
+        var handledAny = false
+        var unhandledPresses = Set<UIPress>()
+
+        for press in presses {
+          if handleKeyboardPress(press) {
+            activeHandledPressTypes.insert(press.type)
+            handledAny = true
+          } else {
+            unhandledPresses.insert(press)
+          }
+        }
+
+        if !unhandledPresses.isEmpty {
+          handledAny = handlePressesBegan(unhandledPresses) || handledAny
+        }
+
+        if !handledAny {
           super.pressesBegan(presses, with: event)
         }
       }
