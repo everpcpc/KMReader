@@ -14,6 +14,7 @@ struct KeyboardHelpOverlay: View {
   let supportsSearch: Bool
   let supportsToggleControls: Bool
   let hasNextBook: Bool
+  let isInteractive: Bool
   let onDismiss: () -> Void
 
   init(
@@ -25,6 +26,7 @@ struct KeyboardHelpOverlay: View {
     supportsSearch: Bool = false,
     supportsToggleControls: Bool,
     hasNextBook: Bool,
+    isInteractive: Bool = true,
     onDismiss: @escaping () -> Void
   ) {
     self.readingDirection = readingDirection
@@ -35,20 +37,23 @@ struct KeyboardHelpOverlay: View {
     self.supportsSearch = supportsSearch
     self.supportsToggleControls = supportsToggleControls
     self.hasNextBook = hasNextBook
+    self.isInteractive = isInteractive
     self.onDismiss = onDismiss
   }
 
   var body: some View {
     ZStack {
-      // Semi-transparent background
-      Button {
-        onDismiss()
-      } label: {
+      if isInteractive {
+        Button {
+          onDismiss()
+        } label: {
+          Color.black.opacity(0.5)
+        }
+        .adaptiveButtonStyle(.plain)
+      } else {
         Color.black.opacity(0.5)
       }
-      .adaptiveButtonStyle(.plain)
 
-      // Help content
       VStack(spacing: 20) {
         Text("Keyboard Shortcuts")
           .font(.title2)
@@ -113,17 +118,19 @@ struct KeyboardHelpOverlay: View {
             .stroke(Color.white.opacity(0.3), lineWidth: 1)
         )
 
-        Button {
-          onDismiss()
-        } label: {
-          Text("Close")
-            .foregroundColor(.white)
-            .padding(.horizontal, 24)
-            .padding(.vertical, 8)
-            .background(Color.accentColor.opacity(0.9))
-            .cornerRadius(8)
+        if isInteractive {
+          Button {
+            onDismiss()
+          } label: {
+            Text("Close")
+              .foregroundColor(.white)
+              .padding(.horizontal, 24)
+              .padding(.vertical, 8)
+              .background(Color.accentColor.opacity(0.9))
+              .cornerRadius(8)
+          }
+          .adaptiveButtonStyle(.plain)
         }
-        .adaptiveButtonStyle(.plain)
       }
       .padding(40)
       .frame(maxWidth: 500)

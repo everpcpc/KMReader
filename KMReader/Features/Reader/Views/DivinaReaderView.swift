@@ -990,6 +990,7 @@ struct DivinaReaderView: View {
         supportsJumpToPage: true,
         supportsToggleControls: true,
         hasNextBook: currentSegmentNextBook != nil,
+        isInteractive: keyboardHelpOverlayIsInteractive,
         onDismiss: {
           hideKeyboardHelp()
         }
@@ -1001,6 +1002,14 @@ struct DivinaReaderView: View {
       #endif
       .transition(.opacity)
     }
+  }
+
+  private var keyboardHelpOverlayIsInteractive: Bool {
+    #if os(tvOS)
+      false
+    #else
+      true
+    #endif
   }
 
   private func handleKeyboardEvent(_ event: ReaderKeyboardEvent) -> Bool {

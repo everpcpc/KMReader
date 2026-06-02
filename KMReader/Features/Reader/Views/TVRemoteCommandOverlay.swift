@@ -317,6 +317,7 @@
       }
 
       private func handleKeyboardPress(_ press: UIPress) -> Bool {
+        guard isCaptureEnabled else { return false }
         guard let key = press.key else { return false }
         guard let keyboardEvent = ReaderKeyboardEvent(key: key) else { return false }
         guard !keyboardEvent.modifiers.contains(.command) else { return false }
