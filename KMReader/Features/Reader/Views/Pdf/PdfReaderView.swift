@@ -197,7 +197,8 @@
         readerPresentation.clearFlushHandler(for: sessionID)
         #if os(macOS)
           hideKeyboardHelp()
-          readerPresentation.clearReaderCommands()
+          // Commands are cleared on real window teardown (closeReader); clearing here
+          // misfires during macOS reader-window setup. See DivinaReaderView.
         #endif
       }
       .onChange(of: scenePhase) { oldPhase, newPhase in
