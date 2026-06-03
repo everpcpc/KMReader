@@ -82,14 +82,15 @@ struct TapZoneGridOverlayContent: View {
   }
 
   private func tSplitColor(normalizedX: CGFloat, normalizedY: CGFloat) -> Color {
-    color(for: TapZoneHelper.action(
-      normalizedX: normalizedX,
-      normalizedY: normalizedY,
-      tapZoneMode: tapZoneMode,
-      tapZoneInversionMode: tapZoneInversionMode,
-      readingDirection: readingDirection,
-      stripHeightFraction: Self.tSplitPreviewStripFraction
-    ))
+    color(
+      for: TapZoneHelper.action(
+        normalizedX: normalizedX,
+        normalizedY: normalizedY,
+        tapZoneMode: tapZoneMode,
+        tapZoneInversionMode: tapZoneInversionMode,
+        readingDirection: readingDirection,
+        stripHeightFraction: Self.tSplitPreviewStripFraction
+      ))
   }
 
   private func color(for action: TapZoneAction) -> Color {
