@@ -304,11 +304,8 @@
           logger.debug(
             "👋 EPUB reader disappeared for book \(handoffBookId), chapter=\(viewModel.currentChapterIndex), page=\(viewModel.currentPageIndex), hasLocation=\(viewModel.currentLocation != nil)"
           )
-          readerPresentation.clearFlushHandler(for: sessionID)
           #if os(macOS)
             keyboardHelpTimer?.invalidate()
-            // Commands are cleared on real window teardown (closeReader); clearing here
-            // misfires during macOS reader-window setup. See DivinaReaderView.
           #endif
         }
         .onChange(of: scenePhase) { oldPhase, newPhase in

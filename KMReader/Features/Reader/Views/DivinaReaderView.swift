@@ -694,11 +694,8 @@ struct DivinaReaderView: View {
       inFlightNextSegmentPreloads.removeAll()
       inFlightPreviousSegmentPreloads.removeAll()
       viewModel.clearPreloadedImages()
-      readerPresentation.clearFlushHandler(for: sessionID)
-      // macOS reader commands are cleared on real window teardown (closeReader, via
-      // handleReaderWindowDisappear). Clearing them here too fires spuriously during the
-      // reader-window setup (fullscreen / remount), wiping the just-registered handlers
-      // while the reader is still active.
+      // Session-owned handlers are cleared on real teardown in ReaderPresentationManager.
+      // This view-level disappear can fire during macOS fullscreen/remount setup.
     }
     .onChange(of: scenePhase) { oldPhase, newPhase in
       handleScenePhaseChange(from: oldPhase, to: newPhase)

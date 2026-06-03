@@ -89,10 +89,6 @@ final class ReaderPresentationManager {
     flushHandlers[sessionID] = handler
   }
 
-  func clearFlushHandler(for sessionID: UUID) {
-    flushHandlers.removeValue(forKey: sessionID)
-  }
-
   #if os(iOS)
     /// Flush in-flight read progress when the app backgrounds, requesting iOS background
     /// time so the URLSession PATCH can finish before the process is suspended. Without

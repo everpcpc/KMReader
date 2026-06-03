@@ -194,11 +194,8 @@
           "👋 PDF reader disappeared for book \(book.id), page=\(viewModel.currentPageNumber)/\(viewModel.pageCount)"
         )
         showingControls = false
-        readerPresentation.clearFlushHandler(for: sessionID)
         #if os(macOS)
           hideKeyboardHelp()
-          // Commands are cleared on real window teardown (closeReader); clearing here
-          // misfires during macOS reader-window setup. See DivinaReaderView.
         #endif
       }
       .onChange(of: scenePhase) { oldPhase, newPhase in
