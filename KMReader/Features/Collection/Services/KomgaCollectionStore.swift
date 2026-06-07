@@ -18,29 +18,12 @@ enum KomgaCollectionStore {
     sort: String?,
     search: String?
   ) -> [SeriesCollection] {
-    let instanceId = AppConfig.current.instanceId
-
-    var descriptor = FetchDescriptor<KomgaCollection>()
-
-    if let search = search, !search.isEmpty {
-      descriptor.predicate = #Predicate<KomgaCollection> { col in
-        col.instanceId == instanceId && col.name.localizedStandardContains(search)
-      }
-    } else {
-      descriptor.predicate = #Predicate<KomgaCollection> { col in
-        col.instanceId == instanceId
-      }
-    }
-
-    descriptor.sortBy = sortDescriptors(sort: sort)
-
-    do {
-      let results = try context.fetch(descriptor)
-      let ordered = pinnedFirst(results)
-      return paginate(ordered, offset: page * size, limit: size).map { $0.toCollection() }
-    } catch {
-      return []
-    }
+    let collections = fetchOrderedCollections(
+      context: context,
+      searchText: search ?? "",
+      sort: sort
+    )
+    return paginate(collections, offset: page * size, limit: size).map { $0.toCollection() }
   }
 
   static func fetchCollectionIds(
@@ -51,29 +34,12 @@ enum KomgaCollectionStore {
     offset: Int,
     limit: Int
   ) -> [String] {
-    let instanceId = AppConfig.current.instanceId
-
-    var descriptor = FetchDescriptor<KomgaCollection>()
-
-    if !searchText.isEmpty {
-      descriptor.predicate = #Predicate<KomgaCollection> { col in
-        col.instanceId == instanceId && col.name.localizedStandardContains(searchText)
-      }
-    } else {
-      descriptor.predicate = #Predicate<KomgaCollection> { col in
-        col.instanceId == instanceId
-      }
-    }
-
-    descriptor.sortBy = sortDescriptors(sort: sort)
-
-    do {
-      let results = try context.fetch(descriptor)
-      let ordered = pinnedFirst(results)
-      return paginate(ordered, offset: offset, limit: limit).map { $0.collectionId }
-    } catch {
-      return []
-    }
+    let collections = fetchOrderedCollections(
+      context: context,
+      searchText: searchText,
+      sort: sort
+    )
+    return paginate(collections, offset: offset, limit: limit).map { $0.collectionId }
   }
 
   static func fetchCollectionsByIds(
@@ -108,6 +74,41 @@ enum KomgaCollectionStore {
     return try? context.fetch(descriptor).first?.toCollection()
   }
 
+  private static func fetchOrderedCollections(
+    context: ModelContext,
+    searchText: String,
+    sort: String?
+  ) -> [KomgaCollection] {
+    let instanceId = AppConfig.current.instanceId
+
+    var descriptor = FetchDescriptor<KomgaCollection>()
+
+    if !searchText.isEmpty {
+      descriptor.predicate = #Predicate<KomgaCollection> { col in
+        col.instanceId == instanceId && col.name.localizedStandardContains(searchText)
+      }
+    } else {
+      descriptor.predicate = #Predicate<KomgaCollection> { col in
+        col.instanceId == instanceId
+      }
+    }
+
+    descriptor.sortBy = sortDescriptors(sort: sort)
+
+    do {
+      let results = try context.fetch(descriptor)
+      return pinnedFirst(results)
+    } catch {
+      return []
+    }
+  }
+
+  private static func pinnedFirst(_ collections: [KomgaCollection]) -> [KomgaCollection] {
+    let pinned = collections.filter(\.isPinned)
+    let unpinned = collections.filter { !$0.isPinned }
+    return pinned + unpinned
+  }
+
   private static func sortDescriptors(sort: String?) -> [SortDescriptor<KomgaCollection>] {
     let isAscending = sort?.contains("desc") != true
 
@@ -126,12 +127,6 @@ enum KomgaCollectionStore {
     return [
       SortDescriptor(\KomgaCollection.name, order: isAscending ? .forward : .reverse)
     ]
-  }
-
-  private static func pinnedFirst(_ collections: [KomgaCollection]) -> [KomgaCollection] {
-    let pinned = collections.filter(\.isPinned)
-    let unpinned = collections.filter { !$0.isPinned }
-    return pinned + unpinned
   }
 
   private static func paginate(

@@ -17,8 +17,12 @@ struct ReadListsBrowseView: View {
     SimpleSortOptions()
   @AppStorage("readListBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
-  @State private var viewModel = PaginatedIdViewModel()
+  @State private var isLoading = false
+  @State private var items: [IdentifiedString] = []
+  @State private var loadID = UUID()
   @State private var hasInitialized = false
+
+  private let syncPageSize = 200
 
   private var columns: [GridItem] {
     LayoutConfig.adaptiveColumns(for: gridDensity)
@@ -34,8 +38,8 @@ struct ReadListsBrowseView: View {
         .padding(.horizontal)
 
       BrowseStateView(
-        isLoading: viewModel.isLoading,
-        isEmpty: viewModel.pagination.isEmpty,
+        isLoading: isLoading,
+        isEmpty: items.isEmpty,
         emptyIcon: ContentIcon.readList,
         emptyTitle: LocalizedStringKey("No read lists found"),
         emptyMessage: LocalizedStringKey("Try selecting a different library."),
@@ -48,37 +52,23 @@ struct ReadListsBrowseView: View {
         switch browseLayout {
         case .grid:
           LazyVGrid(columns: columns, spacing: spacing) {
-            ForEach(viewModel.pagination.items) { readList in
+            ForEach(items) { readList in
               ReadListQueryItemView(
                 readListId: readList.id,
                 layout: .grid
               )
               .padding(.bottom)
-              .onAppear {
-                if viewModel.pagination.shouldLoadMore(after: readList) {
-                  Task {
-                    await loadReadLists(refresh: false)
-                  }
-                }
-              }
             }
           }
           .padding(.horizontal)
         case .list:
           LazyVStack {
-            ForEach(viewModel.pagination.items) { readList in
+            ForEach(items) { readList in
               ReadListQueryItemView(
                 readListId: readList.id,
                 layout: .list
               )
-              .onAppear {
-                if viewModel.pagination.shouldLoadMore(after: readList) {
-                  Task {
-                    await loadReadLists(refresh: false)
-                  }
-                }
-              }
-              if !viewModel.pagination.isLast(readList) {
+              if items.last != readList {
                 Divider()
               }
             }
@@ -112,36 +102,63 @@ struct ReadListsBrowseView: View {
   }
 
   private func loadReadLists(refresh: Bool) async {
-    await viewModel.load(
-      refresh: refresh,
-      offlineFetch: { offset, limit in
-        KomgaReadListStore.fetchReadListIds(
-          context: modelContext,
-          libraryIds: libraryIds,
-          searchText: searchText,
-          sort: sortOpts.sortString,
-          offset: offset,
-          limit: limit
-        )
-      },
-      onlineFetch: { page, size in
-        let result = try await SyncService.shared.syncReadLists(
-          libraryIds: libraryIds,
-          page: page,
-          size: size,
-          sort: sortOpts.sortString,
-          search: searchText.isEmpty ? nil : searchText
-        )
-        let ids = KomgaReadListStore.fetchReadListIds(
-          context: modelContext,
-          libraryIds: libraryIds,
-          searchText: searchText,
-          sort: sortOpts.sortString,
-          offset: page * size,
-          limit: size
-        )
-        return (ids: ids, isLastPage: result.last || ids.count < size)
+    let currentLoadID = UUID()
+    loadID = currentLoadID
+    isLoading = true
+
+    do {
+      let ids = try await loadReadListIds()
+      guard loadID == currentLoadID else { return }
+      withAnimation {
+        items = ids.map(IdentifiedString.init)
       }
+    } catch {
+      guard loadID == currentLoadID else { return }
+      if refresh {
+        ErrorManager.shared.alert(error: error)
+      }
+    }
+
+    guard loadID == currentLoadID else { return }
+    isLoading = false
+  }
+
+  private func loadReadListIds() async throws -> [String] {
+    let localIds = localReadListIds()
+    guard !AppConfig.isOffline else { return localIds }
+
+    let serverIds = Set(try await syncReadListIds())
+    return localIds.filter { serverIds.contains($0) }
+  }
+
+  private func localReadListIds() -> [String] {
+    KomgaReadListStore.fetchReadListIds(
+      context: modelContext,
+      libraryIds: libraryIds,
+      searchText: searchText,
+      sort: sortOpts.sortString,
+      offset: 0,
+      limit: Int.max
     )
+  }
+
+  private func syncReadListIds() async throws -> [String] {
+    var page = 0
+    var ids: [String] = []
+
+    while true {
+      let result = try await SyncService.shared.syncReadLists(
+        libraryIds: libraryIds,
+        page: page,
+        size: syncPageSize,
+        sort: sortOpts.sortString,
+        search: searchText.isEmpty ? nil : searchText
+      )
+      ids.append(contentsOf: result.content.map(\.id))
+      guard !result.last else { break }
+      page += 1
+    }
+
+    return ids
   }
 }

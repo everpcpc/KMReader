@@ -18,31 +18,12 @@ enum KomgaReadListStore {
     sort: String?,
     search: String?
   ) -> [ReadList] {
-    let instanceId = AppConfig.current.instanceId
-
-    var descriptor = FetchDescriptor<KomgaReadList>()
-
-    if let search = search, !search.isEmpty {
-      descriptor.predicate = #Predicate<KomgaReadList> { rl in
-        rl.instanceId == instanceId
-          && (rl.name.localizedStandardContains(search)
-            || rl.summary.localizedStandardContains(search))
-      }
-    } else {
-      descriptor.predicate = #Predicate<KomgaReadList> { rl in
-        rl.instanceId == instanceId
-      }
-    }
-
-    descriptor.sortBy = sortDescriptors(sort: sort)
-
-    do {
-      let results = try context.fetch(descriptor)
-      let ordered = pinnedFirst(results)
-      return paginate(ordered, offset: page * size, limit: size).map { $0.toReadList() }
-    } catch {
-      return []
-    }
+    let readLists = fetchOrderedReadLists(
+      context: context,
+      searchText: search ?? "",
+      sort: sort
+    )
+    return paginate(readLists, offset: page * size, limit: size).map { $0.toReadList() }
   }
 
   static func fetchReadListIds(
@@ -53,31 +34,12 @@ enum KomgaReadListStore {
     offset: Int,
     limit: Int
   ) -> [String] {
-    let instanceId = AppConfig.current.instanceId
-
-    var descriptor = FetchDescriptor<KomgaReadList>()
-
-    if !searchText.isEmpty {
-      descriptor.predicate = #Predicate<KomgaReadList> { rl in
-        rl.instanceId == instanceId
-          && (rl.name.localizedStandardContains(searchText)
-            || rl.summary.localizedStandardContains(searchText))
-      }
-    } else {
-      descriptor.predicate = #Predicate<KomgaReadList> { rl in
-        rl.instanceId == instanceId
-      }
-    }
-
-    descriptor.sortBy = sortDescriptors(sort: sort)
-
-    do {
-      let results = try context.fetch(descriptor)
-      let ordered = pinnedFirst(results)
-      return paginate(ordered, offset: offset, limit: limit).map { $0.readListId }
-    } catch {
-      return []
-    }
+    let readLists = fetchOrderedReadLists(
+      context: context,
+      searchText: searchText,
+      sort: sort
+    )
+    return paginate(readLists, offset: offset, limit: limit).map { $0.readListId }
   }
 
   static func fetchReadListsByIds(
@@ -111,6 +73,43 @@ enum KomgaReadListStore {
     return try? context.fetch(descriptor).first?.toReadList()
   }
 
+  private static func fetchOrderedReadLists(
+    context: ModelContext,
+    searchText: String,
+    sort: String?
+  ) -> [KomgaReadList] {
+    let instanceId = AppConfig.current.instanceId
+
+    var descriptor = FetchDescriptor<KomgaReadList>()
+
+    if !searchText.isEmpty {
+      descriptor.predicate = #Predicate<KomgaReadList> { rl in
+        rl.instanceId == instanceId
+          && (rl.name.localizedStandardContains(searchText)
+            || rl.summary.localizedStandardContains(searchText))
+      }
+    } else {
+      descriptor.predicate = #Predicate<KomgaReadList> { rl in
+        rl.instanceId == instanceId
+      }
+    }
+
+    descriptor.sortBy = sortDescriptors(sort: sort)
+
+    do {
+      let results = try context.fetch(descriptor)
+      return pinnedFirst(results)
+    } catch {
+      return []
+    }
+  }
+
+  private static func pinnedFirst(_ readLists: [KomgaReadList]) -> [KomgaReadList] {
+    let pinned = readLists.filter(\.isPinned)
+    let unpinned = readLists.filter { !$0.isPinned }
+    return pinned + unpinned
+  }
+
   private static func sortDescriptors(sort: String?) -> [SortDescriptor<KomgaReadList>] {
     let isAscending = sort?.contains("desc") != true
 
@@ -129,12 +128,6 @@ enum KomgaReadListStore {
     return [
       SortDescriptor(\KomgaReadList.name, order: isAscending ? .forward : .reverse)
     ]
-  }
-
-  private static func pinnedFirst(_ readLists: [KomgaReadList]) -> [KomgaReadList] {
-    let pinned = readLists.filter(\.isPinned)
-    let unpinned = readLists.filter { !$0.isPinned }
-    return pinned + unpinned
   }
 
   private static func paginate(
