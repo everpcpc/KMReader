@@ -17,8 +17,12 @@ struct CollectionsBrowseView: View {
     SimpleSortOptions()
   @AppStorage("collectionBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
-  @State private var viewModel = PaginatedIdViewModel()
+  @State private var isLoading = false
+  @State private var items: [IdentifiedString] = []
+  @State private var loadID = UUID()
   @State private var hasInitialized = false
+
+  private let syncPageSize = 200
 
   private var columns: [GridItem] {
     LayoutConfig.adaptiveColumns(for: gridDensity)
@@ -34,8 +38,8 @@ struct CollectionsBrowseView: View {
         .padding(.horizontal)
 
       BrowseStateView(
-        isLoading: viewModel.isLoading,
-        isEmpty: viewModel.pagination.isEmpty,
+        isLoading: isLoading,
+        isEmpty: items.isEmpty,
         emptyIcon: ContentIcon.collection,
         emptyTitle: LocalizedStringKey("No collections found"),
         emptyMessage: LocalizedStringKey("Try selecting a different library."),
@@ -48,36 +52,22 @@ struct CollectionsBrowseView: View {
         switch browseLayout {
         case .grid:
           LazyVGrid(columns: columns, spacing: spacing) {
-            ForEach(viewModel.pagination.items) { collection in
+            ForEach(items) { collection in
               CollectionQueryItemView(
                 collectionId: collection.id
               )
               .padding(.bottom)
-              .onAppear {
-                if viewModel.pagination.shouldLoadMore(after: collection) {
-                  Task {
-                    await loadCollections(refresh: false)
-                  }
-                }
-              }
             }
           }
           .padding(.horizontal)
         case .list:
           LazyVStack {
-            ForEach(viewModel.pagination.items) { collection in
+            ForEach(items) { collection in
               CollectionQueryItemView(
                 collectionId: collection.id,
                 layout: .list
               )
-              .onAppear {
-                if viewModel.pagination.shouldLoadMore(after: collection) {
-                  Task {
-                    await loadCollections(refresh: false)
-                  }
-                }
-              }
-              if !viewModel.pagination.isLast(collection) {
+              if items.last != collection {
                 Divider()
               }
             }
@@ -111,36 +101,63 @@ struct CollectionsBrowseView: View {
   }
 
   private func loadCollections(refresh: Bool) async {
-    await viewModel.load(
-      refresh: refresh,
-      offlineFetch: { offset, limit in
-        KomgaCollectionStore.fetchCollectionIds(
-          context: modelContext,
-          libraryIds: libraryIds,
-          searchText: searchText,
-          sort: sortOpts.sortString,
-          offset: offset,
-          limit: limit
-        )
-      },
-      onlineFetch: { page, size in
-        let result = try await SyncService.shared.syncCollections(
-          libraryIds: libraryIds,
-          page: page,
-          size: size,
-          sort: sortOpts.sortString,
-          search: searchText.isEmpty ? nil : searchText
-        )
-        let ids = KomgaCollectionStore.fetchCollectionIds(
-          context: modelContext,
-          libraryIds: libraryIds,
-          searchText: searchText,
-          sort: sortOpts.sortString,
-          offset: page * size,
-          limit: size
-        )
-        return (ids: ids, isLastPage: result.last || ids.count < size)
+    let currentLoadID = UUID()
+    loadID = currentLoadID
+    isLoading = true
+
+    do {
+      let ids = try await loadCollectionIds()
+      guard loadID == currentLoadID else { return }
+      withAnimation {
+        items = ids.map(IdentifiedString.init)
       }
+    } catch {
+      guard loadID == currentLoadID else { return }
+      if refresh {
+        ErrorManager.shared.alert(error: error)
+      }
+    }
+
+    guard loadID == currentLoadID else { return }
+    isLoading = false
+  }
+
+  private func loadCollectionIds() async throws -> [String] {
+    let localIds = localCollectionIds()
+    guard !AppConfig.isOffline else { return localIds }
+
+    let serverIds = Set(try await syncCollectionIds())
+    return localIds.filter { serverIds.contains($0) }
+  }
+
+  private func localCollectionIds() -> [String] {
+    KomgaCollectionStore.fetchCollectionIds(
+      context: modelContext,
+      libraryIds: libraryIds,
+      searchText: searchText,
+      sort: sortOpts.sortString,
+      offset: 0,
+      limit: Int.max
     )
+  }
+
+  private func syncCollectionIds() async throws -> [String] {
+    var page = 0
+    var ids: [String] = []
+
+    while true {
+      let result = try await SyncService.shared.syncCollections(
+        libraryIds: libraryIds,
+        page: page,
+        size: syncPageSize,
+        sort: sortOpts.sortString,
+        search: searchText.isEmpty ? nil : searchText
+      )
+      ids.append(contentsOf: result.content.map(\.id))
+      guard !result.last else { break }
+      page += 1
+    }
+
+    return ids
   }
 }
