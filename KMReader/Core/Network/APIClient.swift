@@ -7,14 +7,14 @@ import Foundation
 import OSLog
 
 struct DownloadProgressUserInfo {
-  static let urlKey = "url"
-  static let itemKey = "item"
-  static let receivedKey = "received"
-  static let expectedKey = "expected"
+  nonisolated static let urlKey = "url"
+  nonisolated static let itemKey = "item"
+  nonisolated static let receivedKey = "received"
+  nonisolated static let expectedKey = "expected"
 }
 
 extension Notification.Name {
-  static let fileDownloadProgress = Notification.Name("fileDownloadProgress")
+  nonisolated static let fileDownloadProgress = Notification.Name("fileDownloadProgress")
 }
 
 class APIClient {

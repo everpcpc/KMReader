@@ -28,8 +28,8 @@ class DownloadProgressTracker {
   var queueUpdateToken: UUID = UUID()
 
   @ObservationIgnored private var lastProgressUpdate: [String: Date] = [:]
-  @ObservationIgnored private let progressUpdateInterval: TimeInterval = 1.0
-  @ObservationIgnored private let progressUpdateDelta = 0.001
+  @ObservationIgnored private let progressUpdateInterval: TimeInterval = 0.2
+  @ObservationIgnored private let progressUpdateDelta = 0.002
 
   /// Whether a download is currently active
   var isDownloading: Bool {
@@ -81,6 +81,11 @@ class DownloadProgressTracker {
 
     lastProgressUpdate[bookId] = now
     progress[bookId] = clampedValue
+  }
+
+  func updateProgress(bookId: String, receivedBytes: Int64, expectedBytes: Int64?) {
+    guard let expectedBytes, expectedBytes > 0 else { return }
+    updateProgress(bookId: bookId, value: Double(receivedBytes) / Double(expectedBytes))
   }
 
   func clearProgress(bookId: String) {

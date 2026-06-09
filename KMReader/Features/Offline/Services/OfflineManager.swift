@@ -70,6 +70,30 @@ actor OfflineManager {
   private let pageImageCache = ImageCache()
 
   private init() {
+    _ = NotificationCenter.default.addObserver(
+      forName: .fileDownloadProgress,
+      object: nil,
+      queue: .main
+    ) { notification in
+      guard
+        let bookId = notification.userInfo?[DownloadProgressUserInfo.itemKey] as? String
+      else {
+        return
+      }
+
+      let receivedBytes =
+        notification.userInfo?[DownloadProgressUserInfo.receivedKey] as? Int64 ?? 0
+      let expectedBytes = notification.userInfo?[DownloadProgressUserInfo.expectedKey] as? Int64
+
+      Task { @MainActor in
+        DownloadProgressTracker.shared.updateProgress(
+          bookId: bookId,
+          receivedBytes: receivedBytes,
+          expectedBytes: expectedBytes
+        )
+      }
+    }
+
     #if os(iOS)
       // Schedule callback setup on main actor
       Task { @MainActor in
