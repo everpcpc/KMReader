@@ -21,10 +21,6 @@ struct TapZoneOverlay: View {
     )
     .opacity(isVisible && showTapZoneHints && !tapZoneMode.isDisabled ? 1.0 : 0.0)
     .allowsHitTesting(false)
-    .onAppear {
-      guard showTapZoneHints && !tapZoneMode.isDisabled else { return }
-      isVisible = true
-    }
   }
 }
 
