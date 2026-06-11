@@ -16,65 +16,7 @@ enum SeriesContinueReadingResolver {
     if isOffline {
       return resolveOffline(seriesId: seriesId, context: context)
     }
-    return await resolveOnline(seriesId: seriesId)
-  }
-
-  private static func resolveOnline(seriesId: String) async -> Book? {
-    if let inProgress = await fetchLatestOnlineBook(seriesId: seriesId, status: .inProgress) {
-      return inProgress
-    }
-
-    if let lastRead = await fetchLatestOnlineBook(seriesId: seriesId, status: .read) {
-      if let next = try? await BookService.getNextBook(bookId: lastRead.id) {
-        return next
-      }
-      if let unread = await fetchFirstUnreadOnlineBook(seriesId: seriesId) {
-        return unread
-      }
-      return lastRead
-    }
-
-    if let unread = await fetchFirstUnreadOnlineBook(seriesId: seriesId) {
-      return unread
-    }
-
-    return nil
-  }
-
-  private static func fetchLatestOnlineBook(seriesId: String, status: ReadStatus) async -> Book? {
-    var opts = BookBrowseOptions()
-    opts.includeReadStatuses = [status]
-    opts.sortField = .dateRead
-    opts.sortDirection = .descending
-
-    if let page = try? await BookService.getBooks(
-      seriesId: seriesId,
-      page: 0,
-      size: 1,
-      browseOpts: opts
-    ) {
-      return page.content.first
-    }
-
-    return nil
-  }
-
-  private static func fetchFirstUnreadOnlineBook(seriesId: String) async -> Book? {
-    var opts = BookBrowseOptions()
-    opts.includeReadStatuses = [.unread]
-    opts.sortField = .series
-    opts.sortDirection = .ascending
-
-    if let page = try? await BookService.getBooks(
-      seriesId: seriesId,
-      page: 0,
-      size: 1,
-      browseOpts: opts
-    ) {
-      return page.content.first
-    }
-
-    return nil
+    return await SeriesContinueReadingOnlineResolver.resolve(seriesId: seriesId)
   }
 
   private static func resolveOffline(seriesId: String, context: ModelContext) -> Book? {

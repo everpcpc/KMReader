@@ -28,8 +28,8 @@ struct OfflineView: View {
   @State private var showSyncConfirmation = false
   @State private var latestReadHistoryTime: Date?
 
-  private var instanceInitializer: InstanceInitializer {
-    InstanceInitializer.shared
+  private var syncViewModel: SyncViewModel {
+    SyncViewModel.shared
   }
 
   private var currentInstance: KomgaInstance? {
@@ -205,12 +205,12 @@ struct OfflineView: View {
     ) {
       Button(String(localized: "offline.sync.confirm.action")) {
         Task {
-          await instanceInitializer.syncData()
+          await syncViewModel.syncData()
         }
       }
       Button(String(localized: "offline.sync.confirm.forceAction"), role: .destructive) {
         Task {
-          await instanceInitializer.syncData(forceFullSync: true)
+          await syncViewModel.syncData(forceFullSync: true)
         }
       }
       Button(String(localized: "Cancel"), role: .cancel) {}
@@ -274,7 +274,7 @@ struct OfflineView: View {
             systemImage: "arrow.triangle.2.circlepath"
           )
           Spacer()
-          if instanceInitializer.isSyncing {
+          if syncViewModel.isSyncing {
             ProgressView()
           } else {
             Text(lastSyncTimeText)
@@ -283,7 +283,7 @@ struct OfflineView: View {
           }
         }
       }
-      .disabled(instanceInitializer.isSyncing || isOffline)
+      .disabled(syncViewModel.isSyncing || isOffline)
 
       Text(String(localized: "settings.sync_data.description"))
         .font(.caption)
@@ -366,7 +366,7 @@ struct OfflineView: View {
     guard !isOffline, !current.instanceId.isEmpty else { return }
 
     Task(priority: .utility) {
-      await instanceInitializer.syncReadingProgressOnly(force: force)
+      await syncViewModel.syncReadingProgressOnly(force: force)
       await MainActor.run {
         latestReadHistoryTime = AppConfig.recentlyReadRecordTime(instanceId: current.instanceId)
       }

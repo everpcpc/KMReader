@@ -7,6 +7,7 @@ import Foundation
 
 nonisolated enum ReadingStatsService {
 
+  @concurrent
   static func fetchReadingStats(libraryId: String?) async throws -> ReadingStatsPayload {
     let normalizedLibraryId = normalizeLibraryId(libraryId)
     let instanceId = AppConfig.current.instanceId

@@ -23,8 +23,8 @@ struct ContentView: View {
     @Namespace private var zoomNamespace
   #endif
 
-  private var instanceInitializer: InstanceInitializer {
-    InstanceInitializer.shared
+  private var syncViewModel: SyncViewModel {
+    SyncViewModel.shared
   }
 
   private var context: AppViewContext {
@@ -35,7 +35,7 @@ struct ContentView: View {
   }
 
   private var isReady: Bool {
-    (authViewModel.bootstrapState == .ready || isOffline) && !instanceInitializer.isSyncing
+    (authViewModel.bootstrapState == .ready || isOffline) && !syncViewModel.isSyncing
   }
 
   private var automaticReadingHistorySyncTrigger: String {
@@ -71,7 +71,7 @@ struct ContentView: View {
               }
             #endif
           } else {
-            SplashView(initializer: instanceInitializer) {
+            SplashView(syncViewModel: syncViewModel) {
               AppConfig.enterAutoOfflineMode()
             }
           }
@@ -127,7 +127,7 @@ struct ContentView: View {
         }
         .task(id: automaticReadingHistorySyncTrigger) {
           guard !automaticReadingHistorySyncTrigger.isEmpty else { return }
-          await instanceInitializer.syncReadingProgressOnly()
+          await syncViewModel.syncReadingProgressOnly()
         }
         .onChange(of: isOffline) { oldValue, newValue in
           if oldValue && !newValue {
@@ -175,7 +175,7 @@ struct ContentView: View {
                 OfflineManager.shared.triggerSync(
                   instanceId: AppConfig.current.instanceId, restart: true)
               }
-              await instanceInitializer.syncReadingProgressOnly()
+              await syncViewModel.syncReadingProgressOnly()
             }
             if enableSSE && !isOffline {
               Task {

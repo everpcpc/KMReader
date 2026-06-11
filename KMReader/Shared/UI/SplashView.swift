@@ -11,16 +11,16 @@ struct SplashView: View {
   @State private var pulseProgress = 1.0
   @State private var messageRotationTask: Task<Void, Never>?
 
-  let initializer: InstanceInitializer?
+  let syncViewModel: SyncViewModel?
   let isMigration: Bool
   let enterOfflineMode: (() -> Void)?
 
   init(
-    initializer: InstanceInitializer? = nil,
+    syncViewModel: SyncViewModel? = nil,
     isMigration: Bool = false,
     enterOfflineMode: (() -> Void)? = nil
   ) {
-    self.initializer = initializer
+    self.syncViewModel = syncViewModel
     self.isMigration = isMigration
     self.enterOfflineMode = enterOfflineMode
     _isVisible = State(initialValue: isMigration)
@@ -53,19 +53,19 @@ struct SplashView: View {
   }
 
   private var isSyncing: Bool {
-    initializer?.isSyncing ?? false
+    syncViewModel?.isSyncing ?? false
   }
 
   private var syncStages: [SyncStage] {
-    initializer?.visibleStages ?? SyncStage.visibleStages(includeReconcile: false)
+    syncViewModel?.visibleStages ?? SyncStage.visibleStages(includeReconcile: false)
   }
 
   private var includesReconcileStages: Bool {
-    initializer?.includesReconcileStages ?? false
+    syncViewModel?.includesReconcileStages ?? false
   }
 
   private func stageProgress(for stage: SyncStage) -> Double {
-    initializer?.progress(for: stage) ?? 0.0
+    syncViewModel?.progress(for: stage) ?? 0.0
   }
 
   private func stageTextStyle(for stage: SyncStage) -> AnyShapeStyle {
@@ -220,5 +220,5 @@ struct SplashView: View {
 }
 
 #Preview("Initializing") {
-  SplashView(initializer: InstanceInitializer.shared)
+  SplashView(syncViewModel: SyncViewModel.shared)
 }
