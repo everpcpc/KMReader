@@ -88,3 +88,7 @@ make run-tvos-sim
 ## Community
 
 - [Discord](https://discord.gg/komga-678794935368941569)
+
+## Open Source Licenses
+
+Third-party notices: [`OpenSourceLicenses.json`](KMReader/Resources/OpenSourceLicenses.json), also shown in the in-app licenses screen.
