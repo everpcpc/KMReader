@@ -254,7 +254,8 @@ KMReader/
 │   │   └── Views/
 │   ├── Sync/
 │   │   ├── Models/            # PendingProgress
-│   │   └── Services/          # SyncService, ProgressSyncService, InstanceInitializer
+│   │   ├── Services/          # SyncService, ProgressSyncService, SyncWorker
+│   │   └── ViewModels/        # SyncViewModel
 │   ├── Store/
 │   │   └── Services/          # StoreManager
 │   ├── Author/
@@ -288,7 +289,7 @@ KMReader/
   - macOS and iPad: `MainSplitView`
   - iPhone: `PhoneTabView` (iOS 18+) or `OldTabView`
   - tvOS: `TVTabView` (tvOS 18+) or `OldTabView`
-  - Shows `SplashView` during initialization (`InstanceInitializer`)
+  - Shows `SplashView` during initialization (`SyncViewModel`)
 - Reacts to `@AppStorage` flags (`isLoggedIn`, `enableSSE`, `isOffline`)
 - Reader presentation: `ReaderOverlay` on iOS/tvOS, `ReaderWindowManager` + `ReaderWindowView` on macOS
 - On startup: loads current user, sets offline mode, connects SSE if enabled
@@ -333,7 +334,8 @@ KMReader/
 
 - `SyncService`: Syncs data between server and local SwiftData
 - `ProgressSyncService`: Syncs read progress to server
-- `InstanceInitializer`: Initializes app state on startup and server switch
+- `SyncViewModel`: Exposes synchronization state to SwiftUI and delegates work to `SyncWorker`
+- `SyncWorker`: Runs synchronization, pagination, reconciliation, and persistence off the main actor
 
 ## Coding Conventions
 
