@@ -90,7 +90,7 @@ nonisolated enum AuthService {
     )
   }
 
-  @MainActor
+  @concurrent
   static func logout() async throws {
     do {
       let _: EmptyResponse = try await apiClient.request(
@@ -104,7 +104,9 @@ nonisolated enum AuthService {
 
     // Clear local data
     apiClient.setAuthToken("")
-    AppConfig.clearAuthData()
+    await MainActor.run {
+      AppConfig.clearAuthData()
+    }
   }
 
   static func validate(serverURL: String) async throws {

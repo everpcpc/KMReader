@@ -255,6 +255,7 @@ nonisolated enum SyncService {
     return result
   }
 
+  @concurrent
   static func syncLatestRecentlyReadProgress() async -> Bool {
     let instanceId = AppConfig.current.instanceId
     guard !instanceId.isEmpty else { return false }
