@@ -108,11 +108,7 @@ def build_settings_for_platform(project_root: Path, platform: str) -> dict[str, 
     return parse_build_settings(result.stdout)
 
 
-def stringsdata_dir_for_platform(project_root: Path, platform: str) -> Path | None:
-    settings = build_settings_for_platform(project_root, platform)
-    if settings is None:
-        return None
-
+def stringsdata_dir_from_build_settings(settings: dict[str, str]) -> Path | None:
     configuration_temp_dir = settings.get("CONFIGURATION_TEMP_DIR")
     if configuration_temp_dir:
         return Path(configuration_temp_dir)
@@ -124,14 +120,44 @@ def stringsdata_dir_for_platform(project_root: Path, platform: str) -> Path | No
     return None
 
 
+def active_archs_from_build_settings(settings: dict[str, str]) -> list[str]:
+    archs = [
+        arch
+        for arch in (settings.get("ARCHS") or "").split()
+        if arch and arch != "undefined_arch"
+    ]
+    if archs:
+        return archs
+
+    for key in ("NATIVE_ARCH_ACTUAL", "NATIVE_ARCH", "CURRENT_ARCH"):
+        arch = settings.get(key)
+        if arch and arch != "undefined_arch":
+            return [arch]
+
+    return []
+
+
 def iter_stringsdata_files(root: Path) -> list[Path]:
     return list(root.rglob("*.stringsdata"))
 
 
-def iter_target_stringsdata_files(variant_dir: Path, target_name: str = "KMReader") -> list[Path]:
+def iter_target_stringsdata_files(
+    variant_dir: Path,
+    target_name: str = "KMReader",
+    archs: list[str] | None = None,
+) -> list[Path]:
     target_root = variant_dir / f"{target_name}.build" / "Objects-normal"
     if not target_root.is_dir():
         return []
+
+    if archs is not None:
+        files: list[Path] = []
+        for arch in archs:
+            arch_root = target_root / arch
+            if arch_root.is_dir():
+                files.extend(iter_stringsdata_files(arch_root))
+        return files
+
     return iter_stringsdata_files(target_root)
 
 
@@ -256,14 +282,14 @@ def main() -> int:
         stringsdata_dirs = [stringsdata_dir]
         stringsdata_files = iter_explicit_stringsdata_files(stringsdata_dir)
     else:
-        stringsdata_dirs_by_platform = {
-            platform: stringsdata_dir_for_platform(project_root, platform)
+        build_settings_by_platform = {
+            platform: build_settings_for_platform(project_root, platform)
             for platform in REQUIRED_PLATFORMS
         }
         unresolved_platforms = [
             platform
-            for platform, directory in stringsdata_dirs_by_platform.items()
-            if directory is None
+            for platform, settings in build_settings_by_platform.items()
+            if settings is None
         ]
         if unresolved_platforms:
             eprint(
@@ -272,14 +298,70 @@ def main() -> int:
             )
             return 1
 
-        stringsdata_dirs = [
-            stringsdata_dirs_by_platform[platform] for platform in REQUIRED_PLATFORMS
+        stringsdata_dirs_by_platform = {
+            platform: stringsdata_dir_from_build_settings(settings)
+            for platform, settings in build_settings_by_platform.items()
+            if settings is not None
+        }
+        unresolved_directories = [
+            platform
+            for platform, directory in stringsdata_dirs_by_platform.items()
+            if directory is None
         ]
+        if unresolved_directories:
+            eprint(
+                "Error: failed to resolve stringsdata directories for platforms: "
+                + ", ".join(unresolved_directories)
+            )
+            return 1
+
+        archs_by_platform = {
+            platform: active_archs_from_build_settings(settings)
+            for platform, settings in build_settings_by_platform.items()
+            if settings is not None
+        }
+        unresolved_archs = [
+            platform
+            for platform, archs in archs_by_platform.items()
+            if not archs
+        ]
+        if unresolved_archs:
+            eprint(
+                "Error: failed to resolve active architectures for platforms: "
+                + ", ".join(unresolved_archs)
+            )
+            return 1
+
+        stringsdata_dirs = []
         stringsdata_files = []
-        for directory in stringsdata_dirs:
+        missing_platforms = []
+        for platform in REQUIRED_PLATFORMS:
+            directory = stringsdata_dirs_by_platform[platform]
             if directory is None:
                 continue
-            stringsdata_files.extend(iter_target_stringsdata_files(directory))
+            archs = archs_by_platform[platform]
+            platform_files = iter_target_stringsdata_files(directory, archs=archs)
+            stringsdata_files.extend(platform_files)
+            stringsdata_dirs.extend(
+                directory / "KMReader.build" / "Objects-normal" / arch
+                for arch in archs
+            )
+            if not platform_files:
+                missing_platforms.append(f"{platform} ({', '.join(archs)})")
+
+        if missing_platforms:
+            eprint(
+                "Error: no .stringsdata files found for active platform architectures: "
+                + ", ".join(missing_platforms)
+            )
+            eprint("Hint: run a build for KMReader target, then rerun make localize.")
+            return 1
+
+        stringsdata_dirs = [
+            path
+            for path in stringsdata_dirs
+            if path.is_dir()
+        ]
 
     if not stringsdata_files:
         dirs_text = ", ".join(str(path) for path in stringsdata_dirs)
