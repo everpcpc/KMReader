@@ -90,7 +90,7 @@ struct ServerLibrariesView: View {
   private func fetchAndEditLibrary(_ libraryId: String) {
     Task {
       do {
-        let library = try await LibraryService.shared.getLibrary(id: libraryId)
+        let library = try await LibraryService.getLibrary(id: libraryId)
         libraryToEdit = library
       } catch {
         ErrorManager.shared.alert(error: error)
@@ -101,7 +101,7 @@ struct ServerLibrariesView: View {
   private func deleteConfirmedLibrary(_ library: LibrarySelection) {
     Task {
       do {
-        try await LibraryService.shared.deleteLibrary(id: library.libraryId)
+        try await LibraryService.deleteLibrary(id: library.libraryId)
         await LibraryManager.shared.refreshLibraries()
         ErrorManager.shared.notify(
           message: String(localized: "notification.library.deleted"))

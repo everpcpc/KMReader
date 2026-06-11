@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct HistoricalEventPage: Decodable {
+nonisolated struct HistoricalEventPage: Decodable, Sendable {
   let content: [HistoricalEvent]?
   let empty: Bool?
   let first: Bool?

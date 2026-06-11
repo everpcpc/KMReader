@@ -158,16 +158,16 @@ struct OneshotDetailView: View {
   private func refreshOneshotData() async {
     isLoading = true
     do {
-      _ = try await SyncService.shared.syncSeriesDetail(seriesId: seriesId)
-      let fetchedBooks = try await SyncService.shared.syncBooks(
+      _ = try await SyncService.syncSeriesDetail(seriesId: seriesId)
+      let fetchedBooks = try await SyncService.syncBooks(
         seriesId: seriesId,
         page: 0,
         size: 1
       )
       isLoading = false
-      await SyncService.shared.syncSeriesCollections(seriesId: seriesId)
+      await SyncService.syncSeriesCollections(seriesId: seriesId)
       if let fetchedBook = fetchedBooks.content.first {
-        await SyncService.shared.syncBookReadLists(bookId: fetchedBook.id)
+        await SyncService.syncBookReadLists(bookId: fetchedBook.id)
       }
     } catch {
       if case APIError.notFound = error {
@@ -191,11 +191,11 @@ struct OneshotDetailView: View {
   private func addToCollection(collectionId: String) {
     Task {
       do {
-        try await CollectionService.shared.addSeriesToCollection(
+        try await CollectionService.addSeriesToCollection(
           collectionId: collectionId,
           seriesIds: [seriesId]
         )
-        _ = try? await SyncService.shared.syncCollection(id: collectionId)
+        _ = try? await SyncService.syncCollection(id: collectionId)
         ErrorManager.shared.notify(
           message: String(localized: "notification.series.addedToCollection"))
         await refreshOneshotData()
@@ -209,8 +209,8 @@ struct OneshotDetailView: View {
     guard let book = book else { return }
     Task {
       do {
-        try await BookService.shared.markAsRead(bookId: book.id)
-        _ = try? await SyncService.shared.syncBookAndSeries(bookId: book.id, seriesId: seriesId)
+        try await BookService.markAsRead(bookId: book.id)
+        _ = try? await SyncService.syncBookAndSeries(bookId: book.id, seriesId: seriesId)
         ErrorManager.shared.notify(message: String(localized: "notification.book.markedRead"))
         await refreshOneshotData()
       } catch {
@@ -223,7 +223,7 @@ struct OneshotDetailView: View {
     guard let book = book else { return }
     Task {
       do {
-        try await BookService.shared.markAsUnread(bookId: book.id)
+        try await BookService.markAsUnread(bookId: book.id)
         ErrorManager.shared.notify(message: String(localized: "notification.book.markedUnread"))
         await refreshOneshotData()
       } catch {
@@ -235,7 +235,7 @@ struct OneshotDetailView: View {
   private func deleteOneshot() {
     Task {
       do {
-        try await SeriesService.shared.deleteSeries(seriesId: seriesId)
+        try await SeriesService.deleteSeries(seriesId: seriesId)
         ErrorManager.shared.notify(message: String(localized: "notification.series.deleted"))
         dismiss()
       } catch {
@@ -247,12 +247,12 @@ struct OneshotDetailView: View {
   private func addToReadList(readListId: String, bookId: String) {
     Task {
       do {
-        try await ReadListService.shared.addBooksToReadList(
+        try await ReadListService.addBooksToReadList(
           readListId: readListId,
           bookIds: [bookId]
         )
         // Sync the readlist to update its bookIds in local SwiftData
-        _ = try? await SyncService.shared.syncReadList(id: readListId)
+        _ = try? await SyncService.syncReadList(id: readListId)
         ErrorManager.shared.notify(
           message: String(localized: "notification.book.booksAddedToReadList"))
         await refreshOneshotData()
@@ -266,7 +266,7 @@ struct OneshotDetailView: View {
     guard let book = book else { return }
     Task {
       do {
-        try await BookService.shared.analyzeBook(bookId: book.id)
+        try await BookService.analyzeBook(bookId: book.id)
         ErrorManager.shared.notify(
           message: String(localized: "notification.book.analysisStarted"))
         await refreshOneshotData()
@@ -280,7 +280,7 @@ struct OneshotDetailView: View {
     guard let book = book else { return }
     Task {
       do {
-        try await BookService.shared.refreshMetadata(bookId: book.id)
+        try await BookService.refreshMetadata(bookId: book.id)
         ErrorManager.shared.notify(
           message: String(localized: "notification.book.metadataRefreshed"))
         await refreshOneshotData()

@@ -174,12 +174,12 @@ struct BooksListViewForReadList: View {
     defer { isDeleting = false }
 
     do {
-      try await ReadListService.shared.removeBooksFromReadList(
+      try await ReadListService.removeBooksFromReadList(
         readListId: readListId,
         bookIds: Array(selectedBookIds)
       )
       // Sync the readlist to update its bookIds in local SwiftData
-      _ = try? await SyncService.shared.syncReadList(id: readListId)
+      _ = try? await SyncService.syncReadList(id: readListId)
 
       ErrorManager.shared.notify(message: String(localized: "notification.readList.booksRemoved"))
 

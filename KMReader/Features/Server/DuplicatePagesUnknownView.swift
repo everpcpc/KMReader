@@ -230,7 +230,7 @@ struct DuplicatePagesUnknownView: View {
 
   private func markHash(_ hash: PageHashUnknown, action: PageHashAction) async {
     do {
-      try await MediaManagementService.shared.createOrUpdatePageHash(
+      try await MediaManagementService.createOrUpdatePageHash(
         PageHashCreation(hash: hash.hash, size: hash.size, action: action)
       )
       processedHashes.insert(hash.hash)
@@ -246,7 +246,7 @@ struct DuplicatePagesUnknownView: View {
   private func markAllRemaining(_ action: PageHashAction) async {
     for hash in visibleItems {
       do {
-        try await MediaManagementService.shared.createOrUpdatePageHash(
+        try await MediaManagementService.createOrUpdatePageHash(
           PageHashCreation(hash: hash.hash, size: hash.size, action: action)
         )
         processedHashes.insert(hash.hash)
@@ -270,7 +270,7 @@ struct DuplicatePagesUnknownView: View {
 
     isLoading = true
     do {
-      let page = try await MediaManagementService.shared.getUnknownPageHashes(
+      let page = try await MediaManagementService.getUnknownPageHashes(
         page: pagination.currentPage,
         size: pagination.pageSize,
         sort: "matchCount,desc"
@@ -289,7 +289,7 @@ struct DuplicatePagesUnknownView: View {
     guard pagination.hasMorePages && !isLoadingMore else { return }
     isLoadingMore = true
     do {
-      let page = try await MediaManagementService.shared.getUnknownPageHashes(
+      let page = try await MediaManagementService.getUnknownPageHashes(
         page: pagination.currentPage,
         size: pagination.pageSize,
         sort: "matchCount,desc"

@@ -179,8 +179,8 @@ extension SeriesDetailView {
   private func refreshSeriesData() async {
     do {
       // Sync from network to SwiftData (series property will update reactively)
-      _ = try await SyncService.shared.syncSeriesDetail(seriesId: seriesId)
-      await SyncService.shared.syncSeriesCollections(seriesId: seriesId)
+      _ = try await SyncService.syncSeriesDetail(seriesId: seriesId)
+      await SyncService.syncSeriesCollections(seriesId: seriesId)
     } catch {
       if case APIError.notFound = error {
         dismiss()
@@ -193,7 +193,7 @@ extension SeriesDetailView {
   private func analyzeSeries() {
     Task {
       do {
-        try await SeriesService.shared.analyzeSeries(seriesId: seriesId)
+        try await SeriesService.analyzeSeries(seriesId: seriesId)
         ErrorManager.shared.notify(
           message: String(localized: "notification.series.analysisStarted"))
         await refreshSeriesData()
@@ -206,7 +206,7 @@ extension SeriesDetailView {
   private func refreshSeriesMetadata() {
     Task {
       do {
-        try await SeriesService.shared.refreshMetadata(seriesId: seriesId)
+        try await SeriesService.refreshMetadata(seriesId: seriesId)
         ErrorManager.shared.notify(
           message: String(localized: "notification.series.metadataRefreshed"))
         await refreshSeriesData()
@@ -219,7 +219,7 @@ extension SeriesDetailView {
   private func markSeriesAsRead() {
     Task {
       do {
-        try await SeriesService.shared.markAsRead(seriesId: seriesId)
+        try await SeriesService.markAsRead(seriesId: seriesId)
         ErrorManager.shared.notify(message: String(localized: "notification.series.markedRead"))
         await refreshSeriesData()
       } catch {
@@ -231,7 +231,7 @@ extension SeriesDetailView {
   private func markSeriesAsUnread() {
     Task {
       do {
-        try await SeriesService.shared.markAsUnread(seriesId: seriesId)
+        try await SeriesService.markAsUnread(seriesId: seriesId)
         ErrorManager.shared.notify(message: String(localized: "notification.series.markedUnread"))
         await refreshSeriesData()
       } catch {
@@ -243,7 +243,7 @@ extension SeriesDetailView {
   private func deleteSeries() {
     Task {
       do {
-        try await SeriesService.shared.deleteSeries(seriesId: seriesId)
+        try await SeriesService.deleteSeries(seriesId: seriesId)
         ErrorManager.shared.notify(message: String(localized: "notification.series.deleted"))
         dismiss()
       } catch {
@@ -268,12 +268,12 @@ extension SeriesDetailView {
   private func addToCollection(collectionId: String) {
     Task {
       do {
-        try await CollectionService.shared.addSeriesToCollection(
+        try await CollectionService.addSeriesToCollection(
           collectionId: collectionId,
           seriesIds: [seriesId]
         )
         // Sync the collection to update its seriesIds in local SwiftData
-        _ = try? await SyncService.shared.syncCollection(id: collectionId)
+        _ = try? await SyncService.syncCollection(id: collectionId)
         ErrorManager.shared.notify(
           message: String(localized: "notification.series.addedToCollection"))
         await refreshSeriesData()

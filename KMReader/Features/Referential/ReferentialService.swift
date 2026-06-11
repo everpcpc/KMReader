@@ -10,13 +10,10 @@ nonisolated struct AuthorDTO: Codable, Sendable {
   let role: String?
 }
 
-class ReferentialService {
-  static let shared = ReferentialService()
-  private let apiClient = APIClient.shared
+nonisolated enum ReferentialService {
+  private static let apiClient = APIClient.shared
 
-  private init() {}
-
-  func getPublishers(libraryIds: [String]? = nil, collectionId: String? = nil) async throws
+  static func getPublishers(libraryIds: [String]? = nil, collectionId: String? = nil) async throws
     -> [String]
   {
     var queryItems: [URLQueryItem] = []
@@ -34,7 +31,7 @@ class ReferentialService {
     return try await apiClient.request(path: "/api/v1/publishers", queryItems: queryItems)
   }
 
-  func getGenres(libraryIds: [String]? = nil, collectionId: String? = nil) async throws
+  static func getGenres(libraryIds: [String]? = nil, collectionId: String? = nil) async throws
     -> [String]
   {
     var queryItems: [URLQueryItem] = []
@@ -52,7 +49,7 @@ class ReferentialService {
     return try await apiClient.request(path: "/api/v1/genres", queryItems: queryItems)
   }
 
-  func getTags(libraryIds: [String]? = nil, collectionId: String? = nil) async throws -> [String] {
+  static func getTags(libraryIds: [String]? = nil, collectionId: String? = nil) async throws -> [String] {
     var queryItems: [URLQueryItem] = []
 
     if let libraryIds = libraryIds, !libraryIds.isEmpty {
@@ -68,7 +65,7 @@ class ReferentialService {
     return try await apiClient.request(path: "/api/v1/tags", queryItems: queryItems)
   }
 
-  func getBookTags(
+  static func getBookTags(
     seriesId: String? = nil, readListId: String? = nil, libraryIds: [String]? = nil
   ) async throws -> [String] {
     var queryItems: [URLQueryItem] = []
@@ -90,7 +87,7 @@ class ReferentialService {
     return try await apiClient.request(path: "/api/v1/tags/book", queryItems: queryItems)
   }
 
-  func getLanguages(libraryIds: [String]? = nil, collectionId: String? = nil) async throws
+  static func getLanguages(libraryIds: [String]? = nil, collectionId: String? = nil) async throws
     -> [String]
   {
     var queryItems: [URLQueryItem] = []
@@ -108,7 +105,7 @@ class ReferentialService {
     return try await apiClient.request(path: "/api/v1/languages", queryItems: queryItems)
   }
 
-  func getAuthorsNames(
+  static func getAuthorsNames(
     seriesId: String? = nil,
     libraryIds: [String]? = nil,
     collectionId: String? = nil,

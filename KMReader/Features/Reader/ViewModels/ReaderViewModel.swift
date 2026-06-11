@@ -462,7 +462,7 @@ class ReaderViewModel {
       }
       if !AppConfig.isOffline {
         do {
-          let manifest = try await BookService.shared.getBookManifest(id: book.id)
+          let manifest = try await BookService.getBookManifest(id: book.id)
           let toc = await ReaderManifestService(bookId: book.id).parseTOC(manifest: manifest)
           await database?.updateBookTOC(bookId: book.id, toc: toc)
           return toc
@@ -604,7 +604,7 @@ class ReaderViewModel {
     }
 
     do {
-      let fetchedPages = try await BookService.shared.getBookPages(id: book.id)
+      let fetchedPages = try await BookService.getBookPages(id: book.id)
       await database?.updateBookPages(bookId: book.id, pages: fetchedPages)
       return fetchedPages
     } catch {
@@ -783,7 +783,7 @@ class ReaderViewModel {
       if let localPages = await database?.fetchPages(id: book.id) {
         fetchedPages = localPages
       } else if !AppConfig.isOffline {
-        fetchedPages = try await BookService.shared.getBookPages(id: book.id)
+        fetchedPages = try await BookService.getBookPages(id: book.id)
         await database?.updateBookPages(bookId: book.id, pages: fetchedPages)
       } else {
         throw APIError.offline

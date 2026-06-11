@@ -5,13 +5,10 @@
 
 import Foundation
 
-class CollectionService {
-  static let shared = CollectionService()
-  private let apiClient = APIClient.shared
+nonisolated enum CollectionService {
+  private static let apiClient = APIClient.shared
 
-  private init() {}
-
-  func getCollections(
+  static func getCollections(
     libraryIds: [String]? = nil,
     page: Int = 0,
     size: Int = 20,
@@ -41,17 +38,17 @@ class CollectionService {
     return try await apiClient.request(path: "/api/v1/collections", queryItems: queryItems)
   }
 
-  func getCollection(id: String) async throws -> SeriesCollection {
+  static func getCollection(id: String) async throws -> SeriesCollection {
     return try await apiClient.request(path: "/api/v1/collections/\(id)")
   }
 
-  func getCollectionThumbnailURL(id: String) -> URL? {
+  static func getCollectionThumbnailURL(id: String) -> URL? {
     let baseURL = AppConfig.current.serverURL
     guard !baseURL.isEmpty else { return nil }
     return URL(string: baseURL + "/api/v1/collections/\(id)/thumbnail")
   }
 
-  func getCollectionSeries(
+  static func getCollectionSeries(
     collectionId: String,
     page: Int = 0,
     size: Int = 20,
@@ -122,7 +119,7 @@ class CollectionService {
     )
   }
 
-  func createCollection(
+  static func createCollection(
     name: String,
     ordered: Bool = false,
     seriesIds: [String] = []
@@ -141,7 +138,7 @@ class CollectionService {
     )
   }
 
-  func deleteCollection(collectionId: String) async throws {
+  static func deleteCollection(collectionId: String) async throws {
     let _: EmptyResponse = try await apiClient.request(
       path: "/api/v1/collections/\(collectionId)",
       method: "DELETE"
@@ -152,7 +149,7 @@ class CollectionService {
     try await DatabaseOperator.database().commit()
   }
 
-  func removeSeriesFromCollection(collectionId: String, seriesIds: [String]) async throws {
+  static func removeSeriesFromCollection(collectionId: String, seriesIds: [String]) async throws {
     // Return early if no series to remove
     guard !seriesIds.isEmpty else { return }
 
@@ -170,7 +167,7 @@ class CollectionService {
     try await updateCollectionSeriesIds(collectionId: collectionId, seriesIds: updatedSeriesIds)
   }
 
-  func addSeriesToCollection(collectionId: String, seriesIds: [String]) async throws {
+  static func addSeriesToCollection(collectionId: String, seriesIds: [String]) async throws {
     // Return early if no series to add
     guard !seriesIds.isEmpty else { return }
 
@@ -188,7 +185,7 @@ class CollectionService {
     try await updateCollectionSeriesIds(collectionId: collectionId, seriesIds: updatedSeriesIds)
   }
 
-  private func updateCollectionSeriesIds(collectionId: String, seriesIds: [String]) async throws {
+  private static func updateCollectionSeriesIds(collectionId: String, seriesIds: [String]) async throws {
     let body = ["seriesIds": seriesIds] as [String: Any]
     let jsonData = try JSONSerialization.data(withJSONObject: body, options: [.sortedKeys])
     let _: EmptyResponse = try await apiClient.request(
@@ -198,7 +195,7 @@ class CollectionService {
     )
   }
 
-  func updateCollection(collectionId: String, name: String? = nil, ordered: Bool? = nil)
+  static func updateCollection(collectionId: String, name: String? = nil, ordered: Bool? = nil)
     async throws
   {
     var body: [String: Any] = [:]

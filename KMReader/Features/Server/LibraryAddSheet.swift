@@ -337,7 +337,7 @@ struct LibraryAddSheet: View {
     isCreating = true
     Task {
       do {
-        _ = try await LibraryService.shared.createLibrary(libraryCreation)
+        _ = try await LibraryService.createLibrary(libraryCreation)
         await LibraryManager.shared.refreshLibraries()
         ErrorManager.shared.notify(
           message: String(

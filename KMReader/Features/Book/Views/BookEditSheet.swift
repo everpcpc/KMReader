@@ -312,7 +312,7 @@ struct BookEditSheet: View {
         let metadata = bookMetadataUpdate.toAPIDict(against: book)
 
         if !metadata.isEmpty {
-          try await BookService.shared.updateBookMetadata(bookId: book.id, metadata: metadata)
+          try await BookService.updateBookMetadata(bookId: book.id, metadata: metadata)
           ErrorManager.shared.notify(message: String(localized: "notification.book.updated"))
           dismiss()
         } else {

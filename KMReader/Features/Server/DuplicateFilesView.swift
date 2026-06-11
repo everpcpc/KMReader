@@ -171,7 +171,7 @@ struct DuplicateFilesView: View {
 
     isLoading = true
     do {
-      let page = try await MediaManagementService.shared.getDuplicateBooks(
+      let page = try await MediaManagementService.getDuplicateBooks(
         page: currentPage,
         size: 50,
         sort: "fileHash,asc"

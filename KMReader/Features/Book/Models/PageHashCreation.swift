@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct PageHashCreation: Codable {
+nonisolated struct PageHashCreation: Codable, Sendable {
   let hash: String
   let size: Int64?
   let action: PageHashAction

@@ -247,9 +247,9 @@ struct DashboardPinnedSectionView: View {
     isLoading = true
     switch section.contentKind {
     case .collections:
-      await SyncService.shared.syncCollections(instanceId: currentInstanceId)
+      await SyncService.syncCollections(instanceId: currentInstanceId)
     case .readLists:
-      await SyncService.shared.syncReadLists(instanceId: currentInstanceId)
+      await SyncService.syncReadLists(instanceId: currentInstanceId)
     default:
       break
     }

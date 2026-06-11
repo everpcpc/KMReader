@@ -152,12 +152,12 @@ struct CollectionSeriesListView: View {
     defer { isDeleting = false }
 
     do {
-      try await CollectionService.shared.removeSeriesFromCollection(
+      try await CollectionService.removeSeriesFromCollection(
         collectionId: collectionId,
         seriesIds: Array(selectedSeriesIds)
       )
       // Sync the collection to update its seriesIds in local SwiftData
-      _ = try? await SyncService.shared.syncCollection(id: collectionId)
+      _ = try? await SyncService.syncCollection(id: collectionId)
 
       ErrorManager.shared.notify(
         message: String(localized: "notification.series.removedFromCollection"))

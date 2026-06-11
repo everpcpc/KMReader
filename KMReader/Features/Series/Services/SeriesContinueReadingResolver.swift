@@ -25,7 +25,7 @@ enum SeriesContinueReadingResolver {
     }
 
     if let lastRead = await fetchLatestOnlineBook(seriesId: seriesId, status: .read) {
-      if let next = try? await BookService.shared.getNextBook(bookId: lastRead.id) {
+      if let next = try? await BookService.getNextBook(bookId: lastRead.id) {
         return next
       }
       if let unread = await fetchFirstUnreadOnlineBook(seriesId: seriesId) {
@@ -47,7 +47,7 @@ enum SeriesContinueReadingResolver {
     opts.sortField = .dateRead
     opts.sortDirection = .descending
 
-    if let page = try? await BookService.shared.getBooks(
+    if let page = try? await BookService.getBooks(
       seriesId: seriesId,
       page: 0,
       size: 1,
@@ -65,7 +65,7 @@ enum SeriesContinueReadingResolver {
     opts.sortField = .series
     opts.sortDirection = .ascending
 
-    if let page = try? await BookService.shared.getBooks(
+    if let page = try? await BookService.getBooks(
       seriesId: seriesId,
       page: 0,
       size: 1,

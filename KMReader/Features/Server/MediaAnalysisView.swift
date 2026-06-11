@@ -243,7 +243,7 @@ struct MediaAnalysisView: View {
 
     isLoading = true
     do {
-      let page = try await MediaManagementService.shared.getMediaAnalysisBooks(
+      let page = try await MediaManagementService.getMediaAnalysisBooks(
         statuses: statuses,
         libraryIds: libraryIds,
         page: pagination.currentPage,
@@ -263,7 +263,7 @@ struct MediaAnalysisView: View {
     guard pagination.hasMorePages && !isLoadingMore else { return }
     isLoadingMore = true
     do {
-      let page = try await MediaManagementService.shared.getMediaAnalysisBooks(
+      let page = try await MediaManagementService.getMediaAnalysisBooks(
         statuses: selectedStatuses,
         libraryIds: selectedLibraryIds.isEmpty ? nil : Array(selectedLibraryIds),
         page: pagination.currentPage,

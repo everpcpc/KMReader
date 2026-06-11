@@ -5,15 +5,12 @@
 
 import Foundation
 
-class MediaManagementService {
-  static let shared = MediaManagementService()
-  private let apiClient = APIClient.shared
-
-  private init() {}
+nonisolated enum MediaManagementService {
+  private static let apiClient = APIClient.shared
 
   // MARK: - Media Analysis (books with error/unsupported status)
 
-  func getMediaAnalysisBooks(
+  static func getMediaAnalysisBooks(
     statuses: [MediaStatus],
     libraryIds: [String]? = nil,
     page: Int = 0,
@@ -41,7 +38,7 @@ class MediaManagementService {
       : ["allOf": conditions]
 
     let search = BookSearch(condition: condition)
-    return try await BookService.shared.getBooksList(
+    return try await BookService.getBooksList(
       search: search,
       page: page,
       size: size,
@@ -51,7 +48,7 @@ class MediaManagementService {
 
   // MARK: - Missing Posters
 
-  func getMissingPosterBooks(
+  static func getMissingPosterBooks(
     page: Int = 0,
     size: Int = 20,
     sort: String? = nil
@@ -63,7 +60,7 @@ class MediaManagementService {
       ]
     ]
     let search = BookSearch(condition: condition)
-    return try await BookService.shared.getBooksList(
+    return try await BookService.getBooksList(
       search: search,
       page: page,
       size: size,
@@ -73,7 +70,7 @@ class MediaManagementService {
 
   // MARK: - Duplicate Files
 
-  func getDuplicateBooks(
+  static func getDuplicateBooks(
     page: Int = 0,
     size: Int = 20,
     sort: String? = nil
@@ -93,7 +90,7 @@ class MediaManagementService {
 
   // MARK: - Duplicate Pages (Known)
 
-  func getKnownPageHashes(
+  static func getKnownPageHashes(
     actions: [PageHashAction]? = nil,
     page: Int = 0,
     size: Int = 10,
@@ -119,7 +116,7 @@ class MediaManagementService {
 
   // MARK: - Duplicate Pages (Unknown)
 
-  func getUnknownPageHashes(
+  static func getUnknownPageHashes(
     page: Int = 0,
     size: Int = 10,
     sort: String? = nil
@@ -139,7 +136,7 @@ class MediaManagementService {
 
   // MARK: - Page Hash Matches
 
-  func getPageHashMatches(
+  static func getPageHashMatches(
     hash: String,
     page: Int = 0,
     size: Int = 20
@@ -156,7 +153,7 @@ class MediaManagementService {
 
   // MARK: - Page Hash Actions
 
-  func createOrUpdatePageHash(_ creation: PageHashCreation) async throws {
+  static func createOrUpdatePageHash(_ creation: PageHashCreation) async throws {
     let data = try JSONEncoder().encode(creation)
     let _: EmptyResponse = try await apiClient.request(
       path: "/api/v1/page-hashes",
@@ -165,14 +162,14 @@ class MediaManagementService {
     )
   }
 
-  func deleteAllMatchesByHash(_ hash: String) async throws {
+  static func deleteAllMatchesByHash(_ hash: String) async throws {
     let _: EmptyResponse = try await apiClient.request(
       path: "/api/v1/page-hashes/\(hash)/delete-all",
       method: "POST"
     )
   }
 
-  func deleteMatchByHash(_ hash: String, match: PageHashMatch) async throws {
+  static func deleteMatchByHash(_ hash: String, match: PageHashMatch) async throws {
     let body: [String: Any] = [
       "bookId": match.bookId,
       "pageNumber": match.pageNumber,
@@ -187,7 +184,7 @@ class MediaManagementService {
 
   // MARK: - Thumbnails
 
-  func getPageHashThumbnailURL(hash: String, known: Bool = true) -> URL? {
+  static func getPageHashThumbnailURL(hash: String, known: Bool = true) -> URL? {
     let baseURL = AppConfig.current.serverURL
     guard !baseURL.isEmpty else { return nil }
     let path =

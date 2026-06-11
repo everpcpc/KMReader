@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct HistoricalEvent: Codable, Identifiable, Equatable {
+nonisolated struct HistoricalEvent: Codable, Identifiable, Equatable, Sendable {
   let id: String
   let type: String
   let timestamp: Date

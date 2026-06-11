@@ -134,7 +134,7 @@ struct MissingPostersView: View {
 
     isLoading = true
     do {
-      let page = try await MediaManagementService.shared.getMissingPosterBooks(
+      let page = try await MediaManagementService.getMissingPosterBooks(
         page: pagination.currentPage,
         size: pagination.pageSize
       )
@@ -152,7 +152,7 @@ struct MissingPostersView: View {
     guard pagination.hasMorePages && !isLoadingMore else { return }
     isLoadingMore = true
     do {
-      let page = try await MediaManagementService.shared.getMissingPosterBooks(
+      let page = try await MediaManagementService.getMissingPosterBooks(
         page: pagination.currentPage,
         size: pagination.pageSize
       )

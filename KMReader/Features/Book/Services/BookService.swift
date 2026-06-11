@@ -5,20 +5,17 @@
 
 import Foundation
 
-struct BookFileDownloadResult {
+nonisolated struct BookFileDownloadResult: Sendable {
   let contentType: String?
   let suggestedFilename: String?
 }
 
-class BookService {
-  static let shared = BookService()
-  private let apiClient = APIClient.shared
-  private let logger = AppLogger(.api)
-  private let progressRequestTimeout: TimeInterval = 1
+nonisolated enum BookService {
+  private static let apiClient = APIClient.shared
+  private static let logger = AppLogger(.api)
+  private static let progressRequestTimeout: TimeInterval = 1
 
-  private init() {}
-
-  func getBooks(
+  static func getBooks(
     seriesId: String,
     page: Int = 0,
     size: Int = 500,
@@ -50,33 +47,33 @@ class BookService {
     )
   }
 
-  func getBook(id: String) async throws -> Book {
+  static func getBook(id: String) async throws -> Book {
     return try await apiClient.request(path: "/api/v1/books/\(id)")
   }
 
-  func getReadListsForBook(bookId: String) async throws -> [ReadList] {
+  static func getReadListsForBook(bookId: String) async throws -> [ReadList] {
     return try await apiClient.request(path: "/api/v1/books/\(bookId)/readlists")
   }
 
-  func getBookPages(id: String) async throws -> [BookPage] {
+  static func getBookPages(id: String) async throws -> [BookPage] {
     return try await apiClient.request(path: "/api/v1/books/\(id)/pages")
   }
 
-  func getBookManifest(id: String) async throws -> DivinaManifest {
+  static func getBookManifest(id: String) async throws -> DivinaManifest {
     return try await apiClient.request(
       path: "/api/v1/books/\(id)/manifest",
       headers: ["Accept": "application/divina+json"]
     )
   }
 
-  func getBookWebPubManifest(bookId: String) async throws -> WebPubPublication {
+  static func getBookWebPubManifest(bookId: String) async throws -> WebPubPublication {
     return try await apiClient.request(
       path: "/api/v1/books/\(bookId)/manifest",
       headers: ["Accept": "application/webpub+json"]
     )
   }
 
-  func fetchRemoteWebPubProgression(bookId: String) async -> RemoteEpubProgressionFetchResult {
+  static func fetchRemoteWebPubProgression(bookId: String) async -> RemoteEpubProgressionFetchResult {
     let requestPath = "/api/v1/books/\(bookId)/progression"
 
     do {
@@ -104,7 +101,7 @@ class BookService {
     }
   }
 
-  func getWebPubProgression(bookId: String) async throws -> R2Progression? {
+  static func getWebPubProgression(bookId: String) async throws -> R2Progression? {
     switch await fetchRemoteWebPubProgression(bookId: bookId) {
     case .available(let progression):
       return progression
@@ -115,11 +112,11 @@ class BookService {
     }
   }
 
-  func getWebPubPositions(bookId: String) async throws -> R2Positions {
+  static func getWebPubPositions(bookId: String) async throws -> R2Positions {
     return try await apiClient.request(path: "/api/v1/books/\(bookId)/positions")
   }
 
-  private func decodeRemoteWebPubProgression(
+  private static func decodeRemoteWebPubProgression(
     bookId: String,
     path: String,
     data: Data
@@ -156,7 +153,7 @@ class BookService {
     }
   }
 
-  private func isEmptyProgressionLocator(_ locator: R2Locator) -> Bool {
+  private static func isEmptyProgressionLocator(_ locator: R2Locator) -> Bool {
     locator.href.isEmpty
       && locator.type.isEmpty
       && locator.title == nil
@@ -165,7 +162,7 @@ class BookService {
       && locator.koboSpan == nil
   }
 
-  private func hasEmptyProgressionLocatorPayload(_ data: Data) -> Bool {
+  private static func hasEmptyProgressionLocatorPayload(_ data: Data) -> Bool {
     guard
       let jsonObject = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
       let locator = jsonObject["locator"] as? [String: Any]
@@ -176,7 +173,7 @@ class BookService {
     return locator.isEmpty
   }
 
-  private func isRetryableProgressionError(_ error: APIError) -> Bool {
+  private static func isRetryableProgressionError(_ error: APIError) -> Bool {
     switch error {
     case .networkError, .offline, .tooManyRequests, .serverError:
       return true
@@ -185,7 +182,7 @@ class BookService {
     }
   }
 
-  func updateWebPubProgression(
+  static func updateWebPubProgression(
     bookId: String,
     progression: R2Progression,
     timeout: TimeInterval? = nil
@@ -206,7 +203,7 @@ class BookService {
     logger.debug("✅ [Progress/Epub] Request completed: book=\(bookId)")
   }
 
-  func downloadBookFile(bookId: String, to destinationURL: URL) async throws -> BookFileDownloadResult {
+  static func downloadBookFile(bookId: String, to destinationURL: URL) async throws -> BookFileDownloadResult {
     let result = try await apiClient.requestFileWithProgress(
       path: "/api/v1/books/\(bookId)/file",
       progressKey: bookId,
@@ -218,7 +215,7 @@ class BookService {
     )
   }
 
-  func getBrowseBooks(
+  static func getBrowseBooks(
     libraryIds: [String]? = nil,
     page: Int = 0,
     size: Int = 20,
@@ -251,7 +248,7 @@ class BookService {
     )
   }
 
-  func getBooksList(
+  static func getBooksList(
     search: BookSearch,
     page: Int = 0,
     size: Int = 20,
@@ -282,7 +279,7 @@ class BookService {
     )
   }
 
-  func getBooksOnDeck(
+  static func getBooksOnDeck(
     libraryIds: [String]? = nil,
     page: Int = 0,
     size: Int = 20
@@ -303,37 +300,37 @@ class BookService {
   }
 
   /// Get thumbnail URL for a book
-  func getBookThumbnailURL(id: String) -> URL? {
+  static func getBookThumbnailURL(id: String) -> URL? {
     let baseURL = AppConfig.current.serverURL
     guard !baseURL.isEmpty else { return nil }
     return URL(string: baseURL + "/api/v1/books/\(id)/thumbnail")
   }
 
   /// Get page thumbnail URL for a book
-  func getBookPageThumbnailURL(bookId: String, page: Int) -> URL? {
+  static func getBookPageThumbnailURL(bookId: String, page: Int) -> URL? {
     let baseURL = AppConfig.current.serverURL
     guard !baseURL.isEmpty else { return nil }
     return URL(string: baseURL + "/api/v1/books/\(bookId)/pages/\(page)/thumbnail")
   }
 
   /// Get direct page image URL for a book page
-  func getBookPageURL(bookId: String, page: Int) -> URL? {
+  static func getBookPageURL(bookId: String, page: Int) -> URL? {
     let baseURL = AppConfig.current.serverURL
     guard !baseURL.isEmpty else { return nil }
     return URL(string: baseURL + "/api/v1/books/\(bookId)/pages/\(page)")
   }
 
-  func getBookPage(bookId: String, page: Int) async throws -> (data: Data, contentType: String?) {
+  static func getBookPage(bookId: String, page: Int) async throws -> (data: Data, contentType: String?) {
     let result = try await apiClient.requestData(path: "/api/v1/books/\(bookId)/pages/\(page)")
     return (data: result.data, contentType: result.contentType)
   }
 
-  func downloadResource(at url: URL) async throws -> (data: Data, contentType: String?) {
+  static func downloadResource(at url: URL) async throws -> (data: Data, contentType: String?) {
     let result = try await apiClient.requestData(url: url)
     return (data: result.data, contentType: result.contentType)
   }
 
-  func downloadImageResource(at url: URL) async throws -> (data: Data, contentType: String?) {
+  static func downloadImageResource(at url: URL) async throws -> (data: Data, contentType: String?) {
     let result = try await apiClient.requestData(
       url: url,
       headers: ["Accept": "image/*"]
@@ -341,7 +338,7 @@ class BookService {
     return (data: result.data, contentType: result.contentType)
   }
 
-  func updatePageReadProgress(
+  static func updatePageReadProgress(
     bookId: String,
     page: Int,
     completed: Bool = false,
@@ -363,14 +360,14 @@ class BookService {
     logger.debug("✅ [Progress/Page] Request completed: book=\(bookId), page=\(page)")
   }
 
-  func deleteReadProgress(bookId: String) async throws {
+  static func deleteReadProgress(bookId: String) async throws {
     let _: EmptyResponse = try await apiClient.request(
       path: "/api/v1/books/\(bookId)/read-progress",
       method: "DELETE"
     )
   }
 
-  func getNextBook(bookId: String, readListId: String? = nil) async throws -> Book? {
+  static func getNextBook(bookId: String, readListId: String? = nil) async throws -> Book? {
     do {
       if let readListId = readListId {
         // Use readlist-specific endpoint when readListId is provided
@@ -388,7 +385,7 @@ class BookService {
     }
   }
 
-  func getPreviousBook(bookId: String, readListId: String? = nil) async throws -> Book? {
+  static func getPreviousBook(bookId: String, readListId: String? = nil) async throws -> Book? {
     do {
       if let readListId = readListId {
         return try await apiClient.request(
@@ -402,28 +399,28 @@ class BookService {
     }
   }
 
-  func analyzeBook(bookId: String) async throws {
+  static func analyzeBook(bookId: String) async throws {
     let _: EmptyResponse = try await apiClient.request(
       path: "/api/v1/books/\(bookId)/analyze",
       method: "POST"
     )
   }
 
-  func refreshMetadata(bookId: String) async throws {
+  static func refreshMetadata(bookId: String) async throws {
     let _: EmptyResponse = try await apiClient.request(
       path: "/api/v1/books/\(bookId)/metadata/refresh",
       method: "POST"
     )
   }
 
-  func deleteBook(bookId: String) async throws {
+  static func deleteBook(bookId: String) async throws {
     let _: EmptyResponse = try await apiClient.request(
       path: "/api/v1/books/\(bookId)/file",
       method: "DELETE"
     )
   }
 
-  func markAsRead(bookId: String) async throws {
+  static func markAsRead(bookId: String) async throws {
     // Fetch the book to get the total page count
     let book = try await getBook(id: bookId)
     let lastPage = book.media.pagesCount
@@ -439,14 +436,14 @@ class BookService {
     )
   }
 
-  func markAsUnread(bookId: String) async throws {
+  static func markAsUnread(bookId: String) async throws {
     let _: EmptyResponse = try await apiClient.request(
       path: "/api/v1/books/\(bookId)/read-progress",
       method: "DELETE"
     )
   }
 
-  func getRecentlyReadBooks(
+  static func getRecentlyReadBooks(
     libraryIds: [String]? = nil,
     page: Int = 0,
     size: Int = 20
@@ -469,7 +466,7 @@ class BookService {
     )
   }
 
-  func getRecentlyAddedBooks(
+  static func getRecentlyAddedBooks(
     libraryIds: [String]? = nil,
     page: Int = 0,
     size: Int = 20
@@ -490,7 +487,7 @@ class BookService {
     )
   }
 
-  func getRecentlyReleasedBooks(
+  static func getRecentlyReleasedBooks(
     libraryIds: [String]? = nil,
     page: Int = 0,
     size: Int = 20
@@ -511,7 +508,7 @@ class BookService {
     )
   }
 
-  func updateBookMetadata(bookId: String, metadata: [String: Any]) async throws {
+  static func updateBookMetadata(bookId: String, metadata: [String: Any]) async throws {
     let jsonData = try JSONSerialization.data(withJSONObject: metadata, options: [.sortedKeys])
     let _: EmptyResponse = try await apiClient.request(
       path: "/api/v1/books/\(bookId)/metadata",

@@ -128,7 +128,7 @@ struct CollectionPickerSheet: View {
   private func syncCollections() async {
     guard !AppConfig.isOffline else { return }
     isLoading = true
-    await SyncService.shared.syncCollections(instanceId: current.instanceId)
+    await SyncService.syncCollections(instanceId: current.instanceId)
     isLoading = false
   }
 
@@ -174,12 +174,12 @@ struct CreateCollectionSheet: View {
 
     Task {
       do {
-        let collection = try await CollectionService.shared.createCollection(
+        let collection = try await CollectionService.createCollection(
           name: name,
           seriesIds: [seriesId]
         )
         // Sync the collection to update its seriesIds in local SwiftData
-        _ = try? await SyncService.shared.syncCollection(id: collection.id)
+        _ = try? await SyncService.syncCollection(id: collection.id)
         ErrorManager.shared.notify(message: String(localized: "notification.collection.created"))
         isCreating = false
         onCreate(collection.id)

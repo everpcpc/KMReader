@@ -6,7 +6,7 @@
 import Foundation
 
 /// Scan interval options for library scanning
-enum ScanInterval: String, Codable, CaseIterable, Identifiable {
+nonisolated enum ScanInterval: String, Codable, CaseIterable, Identifiable, Sendable {
   case disabled = "DISABLED"
   case hourly = "HOURLY"
   case every6h = "EVERY_6H"
@@ -29,7 +29,7 @@ enum ScanInterval: String, Codable, CaseIterable, Identifiable {
 }
 
 /// Series cover selection mode
-enum SeriesCoverMode: String, Codable, CaseIterable, Identifiable {
+nonisolated enum SeriesCoverMode: String, Codable, CaseIterable, Identifiable, Sendable {
   case first = "FIRST"
   case firstUnreadOrFirst = "FIRST_UNREAD_OR_FIRST"
   case firstUnreadOrLast = "FIRST_UNREAD_OR_LAST"
@@ -48,7 +48,7 @@ enum SeriesCoverMode: String, Codable, CaseIterable, Identifiable {
 }
 
 /// Request body for creating a new library
-struct LibraryCreation: Codable {
+nonisolated struct LibraryCreation: Codable, Sendable {
   // General
   var name: String
   var root: String

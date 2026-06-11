@@ -54,7 +54,7 @@ class SeriesViewModel {
       applyPage(ids: ids, moreAvailable: ids.count == pagination.pageSize)
     } else {
       do {
-        let page = try await SyncService.shared.syncSeriesPage(
+        let page = try await SyncService.syncSeriesPage(
           libraryIds: libraryIds,
           page: pagination.currentPage,
           size: pagination.pageSize,
@@ -125,7 +125,7 @@ class SeriesViewModel {
       applyPage(ids: ids, moreAvailable: ids.count == pagination.pageSize)
     } else {
       do {
-        let page = try await SyncService.shared.syncCollectionSeries(
+        let page = try await SyncService.syncCollectionSeries(
           collectionId: collectionId,
           page: pagination.currentPage,
           size: pagination.pageSize,

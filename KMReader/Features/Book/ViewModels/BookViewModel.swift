@@ -13,7 +13,6 @@ class BookViewModel {
   var currentBook: Book?
   var isLoading = false
 
-  private let bookService = BookService.shared
   private(set) var pagination = PaginationState<IdentifiedString>(pageSize: 50)
 
   func loadSeriesBooks(
@@ -52,7 +51,7 @@ class BookViewModel {
       applyPage(ids: ids, moreAvailable: ids.count == pagination.pageSize)
     } else {
       do {
-        let page = try await SyncService.shared.syncBooks(
+        let page = try await SyncService.syncBooks(
           seriesId: seriesId,
           page: pagination.currentPage,
           size: pagination.pageSize,
@@ -85,7 +84,7 @@ class BookViewModel {
     }
 
     do {
-      currentBook = try await SyncService.shared.syncBook(bookId: id)
+      currentBook = try await SyncService.syncBook(bookId: id)
     } catch {
       if currentBook == nil {
         ErrorManager.shared.alert(error: error)
@@ -99,7 +98,11 @@ class BookViewModel {
 
   func updatePageReadProgress(bookId: String, page: Int, completed: Bool = false) async {
     do {
-      try await bookService.updatePageReadProgress(bookId: bookId, page: page, completed: completed)
+      try await BookService.updatePageReadProgress(
+        bookId: bookId,
+        page: page,
+        completed: completed
+      )
     } catch {
       ErrorManager.shared.alert(error: error)
     }
@@ -107,8 +110,8 @@ class BookViewModel {
 
   func markAsRead(bookId: String) async {
     do {
-      try await bookService.markAsRead(bookId: bookId)
-      let updatedBook = try await SyncService.shared.syncBook(bookId: bookId)
+      try await BookService.markAsRead(bookId: bookId)
+      let updatedBook = try await SyncService.syncBook(bookId: bookId)
       if currentBook?.id == bookId {
         currentBook = updatedBook
       }
@@ -120,8 +123,8 @@ class BookViewModel {
 
   func markAsUnread(bookId: String) async {
     do {
-      try await bookService.markAsUnread(bookId: bookId)
-      let updatedBook = try await SyncService.shared.syncBook(bookId: bookId)
+      try await BookService.markAsUnread(bookId: bookId)
+      let updatedBook = try await SyncService.syncBook(bookId: bookId)
       if currentBook?.id == bookId {
         currentBook = updatedBook
       }
@@ -171,7 +174,7 @@ class BookViewModel {
       applyPage(ids: ids, moreAvailable: ids.count == pagination.pageSize)
     } else {
       do {
-        let page = try await SyncService.shared.syncBrowseBooks(
+        let page = try await SyncService.syncBrowseBooks(
           libraryIds: libraryIds,
           page: pagination.currentPage,
           size: pagination.pageSize,
@@ -240,7 +243,7 @@ class BookViewModel {
       applyPage(ids: ids, moreAvailable: ids.count == pagination.pageSize)
     } else {
       do {
-        let page = try await SyncService.shared.syncReadListBooks(
+        let page = try await SyncService.syncReadListBooks(
           readListId: readListId,
           page: pagination.currentPage,
           size: pagination.pageSize,

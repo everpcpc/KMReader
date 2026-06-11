@@ -129,7 +129,7 @@ extension ReadListDetailView {
   private func loadReadListDetails() async {
     do {
       // Sync from network to SwiftData (readList property will update reactively)
-      _ = try await SyncService.shared.syncReadList(id: readListId)
+      _ = try await SyncService.syncReadList(id: readListId)
     } catch {
       if case APIError.notFound = error {
         dismiss()
@@ -142,7 +142,7 @@ extension ReadListDetailView {
   @MainActor
   private func deleteReadList() async {
     do {
-      try await ReadListService.shared.deleteReadList(readListId: readListId)
+      try await ReadListService.deleteReadList(readListId: readListId)
       ErrorManager.shared.notify(message: String(localized: "notification.readList.deleted"))
       dismiss()
     } catch {

@@ -122,14 +122,14 @@ actor ProgressSyncService {
       logger.debug(
         "🔄 Refreshing book after progress sync: book=\(bookId), reason=\(isStaleSkip ? "stale-skip" : "completed")"
       )
-      if let book = try? await SyncService.shared.syncBook(bookId: bookId) {
+      if let book = try? await SyncService.syncBook(bookId: bookId) {
         seriesIdsToRefresh.insert(book.seriesId)
       }
     }
 
     for seriesId in seriesIdsToRefresh {
       logger.debug("🔄 Refreshing series after progress sync: series=\(seriesId)")
-      _ = try? await SyncService.shared.syncSeriesDetail(seriesId: seriesId)
+      _ = try? await SyncService.syncSeriesDetail(seriesId: seriesId)
     }
 
     if successCount > 0 {
@@ -188,7 +188,7 @@ actor ProgressSyncService {
     // does not cover every regression path (notably: pending queued *after* a server
     // completion, where the lastModified is older than the pending's createdAt — that
     // case would need intent tracking that we don't have today).
-    if let serverBook = try? await BookService.shared.getBook(id: item.bookId),
+    if let serverBook = try? await BookService.getBook(id: item.bookId),
       let serverProgress = serverBook.readProgress,
       serverProgress.lastModified
         > item.createdAt.addingTimeInterval(Self.staleDetectionClockSkewTolerance)
@@ -206,7 +206,7 @@ actor ProgressSyncService {
       // offline). Best-effort: failures here are logged but do not fail the skip.
       if item.progressionData != nil {
         do {
-          let serverProgression = try await BookService.shared.getWebPubProgression(
+          let serverProgression = try await BookService.getWebPubProgression(
             bookId: item.bookId
           )
           if let database = try? await DatabaseOperator.database() {
@@ -240,7 +240,7 @@ actor ProgressSyncService {
         return try decoder.decode(R2Progression.self, from: progressionData)
       }
 
-      try await BookService.shared.updateWebPubProgression(
+      try await BookService.updateWebPubProgression(
         bookId: item.bookId,
         progression: progression
       )
@@ -255,7 +255,7 @@ actor ProgressSyncService {
         "📤 Sync page pending progress for book \(item.bookId), page=\(item.page), completed=\(item.completed)"
       )
       // Page-based progress
-      try await BookService.shared.updatePageReadProgress(
+      try await BookService.updatePageReadProgress(
         bookId: item.bookId,
         page: item.page,
         completed: item.completed

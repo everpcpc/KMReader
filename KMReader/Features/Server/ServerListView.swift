@@ -249,7 +249,7 @@ struct ServerListView: View {
 
     // Clear SwiftData entities and offline data (async)
     Task {
-      await SyncService.shared.clearInstanceData(instanceId: instanceId)
+      await SyncService.clearInstanceData(instanceId: instanceId)
       await OfflineManager.shared.cancelAllDownloads()
       OfflineManager.removeOfflineData(for: instanceId)
       CacheManager.clearCaches(instanceId: instanceId)

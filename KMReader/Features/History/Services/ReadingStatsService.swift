@@ -5,12 +5,9 @@
 
 import Foundation
 
-class ReadingStatsService {
-  static let shared = ReadingStatsService()
+nonisolated enum ReadingStatsService {
 
-  private init() {}
-
-  func fetchReadingStats(libraryId: String?) async throws -> ReadingStatsPayload {
+  static func fetchReadingStats(libraryId: String?) async throws -> ReadingStatsPayload {
     let normalizedLibraryId = normalizeLibraryId(libraryId)
     let instanceId = AppConfig.current.instanceId
     guard !instanceId.isEmpty else {
@@ -52,7 +49,8 @@ class ReadingStatsService {
 
   // MARK: - Aggregation
 
-  private func buildPayload(filteredBooks: [Book], readSeries: [Series], totalBooks: Int) -> ReadingStatsPayload {
+  private static func buildPayload(filteredBooks: [Book], readSeries: [Series], totalBooks: Int) -> ReadingStatsPayload
+  {
     let booksWithProgress = filteredBooks.filter(\.hasStartedReading)
     let completedBooks = filteredBooks.filter(\.isCompleted)
 
@@ -65,7 +63,7 @@ class ReadingStatsService {
 
     let readDates = completedBooks.compactMap { $0.readProgress?.readDate }
     let lastReadDate = readDates.max()
-    let uniqueReadingDays = Set(readDates.map { Self.dayKeyFormatter.string(from: $0) })
+    let uniqueReadingDays = Set(readDates.map(Self.dayKey))
 
     let summary = ReadingStatsSummary(
       totalBooks: Double(totalBooks),
@@ -75,7 +73,7 @@ class ReadingStatsService {
       averagePagesPerBook: averagePagesPerBook,
       readingDays: Double(uniqueReadingDays.count),
       estimatedReadingHours: estimatedReadingHours,
-      lastReadAt: lastReadDate.map { Self.isoDateTimeFormatter.string(from: $0) }
+      lastReadAt: lastReadDate.map(Self.isoDateTime)
     )
 
     let statusDistribution = buildStatusDistribution(
@@ -101,11 +99,11 @@ class ReadingStatsService {
       topTags: dimensions.topTags,
       genreDistribution: dimensions.genreDistribution,
       tagDistribution: dimensions.tagDistribution,
-      generatedAt: Self.isoDateTimeFormatter.string(from: Date())
+      generatedAt: Self.isoDateTime(Date())
     )
   }
 
-  private func buildStatusDistribution(
+  private static func buildStatusDistribution(
     totalBooks: Int,
     filteredBooks: [Book],
     completedBooks: [Book]
@@ -121,7 +119,7 @@ class ReadingStatsService {
     ].filter { $0.value > 0 }
   }
 
-  private func buildDailyDistribution(completedBooks: [Book]) -> [ReadingStatsItem] {
+  private static func buildDailyDistribution(completedBooks: [Book]) -> [ReadingStatsItem] {
     let calendar = Calendar.current
     let weekdaySymbols = calendar.shortWeekdaySymbols
 
@@ -138,7 +136,7 @@ class ReadingStatsService {
     }
   }
 
-  private func buildHourlyDistribution(completedBooks: [Book]) -> [ReadingStatsItem] {
+  private static func buildHourlyDistribution(completedBooks: [Book]) -> [ReadingStatsItem] {
     let calendar = Calendar.current
     var counts = Array(repeating: 0, count: 24)
 
@@ -154,7 +152,7 @@ class ReadingStatsService {
     }
   }
 
-  private func buildReadingTimeSeries(completedBooks: [Book]) -> [ReadingStatsTimePoint] {
+  private static func buildReadingTimeSeries(completedBooks: [Book]) -> [ReadingStatsTimePoint] {
     guard !completedBooks.isEmpty else { return [] }
 
     let today = Date()
@@ -168,7 +166,7 @@ class ReadingStatsService {
     var hoursByDay: [String: Double] = [:]
     for book in completedBooks {
       guard let progress = book.readProgress else { continue }
-      let dayKey = Self.dayKeyFormatter.string(from: progress.readDate)
+      let dayKey = Self.dayKey(progress.readDate)
       let hours = Double(progress.page) / 2 / 60
       hoursByDay[dayKey, default: 0] += hours
     }
@@ -178,7 +176,7 @@ class ReadingStatsService {
     let endDate = Calendar.current.startOfDay(for: today)
 
     while cursor <= endDate {
-      let dayKey = Self.dayKeyFormatter.string(from: cursor)
+      let dayKey = Self.dayKey(cursor)
       points.append(
         ReadingStatsTimePoint(
           name: dayKey,
@@ -193,7 +191,7 @@ class ReadingStatsService {
     return points
   }
 
-  private func buildDimensions(completedBooks: [Book], readSeries: [Series]) -> ReadingStatsDimensions {
+  private static func buildDimensions(completedBooks: [Book], readSeries: [Series]) -> ReadingStatsDimensions {
     let seriesById = Dictionary(uniqueKeysWithValues: readSeries.map { ($0.id, $0) })
     let booksBySeries = Dictionary(grouping: completedBooks, by: \.seriesId)
 
@@ -261,7 +259,7 @@ class ReadingStatsService {
     )
   }
 
-  private func sortedItems(from counts: [String: Int]) -> [ReadingStatsItem] {
+  private static func sortedItems(from counts: [String: Int]) -> [ReadingStatsItem] {
     counts
       .map { ReadingStatsItem(name: $0.key, value: Double($0.value)) }
       .sorted {
@@ -272,7 +270,7 @@ class ReadingStatsService {
       }
   }
 
-  private func makeDistribution(from items: [ReadingStatsItem], topCount: Int = 17) -> [ReadingStatsItem] {
+  private static func makeDistribution(from items: [ReadingStatsItem], topCount: Int = 17) -> [ReadingStatsItem] {
     guard items.count > topCount else { return items }
 
     let fixedItems = Array(items.prefix(topCount))
@@ -283,28 +281,28 @@ class ReadingStatsService {
     return fixedItems + [ReadingStatsItem(name: String(localized: "Other"), value: otherValue)]
   }
 
-  private func normalizeLibraryId(_ libraryId: String?) -> String? {
+  private static func normalizeLibraryId(_ libraryId: String?) -> String? {
     guard let libraryId else { return nil }
     let trimmed = libraryId.trimmingCharacters(in: .whitespacesAndNewlines)
     return trimmed.isEmpty ? nil : trimmed
   }
 
-  private static let dayKeyFormatter: DateFormatter = {
+  private static func dayKey(_ date: Date) -> String {
     let formatter = DateFormatter()
     formatter.locale = Locale(identifier: "en_US_POSIX")
     formatter.timeZone = TimeZone(secondsFromGMT: 0)
     formatter.dateFormat = "yyyy-MM-dd"
-    return formatter
-  }()
+    return formatter.string(from: date)
+  }
 
-  private static let isoDateTimeFormatter: ISO8601DateFormatter = {
+  private static func isoDateTime(_ date: Date) -> String {
     let formatter = ISO8601DateFormatter()
     formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-    return formatter
-  }()
+    return formatter.string(from: date)
+  }
 }
 
-private struct ReadingStatsDimensions {
+nonisolated private struct ReadingStatsDimensions: Sendable {
   let topAuthors: [ReadingStatsItem]
   let topGenres: [ReadingStatsItem]
   let topTags: [ReadingStatsItem]

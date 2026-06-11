@@ -121,7 +121,7 @@ extension CollectionDetailView {
   private func loadCollectionDetails() async {
     do {
       // Sync from network to SwiftData (collection property will update reactively)
-      _ = try await SyncService.shared.syncCollection(id: collectionId)
+      _ = try await SyncService.syncCollection(id: collectionId)
     } catch {
       if case APIError.notFound = error {
         dismiss()
@@ -134,7 +134,7 @@ extension CollectionDetailView {
   @MainActor
   private func deleteCollection() async {
     do {
-      try await CollectionService.shared.deleteCollection(collectionId: collectionId)
+      try await CollectionService.deleteCollection(collectionId: collectionId)
       ErrorManager.shared.notify(message: String(localized: "notification.collection.deleted"))
       dismiss()
     } catch {

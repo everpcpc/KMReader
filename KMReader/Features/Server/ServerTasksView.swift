@@ -212,7 +212,7 @@ struct ServerTasksView: View {
 
     // Load tasks metrics
     do {
-      let metric = try await ManagementService.shared.getMetric(MetricName.tasksExecution.rawValue)
+      let metric = try await ManagementService.getMetric(MetricName.tasksExecution.rawValue)
       let (countByType, totalTimeByType, errors) = await processTasksMetrics(metric)
 
       tasks = metric
@@ -237,7 +237,7 @@ struct ServerTasksView: View {
     isCancelling = true
     Task {
       do {
-        try await ManagementService.shared.cancelAllTasks()
+        try await ManagementService.cancelAllTasks()
         ErrorManager.shared.notify(message: String(localized: "notification.tasks.cancelled"))
         await loadMetrics()
       } catch {
@@ -262,7 +262,7 @@ struct ServerTasksView: View {
 
     for taskType in typeTag.values {
       do {
-        let taskMetric = try await ManagementService.shared.getMetric(
+        let taskMetric = try await ManagementService.getMetric(
           metric.name, tags: [MetricTag(key: "type", value: taskType)])
 
         if let count = taskMetric.measurements.first(where: { $0.statistic == "COUNT" })?.value {

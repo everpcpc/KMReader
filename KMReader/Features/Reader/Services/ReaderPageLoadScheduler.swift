@@ -465,7 +465,7 @@ final class ReaderPageLoadScheduler {
           return nil
         }
 
-        let result = try await BookService.shared.downloadImageResource(at: remoteURL)
+        let result = try await BookService.downloadImageResource(at: remoteURL)
         guard !Task.isCancelled else { return nil }
 
         let data = result.data
@@ -915,7 +915,7 @@ final class ReaderPageLoadScheduler {
     if let url = page.downloadURL {
       return url
     }
-    return BookService.shared.getBookPageURL(bookId: bookId, page: page.number)
+    return BookService.getBookPageURL(bookId: bookId, page: page.number)
   }
 }
 

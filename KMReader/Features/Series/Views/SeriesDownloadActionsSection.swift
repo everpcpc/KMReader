@@ -182,7 +182,7 @@ struct SeriesDownloadActionsSection: View {
     Task {
       // Sync books first if policy is not manual
       if newPolicy != .manual {
-        try? await SyncService.shared.syncAllSeriesBooks(seriesId: series.id)
+        try? await SyncService.syncAllSeriesBooks(seriesId: series.id)
       }
       try? await DatabaseOperator.database().updateSeriesOfflinePolicy(
         seriesId: series.id, instanceId: current.instanceId, policy: newPolicy
@@ -193,7 +193,7 @@ struct SeriesDownloadActionsSection: View {
 
   private func updatePolicyAndLimit(_ newPolicy: SeriesOfflinePolicy, limit: Int) {
     Task {
-      try? await SyncService.shared.syncAllSeriesBooks(seriesId: series.id)
+      try? await SyncService.syncAllSeriesBooks(seriesId: series.id)
       try? await DatabaseOperator.database().updateSeriesOfflinePolicy(
         seriesId: series.id,
         instanceId: current.instanceId,
@@ -242,7 +242,7 @@ struct SeriesDownloadActionsSection: View {
   private func downloadAll() {
     Task {
       // Sync books first
-      try? await SyncService.shared.syncAllSeriesBooks(seriesId: series.id)
+      try? await SyncService.syncAllSeriesBooks(seriesId: series.id)
       try? await DatabaseOperator.database().downloadSeriesOffline(
         seriesId: series.id, instanceId: current.instanceId
       )
@@ -255,7 +255,7 @@ struct SeriesDownloadActionsSection: View {
 
   private func downloadUnread(limit: Int) {
     Task {
-      try? await SyncService.shared.syncAllSeriesBooks(seriesId: series.id)
+      try? await SyncService.syncAllSeriesBooks(seriesId: series.id)
       try? await DatabaseOperator.database().downloadSeriesUnreadOffline(
         seriesId: series.id,
         instanceId: current.instanceId,

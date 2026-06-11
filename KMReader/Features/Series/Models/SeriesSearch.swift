@@ -6,7 +6,7 @@
 import Foundation
 
 // Simplified search structure that can encode to the correct JSON format for series list API
-struct SeriesSearch: Encodable {
+nonisolated struct SeriesSearch: Encodable {
   let condition: [String: Any]?
   let fullTextSearch: String?
 
@@ -36,7 +36,7 @@ struct SeriesSearch: Encodable {
   }
 }
 
-struct SeriesSearchFilters {
+nonisolated struct SeriesSearchFilters {
   var libraryIds: [String]? = nil
   var includeReadStatuses: [ReadStatus] = []
   var excludeReadStatuses: [ReadStatus] = []
@@ -66,7 +66,7 @@ struct SeriesSearchFilters {
 
 // Helper functions to build conditions
 extension SeriesSearch {
-  static func buildCondition(filters: SeriesSearchFilters) -> [String: Any]? {
+  nonisolated static func buildCondition(filters: SeriesSearchFilters) -> [String: Any]? {
     var conditions: [[String: Any]] = []
 
     // Support multiple libraryIds using anyOf

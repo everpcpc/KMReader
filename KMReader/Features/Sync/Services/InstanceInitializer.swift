@@ -178,7 +178,7 @@ final class InstanceInitializer {
     isSyncingReadingProgress = true
     defer { isSyncingReadingProgress = false }
 
-    let syncSucceeded = await SyncService.shared.syncLatestRecentlyReadProgress()
+    let syncSucceeded = await SyncService.syncLatestRecentlyReadProgress()
     guard syncSucceeded else { return }
 
     AppConfig.setReadingProgressSyncTime(Date(), instanceId: instanceId)
@@ -279,7 +279,7 @@ final class InstanceInitializer {
         }
       }
 
-      let readProgressSyncSucceeded = await SyncService.shared.syncLatestRecentlyReadProgress()
+      let readProgressSyncSucceeded = await SyncService.syncLatestRecentlyReadProgress()
       if readProgressSyncSucceeded {
         AppConfig.setReadingProgressSyncTime(Date(), instanceId: instanceId)
       }
@@ -315,7 +315,7 @@ final class InstanceInitializer {
   private func syncLibraries(instanceId: String, database: DatabaseOperator) async -> Bool {
     updateProgress(phase: .libraries, phaseProgress: 0.0)
     do {
-      let libraries = try await LibraryService.shared.getLibraries()
+      let libraries = try await LibraryService.getLibraries()
       let libraryInfos = libraries.map { LibraryInfo(id: $0.id, name: $0.name) }
       try await database.replaceLibraries(libraryInfos, for: instanceId)
       await database.commit()
@@ -338,7 +338,7 @@ final class InstanceInitializer {
       var remoteCollectionIds = Set<String>()
 
       while hasMore {
-        let result: Page<SeriesCollection> = try await CollectionService.shared.getCollections(
+        let result: Page<SeriesCollection> = try await CollectionService.getCollections(
           page: page, size: syncPageSize)
         remoteCollectionIds.formUnion(result.content.map(\.id))
         await database.upsertCollections(result.content, instanceId: instanceId)
@@ -379,7 +379,7 @@ final class InstanceInitializer {
 
       while shouldContinue {
         let search = SeriesSearch(condition: nil)
-        let result = try await SeriesService.shared.getSeriesList(
+        let result = try await SeriesService.getSeriesList(
           search: search, page: page, size: syncPageSize, sort: "lastModified,desc")
 
         var itemsToSync: [Series] = []
@@ -462,7 +462,7 @@ final class InstanceInitializer {
       var remoteReadListIds = Set<String>()
 
       while hasMore {
-        let result: Page<ReadList> = try await ReadListService.shared.getReadLists(
+        let result: Page<ReadList> = try await ReadListService.getReadLists(
           page: page, size: syncPageSize)
         remoteReadListIds.formUnion(result.content.map(\.id))
         await database.upsertReadLists(result.content, instanceId: instanceId)
@@ -503,7 +503,7 @@ final class InstanceInitializer {
 
       while shouldContinue {
         let search = BookSearch(condition: nil)
-        let result = try await BookService.shared.getBooksList(
+        let result = try await BookService.getBooksList(
           search: search, page: page, size: syncPageSize, sort: "lastModified,desc")
 
         var itemsToSync: [Book] = []
@@ -583,7 +583,7 @@ final class InstanceInitializer {
   }
 
   private func fetchRemoteSeriesCountForDeletionReconcile() async throws -> Int {
-    let result = try await SeriesService.shared.getSeriesList(
+    let result = try await SeriesService.getSeriesList(
       search: SeriesSearch(condition: nil),
       page: 0,
       size: 1,
@@ -593,7 +593,7 @@ final class InstanceInitializer {
   }
 
   private func fetchRemoteBookCountForDeletionReconcile() async throws -> Int {
-    let result = try await BookService.shared.getBooksList(
+    let result = try await BookService.getBooksList(
       search: BookSearch(condition: nil),
       page: 0,
       size: 1,
@@ -608,7 +608,7 @@ final class InstanceInitializer {
     let search = SeriesSearch(condition: nil)
 
     do {
-      let result = try await SeriesService.shared.getSeriesList(
+      let result = try await SeriesService.getSeriesList(
         search: search,
         sort: "lastModified,desc",
         unpaged: true
@@ -623,7 +623,7 @@ final class InstanceInitializer {
     var hasMore = true
     var ids = Set<String>()
     while hasMore {
-      let result = try await SeriesService.shared.getSeriesList(
+      let result = try await SeriesService.getSeriesList(
         search: search,
         page: page,
         size: syncPageSize,
@@ -644,7 +644,7 @@ final class InstanceInitializer {
     let search = BookSearch(condition: nil)
 
     do {
-      let result = try await BookService.shared.getBooksList(
+      let result = try await BookService.getBooksList(
         search: search,
         sort: "lastModified,desc",
         unpaged: true
@@ -659,7 +659,7 @@ final class InstanceInitializer {
     var hasMore = true
     var ids = Set<String>()
     while hasMore {
-      let result = try await BookService.shared.getBooksList(
+      let result = try await BookService.getBooksList(
         search: search,
         page: page,
         size: syncPageSize,

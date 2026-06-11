@@ -17,7 +17,7 @@ extension Notification.Name {
   nonisolated static let fileDownloadProgress = Notification.Name("fileDownloadProgress")
 }
 
-class APIClient {
+nonisolated final class APIClient: Sendable {
   static let shared = APIClient()
   private typealias ProgressHandler = @Sendable (_ received: Int64, _ expected: Int64?) -> Void
 
@@ -47,7 +47,7 @@ class APIClient {
 
   private let offlineFailureTracker = OfflineFailureTracker()
 
-  private lazy var sharedSession: URLSession = {
+  private let sharedSession: URLSession = {
     let configuration = URLSessionConfiguration.default
     configuration.urlCache = URLCache(
       memoryCapacity: 50 * 1024 * 1024,  // 50MB memory cache

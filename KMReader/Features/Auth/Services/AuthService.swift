@@ -6,18 +6,15 @@
 import Foundation
 import OSLog
 
-private struct ClientSetting: Decodable {
+nonisolated private struct ClientSetting: Decodable, Sendable {
   let value: String
 }
 
-class AuthService {
-  static let shared = AuthService()
-  private let apiClient = APIClient.shared
-  private let logger = AppLogger(.auth)
+nonisolated enum AuthService {
+  private static let apiClient = APIClient.shared
+  private static let logger = AppLogger(.auth)
 
-  private init() {}
-
-  func login(
+  static func login(
     username: String,
     password: String,
     serverURL: String,
@@ -46,7 +43,7 @@ class AuthService {
     return (user: user, authToken: base64Credentials)
   }
 
-  func loginWithAPIKey(
+  static func loginWithAPIKey(
     apiKey: String,
     serverURL: String,
     rememberMe: Bool = true,
@@ -67,7 +64,7 @@ class AuthService {
     return (user: user, apiKey: apiKey)
   }
 
-  func establishSession(
+  static func establishSession(
     serverURL: String, authToken: String, authMethod: AuthenticationMethod = .basicAuth,
     rememberMe: Bool = true, timeout: TimeInterval? = nil
   ) async throws
@@ -93,7 +90,8 @@ class AuthService {
     )
   }
 
-  func logout() async throws {
+  @MainActor
+  static func logout() async throws {
     do {
       let _: EmptyResponse = try await apiClient.request(
         path: "/api/logout",
@@ -109,7 +107,7 @@ class AuthService {
     AppConfig.clearAuthData()
   }
 
-  func validate(serverURL: String) async throws {
+  static func validate(serverURL: String) async throws {
     // Validate server connection using unauthenticated request
     // /api/v1/client-settings/global/list allows unauthenticated access
     logger.info("📡 Testing connection to \(serverURL)")
@@ -123,7 +121,7 @@ class AuthService {
     logger.info("✅ Server connection successful")
   }
 
-  func testCredentials(
+  static func testCredentials(
     serverURL: String, authToken: String, authMethod: AuthenticationMethod = .basicAuth
   ) async throws -> User {
     // Stateless check
@@ -139,7 +137,7 @@ class AuthService {
     return user
   }
 
-  func getCurrentUser(timeout: TimeInterval? = nil) async throws -> User {
+  static func getCurrentUser(timeout: TimeInterval? = nil) async throws -> User {
     return try await apiClient.request(
       path: "/api/v2/users/me",
       bypassOfflineCheck: true,
@@ -148,7 +146,7 @@ class AuthService {
     )
   }
 
-  func getAuthenticationActivity(page: Int = 0, size: Int = 20) async throws -> Page<
+  static func getAuthenticationActivity(page: Int = 0, size: Int = 20) async throws -> Page<
     AuthenticationActivity
   > {
     let queryItems = [
@@ -162,7 +160,7 @@ class AuthService {
     )
   }
 
-  func getLatestAuthenticationActivity(apiKey: ApiKey) async throws -> AuthenticationActivity {
+  static func getLatestAuthenticationActivity(apiKey: ApiKey) async throws -> AuthenticationActivity {
     let queryItems = [URLQueryItem(name: "apikey_id", value: apiKey.id)]
     return try await apiClient.request(
       path: "/api/v2/users/\(apiKey.userId)/authentication-activity/latest",
@@ -171,14 +169,14 @@ class AuthService {
     )
   }
 
-  func getApiKeys() async throws -> [ApiKey] {
+  static func getApiKeys() async throws -> [ApiKey] {
     return try await apiClient.request(
       path: "/api/v2/users/me/api-keys",
       category: .general
     )
   }
 
-  func createApiKey(comment: String) async throws -> ApiKey {
+  static func createApiKey(comment: String) async throws -> ApiKey {
     let request = ApiKeyRequest(comment: comment)
     let body = try JSONEncoder().encode(request)
     return try await apiClient.request(
@@ -189,7 +187,7 @@ class AuthService {
     )
   }
 
-  func deleteApiKey(id: String) async throws {
+  static func deleteApiKey(id: String) async throws {
     let _: EmptyResponse = try await apiClient.request(
       path: "/api/v2/users/me/api-keys/\(id)",
       method: "DELETE",
@@ -197,7 +195,7 @@ class AuthService {
     )
   }
 
-  func updatePassword(userId: String, password: String) async throws {
+  static func updatePassword(userId: String, password: String) async throws {
     let body = try JSONEncoder().encode(["password": password])
     let _: EmptyResponse = try await apiClient.request(
       path: "/api/v2/users/\(userId)/password",

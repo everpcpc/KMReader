@@ -206,7 +206,7 @@ struct ServerHistoryView: View {
     isLoading = true
 
     do {
-      let page = try await HistoryService.shared.getHistory(
+      let page = try await HistoryService.getHistory(
         page: pagination.currentPage,
         size: pagination.pageSize
       )
@@ -229,7 +229,7 @@ struct ServerHistoryView: View {
     isLoadingMore = true
 
     do {
-      let page = try await HistoryService.shared.getHistory(
+      let page = try await HistoryService.getHistory(
         page: pagination.currentPage,
         size: pagination.pageSize
       )

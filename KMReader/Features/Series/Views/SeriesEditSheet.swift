@@ -343,7 +343,7 @@ struct SeriesEditSheet: View {
         let metadata = metadataUpdate.toAPIDict(against: series)
 
         if !metadata.isEmpty {
-          try await SeriesService.shared.updateSeriesMetadata(
+          try await SeriesService.updateSeriesMetadata(
             seriesId: series.id, metadata: metadata)
           ErrorManager.shared.notify(message: String(localized: "notification.series.updated"))
           dismiss()

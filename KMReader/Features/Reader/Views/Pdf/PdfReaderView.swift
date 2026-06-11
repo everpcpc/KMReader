@@ -449,7 +449,7 @@
       }
 
       if !isOffline {
-        if let syncedBook = try? await SyncService.shared.syncBook(bookId: book.id) {
+        if let syncedBook = try? await SyncService.syncBook(bookId: book.id) {
           resolvedBook = syncedBook
         }
       }
@@ -490,7 +490,7 @@
       let database = await DatabaseOperator.databaseIfConfigured()
       var series = await database?.fetchSeries(id: book.seriesId)
       if series == nil && !isOffline {
-        series = try? await SyncService.shared.syncSeriesDetail(seriesId: book.seriesId)
+        series = try? await SyncService.syncSeriesDetail(seriesId: book.seriesId)
       }
       return series
     }

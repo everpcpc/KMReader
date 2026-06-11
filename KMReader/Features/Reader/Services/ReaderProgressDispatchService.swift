@@ -619,7 +619,7 @@ actor ReaderProgressDispatchService {
     )
 
     try await withHardTimeout(seconds: timeout) {
-      try await BookService.shared.updatePageReadProgress(
+      try await BookService.updatePageReadProgress(
         bookId: update.bookId,
         page: update.page,
         completed: update.completed,
@@ -667,7 +667,7 @@ actor ReaderProgressDispatchService {
           "📨 [Progress/Epub] Start server sync: book=\(update.bookId), version=\(update.version), href=\(update.progression.locator.href), globalPage=\(update.globalPageNumber), timeout=\(timeout)s"
         )
         try await withHardTimeout(seconds: timeout) {
-          try await BookService.shared.updateWebPubProgression(
+          try await BookService.updateWebPubProgression(
             bookId: update.bookId,
             progression: update.progression,
             timeout: timeout

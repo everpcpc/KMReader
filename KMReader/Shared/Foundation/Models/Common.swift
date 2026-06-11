@@ -7,7 +7,7 @@ import Foundation
 import SwiftUI
 
 /// Empty response for API calls that don't return data
-struct EmptyResponse: Codable {}
+nonisolated struct EmptyResponse: Codable, Sendable {}
 
 /// Simplified library info containing only id and name
 struct LibraryInfo: Identifiable, Codable, Equatable {

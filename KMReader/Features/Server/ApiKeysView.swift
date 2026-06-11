@@ -158,11 +158,11 @@ struct ApiKeysView: View {
   private func loadApiKeys() async {
     isLoading = true
     do {
-      apiKeys = try await AuthService.shared.getApiKeys()
+      apiKeys = try await AuthService.getApiKeys()
       for apiKey in apiKeys {
         Task {
           do {
-            let activity = try await AuthService.shared.getLatestAuthenticationActivity(
+            let activity = try await AuthService.getLatestAuthenticationActivity(
               apiKey: apiKey)
             lastActivities[apiKey.id] = activity.dateTime
           } catch {
@@ -179,7 +179,7 @@ struct ApiKeysView: View {
   private func deleteApiKey(_ apiKey: ApiKey) {
     Task {
       do {
-        try await AuthService.shared.deleteApiKey(id: apiKey.id)
+        try await AuthService.deleteApiKey(id: apiKey.id)
         if let index = apiKeys.firstIndex(where: { $0.id == apiKey.id }) {
           apiKeys.remove(at: index)
         }

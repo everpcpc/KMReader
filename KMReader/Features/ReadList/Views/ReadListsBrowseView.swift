@@ -147,7 +147,7 @@ struct ReadListsBrowseView: View {
     var ids: [String] = []
 
     while true {
-      let result = try await SyncService.shared.syncReadLists(
+      let result = try await SyncService.syncReadLists(
         libraryIds: libraryIds,
         page: page,
         size: syncPageSize,

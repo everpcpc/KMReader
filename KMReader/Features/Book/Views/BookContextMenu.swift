@@ -148,8 +148,8 @@ struct BookContextMenu: View {
   private func markAsRead(bookId: String) {
     Task {
       do {
-        try await BookService.shared.markAsRead(bookId: bookId)
-        _ = try await SyncService.shared.syncBookAndSeries(bookId: bookId, seriesId: book.seriesId)
+        try await BookService.markAsRead(bookId: bookId)
+        _ = try await SyncService.syncBookAndSeries(bookId: bookId, seriesId: book.seriesId)
         ErrorManager.shared.notify(message: String(localized: "notification.book.markedRead"))
       } catch {
         ErrorManager.shared.alert(error: error)
@@ -160,8 +160,8 @@ struct BookContextMenu: View {
   private func markAsUnread(bookId: String) {
     Task {
       do {
-        try await BookService.shared.markAsUnread(bookId: bookId)
-        _ = try await SyncService.shared.syncBook(bookId: bookId)
+        try await BookService.markAsUnread(bookId: bookId)
+        _ = try await SyncService.syncBook(bookId: bookId)
         ErrorManager.shared.notify(message: String(localized: "notification.book.markedUnread"))
       } catch {
         ErrorManager.shared.alert(error: error)
@@ -172,7 +172,7 @@ struct BookContextMenu: View {
   private func analyzeBook(bookId: String) {
     Task {
       do {
-        try await BookService.shared.analyzeBook(bookId: bookId)
+        try await BookService.analyzeBook(bookId: bookId)
         ErrorManager.shared.notify(
           message: String(localized: "notification.book.analysisStarted"))
       } catch {
@@ -184,7 +184,7 @@ struct BookContextMenu: View {
   private func refreshMetadata(bookId: String) {
     Task {
       do {
-        try await BookService.shared.refreshMetadata(bookId: bookId)
+        try await BookService.refreshMetadata(bookId: bookId)
         ErrorManager.shared.notify(
           message: String(localized: "notification.book.metadataRefreshed"))
       } catch {
@@ -196,7 +196,7 @@ struct BookContextMenu: View {
   private func addToReadList(readListId: String, bookId: String) {
     Task {
       do {
-        try await ReadListService.shared.addBooksToReadList(
+        try await ReadListService.addBooksToReadList(
           readListId: readListId,
           bookIds: [bookId]
         )

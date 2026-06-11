@@ -132,7 +132,7 @@ struct ReadListPickerSheet: View {
   private func syncReadLists() async {
     guard !AppConfig.isOffline else { return }
     isLoading = true
-    await SyncService.shared.syncReadLists(instanceId: current.instanceId)
+    await SyncService.syncReadLists(instanceId: current.instanceId)
     isLoading = false
   }
 
@@ -181,13 +181,13 @@ struct CreateReadListSheet: View {
 
     Task {
       do {
-        let readList = try await ReadListService.shared.createReadList(
+        let readList = try await ReadListService.createReadList(
           name: name,
           summary: summary,
           bookIds: [bookId]
         )
         // Sync the readlist to update its bookIds in local SwiftData
-        _ = try? await SyncService.shared.syncReadList(id: readList.id)
+        _ = try? await SyncService.syncReadList(id: readList.id)
         ErrorManager.shared.notify(message: String(localized: "notification.readList.created"))
         isCreating = false
         onCreate(readList.id)

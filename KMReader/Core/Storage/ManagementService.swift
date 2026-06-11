@@ -5,20 +5,17 @@
 
 import Foundation
 
-class ManagementService {
-  static let shared = ManagementService()
-  private let apiClient = APIClient.shared
+nonisolated enum ManagementService {
+  private static let apiClient = APIClient.shared
 
-  private init() {}
-
-  func getActuatorInfo() async throws -> ServerInfo {
+  static func getActuatorInfo() async throws -> ServerInfo {
     guard AppConfig.current.isAdmin else {
       throw AppErrorType.operationNotAllowed(message: "Admin access required")
     }
     return try await apiClient.request(path: "/actuator/info")
   }
 
-  func getMetric(_ metricName: String, tags: [MetricTag]? = nil) async throws -> Metric {
+  static func getMetric(_ metricName: String, tags: [MetricTag]? = nil) async throws -> Metric {
     guard AppConfig.current.isAdmin else {
       throw AppErrorType.operationNotAllowed(message: "Admin access required")
     }
@@ -32,7 +29,7 @@ class ManagementService {
     return try await apiClient.request(path: path, queryItems: queryItems)
   }
 
-  func cancelAllTasks() async throws {
+  static func cancelAllTasks() async throws {
     guard AppConfig.current.isAdmin else {
       throw AppErrorType.operationNotAllowed(message: "Admin access required")
     }

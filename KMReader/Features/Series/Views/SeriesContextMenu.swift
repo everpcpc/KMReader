@@ -217,7 +217,7 @@ struct SeriesContextMenu: View {
   private func analyzeSeries() {
     Task {
       do {
-        try await SeriesService.shared.analyzeSeries(seriesId: seriesId)
+        try await SeriesService.analyzeSeries(seriesId: seriesId)
         ErrorManager.shared.notify(
           message: String(localized: "notification.series.analysisStarted"))
       } catch {
@@ -229,7 +229,7 @@ struct SeriesContextMenu: View {
   private func refreshMetadata() {
     Task {
       do {
-        try await SeriesService.shared.refreshMetadata(seriesId: seriesId)
+        try await SeriesService.refreshMetadata(seriesId: seriesId)
         ErrorManager.shared.notify(
           message: String(localized: "notification.series.metadataRefreshed"))
       } catch {
@@ -241,7 +241,7 @@ struct SeriesContextMenu: View {
   private func markSeriesAsRead() {
     Task {
       do {
-        try await SeriesService.shared.markAsRead(seriesId: seriesId)
+        try await SeriesService.markAsRead(seriesId: seriesId)
         ErrorManager.shared.notify(message: String(localized: "notification.series.markedRead"))
       } catch {
         ErrorManager.shared.alert(error: error)
@@ -252,7 +252,7 @@ struct SeriesContextMenu: View {
   private func markSeriesAsUnread() {
     Task {
       do {
-        try await SeriesService.shared.markAsUnread(seriesId: seriesId)
+        try await SeriesService.markAsUnread(seriesId: seriesId)
         ErrorManager.shared.notify(message: String(localized: "notification.series.markedUnread"))
       } catch {
         ErrorManager.shared.alert(error: error)
@@ -263,7 +263,7 @@ struct SeriesContextMenu: View {
   private func addToCollection(collectionId: String) {
     Task {
       do {
-        try await CollectionService.shared.addSeriesToCollection(
+        try await CollectionService.addSeriesToCollection(
           collectionId: collectionId,
           seriesIds: [seriesId]
         )
@@ -279,7 +279,7 @@ struct SeriesContextMenu: View {
     Task {
       // Sync books first if policy is not manual
       if policy != .manual {
-        try? await SyncService.shared.syncAllSeriesBooks(seriesId: seriesId)
+        try? await SyncService.syncAllSeriesBooks(seriesId: seriesId)
       }
       try? await DatabaseOperator.database().updateSeriesOfflinePolicy(
         seriesId: seriesId, instanceId: current.instanceId, policy: policy
@@ -290,7 +290,7 @@ struct SeriesContextMenu: View {
 
   private func updatePolicyAndLimit(_ policy: SeriesOfflinePolicy, limit: Int) {
     Task {
-      try? await SyncService.shared.syncAllSeriesBooks(seriesId: seriesId)
+      try? await SyncService.syncAllSeriesBooks(seriesId: seriesId)
       try? await DatabaseOperator.database().updateSeriesOfflinePolicy(
         seriesId: seriesId,
         instanceId: current.instanceId,
@@ -370,7 +370,7 @@ struct SeriesContextMenu: View {
 
   private func downloadAll() {
     Task {
-      try? await SyncService.shared.syncAllSeriesBooks(seriesId: seriesId)
+      try? await SyncService.syncAllSeriesBooks(seriesId: seriesId)
       try? await DatabaseOperator.database().downloadSeriesOffline(
         seriesId: seriesId, instanceId: current.instanceId
       )
@@ -383,7 +383,7 @@ struct SeriesContextMenu: View {
 
   private func downloadUnread(limit: Int) {
     Task {
-      try? await SyncService.shared.syncAllSeriesBooks(seriesId: seriesId)
+      try? await SyncService.syncAllSeriesBooks(seriesId: seriesId)
       try? await DatabaseOperator.database().downloadSeriesUnreadOffline(
         seriesId: seriesId,
         instanceId: current.instanceId,

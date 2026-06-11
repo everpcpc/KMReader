@@ -15,33 +15,33 @@ enum MetadataFilterItemSource: Sendable {
   func load() async throws -> [String] {
     switch self {
     case .publishers:
-      return try await ReferentialService.shared.getPublishers()
+      return try await ReferentialService.getPublishers()
     case .authors(let seriesId, let libraryIds, let collectionId, let readListId):
-      return try await ReferentialService.shared.getAuthorsNames(
+      return try await ReferentialService.getAuthorsNames(
         seriesId: seriesId,
         libraryIds: libraryIds,
         collectionId: collectionId,
         readListId: readListId
       )
     case .genres(let libraryIds, let collectionId):
-      return try await ReferentialService.shared.getGenres(
+      return try await ReferentialService.getGenres(
         libraryIds: libraryIds,
         collectionId: collectionId
       )
     case .tags(let seriesId, let readListId, let libraryIds, let collectionId):
       if seriesId != nil || readListId != nil {
-        return try await ReferentialService.shared.getBookTags(
+        return try await ReferentialService.getBookTags(
           seriesId: seriesId,
           readListId: readListId,
           libraryIds: libraryIds
         )
       }
-      return try await ReferentialService.shared.getTags(
+      return try await ReferentialService.getTags(
         libraryIds: libraryIds,
         collectionId: collectionId
       )
     case .languages(let libraryIds, let collectionId):
-      return try await ReferentialService.shared.getLanguages(
+      return try await ReferentialService.getLanguages(
         libraryIds: libraryIds,
         collectionId: collectionId
       )

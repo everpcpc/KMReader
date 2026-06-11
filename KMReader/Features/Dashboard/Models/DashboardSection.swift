@@ -127,7 +127,7 @@ enum DashboardSection: String, CaseIterable, Identifiable, Codable {
         )
       )
       let search = BookSearch(condition: condition)
-      return try await SyncService.shared.syncBooksList(
+      return try await SyncService.syncBooksList(
         search: search,
         page: page,
         size: size,
@@ -135,28 +135,28 @@ enum DashboardSection: String, CaseIterable, Identifiable, Codable {
       )
 
     case .onDeck:
-      return try await SyncService.shared.syncBooksOnDeck(
+      return try await SyncService.syncBooksOnDeck(
         libraryIds: libraryIds,
         page: page,
         size: size
       )
 
     case .recentlyReadBooks:
-      return try await SyncService.shared.syncRecentlyReadBooks(
+      return try await SyncService.syncRecentlyReadBooks(
         libraryIds: libraryIds,
         page: page,
         size: size
       )
 
     case .recentlyReleasedBooks:
-      return try await SyncService.shared.syncRecentlyReleasedBooks(
+      return try await SyncService.syncRecentlyReleasedBooks(
         libraryIds: libraryIds,
         page: page,
         size: size
       )
 
     case .recentlyAddedBooks:
-      return try await SyncService.shared.syncRecentlyAddedBooks(
+      return try await SyncService.syncRecentlyAddedBooks(
         libraryIds: libraryIds,
         page: page,
         size: size
@@ -170,14 +170,14 @@ enum DashboardSection: String, CaseIterable, Identifiable, Codable {
   func fetchSeries(libraryIds: [String], page: Int, size: Int) async throws -> Page<Series>? {
     switch self {
     case .recentlyAddedSeries:
-      return try await SyncService.shared.syncNewSeries(
+      return try await SyncService.syncNewSeries(
         libraryIds: libraryIds,
         page: page,
         size: size
       )
 
     case .recentlyUpdatedSeries:
-      return try await SyncService.shared.syncUpdatedSeries(
+      return try await SyncService.syncUpdatedSeries(
         libraryIds: libraryIds,
         page: page,
         size: size

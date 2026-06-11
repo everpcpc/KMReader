@@ -5,18 +5,15 @@
 
 import Foundation
 
-class FilesystemService {
-  static let shared = FilesystemService()
-  private let apiClient = APIClient.shared
-
-  private init() {}
+nonisolated enum FilesystemService {
+  private static let apiClient = APIClient.shared
 
   /// Get directory listing from the server
   /// - Parameters:
   ///   - path: The directory path to list (empty for root)
   ///   - showFiles: Whether to include files in the listing
   /// - Returns: The directory listing result
-  func getDirectoryListing(path: String = "", showFiles: Bool = false) async throws
+  static func getDirectoryListing(path: String = "", showFiles: Bool = false) async throws
     -> DirectoryListingResult
   {
     struct RequestBody: Codable {

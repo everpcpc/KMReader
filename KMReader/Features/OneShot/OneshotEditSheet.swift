@@ -451,14 +451,14 @@ struct OneshotEditSheet: View {
   private func saveBookMetadata() async throws {
     let metadata = bookMetadataUpdate.toAPIDict(against: book)
     if !metadata.isEmpty {
-      try await BookService.shared.updateBookMetadata(bookId: book.id, metadata: metadata)
+      try await BookService.updateBookMetadata(bookId: book.id, metadata: metadata)
     }
   }
 
   private func saveSeriesMetadata() async throws {
     let metadata = seriesMetadataUpdate.toAPIDict(against: series)
     if !metadata.isEmpty {
-      try await SeriesService.shared.updateSeriesMetadata(
+      try await SeriesService.updateSeriesMetadata(
         seriesId: series.id, metadata: metadata)
     }
   }

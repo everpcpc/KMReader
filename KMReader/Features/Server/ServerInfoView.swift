@@ -266,7 +266,7 @@ struct ServerInfoView: View {
     isLoading = true
 
     do {
-      serverInfo = try await ManagementService.shared.getActuatorInfo()
+      serverInfo = try await ManagementService.getActuatorInfo()
     } catch {
       ErrorManager.shared.alert(error: error)
     }

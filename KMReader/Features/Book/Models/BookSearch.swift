@@ -6,7 +6,7 @@
 import Foundation
 
 // Simplified search structure that can encode to the correct JSON format
-struct BookSearch: Encodable {
+nonisolated struct BookSearch: Encodable {
   let condition: [String: Any]?
   let fullTextSearch: String?
 
@@ -36,7 +36,7 @@ struct BookSearch: Encodable {
   }
 }
 
-struct BookSearchFilters {
+nonisolated struct BookSearchFilters {
   var libraryIds: [String]? = nil
   var includeReadStatuses: [ReadStatus] = []
   var excludeReadStatuses: [ReadStatus] = []
@@ -56,7 +56,7 @@ struct BookSearchFilters {
 
 // Helper functions to build conditions
 extension BookSearch {
-  static func buildCondition(filters: BookSearchFilters) -> [String: Any]? {
+  nonisolated static func buildCondition(filters: BookSearchFilters) -> [String: Any]? {
     var conditions: [[String: Any]] = []
 
     // Support multiple libraryIds using anyOf

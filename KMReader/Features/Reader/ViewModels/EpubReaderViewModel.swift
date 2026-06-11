@@ -1071,7 +1071,7 @@
     private func syncRemoteProgressionToLocal(bookId: String) async {
       guard let database = await DatabaseOperator.databaseIfConfigured() else { return }
 
-      let remoteState = await BookService.shared.fetchRemoteWebPubProgression(bookId: bookId)
+      let remoteState = await BookService.fetchRemoteWebPubProgression(bookId: bookId)
 
       switch remoteState {
       case .available(let progression):
@@ -1127,7 +1127,7 @@
 
       let task = Task { [bookId] in
         do {
-          let positions = try await BookService.shared.getWebPubPositions(bookId: bookId)
+          let positions = try await BookService.getWebPubPositions(bookId: bookId)
           var map: [String: Float] = [:]
           for locator in positions.positions {
             guard let progression = locator.locations?.progression else { continue }

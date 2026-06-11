@@ -17,7 +17,6 @@ final class ReadingStatsViewModel {
 
   // Cached stats are immediately displayed; if last refresh is older than this interval, refresh in background.
   private let autoRefreshInterval: TimeInterval = 24 * 60 * 60
-  private let service = ReadingStatsService.shared
   private let cacheStore = ReadingStatsCacheStore.shared
 
   func load(instanceId: String, libraryId: String, forceRefresh: Bool = false) async {
@@ -47,7 +46,9 @@ final class ReadingStatsViewModel {
     }
 
     do {
-      let fetched = try await service.fetchReadingStats(libraryId: normalizedLibraryId(libraryId))
+      let fetched = try await ReadingStatsService.fetchReadingStats(
+        libraryId: normalizedLibraryId(libraryId)
+      )
       let snapshot = ReadingStatsSnapshot(libraryId: normalizedLibraryId(libraryId), cachedAt: Date(), payload: fetched)
       cacheStore.upsert(snapshot: snapshot, instanceId: instanceId, libraryId: libraryId)
       apply(snapshot: snapshot)

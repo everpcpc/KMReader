@@ -117,7 +117,7 @@ struct DirectoryBrowserSheet: View {
     error = nil
     Task {
       do {
-        let result = try await FilesystemService.shared.getDirectoryListing(path: path)
+        let result = try await FilesystemService.getDirectoryListing(path: path)
         directoryListing = result
         // Update currentPath based on the directory we're viewing
         if path.isEmpty, result.directories.first != nil {

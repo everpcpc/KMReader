@@ -56,9 +56,9 @@ struct SidebarView: View {
       isRefreshing = false
       ErrorManager.shared.notify(message: String(localized: "notification.refresh_completed"))
     }
-    await SyncService.shared.syncLibraries(instanceId: current.instanceId)
-    await SyncService.shared.syncCollections(instanceId: current.instanceId)
-    await SyncService.shared.syncReadLists(instanceId: current.instanceId)
+    await SyncService.syncLibraries(instanceId: current.instanceId)
+    await SyncService.syncCollections(instanceId: current.instanceId)
+    await SyncService.syncReadLists(instanceId: current.instanceId)
   }
 
   var body: some View {

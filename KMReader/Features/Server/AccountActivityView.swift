@@ -156,7 +156,7 @@ struct AccountActivityView: View {
     isLoading = true
 
     do {
-      let page = try await AuthService.shared.getAuthenticationActivity(
+      let page = try await AuthService.getAuthenticationActivity(
         page: pagination.currentPage,
         size: pagination.pageSize
       )
@@ -176,7 +176,7 @@ struct AccountActivityView: View {
     isLoadingMore = true
 
     do {
-      let page = try await AuthService.shared.getAuthenticationActivity(
+      let page = try await AuthService.getAuthenticationActivity(
         page: pagination.currentPage,
         size: pagination.pageSize
       )

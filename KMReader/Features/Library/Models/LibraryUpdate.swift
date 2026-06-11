@@ -6,7 +6,7 @@
 import Foundation
 
 /// Request body for updating an existing library
-struct LibraryUpdate: Codable {
+nonisolated struct LibraryUpdate: Codable, Sendable {
   // General
   var name: String
   var root: String

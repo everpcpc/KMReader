@@ -95,7 +95,7 @@ struct ApiKeyAddSheet: View {
     isCreating = true
     Task {
       do {
-        newKey = try await AuthService.shared.createApiKey(comment: comment)
+        newKey = try await AuthService.createApiKey(comment: comment)
         comment = ""
       } catch {
         ErrorManager.shared.alert(error: error)

@@ -64,15 +64,15 @@ enum LibraryAction: CaseIterable {
   private func performAction(for libraryId: String) async throws {
     switch self {
     case .scan:
-      try await LibraryService.shared.scanLibrary(id: libraryId)
+      try await LibraryService.scanLibrary(id: libraryId)
     case .scanDeep:
-      try await LibraryService.shared.scanLibrary(id: libraryId, deep: true)
+      try await LibraryService.scanLibrary(id: libraryId, deep: true)
     case .analyze:
-      try await LibraryService.shared.analyzeLibrary(id: libraryId)
+      try await LibraryService.analyzeLibrary(id: libraryId)
     case .refreshMetadata:
-      try await LibraryService.shared.refreshMetadata(id: libraryId)
+      try await LibraryService.refreshMetadata(id: libraryId)
     case .emptyTrash:
-      try await LibraryService.shared.emptyTrash(id: libraryId)
+      try await LibraryService.emptyTrash(id: libraryId)
     }
   }
 

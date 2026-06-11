@@ -5,13 +5,10 @@
 
 import Foundation
 
-class ReadListService {
-  static let shared = ReadListService()
-  private let apiClient = APIClient.shared
+nonisolated enum ReadListService {
+  private static let apiClient = APIClient.shared
 
-  private init() {}
-
-  func getReadLists(
+  static func getReadLists(
     libraryIds: [String]? = nil,
     page: Int = 0,
     size: Int = 20,
@@ -41,17 +38,17 @@ class ReadListService {
     return try await apiClient.request(path: "/api/v1/readlists", queryItems: queryItems)
   }
 
-  func getReadList(id: String) async throws -> ReadList {
+  static func getReadList(id: String) async throws -> ReadList {
     return try await apiClient.request(path: "/api/v1/readlists/\(id)")
   }
 
-  func getReadListThumbnailURL(id: String) -> URL? {
+  static func getReadListThumbnailURL(id: String) -> URL? {
     let baseURL = AppConfig.current.serverURL
     guard !baseURL.isEmpty else { return nil }
     return URL(string: baseURL + "/api/v1/readlists/\(id)/thumbnail")
   }
 
-  func getReadListBooks(
+  static func getReadListBooks(
     readListId: String,
     page: Int = 0,
     size: Int = 20,
@@ -96,7 +93,7 @@ class ReadListService {
     )
   }
 
-  func createReadList(
+  static func createReadList(
     name: String,
     summary: String = "",
     ordered: Bool = false,
@@ -117,7 +114,7 @@ class ReadListService {
     )
   }
 
-  func deleteReadList(readListId: String) async throws {
+  static func deleteReadList(readListId: String) async throws {
     let _: EmptyResponse = try await apiClient.request(
       path: "/api/v1/readlists/\(readListId)",
       method: "DELETE"
@@ -128,7 +125,7 @@ class ReadListService {
     try await DatabaseOperator.database().commit()
   }
 
-  func removeBooksFromReadList(readListId: String, bookIds: [String]) async throws {
+  static func removeBooksFromReadList(readListId: String, bookIds: [String]) async throws {
     // Return early if no books to remove
     guard !bookIds.isEmpty else { return }
 
@@ -146,7 +143,7 @@ class ReadListService {
     try await updateReadListBookIds(readListId: readListId, bookIds: updatedBookIds)
   }
 
-  func addBooksToReadList(readListId: String, bookIds: [String]) async throws {
+  static func addBooksToReadList(readListId: String, bookIds: [String]) async throws {
     // Return early if no books to add
     guard !bookIds.isEmpty else { return }
 
@@ -164,7 +161,7 @@ class ReadListService {
     try await updateReadListBookIds(readListId: readListId, bookIds: updatedBookIds)
   }
 
-  private func updateReadListBookIds(readListId: String, bookIds: [String]) async throws {
+  private static func updateReadListBookIds(readListId: String, bookIds: [String]) async throws {
     let body = ["bookIds": bookIds] as [String: Any]
     let jsonData = try JSONSerialization.data(withJSONObject: body, options: [.sortedKeys])
     let _: EmptyResponse = try await apiClient.request(
@@ -174,7 +171,7 @@ class ReadListService {
     )
   }
 
-  func updateReadList(
+  static func updateReadList(
     readListId: String, name: String? = nil, summary: String? = nil, ordered: Bool? = nil
   ) async throws {
     var body: [String: Any] = [:]

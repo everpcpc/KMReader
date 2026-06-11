@@ -343,7 +343,7 @@ struct LibraryEditSheet: View {
     isSaving = true
     Task {
       do {
-        try await LibraryService.shared.updateLibrary(id: library.id, update: libraryUpdate)
+        try await LibraryService.updateLibrary(id: library.id, update: libraryUpdate)
         await LibraryManager.shared.refreshLibraries()
         ErrorManager.shared.notify(
           message: String(

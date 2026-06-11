@@ -66,7 +66,7 @@ struct ReadListEditSheet: View {
         }
 
         if hasChanges {
-          try await ReadListService.shared.updateReadList(
+          try await ReadListService.updateReadList(
             readListId: readList.id,
             name: nameToUpdate,
             summary: summaryToUpdate,

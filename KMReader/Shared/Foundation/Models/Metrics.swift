@@ -5,30 +5,30 @@
 
 import Foundation
 
-struct Metric: Codable {
+nonisolated struct Metric: Codable, Sendable {
   let name: String
   let description: String?
   let baseUnit: String?
   let measurements: [Measurement]
   let availableTags: [TagInfo]?
 
-  struct Measurement: Codable {
+  struct Measurement: Codable, Sendable {
     let statistic: String
     let value: Double
   }
 
-  struct TagInfo: Codable {
+  struct TagInfo: Codable, Sendable {
     let tag: String
     let values: [String]
   }
 }
 
-struct MetricTag: Codable {
+nonisolated struct MetricTag: Codable, Sendable {
   let key: String
   let value: String
 }
 
-enum MetricName: String {
+nonisolated enum MetricName: String, Sendable {
   case booksFileSize = "komga.books.filesize"
   case series = "komga.series"
   case books = "komga.books"

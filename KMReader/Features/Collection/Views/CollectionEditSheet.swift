@@ -57,7 +57,7 @@ struct CollectionEditSheet: View {
         }
 
         if hasChanges {
-          try await CollectionService.shared.updateCollection(
+          try await CollectionService.updateCollection(
             collectionId: collection.id,
             name: nameToUpdate,
             ordered: orderedToUpdate

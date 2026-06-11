@@ -28,7 +28,6 @@ struct LibraryListContent: View {
   let onEditLibrary: ((String) -> Void)?
   let onDeleteLibrary: ((LibrarySelection) -> Void)?
 
-  private let libraryService = LibraryService.shared
   private let metricsLoader = LibraryMetricsLoader.shared
 
   init(
@@ -436,13 +435,13 @@ struct LibraryListContent: View {
 
   private func scanAllLibraries(deep: Bool) async throws {
     for library in libraries {
-      try await libraryService.scanLibrary(id: library.libraryId, deep: deep)
+      try await LibraryService.scanLibrary(id: library.libraryId, deep: deep)
     }
   }
 
   private func emptyTrashAllLibraries() async throws {
     for library in libraries {
-      try await libraryService.emptyTrash(id: library.libraryId)
+      try await LibraryService.emptyTrash(id: library.libraryId)
     }
   }
 

@@ -21,8 +21,6 @@ class AuthViewModel {
   var switchingInstanceId: String?
   private(set) var bootstrapState: BootstrapState
 
-  private let authService = AuthService.shared
-
   init() {
     bootstrapState = AppConfig.isLoggedIn ? .requiresValidation : .ready
   }
@@ -37,7 +35,7 @@ class AuthViewModel {
     defer { isLoading = false }
 
     // Validate authentication using temporary request
-    let result = try await authService.login(
+    let result = try await AuthService.login(
       username: username, password: password, serverURL: serverURL, timeout: AppConfig.authTimeout)
 
     // Apply login configuration
@@ -62,7 +60,7 @@ class AuthViewModel {
     defer { isLoading = false }
 
     // Validate authentication using API Key
-    let result = try await authService.loginWithAPIKey(
+    let result = try await AuthService.loginWithAPIKey(
       apiKey: apiKey, serverURL: serverURL, timeout: AppConfig.authTimeout)
 
     // Apply login configuration
@@ -82,7 +80,7 @@ class AuthViewModel {
     Task {
       // Disconnect SSE before logout
       await SSEService.shared.disconnect()
-      try? await authService.logout()
+      try? await AuthService.logout()
     }
     // ViewModel-specific cleanup
     AppConfig.isLoggedIn = false
@@ -93,13 +91,13 @@ class AuthViewModel {
   }
 
   func validate(serverURL: String) async throws {
-    try await authService.validate(serverURL: serverURL)
+    try await AuthService.validate(serverURL: serverURL)
   }
 
   func testCredentials(
     serverURL: String, authToken: String, authMethod: AuthenticationMethod = .basicAuth
   ) async throws -> User {
-    return try await authService.testCredentials(
+    return try await AuthService.testCredentials(
       serverURL: serverURL, authToken: authToken, authMethod: authMethod)
   }
 
@@ -112,7 +110,7 @@ class AuthViewModel {
     defer { isLoading = false }
     do {
       let effectiveTimeout = timeout ?? AppConfig.authTimeout
-      let user = try await authService.getCurrentUser(timeout: effectiveTimeout)
+      let user = try await AuthService.getCurrentUser(timeout: effectiveTimeout)
       var current = AppConfig.current
       current.updateMetadata(from: user)
       AppConfig.current = current
@@ -151,11 +149,11 @@ class AuthViewModel {
     }
 
     // Ensure current session is logged out before switching to a new instance when sharing a single session
-    try? await authService.logout()
+    try? await AuthService.logout()
 
     // Establish stateful session before switching
     do {
-      let validatedUser = try await authService.establishSession(
+      let validatedUser = try await AuthService.establishSession(
         serverURL: instance.serverURL,
         authToken: instance.authToken,
         authMethod: instance.resolvedAuthMethod,
@@ -306,6 +304,6 @@ class AuthViewModel {
   func updatePassword(password: String) async throws {
     let userId = AppConfig.current.userId
     guard !userId.isEmpty else { return }
-    try await authService.updatePassword(userId: userId, password: password)
+    try await AuthService.updatePassword(userId: userId, password: password)
   }
 }

@@ -5,20 +5,20 @@
 
 import Foundation
 
-struct R2Device: Codable, Equatable {
+nonisolated struct R2Device: Codable, Equatable, Sendable {
   let id: String
   let name: String
 }
 
-struct R2Locator: Codable, Equatable {
-  struct Location: Codable, Equatable {
+nonisolated struct R2Locator: Codable, Equatable, Sendable {
+  struct Location: Codable, Equatable, Sendable {
     let fragments: [String]?
     let progression: Float?
     let position: Int?
     let totalProgression: Float?
   }
 
-  struct Text: Codable, Equatable {
+  struct Text: Codable, Equatable, Sendable {
     let after: String?
     let before: String?
     let highlight: String?
@@ -32,13 +32,13 @@ struct R2Locator: Codable, Equatable {
   let koboSpan: String?
 }
 
-struct R2Progression: Codable, Equatable {
+nonisolated struct R2Progression: Codable, Equatable, Sendable {
   let modified: Date
   let device: R2Device
   let locator: R2Locator
 }
 
-struct R2Positions: Codable, Equatable {
+nonisolated struct R2Positions: Codable, Equatable, Sendable {
   let positions: [R2Locator]
   let total: Int
 }

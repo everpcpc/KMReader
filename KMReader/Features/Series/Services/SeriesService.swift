@@ -5,13 +5,10 @@
 
 import Foundation
 
-class SeriesService {
-  static let shared = SeriesService()
-  private let apiClient = APIClient.shared
+nonisolated enum SeriesService {
+  private static let apiClient = APIClient.shared
 
-  private init() {}
-
-  func getSeries(
+  static func getSeries(
     libraryIds: [String]? = nil,
     page: Int = 0,
     size: Int = 20,
@@ -61,7 +58,7 @@ class SeriesService {
     )
   }
 
-  func getSeriesList(
+  static func getSeriesList(
     search: SeriesSearch,
     page: Int = 0,
     size: Int = 20,
@@ -92,15 +89,15 @@ class SeriesService {
     )
   }
 
-  func getOneSeries(id: String) async throws -> Series {
+  static func getOneSeries(id: String) async throws -> Series {
     return try await apiClient.request(path: "/api/v1/series/\(id)")
   }
 
-  func getSeriesCollections(seriesId: String) async throws -> [SeriesCollection] {
+  static func getSeriesCollections(seriesId: String) async throws -> [SeriesCollection] {
     return try await apiClient.request(path: "/api/v1/series/\(seriesId)/collections")
   }
 
-  func getNewSeries(
+  static func getNewSeries(
     libraryIds: [String]? = nil,
     page: Int = 0,
     size: Int = 20
@@ -121,7 +118,7 @@ class SeriesService {
     return try await apiClient.request(path: "/api/v1/series/new", queryItems: queryItems)
   }
 
-  func getUpdatedSeries(
+  static func getUpdatedSeries(
     libraryIds: [String]? = nil,
     page: Int = 0,
     size: Int = 20
@@ -143,48 +140,48 @@ class SeriesService {
   }
 
   /// Get thumbnail URL for a series
-  func getSeriesThumbnailURL(id: String) -> URL? {
+  static func getSeriesThumbnailURL(id: String) -> URL? {
     let baseURL = AppConfig.current.serverURL
     guard !baseURL.isEmpty else { return nil }
     return URL(string: baseURL + "/api/v1/series/\(id)/thumbnail")
   }
 
-  func markAsRead(seriesId: String) async throws {
+  static func markAsRead(seriesId: String) async throws {
     let _: EmptyResponse = try await apiClient.request(
       path: "/api/v1/series/\(seriesId)/read-progress",
       method: "POST"
     )
   }
 
-  func markAsUnread(seriesId: String) async throws {
+  static func markAsUnread(seriesId: String) async throws {
     let _: EmptyResponse = try await apiClient.request(
       path: "/api/v1/series/\(seriesId)/read-progress",
       method: "DELETE"
     )
   }
 
-  func analyzeSeries(seriesId: String) async throws {
+  static func analyzeSeries(seriesId: String) async throws {
     let _: EmptyResponse = try await apiClient.request(
       path: "/api/v1/series/\(seriesId)/analyze",
       method: "POST"
     )
   }
 
-  func refreshMetadata(seriesId: String) async throws {
+  static func refreshMetadata(seriesId: String) async throws {
     let _: EmptyResponse = try await apiClient.request(
       path: "/api/v1/series/\(seriesId)/metadata/refresh",
       method: "POST"
     )
   }
 
-  func deleteSeries(seriesId: String) async throws {
+  static func deleteSeries(seriesId: String) async throws {
     let _: EmptyResponse = try await apiClient.request(
       path: "/api/v1/series/\(seriesId)/file",
       method: "DELETE"
     )
   }
 
-  func updateSeriesMetadata(seriesId: String, metadata: [String: Any]) async throws {
+  static func updateSeriesMetadata(seriesId: String, metadata: [String: Any]) async throws {
     let jsonData = try JSONSerialization.data(withJSONObject: metadata, options: [.sortedKeys])
     let _: EmptyResponse = try await apiClient.request(
       path: "/api/v1/series/\(seriesId)/metadata",

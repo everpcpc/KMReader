@@ -13,7 +13,6 @@ class LibraryManager {
 
   private(set) var isLoading = false
 
-  private let libraryService = LibraryService.shared
   private var hasLoaded = false
   private var loadedInstanceId: String?
 
@@ -35,7 +34,7 @@ class LibraryManager {
     isLoading = true
 
     do {
-      let fullLibraries = try await libraryService.getLibraries()
+      let fullLibraries = try await LibraryService.getLibraries()
       let infos = fullLibraries.map { LibraryInfo(id: $0.id, name: $0.name) }
       try await DatabaseOperator.database().replaceLibraries(infos, for: instanceId)
       try await DatabaseOperator.database().commit()

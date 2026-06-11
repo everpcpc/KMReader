@@ -777,7 +777,7 @@ actor OfflineManager {
     var failedCount = 0
 
     for bookId in bookIds {
-      let remoteState = await BookService.shared.fetchRemoteWebPubProgression(bookId: bookId)
+      let remoteState = await BookService.fetchRemoteWebPubProgression(bookId: bookId)
 
       switch remoteState {
       case .available(let progression):
@@ -869,7 +869,7 @@ actor OfflineManager {
         switch info.kind {
         case .epubWebPub:
           try await savePageMetadataFromServer(bookId: info.bookId, bookDir: bookDir)
-          let webPubManifest = try await BookService.shared.getBookWebPubManifest(bookId: info.bookId)
+          let webPubManifest = try await BookService.getBookWebPubManifest(bookId: info.bookId)
           try? await DatabaseOperator.database().updateBookWebPubManifest(
             bookId: info.bookId,
             manifest: webPubManifest
@@ -882,7 +882,7 @@ actor OfflineManager {
             bookDir: bookDir
           )
         case .epubDivina:
-          let manifest = try await BookService.shared.getBookManifest(id: info.bookId)
+          let manifest = try await BookService.getBookManifest(id: info.bookId)
           await saveDivinaManifestTOC(bookId: info.bookId, manifest: manifest)
           try await savePageMetadataFromServer(bookId: info.bookId, bookDir: bookDir)
           try await scheduleBackgroundEpubDownload(
@@ -2073,7 +2073,7 @@ actor OfflineManager {
   private func savePageMetadataFromServer(bookId: String, bookDir: URL? = nil) async throws
     -> [BookPage]
   {
-    let pages = try await BookService.shared.getBookPages(id: bookId)
+    let pages = try await BookService.getBookPages(id: bookId)
     try? await DatabaseOperator.database().updateBookPages(bookId: bookId, pages: pages)
     try? await DatabaseOperator.database().commit()
     if let bookDir {
@@ -2084,7 +2084,7 @@ actor OfflineManager {
   }
 
   private func saveDivinaManifestTOCFromServerIfAvailable(bookId: String) async {
-    if let manifest = try? await BookService.shared.getBookManifest(id: bookId) {
+    if let manifest = try? await BookService.getBookManifest(id: bookId) {
       let toc = await ReaderManifestService(bookId: bookId).parseTOC(manifest: manifest)
       try? await DatabaseOperator.database().updateBookTOC(bookId: bookId, toc: toc)
       try? await DatabaseOperator.database().commit()
@@ -2103,7 +2103,7 @@ actor OfflineManager {
   private func downloadWebPubEpub(bookId: String, to bookDir: URL) async throws {
     try await savePageMetadataFromServer(bookId: bookId, bookDir: bookDir)
 
-    let webPubManifest = try await BookService.shared.getBookWebPubManifest(bookId: bookId)
+    let webPubManifest = try await BookService.getBookWebPubManifest(bookId: bookId)
     try? await DatabaseOperator.database().updateBookWebPubManifest(bookId: bookId, manifest: webPubManifest)
     try? await DatabaseOperator.database().commit()
     try Self.writeWebPubManifestSidecar(webPubManifest, to: bookDir)
@@ -2124,7 +2124,7 @@ actor OfflineManager {
     }
 
     let archiveFile = bookDir.appendingPathComponent(format.fileName)
-    _ = try await BookService.shared.downloadBookFile(bookId: bookId, to: archiveFile)
+    _ = try await BookService.downloadBookFile(bookId: bookId, to: archiveFile)
     Self.excludeFromBackupIfNeeded(at: archiveFile)
 
     await MainActor.run {
@@ -2144,7 +2144,7 @@ actor OfflineManager {
   }
 
   private func downloadDivinaEpub(bookId: String, to bookDir: URL) async throws {
-    let manifest = try await BookService.shared.getBookManifest(id: bookId)
+    let manifest = try await BookService.getBookManifest(id: bookId)
     await saveDivinaManifestTOC(bookId: bookId, manifest: manifest)
     let pages = try await savePageMetadataFromServer(bookId: bookId, bookDir: bookDir)
 
@@ -2153,7 +2153,7 @@ actor OfflineManager {
     }
 
     let epubFile = bookDir.appendingPathComponent(Self.epubFileName)
-    _ = try await BookService.shared.downloadBookFile(bookId: bookId, to: epubFile)
+    _ = try await BookService.downloadBookFile(bookId: bookId, to: epubFile)
     Self.excludeFromBackupIfNeeded(at: epubFile)
 
     await MainActor.run {
@@ -2234,7 +2234,7 @@ actor OfflineManager {
 
   private func downloadPdfFile(bookId: String, to bookDir: URL) async throws {
     let fileURL = bookDir.appendingPathComponent(Self.pdfFileName)
-    _ = try await BookService.shared.downloadBookFile(bookId: bookId, to: fileURL)
+    _ = try await BookService.downloadBookFile(bookId: bookId, to: fileURL)
     Self.excludeFromBackupIfNeeded(at: fileURL)
     await MainActor.run {
       DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: 1.0)
@@ -2254,7 +2254,7 @@ actor OfflineManager {
     }
 
     let epubFile = bookDir.appendingPathComponent(Self.epubFileName)
-    _ = try await BookService.shared.downloadBookFile(bookId: bookId, to: epubFile)
+    _ = try await BookService.downloadBookFile(bookId: bookId, to: epubFile)
     Self.excludeFromBackupIfNeeded(at: epubFile)
 
     await MainActor.run {
@@ -2620,7 +2620,7 @@ actor OfflineManager {
             let dest = bookDir.appendingPathComponent(fileName)
 
             if !FileManager.default.fileExists(atPath: dest.path) {
-              let (data, _) = try await BookService.shared.getBookPage(
+              let (data, _) = try await BookService.getBookPage(
                 bookId: bookId, page: page.number)
               try data.write(to: dest)
               Self.excludeFromBackupIfNeeded(at: dest)

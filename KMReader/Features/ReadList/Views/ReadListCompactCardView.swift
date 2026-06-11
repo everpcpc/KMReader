@@ -81,7 +81,7 @@ struct ReadListCompactCardView: View {
   private func deleteReadList() {
     Task {
       do {
-        try await ReadListService.shared.deleteReadList(readListId: komgaReadList.readListId)
+        try await ReadListService.deleteReadList(readListId: komgaReadList.readListId)
         ErrorManager.shared.notify(message: String(localized: "notification.readList.deleted"))
       } catch {
         ErrorManager.shared.alert(error: error)

@@ -180,7 +180,7 @@ struct BookRowView: View {
   private func addToReadList(readListId: String) {
     Task {
       do {
-        try await ReadListService.shared.addBooksToReadList(
+        try await ReadListService.addBooksToReadList(
           readListId: readListId,
           bookIds: [komgaBook.bookId]
         )
@@ -195,7 +195,7 @@ struct BookRowView: View {
   private func deleteBook() {
     Task {
       do {
-        try await BookService.shared.deleteBook(bookId: komgaBook.bookId)
+        try await BookService.deleteBook(bookId: komgaBook.bookId)
         await CacheManager.clearCache(forBookId: komgaBook.bookId)
         ErrorManager.shared.notify(message: String(localized: "notification.book.deleted"))
       } catch {

@@ -332,7 +332,7 @@ final class ReaderPresentationManager {
           "⚠️ [Progress/Checkpoint] Wait timed out before visited sync, continuing: books=\(bookIds.count), entries=\(checkpoint.count)"
         )
       }
-      await SyncService.shared.syncVisitedItems(bookIds: bookIds, seriesIds: seriesIds)
+      await SyncService.syncVisitedItems(bookIds: bookIds, seriesIds: seriesIds)
       WidgetDataService.refreshWidgetData()
     }
   }

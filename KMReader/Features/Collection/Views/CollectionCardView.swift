@@ -96,7 +96,7 @@ struct CollectionCardView: View {
   private func deleteCollection() {
     Task {
       do {
-        try await CollectionService.shared.deleteCollection(
+        try await CollectionService.deleteCollection(
           collectionId: komgaCollection.collectionId)
         ErrorManager.shared.notify(message: String(localized: "notification.collection.deleted"))
       } catch {

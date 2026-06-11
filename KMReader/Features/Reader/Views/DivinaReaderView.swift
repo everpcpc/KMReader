@@ -1180,7 +1180,7 @@ struct DivinaReaderView: View {
     }
 
     if !AppConfig.isOffline {
-      if let syncedBook = try? await SyncService.shared.syncBook(bookId: bookId) {
+      if let syncedBook = try? await SyncService.syncBook(bookId: bookId) {
         resolvedBook = syncedBook
       }
     }
@@ -1210,7 +1210,7 @@ struct DivinaReaderView: View {
       // Refresh Divina manifest only when online and the book is not downloaded offline.
       if !AppConfig.isOffline, !isBookDownloaded {
         do {
-          let manifest = try await BookService.shared.getBookManifest(id: activeBook.id)
+          let manifest = try await BookService.getBookManifest(id: activeBook.id)
           let toc = await ReaderManifestService(bookId: activeBook.id).parseTOC(manifest: manifest)
           await database?.updateBookTOC(bookId: activeBook.id, toc: toc)
         } catch {
@@ -1221,7 +1221,7 @@ struct DivinaReaderView: View {
       // 3. Try to get series from DB
       var series = await database?.fetchSeries(id: activeBook.seriesId)
       if series == nil && !AppConfig.isOffline {
-        series = try? await SyncService.shared.syncSeriesDetail(seriesId: activeBook.seriesId)
+        series = try? await SyncService.syncSeriesDetail(seriesId: activeBook.seriesId)
       }
 
       if let series = series {
@@ -1341,12 +1341,12 @@ struct DivinaReaderView: View {
       let resolvedBook: Book?
       switch direction {
       case .previous:
-        resolvedBook = try await BookService.shared.getPreviousBook(
+        resolvedBook = try await BookService.getPreviousBook(
           bookId: bookId,
           readListId: readListId
         )
       case .next:
-        resolvedBook = try await BookService.shared.getNextBook(
+        resolvedBook = try await BookService.getNextBook(
           bookId: bookId,
           readListId: readListId
         )

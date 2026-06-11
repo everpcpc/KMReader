@@ -330,7 +330,7 @@
       bookThemePreferences = nil
       activeThemePreferences = globalThemePreferences
       do {
-        currentBook = try await SyncService.shared.syncBook(bookId: book.id)
+        currentBook = try await SyncService.syncBook(bookId: book.id)
       } catch {
       }
 
@@ -359,7 +359,7 @@
       // Refresh WebPub manifest if online
       if !AppConfig.isOffline {
         do {
-          let manifest = try await BookService.shared.getBookWebPubManifest(bookId: activeBook.id)
+          let manifest = try await BookService.getBookWebPubManifest(bookId: activeBook.id)
           await database?.updateBookWebPubManifest(bookId: activeBook.id, manifest: manifest)
         } catch {
           // Silently fail - we'll use cached manifest
@@ -369,7 +369,7 @@
       var series = await database?.fetchSeries(id: activeBook.seriesId)
       if series == nil && !AppConfig.isOffline {
         do {
-          series = try await SyncService.shared.syncSeriesDetail(seriesId: activeBook.seriesId)
+          series = try await SyncService.syncSeriesDetail(seriesId: activeBook.seriesId)
         } catch {
           // Silently fail
         }

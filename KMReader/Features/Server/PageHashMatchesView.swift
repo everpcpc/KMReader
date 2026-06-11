@@ -43,7 +43,7 @@ struct PageHashMatchesView: View {
   private func matchRow(match: PageHashMatch) -> some View {
     HStack(spacing: 12) {
       // Page thumbnail
-      if let url = BookService.shared.getBookPageThumbnailURL(
+      if let url = BookService.getBookPageThumbnailURL(
         bookId: match.bookId, page: match.pageNumber)
       {
         AsyncImage(url: url) { phase in
@@ -117,7 +117,7 @@ struct PageHashMatchesView: View {
 
   private func deleteMatch(_ match: PageHashMatch) async {
     do {
-      try await MediaManagementService.shared.deleteMatchByHash(hash, match: match)
+      try await MediaManagementService.deleteMatchByHash(hash, match: match)
       matches.removeAll { $0.id == match.id }
     } catch {
       ErrorManager.shared.alert(error: error)
@@ -127,7 +127,7 @@ struct PageHashMatchesView: View {
   private func loadMatches() async {
     isLoading = true
     do {
-      let page = try await MediaManagementService.shared.getPageHashMatches(
+      let page = try await MediaManagementService.getPageHashMatches(
         hash: hash,
         page: 0,
         size: 100

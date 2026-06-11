@@ -137,7 +137,7 @@ struct ReadListContextMenu: View {
 
   private func downloadAll() {
     Task {
-      try? await SyncService.shared.syncAllReadListBooks(readListId: readListId)
+      try? await SyncService.syncAllReadListBooks(readListId: readListId)
       try? await DatabaseOperator.database().downloadReadListOffline(
         readListId: readListId, instanceId: current.instanceId
       )
@@ -150,7 +150,7 @@ struct ReadListContextMenu: View {
 
   private func downloadUnread(limit: Int) {
     Task {
-      try? await SyncService.shared.syncAllReadListBooks(readListId: readListId)
+      try? await SyncService.syncAllReadListBooks(readListId: readListId)
       try? await DatabaseOperator.database().downloadReadListUnreadOffline(
         readListId: readListId,
         instanceId: current.instanceId,

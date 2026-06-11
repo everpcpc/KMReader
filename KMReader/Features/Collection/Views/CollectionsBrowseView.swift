@@ -146,7 +146,7 @@ struct CollectionsBrowseView: View {
     var ids: [String] = []
 
     while true {
-      let result = try await SyncService.shared.syncCollections(
+      let result = try await SyncService.syncCollections(
         libraryIds: libraryIds,
         page: page,
         size: syncPageSize,

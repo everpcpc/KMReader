@@ -9,8 +9,6 @@ import SwiftData
 struct LibraryMetricsLoader {
   static let shared = LibraryMetricsLoader()
 
-  private let managementService = ManagementService.shared
-
   func refreshMetrics(
     instanceId: String,
     libraryIds: [String],
@@ -91,7 +89,7 @@ struct LibraryMetricsLoader {
     libraryIds: [String],
     key: String
   ) async -> [(String, String, Double?)] {
-    guard let metric = try? await managementService.getMetric(metricName),
+    guard let metric = try? await ManagementService.getMetric(metricName),
       let libraryTag = metric.availableTags?.first(where: { $0.tag == "library" })
     else {
       return []
@@ -100,7 +98,7 @@ struct LibraryMetricsLoader {
     var results: [(String, String, Double?)] = []
 
     for libraryId in libraryTag.values where libraryIds.contains(libraryId) {
-      if let libraryMetric = try? await managementService.getMetric(
+      if let libraryMetric = try? await ManagementService.getMetric(
         metricName,
         tags: [MetricTag(key: "library", value: libraryId)]
       ),
@@ -133,7 +131,7 @@ struct LibraryMetricsLoader {
 
     await withTaskGroup(of: (String, Double?).self) { group in
       group.addTask {
-        if let metric = try? await managementService.getMetric(MetricName.booksFileSize.rawValue),
+        if let metric = try? await ManagementService.getMetric(MetricName.booksFileSize.rawValue),
           let value = metric.measurements.first?.value
         {
           return ("fileSize", value)
@@ -141,7 +139,7 @@ struct LibraryMetricsLoader {
         return ("fileSize", nil)
       }
       group.addTask {
-        if let metric = try? await managementService.getMetric(MetricName.books.rawValue),
+        if let metric = try? await ManagementService.getMetric(MetricName.books.rawValue),
           let value = metric.measurements.first?.value
         {
           return ("books", value)
@@ -149,7 +147,7 @@ struct LibraryMetricsLoader {
         return ("books", nil)
       }
       group.addTask {
-        if let metric = try? await managementService.getMetric(MetricName.series.rawValue),
+        if let metric = try? await ManagementService.getMetric(MetricName.series.rawValue),
           let value = metric.measurements.first?.value
         {
           return ("series", value)
@@ -157,7 +155,7 @@ struct LibraryMetricsLoader {
         return ("series", nil)
       }
       group.addTask {
-        if let metric = try? await managementService.getMetric(MetricName.sidecars.rawValue),
+        if let metric = try? await ManagementService.getMetric(MetricName.sidecars.rawValue),
           let value = metric.measurements.first?.value
         {
           return ("sidecars", value)
@@ -165,7 +163,7 @@ struct LibraryMetricsLoader {
         return ("sidecars", nil)
       }
       group.addTask {
-        if let metric = try? await managementService.getMetric(MetricName.collections.rawValue),
+        if let metric = try? await ManagementService.getMetric(MetricName.collections.rawValue),
           let value = metric.measurements.first?.value
         {
           return ("collections", value)
@@ -173,7 +171,7 @@ struct LibraryMetricsLoader {
         return ("collections", nil)
       }
       group.addTask {
-        if let metric = try? await managementService.getMetric(MetricName.readlists.rawValue),
+        if let metric = try? await ManagementService.getMetric(MetricName.readlists.rawValue),
           let value = metric.measurements.first?.value
         {
           return ("readlists", value)

@@ -141,7 +141,7 @@ struct ReadListDownloadActionsSection: View {
   private func downloadAll() {
     Task {
       // Sync books first
-      try? await SyncService.shared.syncAllReadListBooks(readListId: readList.id)
+      try? await SyncService.syncAllReadListBooks(readListId: readList.id)
       try? await DatabaseOperator.database().downloadReadListOffline(
         readListId: readList.id, instanceId: current.instanceId
       )
@@ -154,7 +154,7 @@ struct ReadListDownloadActionsSection: View {
 
   private func downloadUnread(limit: Int) {
     Task {
-      try? await SyncService.shared.syncAllReadListBooks(readListId: readList.id)
+      try? await SyncService.syncAllReadListBooks(readListId: readList.id)
       try? await DatabaseOperator.database().downloadReadListUnreadOffline(
         readListId: readList.id,
         instanceId: current.instanceId,

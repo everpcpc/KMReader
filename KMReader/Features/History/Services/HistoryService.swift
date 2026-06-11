@@ -5,13 +5,10 @@
 
 import Foundation
 
-class HistoryService {
-  static let shared = HistoryService()
-  private let apiClient = APIClient.shared
+nonisolated enum HistoryService {
+  private static let apiClient = APIClient.shared
 
-  private init() {}
-
-  func getHistory(page: Int, size: Int, sort: String = "timestamp,desc") async throws
+  static func getHistory(page: Int, size: Int, sort: String = "timestamp,desc") async throws
     -> HistoricalEventPage
   {
     guard AppConfig.current.isAdmin else {

@@ -183,7 +183,7 @@ struct SeriesCardView: View {
   private func addToCollection(collectionId: String) {
     Task {
       do {
-        try await CollectionService.shared.addSeriesToCollection(
+        try await CollectionService.addSeriesToCollection(
           collectionId: collectionId,
           seriesIds: [komgaSeries.seriesId]
         )
@@ -198,7 +198,7 @@ struct SeriesCardView: View {
   private func deleteSeries() {
     Task {
       do {
-        try await SeriesService.shared.deleteSeries(seriesId: komgaSeries.seriesId)
+        try await SeriesService.deleteSeries(seriesId: komgaSeries.seriesId)
         ErrorManager.shared.notify(message: String(localized: "notification.series.deleted"))
       } catch {
         ErrorManager.shared.alert(error: error)

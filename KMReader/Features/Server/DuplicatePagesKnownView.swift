@@ -284,7 +284,7 @@ struct DuplicatePagesKnownView: View {
 
   private func updateAction(hash: PageHashKnown, action: PageHashAction) async {
     do {
-      try await MediaManagementService.shared.createOrUpdatePageHash(
+      try await MediaManagementService.createOrUpdatePageHash(
         PageHashCreation(hash: hash.hash, size: hash.size, action: action)
       )
       await loadData(refresh: true)
@@ -295,7 +295,7 @@ struct DuplicatePagesKnownView: View {
 
   private func deleteMatches(hash: PageHashKnown) async {
     do {
-      try await MediaManagementService.shared.deleteAllMatchesByHash(hash.hash)
+      try await MediaManagementService.deleteAllMatchesByHash(hash.hash)
       ErrorManager.shared.notify(
         message: String(localized: "Matches deleted")
       )
@@ -320,7 +320,7 @@ struct DuplicatePagesKnownView: View {
 
     isLoading = true
     do {
-      let page = try await MediaManagementService.shared.getKnownPageHashes(
+      let page = try await MediaManagementService.getKnownPageHashes(
         actions: actions,
         page: pagination.currentPage,
         size: pagination.pageSize,
@@ -340,7 +340,7 @@ struct DuplicatePagesKnownView: View {
     guard pagination.hasMorePages && !isLoadingMore else { return }
     isLoadingMore = true
     do {
-      let page = try await MediaManagementService.shared.getKnownPageHashes(
+      let page = try await MediaManagementService.getKnownPageHashes(
         actions: Array(filterActions),
         page: pagination.currentPage,
         size: pagination.pageSize,

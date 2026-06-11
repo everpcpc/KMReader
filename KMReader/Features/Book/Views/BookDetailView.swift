@@ -129,7 +129,7 @@ struct BookDetailView: View {
   private func analyzeBook() {
     Task {
       do {
-        try await BookService.shared.analyzeBook(bookId: bookId)
+        try await BookService.analyzeBook(bookId: bookId)
         ErrorManager.shared.notify(
           message: String(localized: "notification.book.analysisStarted"))
         await loadBook()
@@ -142,7 +142,7 @@ struct BookDetailView: View {
   private func refreshMetadata() {
     Task {
       do {
-        try await BookService.shared.refreshMetadata(bookId: bookId)
+        try await BookService.refreshMetadata(bookId: bookId)
         ErrorManager.shared.notify(
           message: String(localized: "notification.book.metadataRefreshed"))
         await loadBook()
@@ -155,7 +155,7 @@ struct BookDetailView: View {
   private func deleteBook() {
     Task {
       do {
-        try await BookService.shared.deleteBook(bookId: bookId)
+        try await BookService.deleteBook(bookId: bookId)
         await CacheManager.clearCache(forBookId: bookId)
         ErrorManager.shared.notify(message: String(localized: "notification.book.deleted"))
         dismiss()
@@ -168,9 +168,9 @@ struct BookDetailView: View {
   private func markBookAsRead() {
     Task {
       do {
-        try await BookService.shared.markAsRead(bookId: bookId)
+        try await BookService.markAsRead(bookId: bookId)
         if let book {
-          _ = try? await SyncService.shared.syncBookAndSeries(
+          _ = try? await SyncService.syncBookAndSeries(
             bookId: bookId, seriesId: book.seriesId)
         }
         ErrorManager.shared.notify(message: String(localized: "notification.book.markedRead"))
@@ -184,7 +184,7 @@ struct BookDetailView: View {
   private func markBookAsUnread() {
     Task {
       do {
-        try await BookService.shared.markAsUnread(bookId: bookId)
+        try await BookService.markAsUnread(bookId: bookId)
         ErrorManager.shared.notify(message: String(localized: "notification.book.markedUnread"))
         await loadBook()
       } catch {
@@ -204,8 +204,8 @@ struct BookDetailView: View {
   private func loadBook() async {
     do {
       // Sync from network to SwiftData (book property will update reactively)
-      _ = try await SyncService.shared.syncBook(bookId: bookId)
-      await SyncService.shared.syncBookReadLists(bookId: bookId)
+      _ = try await SyncService.syncBook(bookId: bookId)
+      await SyncService.syncBookReadLists(bookId: bookId)
     } catch {
       if case APIError.notFound = error {
         dismiss()
@@ -221,12 +221,12 @@ struct BookDetailView: View {
   private func addToReadList(readListId: String) {
     Task {
       do {
-        try await ReadListService.shared.addBooksToReadList(
+        try await ReadListService.addBooksToReadList(
           readListId: readListId,
           bookIds: [bookId]
         )
         // Sync the readlist to update its bookIds in local SwiftData
-        _ = try? await SyncService.shared.syncReadList(id: readListId)
+        _ = try? await SyncService.syncReadList(id: readListId)
         ErrorManager.shared.notify(
           message: String(localized: "notification.book.booksAddedToReadList"))
         await loadBook()
