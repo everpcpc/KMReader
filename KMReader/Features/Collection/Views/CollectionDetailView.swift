@@ -7,6 +7,7 @@ import SwiftUI
 
 struct CollectionDetailView: View {
   let collectionId: String
+  let readerPresentation: ReaderPresentationManager
 
   @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("collectionDetailLayout") private var collectionDetailLayout: BrowseLayoutMode = .list
@@ -19,8 +20,12 @@ struct CollectionDetailView: View {
   @State private var showFilterSheet = false
   @State private var showSavedFilters = false
 
-  init(collectionId: String) {
+  init(
+    collectionId: String,
+    readerPresentation: ReaderPresentationManager
+  ) {
     self.collectionId = collectionId
+    self.readerPresentation = readerPresentation
   }
 
   private var collection: SeriesCollection? {
@@ -53,6 +58,7 @@ struct CollectionDetailView: View {
           if item != nil {
             CollectionSeriesListView(
               collectionId: collectionId,
+              readerPresentation: readerPresentation,
               showFilterSheet: $showFilterSheet,
               showSavedFilters: $showSavedFilters
             )

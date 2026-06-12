@@ -81,13 +81,29 @@ enum NavDestination: Hashable {
         readerPresentation: context.readerPresentation
       )
     case .browseSeries:
-      BrowseView(authViewModel: context.authViewModel, fixedContent: .series)
+      BrowseView(
+        authViewModel: context.authViewModel,
+        readerPresentation: context.readerPresentation,
+        fixedContent: .series
+      )
     case .browseBooks:
-      BrowseView(authViewModel: context.authViewModel, fixedContent: .books)
+      BrowseView(
+        authViewModel: context.authViewModel,
+        readerPresentation: context.readerPresentation,
+        fixedContent: .books
+      )
     case .browseCollections:
-      BrowseView(authViewModel: context.authViewModel, fixedContent: .collections)
+      BrowseView(
+        authViewModel: context.authViewModel,
+        readerPresentation: context.readerPresentation,
+        fixedContent: .collections
+      )
     case .browseReadLists:
-      BrowseView(authViewModel: context.authViewModel, fixedContent: .readlists)
+      BrowseView(
+        authViewModel: context.authViewModel,
+        readerPresentation: context.readerPresentation,
+        fixedContent: .readlists
+      )
     case .offline:
       OfflineView(authViewModel: context.authViewModel)
     case .server:
@@ -97,41 +113,50 @@ enum NavDestination: Hashable {
 
     // NOTE: library selection passed via environment
     case .browseLibrary(_):
-      BrowseView(authViewModel: context.authViewModel)
+      BrowseView(
+        authViewModel: context.authViewModel,
+        readerPresentation: context.readerPresentation
+      )
 
     case .browseSeriesWithPublisher(let publisher):
       BrowseView(
         authViewModel: context.authViewModel,
+        readerPresentation: context.readerPresentation,
         fixedContent: .series,
         metadataFilter: MetadataFilterConfig.forPublisher(publisher)
       )
     case .browseSeriesWithAuthor(let author):
       BrowseView(
         authViewModel: context.authViewModel,
+        readerPresentation: context.readerPresentation,
         fixedContent: .series,
         metadataFilter: MetadataFilterConfig.forAuthors([author])
       )
     case .browseSeriesWithGenre(let genre):
       BrowseView(
         authViewModel: context.authViewModel,
+        readerPresentation: context.readerPresentation,
         fixedContent: .series,
         metadataFilter: MetadataFilterConfig.forGenres([genre])
       )
     case .browseSeriesWithTag(let tag):
       BrowseView(
         authViewModel: context.authViewModel,
+        readerPresentation: context.readerPresentation,
         fixedContent: .series,
         metadataFilter: MetadataFilterConfig.forTags([tag])
       )
     case .browseBooksWithAuthor(let author):
       BrowseView(
         authViewModel: context.authViewModel,
+        readerPresentation: context.readerPresentation,
         fixedContent: .books,
         metadataFilter: MetadataFilterConfig.forAuthors([author])
       )
     case .browseBooksWithTag(let tag):
       BrowseView(
         authViewModel: context.authViewModel,
+        readerPresentation: context.readerPresentation,
         fixedContent: .books,
         metadataFilter: MetadataFilterConfig.forTags([tag])
       )
@@ -143,11 +168,20 @@ enum NavDestination: Hashable {
     case .oneshotDetail(let seriesId):
       OneshotDetailView(seriesId: seriesId)
     case .collectionDetail(let collectionId):
-      CollectionDetailView(collectionId: collectionId)
+      CollectionDetailView(
+        collectionId: collectionId,
+        readerPresentation: context.readerPresentation
+      )
     case .readListDetail(let readListId):
-      ReadListDetailView(readListId: readListId)
+      ReadListDetailView(
+        readListId: readListId,
+        readerPresentation: context.readerPresentation
+      )
     case .dashboardSectionDetail(let section):
-      DashboardSectionDetailView(section: section)
+      DashboardSectionDetailView(
+        section: section,
+        readerPresentation: context.readerPresentation
+      )
 
     case .settingsAppearance:
       SettingsAppearanceView()

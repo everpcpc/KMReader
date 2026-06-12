@@ -7,6 +7,7 @@ import SwiftUI
 
 struct BrowseView: View {
   let authViewModel: AuthViewModel
+  let readerPresentation: ReaderPresentationManager
   let fixedContent: BrowseContentType?
   let metadataFilter: MetadataFilterConfig?
 
@@ -31,6 +32,8 @@ struct BrowseView: View {
   @State private var showFilterSheet = false
   @State private var showSavedFilters = false
   @State private var projectionRefreshTask: Task<Void, Never>?
+  @State private var readerCloseRefreshTask: Task<Void, Never>?
+  @State private var shouldRefreshAfterReading = false
 
   private static let localProjectionRefreshDelay: UInt64 = 750_000_000
   private static let remoteProjectionRefreshDelay: UInt64 = 5_000_000_000
@@ -53,12 +56,18 @@ struct BrowseView: View {
     }
   }
 
+  private var isReaderActive: Bool {
+    readerPresentation.currentSession != nil
+  }
+
   init(
     authViewModel: AuthViewModel,
+    readerPresentation: ReaderPresentationManager,
     fixedContent: BrowseContentType? = nil,
     metadataFilter: MetadataFilterConfig? = nil
   ) {
     self.authViewModel = authViewModel
+    self.readerPresentation = readerPresentation
     self.fixedContent = fixedContent
     self.metadataFilter = metadataFilter
   }
@@ -242,9 +251,14 @@ struct BrowseView: View {
       guard let info = notification.userInfo?["info"] as? SSEEventInfo else { return }
       handleSSEEvent(info)
     }
+    .onChange(of: readerPresentation.currentSession) { oldSession, newSession in
+      handleReaderSessionChange(oldSession: oldSession, newSession: newSession)
+    }
     .onDisappear {
       projectionRefreshTask?.cancel()
       projectionRefreshTask = nil
+      readerCloseRefreshTask?.cancel()
+      readerCloseRefreshTask = nil
     }
   }
 
@@ -261,6 +275,13 @@ struct BrowseView: View {
     guard !authViewModel.isSwitching else { return }
 
     projectionRefreshTask?.cancel()
+    projectionRefreshTask = nil
+
+    if isReaderActive {
+      shouldRefreshAfterReading = true
+      return
+    }
+
     projectionRefreshTask = Task { @MainActor in
       do {
         try await Task.sleep(nanoseconds: delay)
@@ -269,7 +290,11 @@ struct BrowseView: View {
       }
 
       guard !Task.isCancelled else { return }
-      refreshBrowse()
+      if isReaderActive {
+        shouldRefreshAfterReading = true
+      } else {
+        refreshBrowse()
+      }
       projectionRefreshTask = nil
     }
   }
@@ -292,6 +317,39 @@ struct BrowseView: View {
       scheduleProjectionRefresh(after: Self.remoteProjectionRefreshDelay)
     default:
       break
+    }
+  }
+
+  private func handleReaderSessionChange(oldSession: ReaderSession?, newSession: ReaderSession?) {
+    if newSession != nil {
+      if projectionRefreshTask != nil {
+        shouldRefreshAfterReading = true
+      }
+      projectionRefreshTask?.cancel()
+      projectionRefreshTask = nil
+      readerCloseRefreshTask?.cancel()
+      readerCloseRefreshTask = nil
+      return
+    }
+
+    guard oldSession != nil else { return }
+    let needsRefresh = shouldRefreshAfterReading
+    shouldRefreshAfterReading = false
+    guard needsRefresh else { return }
+
+    let visitedBookIds = oldSession?.visitedBookIds ?? []
+    readerCloseRefreshTask?.cancel()
+    readerCloseRefreshTask = Task { @MainActor in
+      if !visitedBookIds.isEmpty {
+        _ = await ReaderProgressDispatchService.shared.waitUntilSettled(
+          bookIds: visitedBookIds,
+          timeout: .seconds(5)
+        )
+      }
+
+      guard !Task.isCancelled else { return }
+      refreshBrowse()
+      readerCloseRefreshTask = nil
     }
   }
 

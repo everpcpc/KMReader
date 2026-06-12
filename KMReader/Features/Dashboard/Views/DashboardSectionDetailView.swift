@@ -8,6 +8,7 @@ import SwiftUI
 @MainActor
 struct DashboardSectionDetailView: View {
   let section: DashboardSection
+  let readerPresentation: ReaderPresentationManager
 
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("dashboardSectionDetailLayout") private var browseLayout: BrowseLayoutMode = .grid
@@ -19,6 +20,9 @@ struct DashboardSectionDetailView: View {
   @State private var isQueueingAllOffline = false
   @State private var hasLoadedInitial = false
   @State private var projectionRefreshTask: Task<Void, Never>?
+  @State private var readerCloseRefreshTask: Task<Void, Never>?
+  @State private var shouldRefreshAfterReading = false
+  @State private var needsRefreshAfterCurrentLoad = false
 
   private static let localProjectionRefreshDelay: UInt64 = 750_000_000
   private static let remoteProjectionRefreshDelay: UInt64 = 5_000_000_000
@@ -29,6 +33,10 @@ struct DashboardSectionDetailView: View {
 
   private var spacing: CGFloat {
     LayoutConfig.spacing(for: gridDensity)
+  }
+
+  private var isReaderActive: Bool {
+    readerPresentation.currentSession != nil
   }
 
   var body: some View {
@@ -84,9 +92,14 @@ struct DashboardSectionDetailView: View {
       guard let info = notification.userInfo?["info"] as? SSEEventInfo else { return }
       handleSSEEvent(info)
     }
+    .onChange(of: readerPresentation.currentSession) { oldSession, newSession in
+      handleReaderSessionChange(oldSession: oldSession, newSession: newSession)
+    }
     .onDisappear {
       projectionRefreshTask?.cancel()
       projectionRefreshTask = nil
+      readerCloseRefreshTask?.cancel()
+      readerCloseRefreshTask = nil
     }
     #if os(iOS) || os(macOS)
       .toolbar {
@@ -213,7 +226,12 @@ struct DashboardSectionDetailView: View {
   }
 
   func loadItems(refresh: Bool) async {
-    guard !isLoading else { return }
+    guard !isLoading else {
+      if refresh {
+        needsRefreshAfterCurrentLoad = true
+      }
+      return
+    }
     guard refresh || pagination.hasMorePages else { return }
 
     isLoading = true
@@ -271,13 +289,30 @@ struct DashboardSectionDetailView: View {
       }
     }
 
+    finishLoading()
+  }
+
+  private func finishLoading() {
     withAnimation {
       isLoading = false
+    }
+
+    guard needsRefreshAfterCurrentLoad else { return }
+    needsRefreshAfterCurrentLoad = false
+    Task {
+      await loadItems(refresh: true)
     }
   }
 
   private func scheduleProjectionRefresh(after delay: UInt64 = Self.localProjectionRefreshDelay) {
     projectionRefreshTask?.cancel()
+    projectionRefreshTask = nil
+
+    if isReaderActive {
+      shouldRefreshAfterReading = true
+      return
+    }
+
     projectionRefreshTask = Task { @MainActor in
       do {
         try await Task.sleep(nanoseconds: delay)
@@ -286,7 +321,11 @@ struct DashboardSectionDetailView: View {
       }
 
       guard !Task.isCancelled else { return }
-      await loadItems(refresh: true)
+      if isReaderActive {
+        shouldRefreshAfterReading = true
+      } else {
+        await loadItems(refresh: true)
+      }
       projectionRefreshTask = nil
     }
   }
@@ -306,6 +345,39 @@ struct DashboardSectionDetailView: View {
       scheduleProjectionRefresh(after: Self.remoteProjectionRefreshDelay)
     default:
       break
+    }
+  }
+
+  private func handleReaderSessionChange(oldSession: ReaderSession?, newSession: ReaderSession?) {
+    if newSession != nil {
+      if projectionRefreshTask != nil {
+        shouldRefreshAfterReading = true
+      }
+      projectionRefreshTask?.cancel()
+      projectionRefreshTask = nil
+      readerCloseRefreshTask?.cancel()
+      readerCloseRefreshTask = nil
+      return
+    }
+
+    guard oldSession != nil else { return }
+    let needsRefresh = shouldRefreshAfterReading
+    shouldRefreshAfterReading = false
+    guard needsRefresh else { return }
+
+    let visitedBookIds = oldSession?.visitedBookIds ?? []
+    readerCloseRefreshTask?.cancel()
+    readerCloseRefreshTask = Task { @MainActor in
+      if !visitedBookIds.isEmpty {
+        _ = await ReaderProgressDispatchService.shared.waitUntilSettled(
+          bookIds: visitedBookIds,
+          timeout: .seconds(5)
+        )
+      }
+
+      guard !Task.isCancelled else { return }
+      await loadItems(refresh: true)
+      readerCloseRefreshTask = nil
     }
   }
 

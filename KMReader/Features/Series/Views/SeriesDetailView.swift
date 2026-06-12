@@ -232,7 +232,8 @@ extension SeriesDetailView {
       do {
         try await SeriesService.markAsRead(seriesId: seriesId)
         _ = try? await SyncService.syncSeriesDetail(seriesId: seriesId)
-        await ContentProjectionNotifier.postSeriesDidChange(seriesId: seriesId)
+        try? await SyncService.syncAllSeriesBooks(seriesId: seriesId)
+        await ContentProjectionNotifier.postSeriesBooksDidChange(seriesId: seriesId)
         ErrorManager.shared.notify(message: String(localized: "notification.series.markedRead"))
         await refreshSeriesData()
       } catch {
@@ -246,7 +247,8 @@ extension SeriesDetailView {
       do {
         try await SeriesService.markAsUnread(seriesId: seriesId)
         _ = try? await SyncService.syncSeriesDetail(seriesId: seriesId)
-        await ContentProjectionNotifier.postSeriesDidChange(seriesId: seriesId)
+        try? await SyncService.syncAllSeriesBooks(seriesId: seriesId)
+        await ContentProjectionNotifier.postSeriesBooksDidChange(seriesId: seriesId)
         ErrorManager.shared.notify(message: String(localized: "notification.series.markedUnread"))
         await refreshSeriesData()
       } catch {
