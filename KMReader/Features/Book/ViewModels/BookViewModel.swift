@@ -93,9 +93,14 @@ class BookViewModel {
     do {
       try await BookService.markAsRead(bookId: bookId)
       let updatedBook = try await SyncService.syncBook(bookId: bookId)
+      _ = try? await SyncService.syncSeriesDetail(seriesId: updatedBook.seriesId)
       if currentBook?.id == bookId {
         currentBook = updatedBook
       }
+      await ContentProjectionNotifier.postBookAndSeriesDidChange(
+        bookId: bookId,
+        seriesId: updatedBook.seriesId
+      )
       ErrorManager.shared.notify(message: String(localized: "notification.book.markedRead"))
     } catch {
       ErrorManager.shared.alert(error: error)
@@ -106,9 +111,14 @@ class BookViewModel {
     do {
       try await BookService.markAsUnread(bookId: bookId)
       let updatedBook = try await SyncService.syncBook(bookId: bookId)
+      _ = try? await SyncService.syncSeriesDetail(seriesId: updatedBook.seriesId)
       if currentBook?.id == bookId {
         currentBook = updatedBook
       }
+      await ContentProjectionNotifier.postBookAndSeriesDidChange(
+        bookId: bookId,
+        seriesId: updatedBook.seriesId
+      )
       ErrorManager.shared.notify(message: String(localized: "notification.book.markedUnread"))
     } catch {
       ErrorManager.shared.alert(error: error)

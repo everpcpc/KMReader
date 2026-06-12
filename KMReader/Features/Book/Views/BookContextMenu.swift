@@ -152,6 +152,10 @@ struct BookContextMenu: View {
       do {
         try await BookService.markAsRead(bookId: bookId)
         _ = try await SyncService.syncBookAndSeries(bookId: bookId, seriesId: book.seriesId)
+        await ContentProjectionNotifier.postBookAndSeriesDidChange(
+          bookId: bookId,
+          seriesId: book.seriesId
+        )
         ErrorManager.shared.notify(message: String(localized: "notification.book.markedRead"))
         onMutationCompleted?()
       } catch {
@@ -164,7 +168,11 @@ struct BookContextMenu: View {
     Task {
       do {
         try await BookService.markAsUnread(bookId: bookId)
-        _ = try await SyncService.syncBook(bookId: bookId)
+        _ = try await SyncService.syncBookAndSeries(bookId: bookId, seriesId: book.seriesId)
+        await ContentProjectionNotifier.postBookAndSeriesDidChange(
+          bookId: bookId,
+          seriesId: book.seriesId
+        )
         ErrorManager.shared.notify(message: String(localized: "notification.book.markedUnread"))
         onMutationCompleted?()
       } catch {

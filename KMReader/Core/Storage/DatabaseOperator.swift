@@ -2723,8 +2723,7 @@ actor DatabaseOperator {
 
   // MARK: - Saved Filter Operations
 
-  func fetchSavedFilterDisplayItems(filterType: SavedFilterType) throws -> [SavedFilterDisplayItem]
-  {
+  func fetchSavedFilterDisplayItems(filterType: SavedFilterType) throws -> [SavedFilterDisplayItem] {
     let filterTypeRaw = filterType.rawValue
     let descriptor = FetchDescriptor<SavedFilter>(
       predicate: #Predicate { filter in
@@ -3203,8 +3202,7 @@ actor DatabaseOperator {
     fetchBooksCount(instanceId: instanceId, status: "downloaded")
   }
 
-  func fetchOfflineDownloadedBooksSnapshot(instanceId: String) throws -> OfflineDownloadedBooksSnapshot
-  {
+  func fetchOfflineDownloadedBooksSnapshot(instanceId: String) throws -> OfflineDownloadedBooksSnapshot {
     guard !instanceId.isEmpty else { return .empty }
 
     let bookDescriptor = FetchDescriptor<KomgaBook>(
@@ -3260,7 +3258,8 @@ actor DatabaseOperator {
       let seriesBooksMap = Dictionary(grouping: libraryBooks.filter { !$0.oneshot }) { $0.seriesId }
       var seriesGroups: [OfflineDownloadedSeriesGroup] = []
       for (seriesId, seriesBooks) in seriesBooksMap {
-        let bookItems = seriesBooks
+        let bookItems =
+          seriesBooks
           .map(Self.makeOfflineDownloadedBookItem)
           .sorted { $0.metaNumberSort < $1.metaNumberSort }
         seriesGroups.append(
@@ -3304,8 +3303,7 @@ actor DatabaseOperator {
     }
   }
 
-  private static func makeOfflineDownloadedBookItem(_ book: KomgaBook) -> OfflineDownloadedBookItem
-  {
+  private static func makeOfflineDownloadedBookItem(_ book: KomgaBook) -> OfflineDownloadedBookItem {
     OfflineDownloadedBookItem(
       id: book.id,
       instanceId: book.instanceId,

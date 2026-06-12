@@ -5,11 +5,6 @@
 
 import Foundation
 
-extension Notification.Name {
-  static let bookProjectionDidChange = Notification.Name("BookProjectionDidChange")
-  static let seriesProjectionDidChange = Notification.Name("SeriesProjectionDidChange")
-}
-
 actor ReaderProgressDispatchService {
   static let shared = ReaderProgressDispatchService()
 
@@ -30,6 +25,7 @@ actor ReaderProgressDispatchService {
 
   private enum ProgressUpdateResult {
     case serverUpdated
+    case conflict
     case offlineQueued
     case skipped
     case failed
@@ -388,11 +384,13 @@ actor ReaderProgressDispatchService {
     guard localPageCacheTokens[update.bookId] == token else { return }
 
     do {
-      try await DatabaseOperator.database().updateReadingProgress(
+      let database = try await DatabaseOperator.database()
+      await database.updateReadingProgress(
         bookId: update.bookId,
         page: update.page,
         completed: update.completed
       )
+      try await database.commit()
     } catch {
       guard localPageCacheTokens[update.bookId] == token else { return }
       localPageCacheTokens.removeValue(forKey: update.bookId)
@@ -407,6 +405,7 @@ actor ReaderProgressDispatchService {
     logger.debug(
       "💾 [Progress/Page] Updated local cache: book=\(update.bookId), version=\(update.version), page=\(update.page), completed=\(update.completed)"
     )
+    await ContentProjectionNotifier.postBookAndSeriesDidChange(bookId: update.bookId)
   }
 
   private func executePageSend(bookId: String, trigger: String, isFlush: Bool) async {
@@ -425,6 +424,9 @@ actor ReaderProgressDispatchService {
     case .serverUpdated:
       markProgressSettled(bookId: update.bookId, version: update.version, serverSynced: true)
       scheduleLocalPageProgressCacheUpdate(update)
+    case .conflict:
+      let refreshed = await refreshBookAfterPageProgressConflict(update)
+      markProgressSettled(bookId: update.bookId, version: update.version, serverSynced: refreshed)
     case .offlineQueued:
       markProgressSettled(bookId: update.bookId, version: update.version, serverSynced: false)
     case .skipped, .failed:
@@ -457,7 +459,7 @@ actor ReaderProgressDispatchService {
       markProgressSettled(bookId: update.bookId, version: update.version, serverSynced: true)
     case .offlineQueued:
       markProgressSettled(bookId: update.bookId, version: update.version, serverSynced: false)
-    case .skipped, .failed:
+    case .conflict, .skipped, .failed:
       break
     }
 
@@ -494,9 +496,9 @@ actor ReaderProgressDispatchService {
       } catch {
         if let apiError = error as? APIError, apiError.isConflict {
           logger.info(
-            "⏭️ [Progress/Page] Ignored conflict (409): book=\(update.bookId), version=\(update.version), page=\(update.page)"
+            "⏭️ [Progress/Page] Conflict (409), refreshing server state: book=\(update.bookId), version=\(update.version), page=\(update.page)"
           )
-          return .serverUpdated
+          return .conflict
         }
 
         guard Self.isTimeoutError(error) else {
@@ -532,6 +534,26 @@ actor ReaderProgressDispatchService {
           "⏱️ [Progress/Page] Timeout, retrying: book=\(update.bookId), version=\(update.version), page=\(update.page), attempt=\(timeoutRetryAttempt)/\(timeoutRetryLimit)"
         )
       }
+    }
+  }
+
+  private func refreshBookAfterPageProgressConflict(_ update: PageUpdate) async -> Bool {
+    do {
+      let book = try await SyncService.syncBook(bookId: update.bookId)
+      _ = try? await SyncService.syncSeriesDetail(seriesId: book.seriesId)
+      await ContentProjectionNotifier.postBookAndSeriesDidChange(
+        bookId: update.bookId,
+        seriesId: book.seriesId
+      )
+      logger.debug(
+        "🔄 [Progress/Page] Refreshed server state after conflict: book=\(update.bookId), version=\(update.version)"
+      )
+      return true
+    } catch {
+      logger.warning(
+        "⚠️ [Progress/Page] Failed to refresh after conflict: book=\(update.bookId), version=\(update.version), error=\(error.localizedDescription)"
+      )
+      return false
     }
   }
 
@@ -608,8 +630,7 @@ actor ReaderProgressDispatchService {
       completed: update.completed
     )
     try await database.commit()
-    await Self.postBookProjectionDidChange(bookId: update.bookId)
-    await Self.postSeriesProjectionDidChange(bookId: update.bookId)
+    await ContentProjectionNotifier.postBookAndSeriesDidChange(bookId: update.bookId)
     logger.debug(
       "💾 [Progress/Page] Queued offline sync item: book=\(update.bookId), version=\(update.version), page=\(update.page), completed=\(update.completed)"
     )
@@ -699,8 +720,7 @@ actor ReaderProgressDispatchService {
       } else {
         try? await database.commit()
       }
-      await Self.postBookProjectionDidChange(bookId: update.bookId)
-      await Self.postSeriesProjectionDidChange(bookId: update.bookId)
+      await ContentProjectionNotifier.postBookAndSeriesDidChange(bookId: update.bookId)
     } catch let apiError as APIError {
       if case .badRequest(let message, _, _, _) = apiError,
         message.lowercased().contains("epub extension not found")
@@ -769,33 +789,6 @@ actor ReaderProgressDispatchService {
 
     let nsError = error as NSError
     return nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorTimedOut
-  }
-
-  private nonisolated static func postBookProjectionDidChange(bookId: String) async {
-    await MainActor.run {
-      NotificationCenter.default.post(
-        name: .bookProjectionDidChange,
-        object: nil,
-        userInfo: ["bookId": bookId]
-      )
-    }
-  }
-
-  private nonisolated static func postSeriesProjectionDidChange(bookId: String) async {
-    guard let database = try? await DatabaseOperator.database(),
-      let item = try? await database.fetchBookDisplayItem(
-        bookId: bookId,
-        instanceId: AppConfig.current.instanceId
-      )
-    else { return }
-
-    await MainActor.run {
-      NotificationCenter.default.post(
-        name: .seriesProjectionDidChange,
-        object: nil,
-        userInfo: ["seriesId": item.book.seriesId]
-      )
-    }
   }
 
 }

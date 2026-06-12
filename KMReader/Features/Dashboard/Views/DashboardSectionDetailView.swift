@@ -8,6 +8,7 @@ import SwiftUI
 @MainActor
 struct DashboardSectionDetailView: View {
   let section: DashboardSection
+  let readerPresentation: ReaderPresentationManager
 
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("dashboardSectionDetailLayout") private var browseLayout: BrowseLayoutMode = .grid
@@ -18,6 +19,13 @@ struct DashboardSectionDetailView: View {
   @State private var isLoading = false
   @State private var isQueueingAllOffline = false
   @State private var hasLoadedInitial = false
+  @State private var projectionRefreshTask: Task<Void, Never>?
+  @State private var readerCloseRefreshTask: Task<Void, Never>?
+  @State private var shouldRefreshAfterReading = false
+  @State private var needsRefreshAfterCurrentLoad = false
+
+  private static let localProjectionRefreshDelay: UInt64 = 750_000_000
+  private static let remoteProjectionRefreshDelay: UInt64 = 5_000_000_000
 
   private var columns: [GridItem] {
     LayoutConfig.adaptiveColumns(for: gridDensity)
@@ -25,6 +33,10 @@ struct DashboardSectionDetailView: View {
 
   private var spacing: CGFloat {
     LayoutConfig.spacing(for: gridDensity)
+  }
+
+  private var isReaderActive: Bool {
+    readerPresentation.currentSession != nil
   }
 
   var body: some View {
@@ -67,6 +79,27 @@ struct DashboardSectionDetailView: View {
     }
     .refreshable {
       await loadItems(refresh: true)
+    }
+    .onReceive(NotificationCenter.default.publisher(for: .bookProjectionDidChange)) { _ in
+      guard section.contentKind == .books else { return }
+      scheduleProjectionRefresh()
+    }
+    .onReceive(NotificationCenter.default.publisher(for: .seriesProjectionDidChange)) { _ in
+      guard section.contentKind == .series else { return }
+      scheduleProjectionRefresh()
+    }
+    .onReceive(NotificationCenter.default.publisher(for: .sseEventReceived)) { notification in
+      guard let info = notification.userInfo?["info"] as? SSEEventInfo else { return }
+      handleSSEEvent(info)
+    }
+    .onChange(of: readerPresentation.currentSession) { oldSession, newSession in
+      handleReaderSessionChange(oldSession: oldSession, newSession: newSession)
+    }
+    .onDisappear {
+      projectionRefreshTask?.cancel()
+      projectionRefreshTask = nil
+      readerCloseRefreshTask?.cancel()
+      readerCloseRefreshTask = nil
     }
     #if os(iOS) || os(macOS)
       .toolbar {
@@ -193,7 +226,12 @@ struct DashboardSectionDetailView: View {
   }
 
   func loadItems(refresh: Bool) async {
-    guard !isLoading else { return }
+    guard !isLoading else {
+      if refresh {
+        needsRefreshAfterCurrentLoad = true
+      }
+      return
+    }
     guard refresh || pagination.hasMorePages else { return }
 
     isLoading = true
@@ -251,8 +289,95 @@ struct DashboardSectionDetailView: View {
       }
     }
 
+    finishLoading()
+  }
+
+  private func finishLoading() {
     withAnimation {
       isLoading = false
+    }
+
+    guard needsRefreshAfterCurrentLoad else { return }
+    needsRefreshAfterCurrentLoad = false
+    Task {
+      await loadItems(refresh: true)
+    }
+  }
+
+  private func scheduleProjectionRefresh(after delay: UInt64 = Self.localProjectionRefreshDelay) {
+    projectionRefreshTask?.cancel()
+    projectionRefreshTask = nil
+
+    if isReaderActive {
+      shouldRefreshAfterReading = true
+      return
+    }
+
+    projectionRefreshTask = Task { @MainActor in
+      do {
+        try await Task.sleep(nanoseconds: delay)
+      } catch {
+        return
+      }
+
+      guard !Task.isCancelled else { return }
+      if isReaderActive {
+        shouldRefreshAfterReading = true
+      } else {
+        await loadItems(refresh: true)
+      }
+      projectionRefreshTask = nil
+    }
+  }
+
+  private func handleSSEEvent(_ info: SSEEventInfo) {
+    guard AppConfig.enableSSEAutoRefresh else { return }
+
+    switch info.type {
+    case .readProgressChanged, .readProgressDeleted, .readProgressSeriesChanged,
+      .readProgressSeriesDeleted:
+      scheduleProjectionRefresh(after: Self.remoteProjectionRefreshDelay)
+    case .bookAdded, .bookChanged, .bookDeleted, .bookImported:
+      guard section.contentKind == .books else { return }
+      scheduleProjectionRefresh(after: Self.remoteProjectionRefreshDelay)
+    case .seriesAdded, .seriesChanged, .seriesDeleted:
+      guard section.contentKind == .series else { return }
+      scheduleProjectionRefresh(after: Self.remoteProjectionRefreshDelay)
+    default:
+      break
+    }
+  }
+
+  private func handleReaderSessionChange(oldSession: ReaderSession?, newSession: ReaderSession?) {
+    if newSession != nil {
+      if projectionRefreshTask != nil {
+        shouldRefreshAfterReading = true
+      }
+      projectionRefreshTask?.cancel()
+      projectionRefreshTask = nil
+      readerCloseRefreshTask?.cancel()
+      readerCloseRefreshTask = nil
+      return
+    }
+
+    guard oldSession != nil else { return }
+    let needsRefresh = shouldRefreshAfterReading
+    shouldRefreshAfterReading = false
+    guard needsRefresh else { return }
+
+    let visitedBookIds = oldSession?.visitedBookIds ?? []
+    readerCloseRefreshTask?.cancel()
+    readerCloseRefreshTask = Task { @MainActor in
+      if !visitedBookIds.isEmpty {
+        _ = await ReaderProgressDispatchService.shared.waitUntilSettled(
+          bookIds: visitedBookIds,
+          timeout: .seconds(5)
+        )
+      }
+
+      guard !Task.isCancelled else { return }
+      await loadItems(refresh: true)
+      readerCloseRefreshTask = nil
     }
   }
 

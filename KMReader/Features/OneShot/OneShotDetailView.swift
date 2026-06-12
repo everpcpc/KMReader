@@ -213,6 +213,10 @@ struct OneshotDetailView: View {
       do {
         try await BookService.markAsRead(bookId: book.id)
         _ = try? await SyncService.syncBookAndSeries(bookId: book.id, seriesId: seriesId)
+        await ContentProjectionNotifier.postBookAndSeriesDidChange(
+          bookId: book.id,
+          seriesId: seriesId
+        )
         ErrorManager.shared.notify(message: String(localized: "notification.book.markedRead"))
         await refreshOneshotData()
       } catch {
@@ -226,6 +230,11 @@ struct OneshotDetailView: View {
     Task {
       do {
         try await BookService.markAsUnread(bookId: book.id)
+        _ = try? await SyncService.syncBookAndSeries(bookId: book.id, seriesId: seriesId)
+        await ContentProjectionNotifier.postBookAndSeriesDidChange(
+          bookId: book.id,
+          seriesId: seriesId
+        )
         ErrorManager.shared.notify(message: String(localized: "notification.book.markedUnread"))
         await refreshOneshotData()
       } catch {

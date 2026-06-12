@@ -326,8 +326,8 @@ struct OfflineTaskRow: View {
                 ? String(localized: "Downloading")
                 : String(localized: "Pending in queue...")
             )
-              .font(.caption)
-              .foregroundColor(.secondary)
+            .font(.caption)
+            .foregroundColor(.secondary)
           }
         } else if case .failed(let error) = task.downloadStatus {
           Text(error)

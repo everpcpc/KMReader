@@ -74,9 +74,22 @@ struct BookQueryItemView: View {
     }
     .onReceive(NotificationCenter.default.publisher(for: .bookProjectionDidChange)) {
       notification in
-      guard notification.userInfo?["bookId"] as? String == bookId else { return }
+      guard shouldReload(for: notification) else { return }
       reloadItem()
     }
+  }
+
+  private func shouldReload(for notification: Notification) -> Bool {
+    if notification.userInfo?["bookId"] as? String == bookId {
+      return true
+    }
+    if let bookIds = notification.userInfo?["bookIds"] as? Set<String> {
+      return bookIds.contains(bookId)
+    }
+    if let bookIds = notification.userInfo?["bookIds"] as? [String] {
+      return bookIds.contains(bookId)
+    }
+    return false
   }
 
   private func reloadItem() {
