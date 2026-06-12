@@ -41,13 +41,11 @@ extension Series {
   }
 
   var readStatus: ReadStatus {
-    if booksCount > 0 && booksReadCount == booksCount {
-      return .read
-    }
-    if booksReadCount > 0 || booksInProgressCount > 0 {
-      return .inProgress
-    }
-    return .unread
+    ReadStatus.fromSeriesCounts(
+      booksCount: booksCount,
+      booksReadCount: booksReadCount,
+      booksInProgressCount: booksInProgressCount
+    )
   }
 
   var readStatusDisplayName: String {

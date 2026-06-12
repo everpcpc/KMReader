@@ -55,6 +55,14 @@ extension KomgaSeries {
     !hasStartedReading
   }
 
+  var readStatus: ReadStatus {
+    ReadStatus.fromSeriesCounts(
+      booksCount: booksCount,
+      booksReadCount: booksReadCount,
+      booksInProgressCount: booksInProgressCount
+    )
+  }
+
   /// Computed property for offline policy.
   var offlinePolicy: SeriesOfflinePolicy {
     get {

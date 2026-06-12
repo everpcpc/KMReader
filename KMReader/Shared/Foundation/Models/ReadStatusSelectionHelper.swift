@@ -10,6 +10,20 @@ enum ReadStatus: String, Codable, CaseIterable, Sendable {
   case inProgress = "IN_PROGRESS"
   case read = "READ"
 
+  nonisolated static func fromSeriesCounts(
+    booksCount: Int,
+    booksReadCount: Int,
+    booksInProgressCount: Int
+  ) -> ReadStatus {
+    if booksCount > 0 && booksReadCount == booksCount {
+      return .read
+    }
+    if booksReadCount > 0 || booksInProgressCount > 0 {
+      return .inProgress
+    }
+    return .unread
+  }
+
   var displayName: String {
     switch self {
     case .read: return String(localized: "readStatus.read")

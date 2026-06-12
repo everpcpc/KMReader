@@ -168,14 +168,7 @@ enum KomgaSeriesStore {
         }
 
         // Filter by Read Status
-        let status: ReadStatus
-        if series.booksReadCount == series.booksCount && series.booksCount > 0 {
-          status = .read
-        } else if series.booksReadCount > 0 {
-          status = .inProgress
-        } else {
-          status = .unread
-        }
+        let status = series.readStatus
 
         if !browseOpts.includeReadStatuses.isEmpty {
           if !browseOpts.includeReadStatuses.contains(status) { return false }
@@ -342,14 +335,7 @@ enum KomgaSeriesStore {
       }
 
       // Filter by Read Status
-      let status: ReadStatus
-      if series.booksReadCount == series.booksCount && series.booksCount > 0 {
-        status = .read
-      } else if series.booksReadCount > 0 {
-        status = .inProgress
-      } else {
-        status = .unread
-      }
+      let status = series.readStatus
 
       if !browseOpts.includeReadStatuses.isEmpty {
         if !browseOpts.includeReadStatuses.contains(status) { return false }
