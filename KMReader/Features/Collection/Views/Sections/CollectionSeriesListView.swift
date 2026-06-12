@@ -258,8 +258,9 @@ struct CollectionSeriesListView: View {
     guard AppConfig.enableSSEAutoRefresh else { return }
 
     switch info.type {
-    case .readProgressSeriesChanged, .readProgressSeriesDeleted, .seriesChanged,
-      .seriesDeleted, .collectionChanged, .collectionDeleted:
+    case .readProgressChanged, .readProgressDeleted, .readProgressSeriesChanged,
+      .readProgressSeriesDeleted, .seriesAdded, .seriesChanged, .seriesDeleted,
+      .collectionChanged, .collectionDeleted:
       scheduleProjectionRefresh(after: Self.remoteProjectionRefreshDelay)
     default:
       break

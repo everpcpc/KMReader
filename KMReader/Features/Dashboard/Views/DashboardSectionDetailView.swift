@@ -337,10 +337,10 @@ struct DashboardSectionDetailView: View {
     case .readProgressChanged, .readProgressDeleted, .readProgressSeriesChanged,
       .readProgressSeriesDeleted:
       scheduleProjectionRefresh(after: Self.remoteProjectionRefreshDelay)
-    case .bookChanged, .bookDeleted:
+    case .bookAdded, .bookChanged, .bookDeleted, .bookImported:
       guard section.contentKind == .books else { return }
       scheduleProjectionRefresh(after: Self.remoteProjectionRefreshDelay)
-    case .seriesChanged, .seriesDeleted:
+    case .seriesAdded, .seriesChanged, .seriesDeleted:
       guard section.contentKind == .series else { return }
       scheduleProjectionRefresh(after: Self.remoteProjectionRefreshDelay)
     default:

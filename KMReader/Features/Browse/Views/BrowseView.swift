@@ -303,17 +303,21 @@ struct BrowseView: View {
     guard AppConfig.enableSSEAutoRefresh else { return }
 
     switch info.type {
-    case .readProgressChanged, .readProgressDeleted:
+    case .readProgressChanged, .readProgressDeleted, .readProgressSeriesChanged,
+      .readProgressSeriesDeleted:
+      guard effectiveContent == .books || effectiveContent == .series else { return }
+      scheduleProjectionRefresh(after: Self.remoteProjectionRefreshDelay)
+    case .bookAdded, .bookChanged, .bookDeleted, .bookImported:
       guard effectiveContent == .books else { return }
       scheduleProjectionRefresh(after: Self.remoteProjectionRefreshDelay)
-    case .readProgressSeriesChanged, .readProgressSeriesDeleted:
+    case .seriesAdded, .seriesChanged, .seriesDeleted:
       guard effectiveContent == .series else { return }
       scheduleProjectionRefresh(after: Self.remoteProjectionRefreshDelay)
-    case .bookChanged, .bookDeleted:
-      guard effectiveContent == .books else { return }
+    case .collectionAdded, .collectionChanged, .collectionDeleted:
+      guard effectiveContent == .collections else { return }
       scheduleProjectionRefresh(after: Self.remoteProjectionRefreshDelay)
-    case .seriesChanged, .seriesDeleted:
-      guard effectiveContent == .series else { return }
+    case .readListAdded, .readListChanged, .readListDeleted:
+      guard effectiveContent == .readlists else { return }
       scheduleProjectionRefresh(after: Self.remoteProjectionRefreshDelay)
     default:
       break

@@ -25,6 +25,7 @@ actor ReaderProgressDispatchService {
 
   private enum ProgressUpdateResult {
     case serverUpdated
+    case conflict
     case offlineQueued
     case skipped
     case failed
@@ -423,6 +424,9 @@ actor ReaderProgressDispatchService {
     case .serverUpdated:
       markProgressSettled(bookId: update.bookId, version: update.version, serverSynced: true)
       scheduleLocalPageProgressCacheUpdate(update)
+    case .conflict:
+      let refreshed = await refreshBookAfterPageProgressConflict(update)
+      markProgressSettled(bookId: update.bookId, version: update.version, serverSynced: refreshed)
     case .offlineQueued:
       markProgressSettled(bookId: update.bookId, version: update.version, serverSynced: false)
     case .skipped, .failed:
@@ -455,7 +459,7 @@ actor ReaderProgressDispatchService {
       markProgressSettled(bookId: update.bookId, version: update.version, serverSynced: true)
     case .offlineQueued:
       markProgressSettled(bookId: update.bookId, version: update.version, serverSynced: false)
-    case .skipped, .failed:
+    case .conflict, .skipped, .failed:
       break
     }
 
@@ -492,9 +496,9 @@ actor ReaderProgressDispatchService {
       } catch {
         if let apiError = error as? APIError, apiError.isConflict {
           logger.info(
-            "⏭️ [Progress/Page] Ignored conflict (409): book=\(update.bookId), version=\(update.version), page=\(update.page)"
+            "⏭️ [Progress/Page] Conflict (409), refreshing server state: book=\(update.bookId), version=\(update.version), page=\(update.page)"
           )
-          return .serverUpdated
+          return .conflict
         }
 
         guard Self.isTimeoutError(error) else {
@@ -530,6 +534,26 @@ actor ReaderProgressDispatchService {
           "⏱️ [Progress/Page] Timeout, retrying: book=\(update.bookId), version=\(update.version), page=\(update.page), attempt=\(timeoutRetryAttempt)/\(timeoutRetryLimit)"
         )
       }
+    }
+  }
+
+  private func refreshBookAfterPageProgressConflict(_ update: PageUpdate) async -> Bool {
+    do {
+      let book = try await SyncService.syncBook(bookId: update.bookId)
+      _ = try? await SyncService.syncSeriesDetail(seriesId: book.seriesId)
+      await ContentProjectionNotifier.postBookAndSeriesDidChange(
+        bookId: update.bookId,
+        seriesId: book.seriesId
+      )
+      logger.debug(
+        "🔄 [Progress/Page] Refreshed server state after conflict: book=\(update.bookId), version=\(update.version)"
+      )
+      return true
+    } catch {
+      logger.warning(
+        "⚠️ [Progress/Page] Failed to refresh after conflict: book=\(update.bookId), version=\(update.version), error=\(error.localizedDescription)"
+      )
+      return false
     }
   }
 
