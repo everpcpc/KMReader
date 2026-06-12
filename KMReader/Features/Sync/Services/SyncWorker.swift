@@ -216,6 +216,7 @@ actor SyncWorker {
       let libraryInfos = libraries.map { LibraryInfo(id: $0.id, name: $0.name) }
       try await database.replaceLibraries(libraryInfos, for: instanceId)
       try? await database.commit()
+      await SyncService.postSidebarProjectionDidChange(instanceId: instanceId)
       logger.info("📚 Synced \(libraries.count) libraries")
       await report(.libraries, progress: 1.0, onProgress: onProgress)
       return true
@@ -266,6 +267,7 @@ actor SyncWorker {
         try? await database.commit()
         logger.info("🧹 Removed \(deletedCount) stale collections")
       }
+      await SyncService.postSidebarProjectionDidChange(instanceId: instanceId)
       logger.info("📂 Synced collections")
       return true
     } catch {
@@ -431,6 +433,7 @@ actor SyncWorker {
         try? await database.commit()
         logger.info("🧹 Removed \(deletedCount) stale read lists")
       }
+      await SyncService.postSidebarProjectionDidChange(instanceId: instanceId)
       logger.info("📖 Synced read lists")
       return true
     } catch {

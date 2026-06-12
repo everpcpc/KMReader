@@ -7,10 +7,24 @@ import Foundation
 import OSLog
 import SwiftData
 
+extension Notification.Name {
+  static let sidebarProjectionDidChange = Notification.Name("SidebarProjectionDidChange")
+}
+
 nonisolated enum SyncService {
 
   private static let logger = AppLogger(.sync)
   private static let syncPageSize = 1000
+
+  static func postSidebarProjectionDidChange(instanceId: String) async {
+    await MainActor.run {
+      NotificationCenter.default.post(
+        name: .sidebarProjectionDidChange,
+        object: nil,
+        userInfo: ["instanceId": instanceId]
+      )
+    }
+  }
 
   static func syncAll(instanceId: String) async {
     logger.info("🔄 Starting full sync for instance: \(instanceId)")
@@ -28,6 +42,7 @@ nonisolated enum SyncService {
       let libraryInfos = libraries.map { LibraryInfo(id: $0.id, name: $0.name) }
       try await database.replaceLibraries(libraryInfos, for: instanceId)
       try? await database.commit()
+      await postSidebarProjectionDidChange(instanceId: instanceId)
       logger.info("📚 Synced \(libraries.count) libraries")
     } catch {
       logger.error("❌ Failed to sync libraries: \(error)")
@@ -53,6 +68,7 @@ nonisolated enum SyncService {
         instanceId: instanceId
       )
       try? await database.commit()
+      await postSidebarProjectionDidChange(instanceId: instanceId)
       if deletedCount > 0 {
         logger.info("🧹 Removed \(deletedCount) stale collections")
       }
@@ -81,6 +97,7 @@ nonisolated enum SyncService {
         instanceId: instanceId
       )
       try? await database.commit()
+      await postSidebarProjectionDidChange(instanceId: instanceId)
       if deletedCount > 0 {
         logger.info("🧹 Removed \(deletedCount) stale read lists")
       }

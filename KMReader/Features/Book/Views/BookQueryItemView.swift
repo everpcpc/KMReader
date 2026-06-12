@@ -72,6 +72,11 @@ struct BookQueryItemView: View {
     .task(id: "\(current.instanceId)|\(bookId)") {
       await loadItem()
     }
+    .onReceive(NotificationCenter.default.publisher(for: .bookProjectionDidChange)) {
+      notification in
+      guard notification.userInfo?["bookId"] as? String == bookId else { return }
+      reloadItem()
+    }
   }
 
   private func reloadItem() {

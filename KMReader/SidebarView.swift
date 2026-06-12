@@ -89,6 +89,13 @@ struct SidebarView: View {
     .task(id: current.instanceId) {
       await loadSidebarItems(instanceId: current.instanceId)
     }
+    .onReceive(NotificationCenter.default.publisher(for: .sidebarProjectionDidChange)) {
+      notification in
+      guard notification.userInfo?["instanceId"] as? String == current.instanceId else { return }
+      Task {
+        await loadSidebarItems(instanceId: current.instanceId)
+      }
+    }
     #if os(macOS)
       .safeAreaInset(edge: .bottom) {
         Button {

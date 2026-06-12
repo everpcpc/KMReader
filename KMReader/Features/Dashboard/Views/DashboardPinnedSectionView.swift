@@ -10,7 +10,7 @@ struct DashboardPinnedSectionView: View {
   let section: DashboardSection
   let refreshTrigger: DashboardRefreshTrigger
 
-  @AppStorage("currentInstanceId") private var currentInstanceId: String = ""
+  @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
   @AppStorage("showDashboardSectionGradientBackground")
   private var showDashboardSectionGradientBackground: Bool =
@@ -223,6 +223,10 @@ struct DashboardPinnedSectionView: View {
         await refresh()
       }
     }
+  }
+
+  private var currentInstanceId: String {
+    current.instanceId
   }
 
   private func refresh() async {

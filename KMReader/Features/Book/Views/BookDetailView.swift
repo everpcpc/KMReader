@@ -192,6 +192,8 @@ struct BookDetailView: View {
 
   @MainActor
   private func loadBook() async {
+    await loadLocalBook()
+
     do {
       _ = try await SyncService.syncBook(bookId: bookId)
       await SyncService.syncBookReadLists(bookId: bookId)

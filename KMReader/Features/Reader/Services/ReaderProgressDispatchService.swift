@@ -5,6 +5,10 @@
 
 import Foundation
 
+extension Notification.Name {
+  static let bookProjectionDidChange = Notification.Name("BookProjectionDidChange")
+}
+
 actor ReaderProgressDispatchService {
   static let shared = ReaderProgressDispatchService()
 
@@ -603,6 +607,7 @@ actor ReaderProgressDispatchService {
       completed: update.completed
     )
     try await database.commit()
+    await Self.postBookProjectionDidChange(bookId: update.bookId)
     logger.debug(
       "💾 [Progress/Page] Queued offline sync item: book=\(update.bookId), version=\(update.version), page=\(update.page), completed=\(update.completed)"
     )
@@ -692,6 +697,7 @@ actor ReaderProgressDispatchService {
       } else {
         try? await database.commit()
       }
+      await Self.postBookProjectionDidChange(bookId: update.bookId)
     } catch let apiError as APIError {
       if case .badRequest(let message, _, _, _) = apiError,
         message.lowercased().contains("epub extension not found")
@@ -760,6 +766,16 @@ actor ReaderProgressDispatchService {
 
     let nsError = error as NSError
     return nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorTimedOut
+  }
+
+  private nonisolated static func postBookProjectionDidChange(bookId: String) async {
+    await MainActor.run {
+      NotificationCenter.default.post(
+        name: .bookProjectionDidChange,
+        object: nil,
+        userInfo: ["bookId": bookId]
+      )
+    }
   }
 
 }
