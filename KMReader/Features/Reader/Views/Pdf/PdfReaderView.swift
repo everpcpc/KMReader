@@ -417,6 +417,8 @@
         return String(localized: "Fetching book info...")
       case .downloading:
         return String(localized: "Downloading book...")
+      case .processingOfflineFiles:
+        return String(localized: "Processing offline files...")
       case .preparingReader:
         return String(localized: "Preparing PDF...")
       case .idle:

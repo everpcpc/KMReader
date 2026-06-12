@@ -643,6 +643,8 @@
         return String(localized: "Fetching book info...")
       case .downloading:
         return String(localized: "Downloading book...")
+      case .processingOfflineFiles:
+        return String(localized: "Processing offline files...")
       case .preparingReader:
         return String(localized: "Preparing reader...")
       case .paginating:
@@ -664,6 +666,8 @@
             "\(String(format: "%.1f", received / 1024 / 1024)) / \(String(format: "%.1f", expected / 1024 / 1024)) MB"
         }
         return String(localized: "Downloading book content")
+      case .processingOfflineFiles:
+        return nil
       case .preparingReader:
         return String(localized: "Preparing reader view")
       case .paginating:

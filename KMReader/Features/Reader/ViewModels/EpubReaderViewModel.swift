@@ -36,6 +36,7 @@
     case idle
     case fetchingMetadata
     case downloading
+    case processingOfflineFiles
     case preparingReader
     case paginating
   }
@@ -377,6 +378,9 @@
         case .pending:
           if let progress = DownloadProgressTracker.shared.progress[bookId] {
             downloadProgress = progress
+            if progress >= 1 {
+              loadingStage = .processingOfflineFiles
+            }
           }
         }
 
@@ -420,6 +424,9 @@
         case .pending:
           if let progress = DownloadProgressTracker.shared.progress[bookId] {
             downloadProgress = progress
+            if progress >= 1 {
+              loadingStage = .processingOfflineFiles
+            }
           }
         }
 

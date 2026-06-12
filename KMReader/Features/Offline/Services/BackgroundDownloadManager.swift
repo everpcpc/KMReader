@@ -33,6 +33,7 @@ import OSLog
     /// Callbacks for download completion
     var onDownloadComplete: ((String, Int?, URL) -> Void)?  // bookId, pageNumber?, fileURL
     var onDownloadFailed: ((String, Int?, Error) -> Void)?  // bookId, pageNumber?, error
+    var onDownloadProgress: ((String, Int64, Int64?) -> Void)?  // bookId, received, expected
     var onAllDownloadsComplete: ((String) -> Void)?  // bookId
 
     private lazy var backgroundSession: URLSession = {
@@ -373,6 +374,11 @@ import OSLog
         if taskInfo.isEpub, totalBytesExpectedToWrite > 0 {
           let progress = Double(totalBytesWritten) / Double(totalBytesExpectedToWrite)
           DownloadProgressTracker.shared.updateProgress(bookId: taskInfo.bookId, value: progress)
+          self.onDownloadProgress?(
+            taskInfo.bookId,
+            totalBytesWritten,
+            totalBytesExpectedToWrite
+          )
         }
       }
     }
