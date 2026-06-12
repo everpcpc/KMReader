@@ -5,33 +5,36 @@
 
 import SwiftUI
 
+@MainActor
 struct CollectionCompactCardView: View {
-  @Bindable var komgaCollection: KomgaCollection
+  let item: CollectionDisplayItem
   var coverWidth: CGFloat = 80
+  var onChanged: () -> Void = {}
+
   @State private var showEditSheet = false
   @State private var showDeleteConfirmation = false
 
   var body: some View {
     NavigationLink(
-      value: NavDestination.collectionDetail(collectionId: komgaCollection.collectionId)
+      value: NavDestination.collectionDetail(collectionId: item.collectionId)
     ) {
       HStack(alignment: .top, spacing: 10) {
-        ThumbnailImage(id: komgaCollection.collectionId, type: .collection, width: coverWidth)
+        ThumbnailImage(id: item.collectionId, type: .collection, width: coverWidth)
           .frame(width: coverWidth)
           .allowsHitTesting(false)
 
         VStack(alignment: .leading, spacing: 4) {
-          Text(komgaCollection.name)
+          Text(item.name)
             .font(.headline)
             .fontWeight(.medium)
             .lineLimit(2)
             .multilineTextAlignment(.leading)
 
-          Text("\(komgaCollection.seriesIds.count) series")
+          Text("\(item.seriesCount) series")
             .font(.footnote)
             .foregroundColor(.secondary)
 
-          Text(komgaCollection.lastModifiedDate.formattedMediumDate)
+          Text(item.lastModifiedDate.formattedMediumDate)
             .font(.caption)
             .foregroundColor(.secondary)
         }
@@ -52,9 +55,9 @@ struct CollectionCompactCardView: View {
     .adaptiveButtonStyle(.plain)
     .contextMenu {
       CollectionContextMenu(
-        collectionId: komgaCollection.collectionId,
-        menuTitle: komgaCollection.name,
-        isPinned: komgaCollection.isPinned,
+        collectionId: item.collectionId,
+        menuTitle: item.name,
+        isPinned: item.isPinned,
         onDeleteRequested: {
           showDeleteConfirmation = true
         },
@@ -74,8 +77,8 @@ struct CollectionCompactCardView: View {
     } message: {
       Text("Are you sure you want to delete this collection? This action cannot be undone.")
     }
-    .sheet(isPresented: $showEditSheet) {
-      CollectionEditSheet(collection: komgaCollection.toCollection())
+    .sheet(isPresented: $showEditSheet, onDismiss: onChanged) {
+      CollectionEditSheet(collection: item.collection)
     }
   }
 
@@ -83,8 +86,9 @@ struct CollectionCompactCardView: View {
     Task {
       do {
         try await CollectionService.deleteCollection(
-          collectionId: komgaCollection.collectionId)
+          collectionId: item.collectionId)
         ErrorManager.shared.notify(message: String(localized: "notification.collection.deleted"))
+        onChanged()
       } catch {
         ErrorManager.shared.alert(error: error)
       }
@@ -92,14 +96,20 @@ struct CollectionCompactCardView: View {
   }
 
   private func togglePinned() {
-    let nextPinned = !komgaCollection.isPinned
+    let nextPinned = !item.isPinned
     Task {
-      try? await DatabaseOperator.database().setCollectionPinned(
-        collectionId: komgaCollection.collectionId,
-        instanceId: komgaCollection.instanceId,
-        isPinned: nextPinned
-      )
-      try? await DatabaseOperator.database().commit()
+      do {
+        let database = try await DatabaseOperator.database()
+        await database.setCollectionPinned(
+          collectionId: item.collectionId,
+          instanceId: item.instanceId,
+          isPinned: nextPinned
+        )
+        try? await database.commit()
+        onChanged()
+      } catch {
+        ErrorManager.shared.alert(error: error)
+      }
     }
   }
 }

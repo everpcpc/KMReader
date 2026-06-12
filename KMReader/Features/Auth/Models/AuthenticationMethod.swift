@@ -5,7 +5,7 @@
 
 import Foundation
 
-enum AuthenticationMethod: String, Codable {
+nonisolated enum AuthenticationMethod: String, Codable, Sendable {
   case basicAuth
   case apiKey
 }

@@ -3,16 +3,16 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
-/// View for series selection mode that accepts only seriesId and uses @Query to fetch the series.
+/// View for series selection mode that accepts only seriesId and fetches a series display projection.
 struct SeriesSelectionItemView: View {
   let seriesId: String
   let layout: BrowseLayoutMode
   @Binding var selectedSeriesIds: Set<String>
 
-  @Query private var komgaSeriesList: [KomgaSeries]
+  @AppStorage("currentAccount") private var current: Current = .init()
+  @State private var item: SeriesDisplayItem?
 
   init(
     seriesId: String,
@@ -23,13 +23,6 @@ struct SeriesSelectionItemView: View {
     self.layout = layout
     self._selectedSeriesIds = selectedSeriesIds
 
-    let instanceId = AppConfig.current.instanceId
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: seriesId)
-    _komgaSeriesList = Query(filter: #Predicate<KomgaSeries> { $0.id == compositeId })
-  }
-
-  private var komgaSeries: KomgaSeries? {
-    komgaSeriesList.first
   }
 
   private var isSelected: Bool {
@@ -37,39 +30,55 @@ struct SeriesSelectionItemView: View {
   }
 
   var body: some View {
-    if let series = komgaSeries {
-      Group {
-        switch layout {
-        case .grid:
-          SeriesCardView(
-            komgaSeries: series
-          )
-        case .list:
-          SeriesRowView(
-            komgaSeries: series
-          )
-        }
-      }
-      .allowsHitTesting(false)
-      .scaleEffect(isSelected ? 0.96 : 1.0)
-      .overlay {
-        if isSelected {
-          RoundedRectangle(cornerRadius: 12)
-            .stroke(Color.accentColor, lineWidth: 2)
-        }
-      }
-      .contentShape(Rectangle())
-      .highPriorityGesture(
-        TapGesture().onEnded {
-          withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-            if isSelected {
-              selectedSeriesIds.remove(seriesId)
-            } else {
-              selectedSeriesIds.insert(seriesId)
-            }
+    Group {
+      if let item {
+        Group {
+          switch layout {
+          case .grid:
+            SeriesCardView(
+              item: item
+            )
+          case .list:
+            SeriesRowView(
+              item: item
+            )
           }
         }
-      )
+        .allowsHitTesting(false)
+        .scaleEffect(isSelected ? 0.96 : 1.0)
+        .overlay {
+          if isSelected {
+            RoundedRectangle(cornerRadius: 12)
+              .stroke(Color.accentColor, lineWidth: 2)
+          }
+        }
+        .contentShape(Rectangle())
+        .highPriorityGesture(
+          TapGesture().onEnded {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+              if isSelected {
+                selectedSeriesIds.remove(seriesId)
+              } else {
+                selectedSeriesIds.insert(seriesId)
+              }
+            }
+          }
+        )
+      }
     }
+    .task(id: "\(current.instanceId)|\(seriesId)") {
+      await loadItem()
+    }
+  }
+
+  private func loadItem() async {
+    guard let database = try? await DatabaseOperator.database() else {
+      item = nil
+      return
+    }
+    item = try? await database.fetchSeriesDisplayItem(
+      seriesId: seriesId,
+      instanceId: current.instanceId
+    )
   }
 }

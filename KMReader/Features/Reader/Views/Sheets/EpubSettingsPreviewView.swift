@@ -1,6 +1,5 @@
 #if os(iOS) || os(macOS)
   import Foundation
-  import SwiftData
   import SwiftUI
   import WebKit
 
@@ -8,14 +7,10 @@
     let preferences: EpubThemePreferences
 
     @Environment(\.colorScheme) private var colorScheme
-    @Query(sort: \CustomFont.name, order: .forward) private var customFonts: [CustomFont]
+    @State private var customFontPath: String?
 
-    private var customFontPath: String? {
-      guard case .system(let fontName) = preferences.fontFamily else { return nil }
-      guard let relativePath = customFonts.first(where: { $0.name == fontName })?.path else {
-        return nil
-      }
-      return FontFileManager.resolvePath(relativePath)
+    private var customFontName: String? {
+      preferences.fontFamily.fontName
     }
 
     var body: some View {
@@ -24,6 +19,31 @@
         colorScheme: colorScheme,
         customFontPath: customFontPath
       )
+      .task(id: customFontName ?? "") {
+        await loadCustomFontPath()
+      }
+    }
+
+    private func loadCustomFontPath() async {
+      guard let customFontName else {
+        if customFontPath != nil {
+          customFontPath = nil
+        }
+        return
+      }
+
+      do {
+        let database = try await DatabaseOperator.database()
+        let relativePath = try await database.fetchCustomFontPath(name: customFontName)
+        let resolvedPath = relativePath.flatMap(FontFileManager.resolvePath)
+        if customFontPath != resolvedPath {
+          customFontPath = resolvedPath
+        }
+      } catch {
+        if customFontPath != nil {
+          customFontPath = nil
+        }
+      }
     }
   }
 

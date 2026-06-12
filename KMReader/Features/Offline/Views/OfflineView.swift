@@ -3,7 +3,6 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct OfflineView: View {
@@ -17,8 +16,6 @@ struct OfflineView: View {
   @AppStorage("offlineBrowseContent") private var offlineBrowseContent: BrowseContentType = .series
   @AppStorage("isOffline") private var isOffline: Bool = false
 
-  @Query private var instances: [KomgaInstance]
-
   @State private var refreshTrigger = UUID()
   @State private var searchQuery: String = ""
   @State private var activeSearchText: String = ""
@@ -27,27 +24,22 @@ struct OfflineView: View {
   @State private var showSavedFilters = false
   @State private var showSyncConfirmation = false
   @State private var latestReadHistoryTime: Date?
+  @State private var syncInfo: OfflineInstanceSyncInfo?
 
   private var syncViewModel: SyncViewModel {
     SyncViewModel.shared
   }
 
-  private var currentInstance: KomgaInstance? {
-    guard let uuid = UUID(uuidString: current.instanceId) else { return nil }
-    return instances.first { $0.id == uuid }
-  }
-
   private var lastSyncTimeText: String {
-    guard let instance = currentInstance else {
+    guard let syncInfo else {
       return String(localized: "settings.sync_data.never")
     }
-    let latestSync = max(instance.seriesLastSyncedAt, instance.booksLastSyncedAt)
-    if latestSync == Date(timeIntervalSince1970: 0) {
+    if syncInfo.latestSync == Date(timeIntervalSince1970: 0) {
       return String(localized: "settings.sync_data.never")
     }
     let formatter = RelativeDateTimeFormatter()
     formatter.unitsStyle = .short
-    return formatter.localizedString(for: latestSync, relativeTo: Date())
+    return formatter.localizedString(for: syncInfo.latestSync, relativeTo: Date())
   }
 
   private var title: String {
@@ -206,11 +198,13 @@ struct OfflineView: View {
       Button(String(localized: "offline.sync.confirm.action")) {
         Task {
           await syncViewModel.syncData()
+          await loadSyncInfo()
         }
       }
       Button(String(localized: "offline.sync.confirm.forceAction"), role: .destructive) {
         Task {
           await syncViewModel.syncData(forceFullSync: true)
+          await loadSyncInfo()
         }
       }
       Button(String(localized: "Cancel"), role: .cancel) {}
@@ -234,10 +228,14 @@ struct OfflineView: View {
     .task(id: current.instanceId) {
       guard !authViewModel.isSwitching else { return }
       latestReadHistoryTime = AppConfig.recentlyReadRecordTime(instanceId: current.instanceId)
+      await loadSyncInfo()
     }
     .onChange(of: resolvedLibraryIdsKey) { _, _ in
       guard !authViewModel.isSwitching else { return }
       refreshBrowse()
+      Task {
+        await loadSyncInfo()
+      }
     }
   }
 
@@ -360,6 +358,25 @@ struct OfflineView: View {
 
   private func refreshBrowse() {
     refreshTrigger = UUID()
+  }
+
+  private func loadSyncInfo() async {
+    guard !current.instanceId.isEmpty else {
+      if syncInfo != nil { syncInfo = nil }
+      return
+    }
+
+    do {
+      let database = try await DatabaseOperator.database()
+      let loadedSyncInfo = try await database.fetchOfflineInstanceSyncInfo(
+        instanceId: current.instanceId
+      )
+      if syncInfo != loadedSyncInfo {
+        syncInfo = loadedSyncInfo
+      }
+    } catch {
+      ErrorManager.shared.alert(error: error)
+    }
   }
 
   private func triggerReadingProgressSync(force: Bool = false) {

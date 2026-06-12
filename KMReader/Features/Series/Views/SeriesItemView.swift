@@ -6,18 +6,21 @@
 import SwiftUI
 
 struct SeriesItemView: View {
-  @Bindable var series: KomgaSeries
+  let item: SeriesDisplayItem
   let layout: BrowseLayoutMode
+  var onMutationCompleted: (() -> Void)? = nil
 
   var body: some View {
     switch layout {
     case .grid:
       SeriesCardView(
-        komgaSeries: series
+        item: item,
+        onMutationCompleted: onMutationCompleted
       )
     case .list:
       SeriesRowView(
-        komgaSeries: series
+        item: item,
+        onMutationCompleted: onMutationCompleted
       )
     }
   }

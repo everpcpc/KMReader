@@ -3,23 +3,25 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct ReadListItemQueryView: View {
-  @Bindable var readList: KomgaReadList
+  let item: ReadListDisplayItem
   var layout: BrowseLayoutMode = .grid
+  var onMutationCompleted: (() -> Void)? = nil
 
   var body: some View {
-    NavigationLink(value: NavDestination.readListDetail(readListId: readList.readListId)) {
+    NavigationLink(value: NavDestination.readListDetail(readListId: item.readListId)) {
       switch layout {
       case .grid:
         ReadListCardView(
-          komgaReadList: readList
+          item: item,
+          onMutationCompleted: onMutationCompleted
         )
       case .list:
         ReadListRowView(
-          komgaReadList: readList
+          item: item,
+          onMutationCompleted: onMutationCompleted
         )
       }
     }

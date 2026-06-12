@@ -3,21 +3,14 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct ReadListDownloadActionsSection: View {
-  @Bindable var komgaReadList: KomgaReadList
+  let readListId: String
+  let status: SeriesDownloadStatus
+  var onMutationCompleted: (() -> Void)? = nil
 
   @AppStorage("currentAccount") private var current: Current = .init()
-
-  private var readList: ReadList {
-    komgaReadList.toReadList()
-  }
-
-  private var status: SeriesDownloadStatus {
-    komgaReadList.downloadStatus
-  }
 
   @State private var pendingAction: SeriesDownloadAction?
   @State private var pendingUnreadLimit: Int?
@@ -141,22 +134,23 @@ struct ReadListDownloadActionsSection: View {
   private func downloadAll() {
     Task {
       // Sync books first
-      try? await SyncService.syncAllReadListBooks(readListId: readList.id)
+      try? await SyncService.syncAllReadListBooks(readListId: readListId)
       try? await DatabaseOperator.database().downloadReadListOffline(
-        readListId: readList.id, instanceId: current.instanceId
+        readListId: readListId, instanceId: current.instanceId
       )
       try? await DatabaseOperator.database().commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.readList.offlineDownloadQueued")
       )
+      onMutationCompleted?()
     }
   }
 
   private func downloadUnread(limit: Int) {
     Task {
-      try? await SyncService.syncAllReadListBooks(readListId: readList.id)
+      try? await SyncService.syncAllReadListBooks(readListId: readListId)
       try? await DatabaseOperator.database().downloadReadListUnreadOffline(
-        readListId: readList.id,
+        readListId: readListId,
         instanceId: current.instanceId,
         limit: limit
       )
@@ -164,19 +158,21 @@ struct ReadListDownloadActionsSection: View {
       ErrorManager.shared.notify(
         message: String(localized: "notification.readList.offlineDownloadQueued")
       )
+      onMutationCompleted?()
     }
   }
 
   private func removeRead() {
     Task {
       try? await DatabaseOperator.database().removeReadListReadOffline(
-        readListId: readList.id,
+        readListId: readListId,
         instanceId: current.instanceId
       )
       try? await DatabaseOperator.database().commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.readList.offlineRemoved")
       )
+      onMutationCompleted?()
     }
   }
 
@@ -194,12 +190,13 @@ struct ReadListDownloadActionsSection: View {
   private func removeAll() {
     Task {
       try? await DatabaseOperator.database().removeReadListOffline(
-        readListId: readList.id, instanceId: current.instanceId
+        readListId: readListId, instanceId: current.instanceId
       )
       try? await DatabaseOperator.database().commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.readList.offlineRemoved")
       )
+      onMutationCompleted?()
     }
   }
 }

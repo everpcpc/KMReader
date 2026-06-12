@@ -3,7 +3,6 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 private struct CollectionItem: Identifiable {
@@ -21,8 +20,7 @@ struct CollectionPickerSheet: View {
   @State private var searchText: String = ""
   @State private var showCreateSheet = false
   @State private var isCreating = false
-
-  @Query private var komgaCollections: [KomgaCollection]
+  @State private var collections: [CollectionDisplayItem] = []
 
   let seriesId: String
   let onSelect: (String) -> Void
@@ -33,19 +31,13 @@ struct CollectionPickerSheet: View {
   ) {
     self.seriesId = seriesId
     self.onSelect = onSelect
-
-    let instanceId = AppConfig.current.instanceId
-    _komgaCollections = Query(
-      filter: #Predicate<KomgaCollection> { $0.instanceId == instanceId },
-      sort: [SortDescriptor(\KomgaCollection.name, order: .forward)]
-    )
   }
 
-  private var filteredCollections: [KomgaCollection] {
+  private var filteredCollections: [CollectionDisplayItem] {
     if searchText.isEmpty {
-      return Array(komgaCollections)
+      return collections
     }
-    return komgaCollections.filter {
+    return collections.filter {
       $0.name.localizedCaseInsensitiveContains(searchText)
     }
   }
@@ -63,7 +55,7 @@ struct CollectionPickerSheet: View {
   var body: some View {
     SheetView(title: String(localized: "Select Collection"), size: .large, applyFormStyle: true) {
       Form {
-        if isLoading && komgaCollections.isEmpty {
+        if isLoading && collections.isEmpty {
           LoadingIcon()
             .frame(maxWidth: .infinity)
         } else if filteredCollections.isEmpty && searchText.isEmpty {
@@ -112,7 +104,7 @@ struct CollectionPickerSheet: View {
     }
     .searchable(text: $searchText)
     .task {
-      await syncCollections()
+      await refreshCollections()
     }
     .sheet(isPresented: $showCreateSheet) {
       CreateCollectionSheet(
@@ -125,11 +117,32 @@ struct CollectionPickerSheet: View {
     }
   }
 
-  private func syncCollections() async {
+  private func refreshCollections() async {
+    await loadCollections()
     guard !AppConfig.isOffline else { return }
     isLoading = true
     await SyncService.syncCollections(instanceId: current.instanceId)
     isLoading = false
+    await loadCollections()
+  }
+
+  private func loadCollections() async {
+    guard !current.instanceId.isEmpty else {
+      if !collections.isEmpty { collections = [] }
+      return
+    }
+
+    do {
+      let database = try await DatabaseOperator.database()
+      let loadedCollections = try await database.fetchCollectionDisplayItems(
+        instanceId: current.instanceId
+      )
+      if collections != loadedCollections {
+        collections = loadedCollections
+      }
+    } catch {
+      ErrorManager.shared.alert(error: error)
+    }
   }
 
   private func confirmSelection() {

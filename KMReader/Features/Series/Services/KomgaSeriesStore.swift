@@ -76,8 +76,9 @@ enum KomgaSeriesStore {
     }
   }
 
-  static func fetchSeriesIds(
+  nonisolated static func fetchSeriesIds(
     context: ModelContext,
+    instanceId: String = AppConfig.current.instanceId,
     libraryIds: [String]?,
     searchText: String,
     browseOpts: SeriesBrowseOptions,
@@ -85,7 +86,6 @@ enum KomgaSeriesStore {
     limit: Int,
     offlineOnly: Bool = false
   ) -> [String] {
-    let instanceId = AppConfig.current.instanceId
     let ids = libraryIds ?? []
     var descriptor = FetchDescriptor<KomgaSeries>()
 
@@ -209,7 +209,7 @@ enum KomgaSeriesStore {
     }
   }
 
-  static func fetchSeriesByIds(
+  nonisolated static func fetchSeriesByIds(
     context: ModelContext,
     ids: [String],
     instanceId: String
@@ -234,7 +234,7 @@ enum KomgaSeriesStore {
     }
   }
 
-  static func fetchNewlyAddedSeriesIds(
+  nonisolated static func fetchNewlyAddedSeriesIds(
     context: ModelContext,
     libraryIds: [String],
     offset: Int,
@@ -266,7 +266,7 @@ enum KomgaSeriesStore {
     }
   }
 
-  static func fetchRecentlyUpdatedSeriesIds(
+  nonisolated static func fetchRecentlyUpdatedSeriesIds(
     context: ModelContext,
     libraryIds: [String],
     offset: Int,
@@ -308,7 +308,7 @@ enum KomgaSeriesStore {
     return try? context.fetch(descriptor).first?.toSeries()
   }
 
-  static func fetchCollectionSeries(
+  nonisolated static func fetchCollectionSeries(
     context: ModelContext,
     collectionId: String,
     page: Int,

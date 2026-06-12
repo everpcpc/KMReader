@@ -3,7 +3,6 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct ServerListView: View {
@@ -21,16 +20,12 @@ struct ServerListView: View {
   }
 
   @Environment(\.dismiss) private var dismiss
-  @Environment(\.modelContext) private var modelContext
-  @Query(sort: [
-    SortDescriptor(\KomgaInstance.lastUsedAt, order: .reverse),
-    SortDescriptor(\KomgaInstance.name, order: .forward),
-  ]) private var instances: [KomgaInstance]
   @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("isLoggedInV2") private var isLoggedIn: Bool = false
 
-  @State private var instancePendingDeletion: KomgaInstance?
-  @State private var editingInstance: KomgaInstance?
+  @State private var instances: [ServerDisplayItem] = []
+  @State private var instancePendingDeletion: ServerDisplayItem?
+  @State private var editingInstance: ServerDisplayItem?
   @State private var showLogin = false
   @State private var showLogoutAlert = false
 
@@ -123,7 +118,15 @@ struct ServerListView: View {
     #endif
     .inlineNavigationBarTitle(navigationTitle)
     .sheet(item: $editingInstance) { instance in
-      ServerEditView(instance: instance, authViewModel: authViewModel)
+      ServerEditView(
+        instance: instance,
+        authViewModel: authViewModel,
+        onSaved: {
+          Task {
+            await loadInstances()
+          }
+        }
+      )
     }
     .alert(
       String(localized: "Delete Server"),
@@ -163,7 +166,20 @@ struct ServerListView: View {
         LoginView(authViewModel: authViewModel)
       }
     }
+    .task {
+      await loadInstances()
+    }
+    .onChange(of: showLogin) { _, isPresented in
+      if !isPresented {
+        Task {
+          await loadInstances()
+        }
+      }
+    }
     .onChange(of: isLoggedIn) { _, loggedIn in
+      Task {
+        await loadInstances()
+      }
       if loggedIn && mode == .onboarding {
         dismiss()
       }
@@ -216,39 +232,52 @@ struct ServerListView: View {
     }
   }
 
-  private func isActive(_ instance: KomgaInstance) -> Bool {
-    activeInstanceId == instance.id.uuidString
+  private func isActive(_ instance: ServerDisplayItem) -> Bool {
+    activeInstanceId == instance.instanceId
   }
 
-  private func isSwitching(_ instance: KomgaInstance) -> Bool {
-    authViewModel.isSwitching && authViewModel.switchingInstanceId == instance.id.uuidString
+  private func isSwitching(_ instance: ServerDisplayItem) -> Bool {
+    authViewModel.isSwitching && authViewModel.switchingInstanceId == instance.instanceId
   }
 
-  private func switchTo(_ instance: KomgaInstance) {
+  private func switchTo(_ instance: ServerDisplayItem) {
     guard !isActive(instance) else { return }
     Task {
       let success = await authViewModel.switchTo(instance: instance)
       if success {
-        instance.lastUsedAt = Date()
-        saveChanges()
+        do {
+          let database = try await DatabaseOperator.database()
+          await database.updateInstanceLastUsed(instanceId: instance.instanceId)
+          try await database.commit()
+          await loadInstances()
+        } catch {
+          ErrorManager.shared.alert(error: error)
+        }
       }
     }
   }
 
-  private func delete(_ instance: KomgaInstance) {
-    if isActive(instance) {
-      authViewModel.logout()
-    }
-    // Clear libraries (sync)
-    let instanceId = instance.id.uuidString
-    LibraryManager.shared.removeLibraries(for: instanceId)
-    modelContext.delete(instance)
-    saveChanges()
-    ErrorManager.shared.notify(message: String(localized: "notification.server.deleted"))
-    instancePendingDeletion = nil
-
-    // Clear SwiftData entities and offline data (async)
+  private func delete(_ instance: ServerDisplayItem) {
     Task {
+      if isActive(instance) {
+        authViewModel.logout()
+      }
+
+      let instanceId = instance.instanceId
+      LibraryManager.shared.removeLibraries(for: instanceId)
+
+      do {
+        let database = try await DatabaseOperator.database()
+        try await database.deleteServerDisplayItem(id: instance.id)
+        try await database.commit()
+        await loadInstances()
+        ErrorManager.shared.notify(message: String(localized: "notification.server.deleted"))
+        instancePendingDeletion = nil
+      } catch {
+        ErrorManager.shared.alert(error: error)
+        return
+      }
+
       await SyncService.clearInstanceData(instanceId: instanceId)
       await OfflineManager.shared.cancelAllDownloads()
       OfflineManager.removeOfflineData(for: instanceId)
@@ -256,9 +285,13 @@ struct ServerListView: View {
     }
   }
 
-  private func saveChanges() {
+  private func loadInstances() async {
     do {
-      try modelContext.save()
+      let database = try await DatabaseOperator.database()
+      let loadedInstances = try await database.fetchServerDisplayItems()
+      if instances != loadedInstances {
+        instances = loadedInstances
+      }
     } catch {
       ErrorManager.shared.alert(error: error)
     }

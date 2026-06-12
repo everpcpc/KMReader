@@ -3,12 +3,10 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct ServerHistoryView: View {
   @AppStorage("currentAccount") private var current: Current = .init()
-  @Environment(\.modelContext) private var modelContext
 
   @State private var pagination = PaginationState<HistoricalEvent>(pageSize: 20)
   @State private var isLoading = false
@@ -246,7 +244,6 @@ struct ServerHistoryView: View {
     isLoadingMore = false
   }
 
-  @MainActor
   private func updateLocalReferences(for events: [HistoricalEvent]) async {
     let instanceId = AppConfig.current.instanceId
     let bookIds = Set(
@@ -262,80 +259,27 @@ struct ServerHistoryView: View {
         .filter { !$0.isEmpty }
     )
 
-    var hasLocalMatches = false
-
-    if !bookIds.isEmpty {
-      let idsToFetch = Array(bookIds.subtracting(bookNameById.keys))
-      if !idsToFetch.isEmpty {
-        let descriptor = FetchDescriptor<KomgaBook>(
-          predicate: #Predicate { book in
-            book.instanceId == instanceId && idsToFetch.contains(book.bookId)
-          }
-        )
-        if let results = try? modelContext.fetch(descriptor), !results.isEmpty {
-          hasLocalMatches = true
-          for book in results {
-            bookNameById[book.bookId] = book.metaTitle
-          }
-        }
-      } else if !bookNameById.isEmpty {
-        hasLocalMatches = true
-      }
+    let missingBookIds = bookIds.subtracting(bookNameById.keys)
+    let missingSeriesIds = seriesIds.subtracting(seriesNameById.keys)
+    guard !missingBookIds.isEmpty || !missingSeriesIds.isEmpty else {
+      return
     }
 
-    if !seriesIds.isEmpty {
-      let idsToFetch = Array(seriesIds.subtracting(seriesNameById.keys))
-      if !idsToFetch.isEmpty {
-        let descriptor = FetchDescriptor<KomgaSeries>(
-          predicate: #Predicate { series in
-            series.instanceId == instanceId && idsToFetch.contains(series.seriesId)
-          }
-        )
-        if let results = try? modelContext.fetch(descriptor), !results.isEmpty {
-          hasLocalMatches = true
-          for series in results {
-            seriesNameById[series.seriesId] = series.metaTitle
-          }
-        }
-      } else if !seriesNameById.isEmpty {
-        hasLocalMatches = true
-      }
-    }
-
-    if hasLocalMatches == false && (!bookIds.isEmpty || !seriesIds.isEmpty) {
-      hasLocalMatches =
-        containsLocalMatches(bookIds: Array(bookIds), seriesIds: Array(seriesIds))
-    }
-
-  }
-
-  @MainActor
-  private func containsLocalMatches(bookIds: [String], seriesIds: [String]) -> Bool {
-    let instanceId = AppConfig.current.instanceId
-
-    if !bookIds.isEmpty {
-      let descriptor = FetchDescriptor<KomgaBook>(
-        predicate: #Predicate { book in
-          book.instanceId == instanceId && bookIds.contains(book.bookId)
-        }
+    do {
+      let references = try await DatabaseOperator.database().fetchHistoricalEventLocalReferences(
+        instanceId: instanceId,
+        bookIds: missingBookIds,
+        seriesIds: missingSeriesIds
       )
-      if let results = try? modelContext.fetch(descriptor), !results.isEmpty {
-        return true
+      for (bookId, name) in references.bookNameById {
+        bookNameById[bookId] = name
       }
-    }
-
-    if !seriesIds.isEmpty {
-      let descriptor = FetchDescriptor<KomgaSeries>(
-        predicate: #Predicate { series in
-          series.instanceId == instanceId && seriesIds.contains(series.seriesId)
-        }
-      )
-      if let results = try? modelContext.fetch(descriptor), !results.isEmpty {
-        return true
+      for (seriesId, name) in references.seriesNameById {
+        seriesNameById[seriesId] = name
       }
+    } catch {
+      ErrorManager.shared.alert(error: error)
     }
-
-    return false
   }
 
   private func clearLocalReferencedEntities() async {
@@ -372,7 +316,7 @@ struct ServerHistoryView: View {
     }
 
     do {
-      try await database.commitImmediately()
+      try await database.commit()
     } catch {
       ErrorManager.shared.alert(error: error)
       isClearingLocal = false

@@ -3,30 +3,16 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct OfflineBooksView: View {
-  @Environment(\.modelContext) private var modelContext
-  @Query var downloadedBooks: [KomgaBook]
-  @Query var libraries: [KomgaLibrary]
+  @AppStorage("currentAccount") private var current: Current = .init()
 
   @State private var showRemoveAllAlert = false
   @State private var showRemoveReadAlert = false
   @State private var isScanning = false
-
-  struct SeriesGroup: Identifiable {
-    let id: String
-    let series: KomgaSeries?
-    let books: [KomgaBook]
-  }
-
-  struct LibraryGroup: Identifiable {
-    let id: String
-    let library: KomgaLibrary?
-    let seriesGroups: [SeriesGroup]
-    let oneshotBooks: [KomgaBook]
-  }
+  @State private var snapshot: OfflineDownloadedBooksSnapshot = .empty
+  @State private var progressTracker = DownloadProgressTracker.shared
 
   private let formatter: ByteCountFormatter = {
     let f = ByteCountFormatter()
@@ -35,86 +21,9 @@ struct OfflineBooksView: View {
     return f
   }()
 
-  init() {
-    let instanceId = AppConfig.current.instanceId
-    _downloadedBooks = Query(
-      filter: #Predicate<KomgaBook> {
-        $0.instanceId == instanceId && $0.downloadStatusRaw == "downloaded"
-      },
-      sort: [SortDescriptor(\KomgaBook.libraryId)]
-    )
-    _libraries = Query(
-      filter: #Predicate<KomgaLibrary> {
-        $0.instanceId == instanceId
-      }
-    )
-  }
-
-  private var groupedBooks: [LibraryGroup] {
-    let libraryGroups = Dictionary(grouping: downloadedBooks) { $0.libraryId }
-    var result: [LibraryGroup] = []
-
-    for (libraryId, lBooks) in libraryGroups {
-      let library = libraries.first { $0.libraryId == libraryId }
-
-      let oneshots = lBooks.filter { $0.oneshot }
-      let seriesBooks = lBooks.filter { !$0.oneshot }
-
-      let seriesGroupsMap = Dictionary(grouping: seriesBooks) { $0.seriesId }
-
-      // Batch fetch all series at once
-      let instanceId = AppConfig.current.instanceId
-      let seriesIds = Set(seriesGroupsMap.keys)
-      let compositeIds = seriesIds.map { CompositeID.generate(instanceId: instanceId, id: $0) }
-      let seriesDescriptor = FetchDescriptor<KomgaSeries>(
-        predicate: #Predicate { compositeIds.contains($0.id) })
-      let allSeries = (try? modelContext.fetch(seriesDescriptor)) ?? []
-      let seriesMap = Dictionary(
-        allSeries.map { ($0.seriesId, $0) },
-        uniquingKeysWith: { first, _ in first }
-      )
-
-      var sGroups: [SeriesGroup] = []
-      for (seriesId, sBooks) in seriesGroupsMap {
-        sGroups.append(
-          SeriesGroup(
-            id: seriesId, series: seriesMap[seriesId],
-            books: sBooks.sorted { ($0.metadata?.numberSort ?? 0) < ($1.metadata?.numberSort ?? 0) }))
-      }
-
-      sGroups.sort {
-        ($0.series?.name ?? $0.books.first?.seriesTitle ?? "")
-          < ($1.series?.name ?? $1.books.first?.seriesTitle ?? "")
-      }
-      result.append(
-        LibraryGroup(
-          id: libraryId,
-          library: library,
-          seriesGroups: sGroups,
-          oneshotBooks: oneshots.sorted {
-            let lhsTitle = $0.metadata?.title ?? ""
-            let rhsTitle = $1.metadata?.title ?? ""
-            return (lhsTitle.isEmpty ? $0.name : lhsTitle)
-              < (rhsTitle.isEmpty ? $1.name : rhsTitle)
-          }
-        ))
-    }
-
-    result.sort { ($0.library?.name ?? "") < ($1.library?.name ?? "") }
-    return result
-  }
-
-  private var totalDownloadedSize: Int64 {
-    downloadedBooks.reduce(0) { $0 + $1.downloadedSize }
-  }
-
-  private var hasReadBooks: Bool {
-    downloadedBooks.contains { $0.readProgress?.completed == true }
-  }
-
   var body: some View {
     Form {
-      if downloadedBooks.isEmpty {
+      if snapshot.isEmpty {
         ContentUnavailableView {
           Label(String(localized: "settings.offline.no_books"), systemImage: ContentIcon.book)
         } description: {
@@ -127,7 +36,7 @@ struct OfflineBooksView: View {
             Text(String(localized: "settings.offline_books.total_size"))
               .fontWeight(.semibold)
             Spacer()
-            Text(formatter.string(fromByteCount: totalDownloadedSize))
+            Text(formatter.string(fromByteCount: snapshot.totalDownloadedSize))
               .foregroundColor(.accentColor)
           }
 
@@ -148,6 +57,7 @@ struct OfflineBooksView: View {
                   message: String(localized: "settings.offline_books.cleanup_orphaned.no_orphaned")
                 )
               }
+              await loadSnapshot()
             }
           } label: {
             HStack {
@@ -177,16 +87,16 @@ struct OfflineBooksView: View {
                 String(localized: "settings.offline_books.remove_read"),
                 systemImage: "checkmark.circle")
             }
-            .disabled(!hasReadBooks)
+            .disabled(!snapshot.hasReadBooks)
           }.adaptiveButtonStyle(.bordered)
         }
 
-        ForEach(groupedBooks) { lGroup in
+        ForEach(snapshot.libraryGroups) { lGroup in
           Section(
             header: HStack {
-              Text(lGroup.library?.name ?? String(localized: "Unknown"))
+              Text(lGroup.name ?? String(localized: "Unknown"))
               Spacer()
-              Text(formatter.string(fromByteCount: totalSize(for: lGroup)))
+              Text(formatter.string(fromByteCount: lGroup.downloadedSize))
                 .font(.caption)
                 .foregroundColor(.secondary)
             }
@@ -195,20 +105,20 @@ struct OfflineBooksView: View {
               #if os(tvOS)
                 Section(
                   header: HStack {
-                    Text(sGroup.series?.name ?? String(localized: "Unknown"))
+                    Text(sGroup.name ?? String(localized: "Unknown"))
                     Spacer()
-                    Text(formatter.string(fromByteCount: seriesSize(for: sGroup.books)))
+                    Text(formatter.string(fromByteCount: sGroup.downloadedSize))
                       .font(.caption)
                       .foregroundColor(.secondary)
                   }
                 ) {
                   ForEach(sGroup.books) { book in
                     HStack {
-                      Text("#\(book.metaNumber) - \(book.metaTitle)")
+                      Text(book.listTitle)
                         .font(.footnote)
 
                       Spacer()
-                      if book.readProgress?.completed == true {
+                      if book.isReadCompleted {
                         Image(systemName: "checkmark.circle.fill")
                           .font(.caption)
                           .foregroundColor(.secondary)
@@ -223,11 +133,11 @@ struct OfflineBooksView: View {
                 DisclosureGroup {
                   ForEach(sGroup.books) { book in
                     HStack {
-                      Text("#\(book.metaNumber) - \(book.metaTitle)")
+                      Text(book.listTitle)
                         .font(.footnote)
 
                       Spacer()
-                      if book.readProgress?.completed == true {
+                      if book.isReadCompleted {
                         Image(systemName: "checkmark.circle.fill")
                           .font(.caption)
                           .foregroundColor(.secondary)
@@ -246,9 +156,9 @@ struct OfflineBooksView: View {
                   }
                 } label: {
                   HStack {
-                    Text(sGroup.series?.name ?? String(localized: "Unknown"))
+                    Text(sGroup.name ?? String(localized: "Unknown"))
                     Spacer()
-                    Text(formatter.string(fromByteCount: seriesSize(for: sGroup.books)))
+                    Text(formatter.string(fromByteCount: sGroup.downloadedSize))
                       .font(.caption)
                       .foregroundColor(.secondary)
                   }
@@ -269,18 +179,18 @@ struct OfflineBooksView: View {
                   header: HStack {
                     Text(String(localized: "settings.offline_books.oneshots"))
                     Spacer()
-                    Text(formatter.string(fromByteCount: seriesSize(for: lGroup.oneshotBooks)))
+                    Text(formatter.string(fromByteCount: downloadedSize(for: lGroup.oneshotBooks)))
                       .font(.caption)
                       .foregroundColor(.secondary)
                   }
                 ) {
                   ForEach(lGroup.oneshotBooks) { book in
                     HStack {
-                      Text(book.metaTitle)
+                      Text(book.oneshotTitle)
                         .font(.footnote)
 
                       Spacer()
-                      if book.readProgress?.completed == true {
+                      if book.isReadCompleted {
                         Image(systemName: "checkmark.circle.fill")
                           .font(.caption)
                           .foregroundColor(.secondary)
@@ -295,11 +205,11 @@ struct OfflineBooksView: View {
                 DisclosureGroup {
                   ForEach(lGroup.oneshotBooks) { book in
                     HStack {
-                      Text(book.metaTitle)
+                      Text(book.oneshotTitle)
                         .font(.footnote)
 
                       Spacer()
-                      if book.readProgress?.completed == true {
+                      if book.isReadCompleted {
                         Image(systemName: "checkmark.circle.fill")
                           .font(.caption)
                           .foregroundColor(.secondary)
@@ -321,7 +231,7 @@ struct OfflineBooksView: View {
                   HStack {
                     Text(String(localized: "settings.offline_books.oneshots"))
                     Spacer()
-                    Text(formatter.string(fromByteCount: seriesSize(for: lGroup.oneshotBooks)))
+                    Text(formatter.string(fromByteCount: downloadedSize(for: lGroup.oneshotBooks)))
                       .font(.caption)
                       .foregroundColor(.secondary)
                   }
@@ -363,26 +273,29 @@ struct OfflineBooksView: View {
     } message: {
       Text(String(localized: "settings.offline_books.remove_read.message"))
     }
-  }
-
-  private func seriesSize(for books: [KomgaBook]) -> Int64 {
-    books.reduce(0) { $0 + $1.downloadedSize }
-  }
-
-  private func totalSize(for lGroup: LibraryGroup) -> Int64 {
-    let sSize = lGroup.seriesGroups.reduce(0) { $0 + seriesSize(for: $1.books) }
-    let oSize = lGroup.oneshotBooks.reduce(0) { $0 + $1.downloadedSize }
-    return sSize + oSize
-  }
-
-  private func deleteBook(_ book: KomgaBook) {
-    Task {
-      await OfflineManager.shared.deleteBookManually(
-        seriesId: book.seriesId, instanceId: book.instanceId, bookId: book.bookId)
+    .task(id: current.instanceId) {
+      await loadSnapshot()
+    }
+    .onChange(of: progressTracker.queueUpdateToken) { _, _ in
+      Task {
+        await loadSnapshot()
+      }
     }
   }
 
-  private func deleteSeries(_ books: [KomgaBook]) {
+  private func downloadedSize(for books: [OfflineDownloadedBookItem]) -> Int64 {
+    books.reduce(0) { $0 + $1.downloadedSize }
+  }
+
+  private func deleteBook(_ book: OfflineDownloadedBookItem) {
+    Task {
+      await OfflineManager.shared.deleteBookManually(
+        seriesId: book.seriesId, instanceId: book.instanceId, bookId: book.bookId)
+      await loadSnapshot()
+    }
+  }
+
+  private func deleteSeries(_ books: [OfflineDownloadedBookItem]) {
     guard let firstBook = books.first else { return }
     Task {
       await OfflineManager.shared.deleteBooksManually(
@@ -390,6 +303,7 @@ struct OfflineBooksView: View {
         instanceId: firstBook.instanceId,
         bookIds: books.map { $0.bookId }
       )
+      await loadSnapshot()
     }
   }
 
@@ -399,6 +313,7 @@ struct OfflineBooksView: View {
       ErrorManager.shared.notify(
         message: String(localized: "notification.offline.booksRemovedAll")
       )
+      await loadSnapshot()
     }
   }
 
@@ -408,6 +323,29 @@ struct OfflineBooksView: View {
       ErrorManager.shared.notify(
         message: String(localized: "notification.offline.booksRemovedRead")
       )
+      await loadSnapshot()
+    }
+  }
+
+  private func loadSnapshot() async {
+    let instanceId = current.instanceId
+    guard !instanceId.isEmpty else {
+      if snapshot != .empty {
+        snapshot = .empty
+      }
+      return
+    }
+
+    do {
+      let database = try await DatabaseOperator.database()
+      let loadedSnapshot = try await database.fetchOfflineDownloadedBooksSnapshot(
+        instanceId: instanceId
+      )
+      if snapshot != loadedSnapshot {
+        snapshot = loadedSnapshot
+      }
+    } catch {
+      ErrorManager.shared.alert(error: error)
     }
   }
 }

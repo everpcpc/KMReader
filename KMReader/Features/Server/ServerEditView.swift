@@ -3,14 +3,14 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct ServerEditView: View {
   let authViewModel: AuthViewModel
+  let instance: ServerDisplayItem
+  let onSaved: () -> Void
+
   @Environment(\.dismiss) private var dismiss
-  @Environment(\.modelContext) private var modelContext
-  @Bindable var instance: KomgaInstance
   @AppStorage("currentAccount") private var current: Current = .init()
 
   @State private var name: String
@@ -20,6 +20,7 @@ struct ServerEditView: View {
   @State private var apiKey: String = ""
   @State private var authMethod: AuthenticationMethod
   @State private var isValidating = false
+  @State private var isSaving = false
   @State private var validationMessage: String?
   @State private var isValidated = false
 
@@ -40,14 +41,15 @@ struct ServerEditView: View {
     }
   }
 
-  init(instance: KomgaInstance, authViewModel: AuthViewModel) {
+  init(instance: ServerDisplayItem, authViewModel: AuthViewModel, onSaved: @escaping () -> Void) {
+    self.instance = instance
     self.authViewModel = authViewModel
-    _instance = Bindable(instance)
+    self.onSaved = onSaved
     _name = State(initialValue: instance.name)
     _serverURL = State(initialValue: instance.serverURL)
     _username = State(initialValue: instance.username)
-    _authMethod = State(initialValue: instance.resolvedAuthMethod)
-    if instance.resolvedAuthMethod == .apiKey {
+    _authMethod = State(initialValue: instance.authMethod)
+    if instance.authMethod == .apiKey {
       _apiKey = State(initialValue: instance.authToken)
     }
   }
@@ -63,7 +65,7 @@ struct ServerEditView: View {
           TextField("Server URL", text: $serverURL)
             .textContentType(.URL)
             #if os(iOS) || os(tvOS)
-              .autocapitalization(.none)
+              .textInputAutocapitalization(.never)
               .keyboardType(.URL)
             #endif
             .autocorrectionDisabled()
@@ -118,7 +120,7 @@ struct ServerEditView: View {
             TextField(String(localized: "Username"), text: $username)
               .textContentType(.username)
               #if os(iOS) || os(tvOS)
-                .autocapitalization(.none)
+                .textInputAutocapitalization(.never)
               #endif
               .autocorrectionDisabled()
               .onChange(of: username) { _, _ in
@@ -134,7 +136,7 @@ struct ServerEditView: View {
             SecureField(String(localized: "API Key"), text: $apiKey)
               .textContentType(.password)
               #if os(iOS) || os(tvOS)
-                .autocapitalization(.none)
+                .textInputAutocapitalization(.never)
               #endif
               .autocorrectionDisabled()
               .onChange(of: apiKey) { _, _ in
@@ -166,7 +168,11 @@ struct ServerEditView: View {
       Button {
         saveChanges()
       } label: {
-        Label(String(localized: "Save"), systemImage: "checkmark")
+        if isSaving {
+          LoadingIcon()
+        } else {
+          Label(String(localized: "Save"), systemImage: "checkmark")
+        }
       }
       .disabled(!canSave)
     }
@@ -188,7 +194,7 @@ struct ServerEditView: View {
 
   private var hasChanges: Bool {
     if trimmedName != instance.name || trimmedServerURL != instance.serverURL
-      || authMethod != instance.resolvedAuthMethod
+      || authMethod != instance.authMethod
     {
       return true
     }
@@ -200,6 +206,7 @@ struct ServerEditView: View {
   }
 
   private var canSave: Bool {
+    guard !isSaving else { return false }
     guard !trimmedServerURL.isEmpty else { return false }
 
     if authMethod == .basicAuth {
@@ -218,11 +225,11 @@ struct ServerEditView: View {
     if authMethod == .basicAuth {
       isCredsChanged =
         trimmedServerURL != instance.serverURL || trimmedUsername != instance.username
-        || !password.isEmpty || authMethod != instance.resolvedAuthMethod
+        || !password.isEmpty || authMethod != instance.authMethod
     } else {
       isCredsChanged =
         trimmedServerURL != instance.serverURL || apiKey != instance.authToken
-        || authMethod != instance.resolvedAuthMethod
+        || authMethod != instance.authMethod
     }
 
     if isCredsChanged {
@@ -242,7 +249,7 @@ struct ServerEditView: View {
       // If password is empty, can only validate if only serverURL changed (username unchanged)
       // If username changed, password must be provided
       return trimmedServerURL != instance.serverURL && trimmedUsername == instance.username
-        && instance.resolvedAuthMethod == .basicAuth
+        && instance.authMethod == .basicAuth
     } else {
       return !apiKey.isEmpty
     }
@@ -253,41 +260,60 @@ struct ServerEditView: View {
       return
     }
 
-    instance.name =
+    let resolvedName =
       trimmedName.isEmpty
       ? defaultInstanceName(serverURL: trimmedServerURL)
       : trimmedName
-    instance.serverURL = trimmedServerURL
-    instance.authMethod = authMethod
 
+    let resolvedAuthToken: String
     if authMethod == .basicAuth {
-      instance.username = trimmedUsername
       if !password.isEmpty {
         guard let token = makeAuthToken(username: trimmedUsername, password: password) else {
           ErrorManager.shared.notify(
             message: String(localized: "notification.settings.encodeCredentialsFailed"))
           return
         }
-        instance.authToken = token
+        resolvedAuthToken = token
+      } else {
+        resolvedAuthToken = instance.authToken
       }
     } else {
-      // For API Key, we use the key as the token directly
-      instance.authToken = apiKey
-      // API Key auth returns a User object, so we can use that email/username
+      resolvedAuthToken = apiKey
     }
 
-    instance.lastUsedAt = Date()
+    isSaving = true
 
-    do {
-      try modelContext.save()
-      if current.instanceId == instance.id.uuidString {
-        Task {
-          _ = await authViewModel.switchTo(instance: instance)
+    Task {
+      do {
+        let database = try await DatabaseOperator.database()
+        guard
+          let updatedInstance = try await database.updateServerDisplayItem(
+            id: instance.id,
+            name: resolvedName,
+            serverURL: trimmedServerURL,
+            username: trimmedUsername,
+            authToken: resolvedAuthToken,
+            authMethod: authMethod
+          )
+        else {
+          isSaving = false
+          return
         }
+        try await database.commit()
+        isSaving = false
+
+        if current.instanceId == updatedInstance.instanceId {
+          Task {
+            _ = await authViewModel.switchTo(instance: updatedInstance)
+          }
+        }
+
+        onSaved()
+        dismiss()
+      } catch {
+        isSaving = false
+        ErrorManager.shared.alert(error: error)
       }
-      dismiss()
-    } catch {
-      ErrorManager.shared.alert(error: error)
     }
   }
 

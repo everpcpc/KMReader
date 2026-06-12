@@ -3,7 +3,6 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct CollectionDetailView: View {
@@ -14,9 +13,7 @@ struct CollectionDetailView: View {
 
   @Environment(\.dismiss) private var dismiss
 
-  // SwiftData query for reactive updates
-  @Query private var komgaCollections: [KomgaCollection]
-
+  @State private var item: CollectionDisplayItem?
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
   @State private var showFilterSheet = false
@@ -24,18 +21,10 @@ struct CollectionDetailView: View {
 
   init(collectionId: String) {
     self.collectionId = collectionId
-    let compositeId = CompositeID.generate(id: collectionId)
-    _komgaCollections = Query(filter: #Predicate<KomgaCollection> { $0.id == compositeId })
   }
 
-  /// The KomgaCollection from SwiftData (reactive).
-  private var komgaCollection: KomgaCollection? {
-    komgaCollections.first
-  }
-
-  /// Convert to API SeriesCollection type for compatibility with existing components.
   private var collection: SeriesCollection? {
-    komgaCollection?.toCollection()
+    item?.collection
   }
 
   private var navigationTitle: String {
@@ -43,7 +32,7 @@ struct CollectionDetailView: View {
   }
 
   private var isPinned: Bool {
-    komgaCollection?.isPinned ?? false
+    item?.isPinned ?? false
   }
 
   var body: some View {
@@ -61,7 +50,7 @@ struct CollectionDetailView: View {
           ).padding(.horizontal)
 
           // Series list
-          if komgaCollection != nil {
+          if item != nil {
             CollectionSeriesListView(
               collectionId: collectionId,
               showFilterSheet: $showFilterSheet,
@@ -120,15 +109,26 @@ struct CollectionDetailView: View {
 extension CollectionDetailView {
   private func loadCollectionDetails() async {
     do {
-      // Sync from network to SwiftData (collection property will update reactively)
       _ = try await SyncService.syncCollection(id: collectionId)
     } catch {
       if case APIError.notFound = error {
         dismiss()
-      } else if komgaCollection == nil {
+      } else if item == nil {
         ErrorManager.shared.alert(error: error)
       }
     }
+    await loadLocalCollection()
+  }
+
+  private func loadLocalCollection() async {
+    guard let database = try? await DatabaseOperator.database() else {
+      item = nil
+      return
+    }
+    item = try? await database.fetchCollectionDisplayItem(
+      collectionId: collectionId,
+      instanceId: current.instanceId
+    )
   }
 
   @MainActor
@@ -143,15 +143,16 @@ extension CollectionDetailView {
   }
 
   private func togglePinned() {
-    guard let komgaCollection else { return }
-    let nextPinned = !komgaCollection.isPinned
+    guard let item else { return }
+    let nextPinned = !item.isPinned
     Task {
       try? await DatabaseOperator.database().setCollectionPinned(
-        collectionId: komgaCollection.collectionId,
-        instanceId: komgaCollection.instanceId,
+        collectionId: item.collectionId,
+        instanceId: item.instanceId,
         isPinned: nextPinned
       )
       try? await DatabaseOperator.database().commit()
+      await loadLocalCollection()
     }
   }
 

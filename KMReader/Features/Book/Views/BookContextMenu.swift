@@ -13,6 +13,7 @@ struct BookContextMenu: View {
   var onShowReadListPicker: (() -> Void)? = nil
   var onDeleteRequested: (() -> Void)? = nil
   var onEditRequested: (() -> Void)? = nil
+  var onMutationCompleted: (() -> Void)? = nil
   var showSeriesNavigation: Bool = true
 
   @AppStorage("currentAccount") private var current: Current = .init()
@@ -106,6 +107,7 @@ struct BookContextMenu: View {
           ErrorManager.shared.notify(
             message: downloadNotificationMessage(for: previousStatus)
           )
+          onMutationCompleted?()
         }
       } label: {
         Label(downloadStatus.menuLabel, systemImage: downloadStatus.menuIcon)
@@ -151,6 +153,7 @@ struct BookContextMenu: View {
         try await BookService.markAsRead(bookId: bookId)
         _ = try await SyncService.syncBookAndSeries(bookId: bookId, seriesId: book.seriesId)
         ErrorManager.shared.notify(message: String(localized: "notification.book.markedRead"))
+        onMutationCompleted?()
       } catch {
         ErrorManager.shared.alert(error: error)
       }
@@ -163,6 +166,7 @@ struct BookContextMenu: View {
         try await BookService.markAsUnread(bookId: bookId)
         _ = try await SyncService.syncBook(bookId: bookId)
         ErrorManager.shared.notify(message: String(localized: "notification.book.markedUnread"))
+        onMutationCompleted?()
       } catch {
         ErrorManager.shared.alert(error: error)
       }
@@ -187,6 +191,7 @@ struct BookContextMenu: View {
         try await BookService.refreshMetadata(bookId: bookId)
         ErrorManager.shared.notify(
           message: String(localized: "notification.book.metadataRefreshed"))
+        onMutationCompleted?()
       } catch {
         ErrorManager.shared.alert(error: error)
       }

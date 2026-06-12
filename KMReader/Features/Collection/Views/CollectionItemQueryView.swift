@@ -3,23 +3,25 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct CollectionItemQueryView: View {
-  @Bindable var collection: KomgaCollection
+  let item: CollectionDisplayItem
   var layout: BrowseLayoutMode = .grid
+  var onMutationCompleted: (() -> Void)? = nil
 
   var body: some View {
-    NavigationLink(value: NavDestination.collectionDetail(collectionId: collection.collectionId)) {
+    NavigationLink(value: NavDestination.collectionDetail(collectionId: item.collectionId)) {
       switch layout {
       case .grid:
         CollectionCardView(
-          komgaCollection: collection
+          item: item,
+          onMutationCompleted: onMutationCompleted
         )
       case .list:
         CollectionRowView(
-          komgaCollection: collection
+          item: item,
+          onMutationCompleted: onMutationCompleted
         )
       }
     }

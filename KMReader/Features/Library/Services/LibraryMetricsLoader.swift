@@ -4,7 +4,6 @@
 //
 
 import Foundation
-import SwiftData
 
 struct LibraryMetricsLoader {
   static let shared = LibraryMetricsLoader()
@@ -116,7 +115,8 @@ struct LibraryMetricsLoader {
     ensureEntry: Bool
   ) async {
     if !ensureEntry {
-      try? await DatabaseOperator.database().upsertAllLibrariesEntry(
+      let database = try? await DatabaseOperator.database()
+      try? await database?.upsertAllLibrariesEntry(
         instanceId: instanceId,
         fileSize: nil,
         booksCount: nil,
@@ -125,6 +125,7 @@ struct LibraryMetricsLoader {
         collectionsCount: nil,
         readlistsCount: nil
       )
+      try? await database?.commit()
     }
 
     var metrics = AllLibrariesMetricsData()
@@ -199,7 +200,8 @@ struct LibraryMetricsLoader {
       }
     }
 
-    try? await DatabaseOperator.database().upsertAllLibrariesEntry(
+    let database = try? await DatabaseOperator.database()
+    try? await database?.upsertAllLibrariesEntry(
       instanceId: instanceId,
       fileSize: metrics.fileSize,
       booksCount: metrics.booksCount,
@@ -208,10 +210,11 @@ struct LibraryMetricsLoader {
       collectionsCount: metrics.collectionsCount,
       readlistsCount: metrics.readlistsCount
     )
+    try? await database?.commit()
   }
 }
 
-struct LibraryMetricValues {
+nonisolated struct LibraryMetricValues: Equatable, Sendable {
   var fileSize: Double?
   var seriesCount: Double?
   var booksCount: Double?

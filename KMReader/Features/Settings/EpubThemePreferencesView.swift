@@ -5,7 +5,6 @@
 
 #if os(iOS)
   import Foundation
-  import SwiftData
   import SwiftUI
 
   struct EpubThemePreferencesView: View {
@@ -22,12 +21,10 @@
     @State private var showSavePresetAlert: Bool = false
     @State private var newPresetName: String = ""
     @State private var fontListRefreshId: UUID = UUID()
+    @State private var customFonts: [CustomFontDisplayItem] = []
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) var colorScheme
-    @Environment(\.modelContext) private var modelContext
-
-    @Query(sort: \CustomFont.name, order: .forward) private var customFonts: [CustomFont]
 
     init(
       inSheet: Bool = false,
@@ -392,20 +389,26 @@
         }
       }
       .inlineNavigationBarTitle(navigationTitle)
+      .task {
+        _ = await loadCustomFonts()
+      }
       .sheet(isPresented: $showCustomFontsSheet) {
         CustomFontsSheet()
           .onDisappear {
-            FontProvider.refresh()
-            fontListRefreshId = UUID()
+            Task {
+              FontProvider.refresh()
+              fontListRefreshId = UUID()
 
-            let customFontNames = customFonts.map { $0.name }
-            if let selectedFontName = draft.fontFamily.fontName {
-              let isKnownCustomFont = customFontNames.contains(selectedFontName)
-              let isKnownChoice = FontProvider.allChoices.contains(where: {
-                $0.fontName == selectedFontName
-              })
-              if !isKnownCustomFont && !isKnownChoice {
-                draft.fontFamily = .publisher
+              let loadedFonts = await loadCustomFonts()
+              let customFontNames = loadedFonts.map(\.name)
+              if let selectedFontName = draft.fontFamily.fontName {
+                let isKnownCustomFont = customFontNames.contains(selectedFontName)
+                let isKnownChoice = FontProvider.allChoices.contains(where: {
+                  $0.fontName == selectedFontName
+                })
+                if !isKnownCustomFont && !isKnownChoice {
+                  draft.fontFamily = .publisher
+                }
               }
             }
           }
@@ -438,15 +441,20 @@
       let trimmed = newPresetName.trimmingCharacters(in: .whitespaces)
       guard !trimmed.isEmpty else { return }
 
-      let preset = EpubThemePreset.create(
-        name: trimmed,
-        preferences: draft
-      )
-      modelContext.insert(preset)
-      try? modelContext.save()
-
-      ErrorManager.shared.notify(message: String(localized: "Preset saved: \(trimmed)"))
-      newPresetName = ""
+      Task {
+        do {
+          let database = try await DatabaseOperator.database()
+          try await database.createEpubThemePreset(
+            name: trimmed,
+            preferencesJSON: draft.rawValue
+          )
+          try await database.commit()
+          ErrorManager.shared.notify(message: String(localized: "Preset saved: \(trimmed)"))
+          newPresetName = ""
+        } catch {
+          ErrorManager.shared.alert(error: error)
+        }
+      }
     }
 
     private func savePreferences() {
@@ -479,6 +487,20 @@
       onThemePreferencesCleared?()
       ErrorManager.shared.notify(message: String(localized: "Reset to Global"))
       dismiss()
+    }
+
+    private func loadCustomFonts() async -> [CustomFontDisplayItem] {
+      do {
+        let database = try await DatabaseOperator.database()
+        let loadedFonts = try await database.fetchCustomFontDisplayItems()
+        if customFonts != loadedFonts {
+          customFonts = loadedFonts
+        }
+        return loadedFonts
+      } catch {
+        ErrorManager.shared.alert(error: error)
+        return customFonts
+      }
     }
   }
 

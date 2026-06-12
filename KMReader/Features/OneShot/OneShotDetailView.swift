@@ -4,7 +4,6 @@
 //
 
 import Flow
-import SwiftData
 import SwiftUI
 
 struct OneshotDetailView: View {
@@ -13,9 +12,8 @@ struct OneshotDetailView: View {
   @Environment(\.dismiss) private var dismiss
   @AppStorage("currentAccount") private var current: Current = .init()
 
-  @Query private var komgaSeriesList: [KomgaSeries]
-  @Query private var komgaBookList: [KomgaBook]
-
+  @State private var seriesItem: SeriesDisplayItem?
+  @State private var bookItem: BookDisplayItem?
   @State private var isLoading = true
   @State private var hasError = false
   @State private var showDeleteConfirmation = false
@@ -25,33 +23,18 @@ struct OneshotDetailView: View {
 
   init(seriesId: String) {
     self.seriesId = seriesId
-    let instanceId = AppConfig.current.instanceId
-    let seriesCompositeId = CompositeID.generate(instanceId: instanceId, id: seriesId)
-    _komgaSeriesList = Query(filter: #Predicate<KomgaSeries> { $0.id == seriesCompositeId })
-    _komgaBookList = Query(
-      filter: #Predicate<KomgaBook> { $0.instanceId == instanceId && $0.seriesId == seriesId })
-  }
-
-  /// The KomgaSeries from SwiftData (reactive).
-  private var komgaSeries: KomgaSeries? {
-    komgaSeriesList.first
-  }
-
-  /// The KomgaBook from SwiftData (reactive).
-  private var komgaBook: KomgaBook? {
-    komgaBookList.first
   }
 
   private var series: Series? {
-    komgaSeries?.toSeries()
+    seriesItem?.series
   }
 
   private var book: Book? {
-    komgaBook?.toBook()
+    bookItem?.book
   }
 
   private var downloadStatus: DownloadStatus {
-    komgaBook?.downloadStatus ?? .notDownloaded
+    bookItem?.downloadStatus ?? .notDownloaded
   }
 
   private var navigationTitle: String {
@@ -78,12 +61,12 @@ struct OneshotDetailView: View {
             inSheet: false
           )
 
-          if let komgaSeries = komgaSeries {
-            SeriesCollectionsSection(collectionIds: komgaSeries.collectionIds)
+          if let seriesItem {
+            SeriesCollectionsSection(collectionIds: seriesItem.collectionIds)
           }
 
-          if let komgaBook = komgaBook {
-            BookReadListsSection(readListIds: komgaBook.readListIds)
+          if let bookItem {
+            BookReadListsSection(readListIds: bookItem.readListIds)
           }
         } else if hasError {
           VStack(spacing: 16) {
@@ -172,12 +155,30 @@ struct OneshotDetailView: View {
     } catch {
       if case APIError.notFound = error {
         dismiss()
-      } else if komgaSeries == nil || komgaBook == nil {
+      } else if seriesItem == nil || bookItem == nil {
         hasError = true
         ErrorManager.shared.alert(error: error)
       }
       isLoading = false
     }
+    await loadLocalOneshot()
+  }
+
+  private func loadLocalOneshot() async {
+    guard let database = try? await DatabaseOperator.database() else {
+      seriesItem = nil
+      bookItem = nil
+      return
+    }
+
+    seriesItem = try? await database.fetchSeriesDisplayItem(
+      seriesId: seriesId,
+      instanceId: current.instanceId
+    )
+    bookItem = try? await database.fetchFirstBookDisplayItem(
+      seriesId: seriesId,
+      instanceId: current.instanceId
+    )
   }
 
   private func clearCache() {

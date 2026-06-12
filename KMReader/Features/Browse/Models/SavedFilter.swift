@@ -6,7 +6,7 @@
 import Foundation
 import SwiftData
 
-enum SavedFilterType: String, CaseIterable, Identifiable {
+nonisolated enum SavedFilterType: String, CaseIterable, Identifiable, Sendable {
   case series
   case books
   case collectionSeries

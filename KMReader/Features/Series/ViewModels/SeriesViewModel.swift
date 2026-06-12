@@ -4,7 +4,6 @@
 //
 
 import Foundation
-import SwiftData
 import SwiftUI
 
 @MainActor
@@ -15,7 +14,6 @@ class SeriesViewModel {
   private(set) var pagination = PaginationState<IdentifiedString>(pageSize: 50)
 
   func loadSeries(
-    context: ModelContext,
     browseOpts: SeriesBrowseOptions,
     searchText: String = "",
     libraryIds: [String]? = nil,
@@ -41,8 +39,13 @@ class SeriesViewModel {
     }
 
     if AppConfig.isOffline || useLocalOnly {
-      let ids = KomgaSeriesStore.fetchSeriesIds(
-        context: context,
+      guard let database = try? await DatabaseOperator.database() else {
+        guard loadID == pagination.loadID else { return }
+        applyPage(ids: [], moreAvailable: false)
+        return
+      }
+      let ids = await database.fetchBrowseSeriesIds(
+        instanceId: AppConfig.current.instanceId,
         libraryIds: libraryIds,
         searchText: searchText,
         browseOpts: browseOpts,
@@ -87,7 +90,6 @@ class SeriesViewModel {
   }
 
   func loadCollectionSeries(
-    context: ModelContext,
     collectionId: String,
     browseOpts: CollectionSeriesBrowseOptions,
     libraryIds: [String]? = nil,
@@ -113,15 +115,18 @@ class SeriesViewModel {
     }
 
     if AppConfig.isOffline {
-      let series = KomgaSeriesStore.fetchCollectionSeries(
-        context: context,
+      guard let database = try? await DatabaseOperator.database() else {
+        guard loadID == pagination.loadID else { return }
+        applyPage(ids: [], moreAvailable: false)
+        return
+      }
+      let ids = await database.fetchCollectionSeriesIds(
         collectionId: collectionId,
+        browseOpts: browseOpts,
         page: pagination.currentPage,
-        size: pagination.pageSize,
-        browseOpts: browseOpts
+        size: pagination.pageSize
       )
       guard loadID == pagination.loadID else { return }
-      let ids = series.map { $0.id }
       applyPage(ids: ids, moreAvailable: ids.count == pagination.pageSize)
     } else {
       do {

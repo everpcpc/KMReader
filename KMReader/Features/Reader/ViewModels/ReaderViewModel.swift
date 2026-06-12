@@ -629,7 +629,7 @@ class ReaderViewModel {
     Task {
       if let database = await DatabaseOperator.databaseIfConfigured() {
         await database.updatePageRotations(bookId: bookId, rotations: rotations)
-        await database.commit()
+        try? await database.commit()
       }
     }
   }
@@ -957,7 +957,7 @@ class ReaderViewModel {
     if let database = await DatabaseOperator.databaseIfConfigured() {
       await database.updateBookPages(bookId: bookId, pages: result.pages)
       await database.updateBookTOC(bookId: bookId, toc: result.tableOfContents)
-      await database.commit()
+      try? await database.commit()
     }
     if result.renderedImageCount > 0 {
       await OfflineManager.shared.refreshDownloadedBookSize(
@@ -1166,7 +1166,7 @@ class ReaderViewModel {
           bookId: isolatePosition.bookId,
           pages: sortedLocalPages
         )
-        await database.commit()
+        try? await database.commit()
       }
     }
   }

@@ -26,7 +26,7 @@ enum KomgaReadListStore {
     return paginate(readLists, offset: page * size, limit: size).map { $0.toReadList() }
   }
 
-  static func fetchReadListIds(
+  nonisolated static func fetchReadListIds(
     context: ModelContext,
     libraryIds: [String]?,
     searchText: String,
@@ -73,7 +73,7 @@ enum KomgaReadListStore {
     return try? context.fetch(descriptor).first?.toReadList()
   }
 
-  private static func fetchOrderedReadLists(
+  nonisolated private static func fetchOrderedReadLists(
     context: ModelContext,
     searchText: String,
     sort: String?
@@ -104,13 +104,13 @@ enum KomgaReadListStore {
     }
   }
 
-  private static func pinnedFirst(_ readLists: [KomgaReadList]) -> [KomgaReadList] {
+  nonisolated private static func pinnedFirst(_ readLists: [KomgaReadList]) -> [KomgaReadList] {
     let pinned = readLists.filter(\.isPinned)
     let unpinned = readLists.filter { !$0.isPinned }
     return pinned + unpinned
   }
 
-  private static func sortDescriptors(sort: String?) -> [SortDescriptor<KomgaReadList>] {
+  nonisolated private static func sortDescriptors(sort: String?) -> [SortDescriptor<KomgaReadList>] {
     let isAscending = sort?.contains("desc") != true
 
     if sort?.contains("createdDate") == true {
@@ -130,7 +130,7 @@ enum KomgaReadListStore {
     ]
   }
 
-  private static func paginate(
+  nonisolated private static func paginate(
     _ readLists: [KomgaReadList],
     offset: Int,
     limit: Int

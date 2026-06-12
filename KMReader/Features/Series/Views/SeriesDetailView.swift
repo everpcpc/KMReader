@@ -4,7 +4,6 @@
 //
 
 import Flow
-import SwiftData
 import SwiftUI
 
 struct SeriesDetailView: View {
@@ -15,11 +14,9 @@ struct SeriesDetailView: View {
   @AppStorage("seriesDetailLayout") private var seriesDetailLayout: BrowseLayoutMode = .list
 
   @Environment(\.dismiss) private var dismiss
-  @Environment(\.modelContext) private var modelContext
   @Environment(\.readerActions) private var readerActions
 
-  @Query private var komgaSeriesList: [KomgaSeries]
-
+  @State private var item: SeriesDisplayItem?
   @State private var bookViewModel = BookViewModel()
   @State private var showDeleteConfirmation = false
   @State private var showCollectionPicker = false
@@ -29,18 +26,10 @@ struct SeriesDetailView: View {
 
   init(seriesId: String) {
     self.seriesId = seriesId
-    let compositeId = CompositeID.generate(id: seriesId)
-    _komgaSeriesList = Query(filter: #Predicate<KomgaSeries> { $0.id == compositeId })
   }
 
-  /// The KomgaSeries from SwiftData (reactive).
-  private var komgaSeries: KomgaSeries? {
-    komgaSeriesList.first
-  }
-
-  /// Convert to API Series type for compatibility with existing components.
   private var series: Series? {
-    komgaSeries?.toSeries()
+    item?.series
   }
 
   private var canMarkSeriesAsRead: Bool {
@@ -101,19 +90,29 @@ struct SeriesDetailView: View {
               .padding(.vertical, 8)
             }
 
-            if let komgaSeries = komgaSeries {
-              SeriesCollectionsSection(collectionIds: komgaSeries.collectionIds)
+            if let item {
+              SeriesCollectionsSection(collectionIds: item.collectionIds)
             }
 
             Divider()
-            if let komgaSeries = komgaSeries {
-              SeriesDownloadActionsSection(komgaSeries: komgaSeries)
+            if let item {
+              SeriesDownloadActionsSection(
+                seriesId: item.seriesId,
+                status: item.downloadStatus,
+                policy: item.offlinePolicy,
+                offlinePolicyLimit: item.offlinePolicyLimit,
+                onMutationCompleted: {
+                  Task {
+                    await refreshSeriesData()
+                  }
+                }
+              )
             }
             Divider()
           }
           .padding(.horizontal)
 
-          if komgaSeries != nil {
+          if item != nil {
             BooksListViewForSeries(
               seriesId: seriesId,
               bookViewModel: bookViewModel,
@@ -178,16 +177,27 @@ struct SeriesDetailView: View {
 extension SeriesDetailView {
   private func refreshSeriesData() async {
     do {
-      // Sync from network to SwiftData (series property will update reactively)
       _ = try await SyncService.syncSeriesDetail(seriesId: seriesId)
       await SyncService.syncSeriesCollections(seriesId: seriesId)
     } catch {
       if case APIError.notFound = error {
         dismiss()
-      } else if komgaSeries == nil {
+      } else if item == nil {
         ErrorManager.shared.alert(error: error)
       }
     }
+    await loadLocalSeries()
+  }
+
+  private func loadLocalSeries() async {
+    guard let database = try? await DatabaseOperator.database() else {
+      item = nil
+      return
+    }
+    item = try? await database.fetchSeriesDisplayItem(
+      seriesId: seriesId,
+      instanceId: current.instanceId
+    )
   }
 
   private func analyzeSeries() {
@@ -256,8 +266,8 @@ extension SeriesDetailView {
     Task {
       let book = await SeriesContinueReadingResolver.resolve(
         seriesId: seriesId,
-        isOffline: isOffline,
-        context: modelContext
+        instanceId: current.instanceId,
+        isOffline: isOffline
       )
       if let book {
         readerActions.open(book: book, incognito: false)

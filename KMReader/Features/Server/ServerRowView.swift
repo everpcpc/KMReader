@@ -3,13 +3,12 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct ServerRowView: View {
-  @Bindable var instance: KomgaInstance
+  let instance: ServerDisplayItem
+
   @Environment(\.colorScheme) private var colorScheme
-  @AppStorage("currentAccount") private var current: Current = .init()
 
   let isGlobalSwitching: Bool
   let isSwitching: Bool
@@ -52,7 +51,7 @@ struct ServerRowView: View {
           )
           infoDetailRow(
             icon: "key.fill",
-            text: instance.resolvedAuthMethod == .apiKey
+            text: instance.authMethod == .apiKey
               ? String(localized: "API Key") : String(localized: "Username & Password"),
             textColor: .secondary
           )

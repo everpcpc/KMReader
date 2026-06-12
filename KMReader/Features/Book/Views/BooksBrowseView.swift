@@ -3,7 +3,6 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct BooksBrowseView: View {
@@ -13,8 +12,6 @@ struct BooksBrowseView: View {
   let metadataFilter: MetadataFilterConfig?
   @Binding var showFilterSheet: Bool
   @Binding var showSavedFilters: Bool
-
-  @Environment(\.modelContext) private var modelContext
 
   @AppStorage("bookBrowseOptions") private var storedBrowseOpts: BookBrowseOptions = BookBrowseOptions()
   @State private var browseOpts: BookBrowseOptions = BookBrowseOptions()
@@ -93,7 +90,6 @@ struct BooksBrowseView: View {
     let effectiveBrowseOpts =
       (searchIgnoreFilters && !searchText.isEmpty) ? BookBrowseOptions() : browseOpts
     await viewModel.loadBrowseBooks(
-      context: modelContext,
       browseOpts: effectiveBrowseOpts,
       searchText: searchText,
       libraryIds: libraryIds,

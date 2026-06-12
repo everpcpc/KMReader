@@ -3,10 +3,9 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
-/// View for book selection mode that accepts only bookId and uses @Query to fetch the book.
+/// View for book selection mode that accepts only bookId and fetches a book display projection.
 struct BookSelectionItemView: View {
   let bookId: String
   let layout: BrowseLayoutMode
@@ -14,7 +13,8 @@ struct BookSelectionItemView: View {
   let refreshBooks: () -> Void
   var showSeriesTitle: Bool = true
 
-  @Query private var komgaBooks: [KomgaBook]
+  @AppStorage("currentAccount") private var current: Current = .init()
+  @State private var item: BookDisplayItem?
 
   init(
     bookId: String,
@@ -29,13 +29,6 @@ struct BookSelectionItemView: View {
     self.refreshBooks = refreshBooks
     self.showSeriesTitle = showSeriesTitle
 
-    let instanceId = AppConfig.current.instanceId
-    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
-    _komgaBooks = Query(filter: #Predicate<KomgaBook> { $0.id == compositeId })
-  }
-
-  private var komgaBook: KomgaBook? {
-    komgaBooks.first
   }
 
   private var isSelected: Bool {
@@ -43,43 +36,59 @@ struct BookSelectionItemView: View {
   }
 
   var body: some View {
-    if let book = komgaBook {
-      Group {
-        switch layout {
-        case .grid:
-          BookCardView(
-            komgaBook: book,
-            onReadBook: { _ in },
-            showSeriesTitle: showSeriesTitle
-          )
-        case .list:
-          BookRowView(
-            komgaBook: book,
-            onReadBook: { _ in },
-            showSeriesTitle: showSeriesTitle
-          )
-        }
-      }
-      .allowsHitTesting(false)
-      .scaleEffect(isSelected ? 0.96 : 1.0)
-      .overlay {
-        if isSelected {
-          RoundedRectangle(cornerRadius: 12)
-            .stroke(Color.accentColor, lineWidth: 2)
-        }
-      }
-      .contentShape(Rectangle())
-      .highPriorityGesture(
-        TapGesture().onEnded {
-          withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-            if isSelected {
-              selectedBookIds.remove(bookId)
-            } else {
-              selectedBookIds.insert(bookId)
-            }
+    Group {
+      if let item {
+        Group {
+          switch layout {
+          case .grid:
+            BookCardView(
+              item: item,
+              onReadBook: { _ in },
+              showSeriesTitle: showSeriesTitle
+            )
+          case .list:
+            BookRowView(
+              item: item,
+              onReadBook: { _ in },
+              showSeriesTitle: showSeriesTitle
+            )
           }
         }
-      )
+        .allowsHitTesting(false)
+        .scaleEffect(isSelected ? 0.96 : 1.0)
+        .overlay {
+          if isSelected {
+            RoundedRectangle(cornerRadius: 12)
+              .stroke(Color.accentColor, lineWidth: 2)
+          }
+        }
+        .contentShape(Rectangle())
+        .highPriorityGesture(
+          TapGesture().onEnded {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+              if isSelected {
+                selectedBookIds.remove(bookId)
+              } else {
+                selectedBookIds.insert(bookId)
+              }
+            }
+          }
+        )
+      }
     }
+    .task(id: "\(current.instanceId)|\(bookId)") {
+      await loadItem()
+    }
+  }
+
+  private func loadItem() async {
+    guard let database = try? await DatabaseOperator.database() else {
+      item = nil
+      return
+    }
+    item = try? await database.fetchBookDisplayItem(
+      bookId: bookId,
+      instanceId: current.instanceId
+    )
   }
 }

@@ -3,7 +3,6 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct SidebarView: View {
@@ -11,10 +10,6 @@ struct SidebarView: View {
 
   @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("isOffline") private var isOffline: Bool = false
-  @Query(sort: [SortDescriptor(\KomgaLibrary.name, order: .forward)]) private var allLibraries: [KomgaLibrary]
-  @Query(sort: [SortDescriptor(\KomgaCollection.name, order: .forward)]) private
-    var allCollections: [KomgaCollection]
-  @Query(sort: [SortDescriptor(\KomgaReadList.name, order: .forward)]) private var allReadLists: [KomgaReadList]
 
   @AppStorage("sidebarBrowseExpanded") private var browseExpanded: Bool = true
   @AppStorage("sidebarLibrariesExpanded") private var librariesExpanded: Bool = true
@@ -22,6 +17,9 @@ struct SidebarView: View {
   @AppStorage("sidebarReadListsExpanded") private var readListsExpanded: Bool = false
 
   @State private var isRefreshing: Bool = false
+  @State private var libraries: [SidebarLibraryItem] = []
+  @State private var collections: [SidebarCollectionItem] = []
+  @State private var readLists: [SidebarReadListItem] = []
 
   private var showsSettingsLink: Bool {
     #if os(iOS)
@@ -29,23 +27,6 @@ struct SidebarView: View {
     #else
       return false
     #endif
-  }
-
-  private var libraries: [KomgaLibrary] {
-    guard !current.instanceId.isEmpty else { return [] }
-    return allLibraries.filter {
-      $0.instanceId == current.instanceId && $0.libraryId != KomgaLibrary.allLibrariesId
-    }
-  }
-
-  private var collections: [KomgaCollection] {
-    guard !current.instanceId.isEmpty else { return [] }
-    return allCollections.filter { $0.instanceId == current.instanceId }
-  }
-
-  private var readLists: [KomgaReadList] {
-    guard !current.instanceId.isEmpty else { return [] }
-    return allReadLists.filter { $0.instanceId == current.instanceId }
   }
 
   private func refreshSidebar() async {
@@ -59,6 +40,29 @@ struct SidebarView: View {
     await SyncService.syncLibraries(instanceId: current.instanceId)
     await SyncService.syncCollections(instanceId: current.instanceId)
     await SyncService.syncReadLists(instanceId: current.instanceId)
+    await loadSidebarItems(instanceId: current.instanceId)
+  }
+
+  private func loadSidebarItems(instanceId: String) async {
+    guard !instanceId.isEmpty else {
+      if !libraries.isEmpty { libraries = [] }
+      if !collections.isEmpty { collections = [] }
+      if !readLists.isEmpty { readLists = [] }
+      return
+    }
+
+    do {
+      let database = try await DatabaseOperator.database()
+      let loadedLibraries = try await database.fetchSidebarLibraries(instanceId: instanceId)
+      let loadedCollections = try await database.fetchSidebarCollections(instanceId: instanceId)
+      let loadedReadLists = try await database.fetchSidebarReadLists(instanceId: instanceId)
+
+      if libraries != loadedLibraries { libraries = loadedLibraries }
+      if collections != loadedCollections { collections = loadedCollections }
+      if readLists != loadedReadLists { readLists = loadedReadLists }
+    } catch {
+      ErrorManager.shared.alert(error: error)
+    }
   }
 
   var body: some View {
@@ -82,6 +86,9 @@ struct SidebarView: View {
         await refreshSidebar()
       }
     #endif
+    .task(id: current.instanceId) {
+      await loadSidebarItems(instanceId: current.instanceId)
+    }
     #if os(macOS)
       .safeAreaInset(edge: .bottom) {
         Button {
@@ -143,11 +150,11 @@ struct SidebarView: View {
       Section(isExpanded: $librariesExpanded) {
         ForEach(libraries) { library in
           NavigationLink(
-            value: NavDestination.browseLibrary(selection: LibrarySelection(library: library))
+            value: NavDestination.browseLibrary(selection: LibrarySelection(sidebarItem: library))
           ) {
             SidebarItemLabel(
               title: library.name,
-              count: library.booksCount.map { Int($0) }
+              count: library.displayBookCount
             )
             .contextMenu {
               if current.isAdmin && !isOffline {
@@ -175,7 +182,7 @@ struct SidebarView: View {
           ) {
             SidebarItemLabel(
               title: collection.name,
-              count: collection.seriesIds.count
+              count: collection.seriesCount
             )
           }
         }
@@ -192,7 +199,7 @@ struct SidebarView: View {
           ) {
             SidebarItemLabel(
               title: readList.name,
-              count: readList.bookIds.count
+              count: readList.bookCount
             )
           }
         }

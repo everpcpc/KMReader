@@ -3,7 +3,6 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 enum DashboardRefreshSource {
@@ -27,7 +26,6 @@ struct DashboardSectionView: View {
   @AppStorage("showDashboardSectionGradientBackground")
   private var showDashboardSectionGradientBackground: Bool =
     AppConfig.showDashboardSectionGradientBackground
-  @Environment(\.modelContext) private var modelContext
   @Environment(\.colorScheme) private var colorScheme
 
   @State private var pagination = PaginationState<IdentifiedString>(pageSize: 20)
@@ -222,15 +220,13 @@ struct DashboardSectionView: View {
       let ids: [String]
       switch section.contentKind {
       case .books:
-        ids = section.fetchOfflineBookIds(
-          context: modelContext,
+        ids = await section.fetchOfflineBookIds(
           libraryIds: libraryIds,
           offset: pagination.currentPage * pagination.pageSize,
           limit: pagination.pageSize
         )
       case .series:
-        ids = section.fetchOfflineSeriesIds(
-          context: modelContext,
+        ids = await section.fetchOfflineSeriesIds(
           libraryIds: libraryIds,
           offset: pagination.currentPage * pagination.pageSize,
           limit: pagination.pageSize

@@ -3,17 +3,15 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct EpubThemePresetsView: View {
   let onApply: ((EpubThemePreferences) -> Void)?
 
   @Environment(\.dismiss) private var dismiss
-  @Environment(\.modelContext) private var modelContext
-  @Query(sort: \EpubThemePreset.updatedAt, order: .reverse) private var presets: [EpubThemePreset]
 
-  @State private var presetToRename: EpubThemePreset?
+  @State private var presets: [EpubThemePresetDisplayItem] = []
+  @State private var presetToRename: EpubThemePresetDisplayItem?
   @State private var newName: String = ""
 
   init(onApply: ((EpubThemePreferences) -> Void)? = nil) {
@@ -44,6 +42,9 @@ struct EpubThemePresetsView: View {
         }
       }
     }
+    .task {
+      await loadPresets()
+    }
     .alert(
       "Rename Preset",
       isPresented: .init(
@@ -65,7 +66,7 @@ struct EpubThemePresetsView: View {
   }
 
   @ViewBuilder
-  private func presetRow(_ preset: EpubThemePreset) -> some View {
+  private func presetRow(_ preset: EpubThemePresetDisplayItem) -> some View {
     HStack {
       VStack(alignment: .leading, spacing: 4) {
         Text(preset.name)
@@ -128,8 +129,8 @@ struct EpubThemePresetsView: View {
     }
   }
 
-  private func applyPreset(_ preset: EpubThemePreset) {
-    if let preferences = preset.getPreferences() {
+  private func applyPreset(_ preset: EpubThemePresetDisplayItem) {
+    if let preferences = preset.preferences {
       if let onApply {
         onApply(preferences)
       } else {
@@ -139,20 +140,46 @@ struct EpubThemePresetsView: View {
     }
   }
 
-  private func deletePreset(_ preset: EpubThemePreset) {
-    modelContext.delete(preset)
-    try? modelContext.save()
+  private func deletePreset(_ preset: EpubThemePresetDisplayItem) {
+    Task {
+      do {
+        let database = try await DatabaseOperator.database()
+        try await database.deleteEpubThemePreset(id: preset.id)
+        try await database.commit()
+        await loadPresets()
+      } catch {
+        ErrorManager.shared.alert(error: error)
+      }
+    }
   }
 
-  private func renamePreset(_ preset: EpubThemePreset, to newName: String) {
+  private func renamePreset(_ preset: EpubThemePresetDisplayItem, to newName: String) {
     let trimmed = newName.trimmingCharacters(in: .whitespaces)
     guard !trimmed.isEmpty else { return }
 
-    preset.name = trimmed
-    preset.updatedAt = Date()
-    try? modelContext.save()
+    Task {
+      do {
+        let database = try await DatabaseOperator.database()
+        try await database.renameEpubThemePreset(id: preset.id, name: trimmed)
+        try await database.commit()
+        await loadPresets()
+        presetToRename = nil
+        self.newName = ""
+      } catch {
+        ErrorManager.shared.alert(error: error)
+      }
+    }
+  }
 
-    presetToRename = nil
-    self.newName = ""
+  private func loadPresets() async {
+    do {
+      let database = try await DatabaseOperator.database()
+      let loadedPresets = try await database.fetchEpubThemePresetDisplayItems()
+      if presets != loadedPresets {
+        presets = loadedPresets
+      }
+    } catch {
+      ErrorManager.shared.alert(error: error)
+    }
   }
 }

@@ -4,17 +4,16 @@
 //
 
 import Foundation
-import SwiftData
 import SwiftUI
 
-enum DashboardSectionContentKind {
+enum DashboardSectionContentKind: Sendable {
   case books
   case series
   case collections
   case readLists
 }
 
-enum DashboardSection: String, CaseIterable, Identifiable, Codable {
+enum DashboardSection: String, CaseIterable, Identifiable, Codable, Sendable {
   case keepReading = "keepReading"
   case onDeck = "onDeck"
   case pinnedCollections = "pinnedCollections"
@@ -188,72 +187,24 @@ enum DashboardSection: String, CaseIterable, Identifiable, Codable {
     }
   }
 
-  func fetchOfflineBookIds(
-    context: ModelContext,
-    libraryIds: [String],
-    offset: Int,
-    limit: Int
-  ) -> [String] {
-    switch self {
-    case .keepReading:
-      return KomgaBookStore.fetchKeepReadingBookIds(
-        context: context,
-        libraryIds: libraryIds,
-        offset: offset,
-        limit: limit
-      )
-    case .onDeck:
-      return []
-    case .recentlyReadBooks:
-      return KomgaBookStore.fetchRecentlyReadBookIds(
-        context: context,
-        libraryIds: libraryIds,
-        offset: offset,
-        limit: limit
-      )
-    case .recentlyReleasedBooks:
-      return KomgaBookStore.fetchRecentlyReleasedBookIds(
-        context: context,
-        libraryIds: libraryIds,
-        offset: offset,
-        limit: limit
-      )
-    case .recentlyAddedBooks:
-      return KomgaBookStore.fetchRecentlyAddedBookIds(
-        context: context,
-        libraryIds: libraryIds,
-        offset: offset,
-        limit: limit
-      )
-    default:
-      return []
-    }
+  func fetchOfflineBookIds(libraryIds: [String], offset: Int, limit: Int) async -> [String] {
+    guard let database = try? await DatabaseOperator.database() else { return [] }
+    return await database.fetchDashboardOfflineBookIds(
+      section: self,
+      libraryIds: libraryIds,
+      offset: offset,
+      limit: limit
+    )
   }
 
-  func fetchOfflineSeriesIds(
-    context: ModelContext,
-    libraryIds: [String],
-    offset: Int,
-    limit: Int
-  ) -> [String] {
-    switch self {
-    case .recentlyAddedSeries:
-      return KomgaSeriesStore.fetchNewlyAddedSeriesIds(
-        context: context,
-        libraryIds: libraryIds,
-        offset: offset,
-        limit: limit
-      )
-    case .recentlyUpdatedSeries:
-      return KomgaSeriesStore.fetchRecentlyUpdatedSeriesIds(
-        context: context,
-        libraryIds: libraryIds,
-        offset: offset,
-        limit: limit
-      )
-    default:
-      return []
-    }
+  func fetchOfflineSeriesIds(libraryIds: [String], offset: Int, limit: Int) async -> [String] {
+    guard let database = try? await DatabaseOperator.database() else { return [] }
+    return await database.fetchDashboardOfflineSeriesIds(
+      section: self,
+      libraryIds: libraryIds,
+      offset: offset,
+      limit: limit
+    )
   }
 }
 

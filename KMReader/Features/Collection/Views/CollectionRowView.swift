@@ -6,7 +6,8 @@
 import SwiftUI
 
 struct CollectionRowView: View {
-  @Bindable var komgaCollection: KomgaCollection
+  let item: CollectionDisplayItem
+  var onMutationCompleted: (() -> Void)? = nil
 
   @State private var showEditSheet = false
   @State private var showDeleteConfirmation = false
@@ -14,21 +15,21 @@ struct CollectionRowView: View {
   var body: some View {
     HStack(spacing: 12) {
       NavigationLink(
-        value: NavDestination.collectionDetail(collectionId: komgaCollection.collectionId)
+        value: NavDestination.collectionDetail(collectionId: item.collectionId)
       ) {
-        ThumbnailImage(id: komgaCollection.collectionId, type: .collection, width: 60)
+        ThumbnailImage(id: item.collectionId, type: .collection, width: 60)
       }
       .adaptiveButtonStyle(.plain)
 
       VStack(alignment: .leading, spacing: 6) {
         NavigationLink(
-          value: NavDestination.collectionDetail(collectionId: komgaCollection.collectionId)
+          value: NavDestination.collectionDetail(collectionId: item.collectionId)
         ) {
           HStack(spacing: 6) {
-            Text(komgaCollection.name)
+            Text(item.name)
               .font(.callout)
               .lineLimit(2)
-            if komgaCollection.isPinned {
+            if item.isPinned {
               Image(systemName: "pin.fill")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
@@ -38,12 +39,12 @@ struct CollectionRowView: View {
 
         HStack {
           VStack(alignment: .leading, spacing: 4) {
-            Label("\(komgaCollection.seriesIds.count) series", systemImage: ContentIcon.series)
+            Label("\(item.seriesCount) series", systemImage: ContentIcon.series)
               .font(.footnote)
               .foregroundColor(.secondary)
 
             Label(
-              komgaCollection.lastModifiedDate.formatted(date: .abbreviated, time: .omitted),
+              item.lastModifiedDate.formatted(date: .abbreviated, time: .omitted),
               systemImage: "clock"
             )
             .font(.caption)
@@ -54,9 +55,9 @@ struct CollectionRowView: View {
 
           EllipsisMenuButton {
             CollectionContextMenu(
-              collectionId: komgaCollection.collectionId,
-              menuTitle: komgaCollection.name,
-              isPinned: komgaCollection.isPinned,
+              collectionId: item.collectionId,
+              menuTitle: item.name,
+              isPinned: item.isPinned,
               onDeleteRequested: {
                 showDeleteConfirmation = true
               },
@@ -67,7 +68,7 @@ struct CollectionRowView: View {
                 togglePinned()
               }
             )
-            .id(komgaCollection.collectionId)
+            .id(item.collectionId)
           }
         }
       }
@@ -81,7 +82,7 @@ struct CollectionRowView: View {
       Text("Are you sure you want to delete this collection? This action cannot be undone.")
     }
     .sheet(isPresented: $showEditSheet) {
-      CollectionEditSheet(collection: komgaCollection.toCollection())
+      CollectionEditSheet(collection: item.collection)
     }
   }
 
@@ -89,8 +90,9 @@ struct CollectionRowView: View {
     Task {
       do {
         try await CollectionService.deleteCollection(
-          collectionId: komgaCollection.collectionId)
+          collectionId: item.collectionId)
         ErrorManager.shared.notify(message: String(localized: "notification.collection.deleted"))
+        onMutationCompleted?()
       } catch {
         ErrorManager.shared.alert(error: error)
       }
@@ -98,14 +100,15 @@ struct CollectionRowView: View {
   }
 
   private func togglePinned() {
-    let nextPinned = !komgaCollection.isPinned
+    let nextPinned = !item.isPinned
     Task {
       try? await DatabaseOperator.database().setCollectionPinned(
-        collectionId: komgaCollection.collectionId,
-        instanceId: komgaCollection.instanceId,
+        collectionId: item.collectionId,
+        instanceId: item.instanceId,
         isPinned: nextPinned
       )
       try? await DatabaseOperator.database().commit()
+      onMutationCompleted?()
     }
   }
 }

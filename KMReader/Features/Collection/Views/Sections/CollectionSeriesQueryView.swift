@@ -3,7 +3,6 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct CollectionSeriesQueryView: View {
@@ -16,7 +15,6 @@ struct CollectionSeriesQueryView: View {
   let isAdmin: Bool
 
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
-  @Environment(\.modelContext) private var modelContext
 
   private var columns: [GridItem] {
     LayoutConfig.adaptiveColumns(for: gridDensity)
@@ -95,7 +93,6 @@ struct CollectionSeriesQueryView: View {
 
   private func loadMore(refresh: Bool) async {
     await seriesViewModel.loadCollectionSeries(
-      context: modelContext,
       collectionId: collectionId,
       browseOpts: browseOpts,
       refresh: refresh

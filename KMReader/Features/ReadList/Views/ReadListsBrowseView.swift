@@ -3,7 +3,6 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct ReadListsBrowseView: View {
@@ -12,7 +11,6 @@ struct ReadListsBrowseView: View {
   let refreshTrigger: UUID
   @Binding var showFilterSheet: Bool
 
-  @Environment(\.modelContext) private var modelContext
   @AppStorage("readListSortOptions") private var sortOpts: SimpleSortOptions =
     SimpleSortOptions()
   @AppStorage("readListBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
@@ -124,16 +122,16 @@ struct ReadListsBrowseView: View {
   }
 
   private func loadReadListIds() async throws -> [String] {
-    let localIds = localReadListIds()
+    let localIds = await localReadListIds()
     guard !AppConfig.isOffline else { return localIds }
 
     let serverIds = Set(try await syncReadListIds())
     return localIds.filter { serverIds.contains($0) }
   }
 
-  private func localReadListIds() -> [String] {
-    KomgaReadListStore.fetchReadListIds(
-      context: modelContext,
+  private func localReadListIds() async -> [String] {
+    guard let database = try? await DatabaseOperator.database() else { return [] }
+    return await database.fetchReadListIds(
       libraryIds: libraryIds,
       searchText: searchText,
       sort: sortOpts.sortString,

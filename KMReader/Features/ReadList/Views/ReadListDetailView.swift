@@ -3,7 +3,6 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct ReadListDetailView: View {
@@ -14,9 +13,7 @@ struct ReadListDetailView: View {
 
   @Environment(\.dismiss) private var dismiss
 
-  // SwiftData query for reactive updates
-  @Query private var komgaReadLists: [KomgaReadList]
-
+  @State private var item: ReadListDisplayItem?
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
   @State private var showFilterSheet = false
@@ -24,18 +21,10 @@ struct ReadListDetailView: View {
 
   init(readListId: String) {
     self.readListId = readListId
-    let compositeId = CompositeID.generate(id: readListId)
-    _komgaReadLists = Query(filter: #Predicate<KomgaReadList> { $0.id == compositeId })
   }
 
-  /// The KomgaReadList from SwiftData (reactive).
-  private var komgaReadList: KomgaReadList? {
-    komgaReadLists.first
-  }
-
-  /// Convert to API ReadList type for compatibility with existing components.
   private var readList: ReadList? {
-    komgaReadList?.toReadList()
+    item?.readList
   }
 
   private var navigationTitle: String {
@@ -43,7 +32,7 @@ struct ReadListDetailView: View {
   }
 
   private var isPinned: Bool {
-    komgaReadList?.isPinned ?? false
+    item?.isPinned ?? false
   }
 
   var body: some View {
@@ -61,15 +50,23 @@ struct ReadListDetailView: View {
             #endif
 
             Divider()
-            if let komgaReadList = komgaReadList {
-              ReadListDownloadActionsSection(komgaReadList: komgaReadList)
+            if let item {
+              ReadListDownloadActionsSection(
+                readListId: item.readListId,
+                status: item.downloadStatus,
+                onMutationCompleted: {
+                  Task {
+                    await loadReadListDetails()
+                  }
+                }
+              )
             }
             Divider()
           }
           .padding(.horizontal)
 
           // Books list
-          if komgaReadList != nil {
+          if item != nil {
             BooksListViewForReadList(
               readListId: readListId,
               showFilterSheet: $showFilterSheet,
@@ -128,15 +125,26 @@ struct ReadListDetailView: View {
 extension ReadListDetailView {
   private func loadReadListDetails() async {
     do {
-      // Sync from network to SwiftData (readList property will update reactively)
       _ = try await SyncService.syncReadList(id: readListId)
     } catch {
       if case APIError.notFound = error {
         dismiss()
-      } else if komgaReadList == nil {
+      } else if item == nil {
         ErrorManager.shared.alert(error: error)
       }
     }
+    await loadLocalReadList()
+  }
+
+  private func loadLocalReadList() async {
+    guard let database = try? await DatabaseOperator.database() else {
+      item = nil
+      return
+    }
+    item = try? await database.fetchReadListDisplayItem(
+      readListId: readListId,
+      instanceId: current.instanceId
+    )
   }
 
   @MainActor
@@ -151,15 +159,16 @@ extension ReadListDetailView {
   }
 
   private func togglePinned() {
-    guard let komgaReadList else { return }
-    let nextPinned = !komgaReadList.isPinned
+    guard let item else { return }
+    let nextPinned = !item.isPinned
     Task {
       try? await DatabaseOperator.database().setReadListPinned(
-        readListId: komgaReadList.readListId,
-        instanceId: komgaReadList.instanceId,
+        readListId: item.readListId,
+        instanceId: item.instanceId,
         isPinned: nextPinned
       )
       try? await DatabaseOperator.database().commit()
+      await loadLocalReadList()
     }
   }
 

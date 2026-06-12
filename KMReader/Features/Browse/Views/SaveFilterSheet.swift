@@ -3,12 +3,10 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct SaveFilterSheet: View {
   @Environment(\.dismiss) private var dismiss
-  @Environment(\.modelContext) private var modelContext
 
   let filterType: SavedFilterType
   let seriesOptions: SeriesBrowseOptions?
@@ -70,29 +68,39 @@ struct SaveFilterSheet: View {
 
     isSaving = true
 
-    guard
-      let savedFilter = SavedFilter.create(
-        name: trimmedName,
-        filterType: filterType,
-        seriesOptions: seriesOptions,
-        bookOptions: bookOptions,
-        collectionOptions: collectionOptions,
-        readListOptions: readListOptions
-      )
-    else {
+    guard let filterDataJSON else {
       ErrorManager.shared.alert(message: "Failed to create filter")
       isSaving = false
       return
     }
 
-    modelContext.insert(savedFilter)
+    Task {
+      do {
+        let database = try await DatabaseOperator.database()
+        try await database.createSavedFilter(
+          name: trimmedName,
+          filterType: filterType,
+          filterDataJSON: filterDataJSON
+        )
+        try await database.commit()
+        dismiss()
+      } catch {
+        ErrorManager.shared.alert(error: error)
+        isSaving = false
+      }
+    }
+  }
 
-    do {
-      try modelContext.save()
-      dismiss()
-    } catch {
-      ErrorManager.shared.alert(error: error)
-      isSaving = false
+  private var filterDataJSON: String? {
+    switch filterType {
+    case .series:
+      return seriesOptions?.rawValue
+    case .books, .seriesBooks:
+      return bookOptions?.rawValue
+    case .collectionSeries:
+      return collectionOptions?.rawValue
+    case .readListBooks:
+      return readListOptions?.rawValue
     }
   }
 }

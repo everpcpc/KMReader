@@ -3,11 +3,9 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct OfflineTasksView: View {
-  @Environment(\.modelContext) private var modelContext
   @AppStorage("currentAccount") private var current: Current = .init()
   private var instanceId: String { current.instanceId }
   @AppStorage("offlinePaused") private var isPaused: Bool = false
@@ -16,45 +14,33 @@ struct OfflineTasksView: View {
   @State private var showingBulkAlert = false
   @State private var showingAutoDeleteAlert = false
   @State private var pendingBulkAction: BulkAction?
+  @State private var tasks: [OfflineTaskItem] = []
+  @State private var progressTracker = DownloadProgressTracker.shared
 
   enum BulkAction {
     case retryAll, cancelAll
   }
 
-  @Query private var books: [KomgaBook]
-
-  init() {
-    let instanceId = AppConfig.current.instanceId
-    _books = Query(
-      filter: #Predicate<KomgaBook> { book in
-        book.instanceId == instanceId
-          && (book.downloadStatusRaw == "pending" || book.downloadStatusRaw == "downloading"
-            || book.downloadStatusRaw == "failed")
-      },
-      sort: [SortDescriptor(\KomgaBook.downloadAt, order: .forward)]
-    )
+  private var downloadingTasks: [OfflineTaskItem] {
+    tasks.filter(\.isDownloading)
   }
 
-  private var downloadingBooks: [KomgaBook] {
-    books.filter { $0.downloadStatusRaw == "downloading" }
+  private var pendingTasks: [OfflineTaskItem] {
+    tasks.filter(\.isPending)
   }
 
-  private var pendingBooks: [KomgaBook] {
-    books.filter { $0.downloadStatusRaw == "pending" }
-  }
-
-  private var failedBooks: [KomgaBook] {
-    books.filter { $0.downloadStatusRaw == "failed" }
+  private var failedTasks: [OfflineTaskItem] {
+    tasks.filter(\.isFailed)
   }
 
   private var currentStatus: SyncStatus {
     if isPaused {
       return .paused
     }
-    if !downloadingBooks.isEmpty {
+    if !downloadingTasks.isEmpty {
       return .downloading
     }
-    if !pendingBooks.isEmpty {
+    if !pendingTasks.isEmpty {
       return .syncing
     }
     return .idle
@@ -117,26 +103,47 @@ struct OfflineTasksView: View {
         }
       }
 
-      if !downloadingBooks.isEmpty {
+      if !downloadingTasks.isEmpty {
         Section("Downloading") {
-          ForEach(downloadingBooks) { book in
-            OfflineTaskRow(book: book)
+          ForEach(downloadingTasks) { task in
+            OfflineTaskRow(
+              task: task,
+              onChanged: {
+                Task {
+                  await loadTasks()
+                }
+              }
+            )
           }
         }
       }
 
-      if !pendingBooks.isEmpty {
+      if !pendingTasks.isEmpty {
         Section("Pending") {
-          ForEach(pendingBooks) { book in
-            OfflineTaskRow(book: book)
+          ForEach(pendingTasks) { task in
+            OfflineTaskRow(
+              task: task,
+              onChanged: {
+                Task {
+                  await loadTasks()
+                }
+              }
+            )
           }
         }
       }
 
-      if !failedBooks.isEmpty {
+      if !failedTasks.isEmpty {
         Section {
-          ForEach(failedBooks) { book in
-            OfflineTaskRow(book: book)
+          ForEach(failedTasks) { task in
+            OfflineTaskRow(
+              task: task,
+              onChanged: {
+                Task {
+                  await loadTasks()
+                }
+              }
+            )
           }
         } header: {
           HStack {
@@ -171,7 +178,7 @@ struct OfflineTasksView: View {
         }
       }
 
-      if books.isEmpty {
+      if tasks.isEmpty {
         ContentUnavailableView {
           Label("No Download Tasks", systemImage: "square.and.arrow.down")
         } description: {
@@ -184,7 +191,7 @@ struct OfflineTasksView: View {
     .inlineNavigationBarTitle(OfflineSection.tasks.title)
     .animation(.default, value: isPaused)
     .animation(.default, value: currentStatus)
-    .animation(.default, value: books)
+    .animation(.default, value: tasks)
     .alert(
       "Confirm Action", isPresented: $showingBulkAlert,
       presenting: pendingBulkAction
@@ -197,11 +204,13 @@ struct OfflineTasksView: View {
             ErrorManager.shared.notify(
               message: String(localized: "notification.offline.retryAllFailed")
             )
+            await loadTasks()
           case .cancelAll:
             await OfflineManager.shared.cancelFailedDownloads(instanceId: instanceId)
             ErrorManager.shared.notify(
               message: String(localized: "notification.offline.cancelAllFailed")
             )
+            await loadTasks()
           }
         }
       } label: {
@@ -226,8 +235,14 @@ struct OfflineTasksView: View {
         OfflineManager.shared.triggerSync(instanceId: instanceId, restart: true)
       }
     }
-    .task {
+    .task(id: instanceId) {
+      await loadTasks()
       OfflineManager.shared.triggerSync(instanceId: instanceId)
+    }
+    .onChange(of: progressTracker.queueUpdateToken) { _, _ in
+      Task {
+        await loadTasks()
+      }
     }
     .alert(
       String(localized: "settings.offline.auto_delete_read"),
@@ -245,28 +260,49 @@ struct OfflineTasksView: View {
       Text(String(localized: "settings.offline.auto_delete_read.message"))
     }
   }
+
+  private func loadTasks() async {
+    guard !instanceId.isEmpty else {
+      if !tasks.isEmpty {
+        tasks = []
+      }
+      return
+    }
+
+    do {
+      let database = try await DatabaseOperator.database()
+      let loadedTasks = try await database.fetchOfflineTaskItems(instanceId: instanceId)
+      if tasks != loadedTasks {
+        tasks = loadedTasks
+      }
+    } catch {
+      ErrorManager.shared.alert(error: error)
+    }
+  }
 }
 
 struct OfflineTaskRow: View {
   @AppStorage("currentAccount") private var current: Current = .init()
   private var instanceId: String { current.instanceId }
-  @Bindable var book: KomgaBook
+  let task: OfflineTaskItem
+  let onChanged: () -> Void
+
+  @State private var progressTracker = DownloadProgressTracker.shared
 
   private var progress: Double? {
-    DownloadProgressTracker.shared.progress[book.bookId]
+    progressTracker.progress[task.bookId]
   }
 
   var body: some View {
     HStack(alignment: .center, spacing: 12) {
       VStack(alignment: .leading, spacing: 4) {
-        Text(book.seriesTitle)
+        Text(task.seriesTitle)
           .font(.caption)
           .lineLimit(1)
-        Text("#\(book.metaNumber) - \(book.metaTitle)")
+        Text("#\(task.metaNumber) - \(task.metaTitle)")
           .lineLimit(1)
 
-        switch book.downloadStatus {
-        case .pending:
+        if task.isPending || task.isDownloading {
           if let progress = progress {
             if progress >= 1 {
               Text(String(localized: "Processing offline files..."))
@@ -285,17 +321,19 @@ struct OfflineTaskRow: View {
               }
             }
           } else {
-            Text("Pending in queue...")
+            Text(
+              task.isDownloading
+                ? String(localized: "Downloading")
+                : String(localized: "Pending in queue...")
+            )
               .font(.caption)
               .foregroundColor(.secondary)
           }
-        case .failed(let error):
+        } else if case .failed(let error) = task.downloadStatus {
           Text(error)
             .font(.caption)
             .foregroundColor(.red)
             .lineLimit(2)
-        default:
-          EmptyView()
         }
       }
 
@@ -303,11 +341,12 @@ struct OfflineTaskRow: View {
 
       #if os(iOS) || os(macOS)
         HStack(spacing: 16) {
-          if case .failed = book.downloadStatus {
+          if task.isFailed {
             Button {
               Task {
                 await OfflineManager.shared.retryDownload(
-                  instanceId: instanceId, bookId: book.bookId)
+                  instanceId: instanceId, bookId: task.bookId)
+                onChanged()
               }
             } label: {
               Image(systemName: "arrow.clockwise.circle")
@@ -318,11 +357,12 @@ struct OfflineTaskRow: View {
 
           Button(role: .destructive) {
             Task {
-              await OfflineManager.shared.cancelDownload(bookId: book.bookId)
+              await OfflineManager.shared.cancelDownload(bookId: task.bookId)
               OfflineManager.shared.triggerSync(instanceId: instanceId)
+              onChanged()
             }
           } label: {
-            Image(systemName: book.downloadStatusRaw == "failed" ? "trash" : "xmark.circle")
+            Image(systemName: task.isFailed ? "trash" : "xmark.circle")
               .foregroundColor(.red)
           }
           .adaptiveButtonStyle(.plain)

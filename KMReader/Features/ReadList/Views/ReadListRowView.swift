@@ -6,25 +6,26 @@
 import SwiftUI
 
 struct ReadListRowView: View {
-  @Bindable var komgaReadList: KomgaReadList
+  let item: ReadListDisplayItem
+  var onMutationCompleted: (() -> Void)? = nil
 
   @State private var showEditSheet = false
   @State private var showDeleteConfirmation = false
 
   var body: some View {
     HStack(spacing: 12) {
-      NavigationLink(value: NavDestination.readListDetail(readListId: komgaReadList.readListId)) {
-        ThumbnailImage(id: komgaReadList.readListId, type: .readlist, width: 60)
+      NavigationLink(value: NavDestination.readListDetail(readListId: item.readListId)) {
+        ThumbnailImage(id: item.readListId, type: .readlist, width: 60)
       }
       .adaptiveButtonStyle(.plain)
 
       VStack(alignment: .leading, spacing: 6) {
-        NavigationLink(value: NavDestination.readListDetail(readListId: komgaReadList.readListId)) {
+        NavigationLink(value: NavDestination.readListDetail(readListId: item.readListId)) {
           HStack(spacing: 6) {
-            Text(komgaReadList.name)
+            Text(item.name)
               .font(.callout)
               .lineLimit(2)
-            if komgaReadList.isPinned {
+            if item.isPinned {
               Image(systemName: "pin.fill")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
@@ -34,19 +35,19 @@ struct ReadListRowView: View {
 
         HStack {
           VStack(alignment: .leading, spacing: 4) {
-            Label("\(komgaReadList.bookIds.count) books", systemImage: ContentIcon.book)
+            Label("\(item.bookCount) books", systemImage: ContentIcon.book)
               .font(.footnote)
               .foregroundColor(.secondary)
 
             Label(
-              komgaReadList.lastModifiedDate.formatted(date: .abbreviated, time: .omitted),
+              item.lastModifiedDate.formatted(date: .abbreviated, time: .omitted),
               systemImage: "clock"
             )
             .font(.caption)
             .foregroundColor(.secondary)
 
-            if !komgaReadList.summary.isEmpty {
-              Text(komgaReadList.summary)
+            if !item.summary.isEmpty {
+              Text(item.summary)
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .lineLimit(1)
@@ -57,10 +58,10 @@ struct ReadListRowView: View {
 
           EllipsisMenuButton {
             ReadListContextMenu(
-              readListId: komgaReadList.readListId,
-              menuTitle: komgaReadList.name,
-              downloadStatus: komgaReadList.downloadStatus,
-              isPinned: komgaReadList.isPinned,
+              readListId: item.readListId,
+              menuTitle: item.name,
+              downloadStatus: item.downloadStatus,
+              isPinned: item.isPinned,
               onDeleteRequested: {
                 showDeleteConfirmation = true
               },
@@ -69,9 +70,10 @@ struct ReadListRowView: View {
               },
               onPinToggleRequested: {
                 togglePinned()
-              }
+              },
+              onMutationCompleted: onMutationCompleted
             )
-            .id(komgaReadList.readListId)
+            .id(item.readListId)
           }
         }
       }
@@ -85,15 +87,16 @@ struct ReadListRowView: View {
       Text("Are you sure you want to delete this read list? This action cannot be undone.")
     }
     .sheet(isPresented: $showEditSheet) {
-      ReadListEditSheet(readList: komgaReadList.toReadList())
+      ReadListEditSheet(readList: item.readList)
     }
   }
 
   private func deleteReadList() {
     Task {
       do {
-        try await ReadListService.deleteReadList(readListId: komgaReadList.readListId)
+        try await ReadListService.deleteReadList(readListId: item.readListId)
         ErrorManager.shared.notify(message: String(localized: "notification.readList.deleted"))
+        onMutationCompleted?()
       } catch {
         ErrorManager.shared.alert(error: error)
       }
@@ -101,14 +104,15 @@ struct ReadListRowView: View {
   }
 
   private func togglePinned() {
-    let nextPinned = !komgaReadList.isPinned
+    let nextPinned = !item.isPinned
     Task {
       try? await DatabaseOperator.database().setReadListPinned(
-        readListId: komgaReadList.readListId,
-        instanceId: komgaReadList.instanceId,
+        readListId: item.readListId,
+        instanceId: item.instanceId,
         isPinned: nextPinned
       )
       try? await DatabaseOperator.database().commit()
+      onMutationCompleted?()
     }
   }
 }

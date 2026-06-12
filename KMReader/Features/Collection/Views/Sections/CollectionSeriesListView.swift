@@ -3,7 +3,6 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 // Series list view for collection
@@ -21,13 +20,7 @@ struct CollectionSeriesListView: View {
   @State private var selectedSeriesIds: Set<String> = []
   @State private var isSelectionMode = false
   @State private var isDeleting = false
-  @Environment(\.modelContext) private var modelContext
-
-  @Query private var collections: [KomgaCollection]
-
-  private var collection: KomgaCollection? {
-    collections.first
-  }
+  @State private var collectionItem: CollectionDisplayItem?
 
   init(
     collectionId: String,
@@ -37,9 +30,6 @@ struct CollectionSeriesListView: View {
     self.collectionId = collectionId
     self._showFilterSheet = showFilterSheet
     self._showSavedFilters = showSavedFilters
-
-    let compositeId = CompositeID.generate(id: collectionId)
-    _collections = Query(filter: #Predicate<KomgaCollection> { $0.id == compositeId })
   }
 
   private var supportsSelectionMode: Bool {
@@ -85,10 +75,10 @@ struct CollectionSeriesListView: View {
       if supportsSelectionMode && isSelectionMode {
         SelectionToolbar(
           selectedCount: selectedSeriesIds.count,
-          totalCount: collection?.seriesIds.count ?? 0,
+          totalCount: collectionItem?.seriesCount ?? 0,
           isDeleting: isDeleting,
           onSelectAll: {
-            if let seriesIds = collection?.seriesIds {
+            if let seriesIds = collectionItem?.seriesIds {
               if selectedSeriesIds.count == seriesIds.count {
                 selectedSeriesIds.removeAll()
               } else {
@@ -109,7 +99,7 @@ struct CollectionSeriesListView: View {
         .padding(.horizontal)
       }
 
-      if collection?.seriesIds != nil {
+      if collectionItem != nil {
         CollectionSeriesQueryView(
           collectionId: collectionId,
           seriesViewModel: seriesViewModel,
@@ -136,11 +126,22 @@ struct CollectionSeriesListView: View {
   }
 
   private func refreshSeries() async {
+    await loadCollection()
     await seriesViewModel.loadCollectionSeries(
-      context: modelContext,
       collectionId: collectionId,
       browseOpts: browseOpts,
       refresh: true
+    )
+  }
+
+  private func loadCollection() async {
+    guard let database = try? await DatabaseOperator.database() else {
+      collectionItem = nil
+      return
+    }
+    collectionItem = try? await database.fetchCollectionDisplayItem(
+      collectionId: collectionId,
+      instanceId: current.instanceId
     )
   }
 
@@ -158,6 +159,7 @@ struct CollectionSeriesListView: View {
       )
       // Sync the collection to update its seriesIds in local SwiftData
       _ = try? await SyncService.syncCollection(id: collectionId)
+      await loadCollection()
 
       ErrorManager.shared.notify(
         message: String(localized: "notification.series.removedFromCollection"))

@@ -4,7 +4,6 @@
 //
 
 import Flow
-import SwiftData
 import SwiftUI
 
 struct BookDetailView: View {
@@ -13,8 +12,7 @@ struct BookDetailView: View {
   @Environment(\.dismiss) private var dismiss
   @AppStorage("currentAccount") private var current: Current = .init()
 
-  @Query private var komgaBooks: [KomgaBook]
-
+  @State private var item: BookDisplayItem?
   @State private var hasError = false
   @State private var showDeleteConfirmation = false
   @State private var showReadListPicker = false
@@ -22,22 +20,14 @@ struct BookDetailView: View {
 
   init(bookId: String) {
     self.bookId = bookId
-    let compositeId = CompositeID.generate(id: bookId)
-    _komgaBooks = Query(filter: #Predicate<KomgaBook> { $0.id == compositeId })
   }
 
-  /// The KomgaBook from SwiftData (reactive).
-  private var komgaBook: KomgaBook? {
-    komgaBooks.first
-  }
-
-  /// Convert to API Book type for compatibility with existing components.
   private var book: Book? {
-    komgaBook?.toBook()
+    item?.book
   }
 
   private var downloadStatus: DownloadStatus {
-    komgaBook?.downloadStatus ?? .notDownloaded
+    item?.downloadStatus ?? .notDownloaded
   }
 
   private var navigationTitle: String {
@@ -63,8 +53,8 @@ struct BookDetailView: View {
             inSheet: false
           )
 
-          if let komgaBook = komgaBook {
-            BookReadListsSection(readListIds: komgaBook.readListIds)
+          if let item {
+            BookReadListsSection(readListIds: item.readListIds)
           }
         } else if hasError {
           VStack(spacing: 16) {
@@ -203,19 +193,30 @@ struct BookDetailView: View {
   @MainActor
   private func loadBook() async {
     do {
-      // Sync from network to SwiftData (book property will update reactively)
       _ = try await SyncService.syncBook(bookId: bookId)
       await SyncService.syncBookReadLists(bookId: bookId)
     } catch {
       if case APIError.notFound = error {
         dismiss()
       } else {
-        if komgaBook == nil {
+        if item == nil {
           hasError = true
           ErrorManager.shared.alert(error: error)
         }
       }
     }
+    await loadLocalBook()
+  }
+
+  private func loadLocalBook() async {
+    guard let database = try? await DatabaseOperator.database() else {
+      item = nil
+      return
+    }
+    item = try? await database.fetchBookDisplayItem(
+      bookId: bookId,
+      instanceId: current.instanceId
+    )
   }
 
   private func addToReadList(readListId: String) {

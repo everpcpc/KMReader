@@ -11,6 +11,7 @@ struct LibrarySelection: Hashable {
   let fileSize: Double?
   let booksCount: Double?
   let seriesCount: Double?
+  let sidecarsCount: Double?
   let collectionsCount: Double?
   let readlistsCount: Double?
 
@@ -20,7 +21,19 @@ struct LibrarySelection: Hashable {
     fileSize = library.fileSize
     booksCount = library.booksCount
     seriesCount = library.seriesCount
+    sidecarsCount = library.sidecarsCount
     collectionsCount = library.collectionsCount
     readlistsCount = library.readlistsCount
+  }
+
+  init(sidebarItem: SidebarLibraryItem) {
+    libraryId = sidebarItem.libraryId
+    name = sidebarItem.name
+    fileSize = sidebarItem.fileSize
+    booksCount = sidebarItem.booksCount
+    seriesCount = sidebarItem.seriesCount
+    sidecarsCount = sidebarItem.sidecarsCount
+    collectionsCount = sidebarItem.collectionsCount
+    readlistsCount = sidebarItem.readlistsCount
   }
 }

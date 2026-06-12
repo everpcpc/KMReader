@@ -66,7 +66,7 @@ actor SyncWorker {
             instanceId: request.instanceId,
             date: syncStartTime
           )
-          await database.commit()
+          try? await database.commit()
         } catch {
           hasFailures = true
           logger.error("❌ Failed to update series lastSyncedAt: \(error)")
@@ -102,7 +102,7 @@ actor SyncWorker {
             instanceId: request.instanceId,
             date: syncStartTime
           )
-          await database.commit()
+          try? await database.commit()
         } catch {
           hasFailures = true
           logger.error("❌ Failed to update books lastSyncedAt: \(error)")
@@ -188,7 +188,7 @@ actor SyncWorker {
       }
 
       if await database.hasChanges() {
-        try await database.commitImmediately()
+        try await database.commit()
       }
 
       if let latestServerReadDate {
@@ -215,7 +215,7 @@ actor SyncWorker {
       let libraries = try await LibraryService.getLibraries()
       let libraryInfos = libraries.map { LibraryInfo(id: $0.id, name: $0.name) }
       try await database.replaceLibraries(libraryInfos, for: instanceId)
-      await database.commit()
+      try? await database.commit()
       logger.info("📚 Synced \(libraries.count) libraries")
       await report(.libraries, progress: 1.0, onProgress: onProgress)
       return true
@@ -245,7 +245,7 @@ actor SyncWorker {
         )
         remoteCollectionIds.formUnion(result.content.map(\.id))
         await database.upsertCollections(result.content, instanceId: instanceId)
-        await database.commit()
+        try? await database.commit()
 
         totalPages = max(result.totalPages, 1)
         hasMore = !result.last
@@ -263,7 +263,7 @@ actor SyncWorker {
         instanceId: instanceId
       )
       if deletedCount > 0 {
-        await database.commit()
+        try? await database.commit()
         logger.info("🧹 Removed \(deletedCount) stale collections")
       }
       logger.info("📂 Synced collections")
@@ -311,7 +311,7 @@ actor SyncWorker {
 
         if !itemsToSync.isEmpty {
           await database.upsertSeriesList(itemsToSync, instanceId: instanceId)
-          await database.commit()
+          try? await database.commit()
         }
 
         page += 1
@@ -381,7 +381,7 @@ actor SyncWorker {
         instanceId: instanceId
       )
       if deletedCount > 0 {
-        await database.commit()
+        try? await database.commit()
         logger.info("🧹 Removed \(deletedCount) stale series")
       }
       return true
@@ -410,7 +410,7 @@ actor SyncWorker {
         )
         remoteReadListIds.formUnion(result.content.map(\.id))
         await database.upsertReadLists(result.content, instanceId: instanceId)
-        await database.commit()
+        try? await database.commit()
 
         totalPages = max(result.totalPages, 1)
         hasMore = !result.last
@@ -428,7 +428,7 @@ actor SyncWorker {
         instanceId: instanceId
       )
       if deletedCount > 0 {
-        await database.commit()
+        try? await database.commit()
         logger.info("🧹 Removed \(deletedCount) stale read lists")
       }
       logger.info("📖 Synced read lists")
@@ -476,7 +476,7 @@ actor SyncWorker {
 
         if !itemsToSync.isEmpty {
           await database.upsertBooks(itemsToSync, instanceId: instanceId)
-          await database.commit()
+          try? await database.commit()
         }
 
         page += 1
@@ -546,7 +546,7 @@ actor SyncWorker {
         instanceId: instanceId
       )
       if deletedCount > 0 {
-        await database.commit()
+        try? await database.commit()
         let cleanupResult = await OfflineManager.shared.cleanupOrphanedFiles()
         if cleanupResult.deletedCount > 0 {
           logger.info(

@@ -3,16 +3,15 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
-/// Wrapper view that accepts only seriesId and uses @Query to fetch the series reactively.
+/// Wrapper view that accepts only seriesId and fetches a series display projection.
 struct SeriesQueryItemView: View {
   let seriesId: String
   let layout: BrowseLayoutMode
 
   @AppStorage("currentAccount") private var current: Current = .init()
-  @Query private var komgaSeriesList: [KomgaSeries]
+  @State private var item: SeriesDisplayItem?
 
   init(
     seriesId: String,
@@ -21,28 +20,46 @@ struct SeriesQueryItemView: View {
     self.seriesId = seriesId
     self.layout = layout
 
-    let compositeId = CompositeID.generate(id: seriesId)
-    _komgaSeriesList = Query(filter: #Predicate<KomgaSeries> { $0.id == compositeId })
-  }
-
-  private var komgaSeries: KomgaSeries? {
-    komgaSeriesList.first
   }
 
   var body: some View {
-    if let series = komgaSeries {
-      switch layout {
-      case .grid:
-        SeriesCardView(
-          komgaSeries: series
-        )
-      case .list:
-        SeriesRowView(
-          komgaSeries: series
-        )
+    Group {
+      if let item {
+        switch layout {
+        case .grid:
+          SeriesCardView(
+            item: item,
+            onMutationCompleted: reloadItem
+          )
+        case .list:
+          SeriesRowView(
+            item: item,
+            onMutationCompleted: reloadItem
+          )
+        }
+      } else {
+        CardPlaceholder(layout: layout, kind: .series)
       }
-    } else {
-      CardPlaceholder(layout: layout, kind: .series)
     }
+    .task(id: "\(current.instanceId)|\(seriesId)") {
+      await loadItem()
+    }
+  }
+
+  private func reloadItem() {
+    Task {
+      await loadItem()
+    }
+  }
+
+  private func loadItem() async {
+    guard let database = try? await DatabaseOperator.database() else {
+      item = nil
+      return
+    }
+    item = try? await database.fetchSeriesDisplayItem(
+      seriesId: seriesId,
+      instanceId: current.instanceId
+    )
   }
 }

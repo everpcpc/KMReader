@@ -3,7 +3,6 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 private struct ReadListItem: Identifiable {
@@ -21,8 +20,7 @@ struct ReadListPickerSheet: View {
   @State private var searchText: String = ""
   @State private var showCreateSheet = false
   @State private var isCreating = false
-
-  @Query private var komgaReadLists: [KomgaReadList]
+  @State private var readLists: [ReadListDisplayItem] = []
 
   let bookId: String
   let onSelect: (String) -> Void
@@ -33,25 +31,15 @@ struct ReadListPickerSheet: View {
   ) {
     self.bookId = bookId
     self.onSelect = onSelect
-
-    let instanceId = AppConfig.current.instanceId
-    _komgaReadLists = Query(
-      filter: #Predicate<KomgaReadList> { $0.instanceId == instanceId },
-      sort: [SortDescriptor(\KomgaReadList.name, order: .forward)]
-    )
   }
 
-  private var filteredReadLists: [KomgaReadList] {
+  private var filteredReadLists: [ReadListDisplayItem] {
     if searchText.isEmpty {
-      return Array(komgaReadLists)
+      return readLists
     }
-    return komgaReadLists.filter {
+    return readLists.filter {
       $0.name.localizedCaseInsensitiveContains(searchText)
     }
-  }
-
-  private func isAlreadyInReadList(_ readList: KomgaReadList) -> Bool {
-    return readList.bookIds.contains(bookId)
   }
 
   private var readListItems: [ReadListItem] {
@@ -67,7 +55,7 @@ struct ReadListPickerSheet: View {
   var body: some View {
     SheetView(title: String(localized: "Select Read List"), size: .large, applyFormStyle: true) {
       Form {
-        if isLoading && komgaReadLists.isEmpty {
+        if isLoading && readLists.isEmpty {
           LoadingIcon()
             .frame(maxWidth: .infinity)
         } else if filteredReadLists.isEmpty && searchText.isEmpty {
@@ -116,7 +104,7 @@ struct ReadListPickerSheet: View {
     }
     .searchable(text: $searchText)
     .task {
-      await syncReadLists()
+      await refreshReadLists()
     }
     .sheet(isPresented: $showCreateSheet) {
       CreateReadListSheet(
@@ -129,11 +117,32 @@ struct ReadListPickerSheet: View {
     }
   }
 
-  private func syncReadLists() async {
+  private func refreshReadLists() async {
+    await loadReadLists()
     guard !AppConfig.isOffline else { return }
     isLoading = true
     await SyncService.syncReadLists(instanceId: current.instanceId)
     isLoading = false
+    await loadReadLists()
+  }
+
+  private func loadReadLists() async {
+    guard !current.instanceId.isEmpty else {
+      if !readLists.isEmpty { readLists = [] }
+      return
+    }
+
+    do {
+      let database = try await DatabaseOperator.database()
+      let loadedReadLists = try await database.fetchReadListDisplayItems(
+        instanceId: current.instanceId
+      )
+      if readLists != loadedReadLists {
+        readLists = loadedReadLists
+      }
+    } catch {
+      ErrorManager.shared.alert(error: error)
+    }
   }
 
   private func confirmSelection() {

@@ -4,7 +4,6 @@
 //
 
 import Foundation
-import SwiftData
 import SwiftUI
 
 @MainActor
@@ -16,7 +15,6 @@ class BookViewModel {
   private(set) var pagination = PaginationState<IdentifiedString>(pageSize: 50)
 
   func loadSeriesBooks(
-    context: ModelContext,
     seriesId: String,
     browseOpts: BookBrowseOptions,
     refresh: Bool = true
@@ -39,15 +37,18 @@ class BookViewModel {
     }
 
     if AppConfig.isOffline {
-      let books = KomgaBookStore.fetchSeriesBooks(
-        context: context,
+      guard let database = try? await DatabaseOperator.database() else {
+        guard loadID == pagination.loadID else { return }
+        applyPage(ids: [], moreAvailable: false)
+        return
+      }
+      let ids = await database.fetchSeriesBookIds(
         seriesId: seriesId,
+        browseOpts: browseOpts,
         page: pagination.currentPage,
-        size: pagination.pageSize,
-        browseOpts: browseOpts
+        size: pagination.pageSize
       )
       guard loadID == pagination.loadID else { return }
-      let ids = books.map { $0.id }
       applyPage(ids: ids, moreAvailable: ids.count == pagination.pageSize)
     } else {
       do {
@@ -74,26 +75,6 @@ class BookViewModel {
       _ = pagination.applyPage(wrappedIds)
     }
     pagination.advance(moreAvailable: moreAvailable)
-  }
-
-  func loadBook(context: ModelContext, id: String) async {
-    isLoading = true
-
-    if let cached = KomgaBookStore.fetchBook(context: context, id: id) {
-      currentBook = cached
-    }
-
-    do {
-      currentBook = try await SyncService.syncBook(bookId: id)
-    } catch {
-      if currentBook == nil {
-        ErrorManager.shared.alert(error: error)
-      }
-    }
-
-    withAnimation {
-      isLoading = false
-    }
   }
 
   func updatePageReadProgress(bookId: String, page: Int, completed: Bool = false) async {
@@ -135,7 +116,6 @@ class BookViewModel {
   }
 
   func loadBrowseBooks(
-    context: ModelContext,
     browseOpts: BookBrowseOptions,
     searchText: String = "",
     libraryIds: [String]? = nil,
@@ -161,8 +141,13 @@ class BookViewModel {
     }
 
     if AppConfig.isOffline || useLocalOnly {
-      let ids = KomgaBookStore.fetchBookIds(
-        context: context,
+      guard let database = try? await DatabaseOperator.database() else {
+        guard loadID == pagination.loadID else { return }
+        applyPage(ids: [], moreAvailable: false)
+        return
+      }
+      let ids = await database.fetchBrowseBookIds(
+        instanceId: AppConfig.current.instanceId,
         libraryIds: libraryIds,
         searchText: searchText,
         browseOpts: browseOpts,
@@ -205,7 +190,6 @@ class BookViewModel {
   }
 
   func loadReadListBooks(
-    context: ModelContext,
     readListId: String,
     browseOpts: ReadListBookBrowseOptions,
     libraryIds: [String]? = nil,
@@ -231,15 +215,18 @@ class BookViewModel {
     }
 
     if AppConfig.isOffline {
-      let books = KomgaBookStore.fetchReadListBooks(
-        context: context,
+      guard let database = try? await DatabaseOperator.database() else {
+        guard loadID == pagination.loadID else { return }
+        applyPage(ids: [], moreAvailable: false)
+        return
+      }
+      let ids = await database.fetchReadListBookIds(
         readListId: readListId,
+        browseOpts: browseOpts,
         page: pagination.currentPage,
-        size: pagination.pageSize,
-        browseOpts: browseOpts
+        size: pagination.pageSize
       )
       guard loadID == pagination.loadID else { return }
-      let ids = books.map { $0.id }
       applyPage(ids: ids, moreAvailable: ids.count == pagination.pageSize)
     } else {
       do {

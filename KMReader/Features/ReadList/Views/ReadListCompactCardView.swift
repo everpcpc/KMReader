@@ -5,31 +5,34 @@
 
 import SwiftUI
 
+@MainActor
 struct ReadListCompactCardView: View {
-  @Bindable var komgaReadList: KomgaReadList
+  let item: ReadListDisplayItem
   var coverWidth: CGFloat = 80
+  var onChanged: () -> Void = {}
+
   @State private var showEditSheet = false
   @State private var showDeleteConfirmation = false
 
   var body: some View {
-    NavigationLink(value: NavDestination.readListDetail(readListId: komgaReadList.readListId)) {
+    NavigationLink(value: NavDestination.readListDetail(readListId: item.readListId)) {
       HStack(alignment: .top, spacing: 10) {
-        ThumbnailImage(id: komgaReadList.readListId, type: .readlist, width: coverWidth)
+        ThumbnailImage(id: item.readListId, type: .readlist, width: coverWidth)
           .frame(width: coverWidth)
           .allowsHitTesting(false)
 
         VStack(alignment: .leading, spacing: 4) {
-          Text(komgaReadList.name)
+          Text(item.name)
             .font(.headline)
             .fontWeight(.medium)
             .lineLimit(2)
             .multilineTextAlignment(.leading)
 
-          Text("\(komgaReadList.bookIds.count) books")
+          Text("\(item.bookCount) books")
             .font(.footnote)
             .foregroundColor(.secondary)
 
-          Text(komgaReadList.lastModifiedDate.formattedMediumDate)
+          Text(item.lastModifiedDate.formattedMediumDate)
             .font(.caption)
             .foregroundColor(.secondary)
         }
@@ -50,10 +53,10 @@ struct ReadListCompactCardView: View {
     .adaptiveButtonStyle(.plain)
     .contextMenu {
       ReadListContextMenu(
-        readListId: komgaReadList.readListId,
-        menuTitle: komgaReadList.name,
-        downloadStatus: komgaReadList.downloadStatus,
-        isPinned: komgaReadList.isPinned,
+        readListId: item.readListId,
+        menuTitle: item.name,
+        downloadStatus: item.downloadStatus,
+        isPinned: item.isPinned,
         onDeleteRequested: {
           showDeleteConfirmation = true
         },
@@ -73,16 +76,17 @@ struct ReadListCompactCardView: View {
     } message: {
       Text("Are you sure you want to delete this read list? This action cannot be undone.")
     }
-    .sheet(isPresented: $showEditSheet) {
-      ReadListEditSheet(readList: komgaReadList.toReadList())
+    .sheet(isPresented: $showEditSheet, onDismiss: onChanged) {
+      ReadListEditSheet(readList: item.readList)
     }
   }
 
   private func deleteReadList() {
     Task {
       do {
-        try await ReadListService.deleteReadList(readListId: komgaReadList.readListId)
+        try await ReadListService.deleteReadList(readListId: item.readListId)
         ErrorManager.shared.notify(message: String(localized: "notification.readList.deleted"))
+        onChanged()
       } catch {
         ErrorManager.shared.alert(error: error)
       }
@@ -90,14 +94,20 @@ struct ReadListCompactCardView: View {
   }
 
   private func togglePinned() {
-    let nextPinned = !komgaReadList.isPinned
+    let nextPinned = !item.isPinned
     Task {
-      try? await DatabaseOperator.database().setReadListPinned(
-        readListId: komgaReadList.readListId,
-        instanceId: komgaReadList.instanceId,
-        isPinned: nextPinned
-      )
-      try? await DatabaseOperator.database().commit()
+      do {
+        let database = try await DatabaseOperator.database()
+        await database.setReadListPinned(
+          readListId: item.readListId,
+          instanceId: item.instanceId,
+          isPinned: nextPinned
+        )
+        try? await database.commit()
+        onChanged()
+      } catch {
+        ErrorManager.shared.alert(error: error)
+      }
     }
   }
 }

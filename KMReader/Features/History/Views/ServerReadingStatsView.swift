@@ -4,37 +4,24 @@
 //
 
 import Charts
-import SwiftData
 import SwiftUI
 
 struct ServerReadingStatsView: View {
   @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("isOffline") private var isOffline: Bool = false
-  @Query private var instances: [KomgaInstance]
-  @Query(sort: [SortDescriptor(\KomgaLibrary.name, order: .forward)]) private var allLibraries: [KomgaLibrary]
 
   @State private var selectedLibraryId: String = ""
   @State private var viewModel = ReadingStatsViewModel()
   @State private var selectedTimePointIndex: Int?
-
-  private var libraries: [KomgaLibrary] {
-    guard !current.instanceId.isEmpty else { return [] }
-    return allLibraries.filter {
-      $0.instanceId == current.instanceId && $0.libraryId != KomgaLibrary.allLibrariesId
-    }
-  }
-
-  private var currentInstance: KomgaInstance? {
-    guard let uuid = UUID(uuidString: current.instanceId) else { return nil }
-    return instances.first { $0.id == uuid }
-  }
+  @State private var libraries: [SidebarLibraryItem] = []
+  @State private var syncInfo: OfflineInstanceSyncInfo?
 
   private var shouldShowInitialSyncHint: Bool {
-    guard let currentInstance else { return false }
+    guard let syncInfo else { return false }
     let neverSyncedAt = Date(timeIntervalSince1970: 0)
     let hasNeverSynced =
-      currentInstance.seriesLastSyncedAt == neverSyncedAt
-      && currentInstance.booksLastSyncedAt == neverSyncedAt
+      syncInfo.seriesLastSyncedAt == neverSyncedAt
+      && syncInfo.booksLastSyncedAt == neverSyncedAt
     let hasAnyLocalBook = (viewModel.payload?.summary.totalBooks ?? 0) > 0
     return hasNeverSynced && !hasAnyLocalBook
   }
@@ -79,6 +66,7 @@ struct ServerReadingStatsView: View {
     .inlineNavigationBarTitle(ServerSection.readingStats.title)
     .task(id: current.instanceId) {
       selectedLibraryId = ""
+      await loadLocalContext()
       await reload(forceRefresh: false)
     }
     .onChange(of: selectedLibraryId) { _, _ in
@@ -92,6 +80,7 @@ struct ServerReadingStatsView: View {
     .onChange(of: isOffline) { oldValue, newValue in
       if oldValue && !newValue {
         Task {
+          await loadLocalContext()
           await reload(forceRefresh: false)
         }
       }
@@ -611,5 +600,32 @@ struct ServerReadingStatsView: View {
       libraryId: selectedLibraryId,
       forceRefresh: forceRefresh
     )
+  }
+
+  private func loadLocalContext() async {
+    let instanceId = current.instanceId
+    guard !instanceId.isEmpty else {
+      if !libraries.isEmpty {
+        libraries = []
+      }
+      if syncInfo != nil {
+        syncInfo = nil
+      }
+      return
+    }
+
+    do {
+      let database = try await DatabaseOperator.database()
+      let loadedLibraries = try await database.fetchSidebarLibraries(instanceId: instanceId)
+      let loadedSyncInfo = try await database.fetchOfflineInstanceSyncInfo(instanceId: instanceId)
+      if libraries != loadedLibraries {
+        libraries = loadedLibraries
+      }
+      if syncInfo != loadedSyncInfo {
+        syncInfo = loadedSyncInfo
+      }
+    } catch {
+      ErrorManager.shared.alert(error: error)
+    }
   }
 }

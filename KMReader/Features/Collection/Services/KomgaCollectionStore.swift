@@ -26,7 +26,7 @@ enum KomgaCollectionStore {
     return paginate(collections, offset: page * size, limit: size).map { $0.toCollection() }
   }
 
-  static func fetchCollectionIds(
+  nonisolated static func fetchCollectionIds(
     context: ModelContext,
     libraryIds: [String]?,
     searchText: String,
@@ -74,7 +74,7 @@ enum KomgaCollectionStore {
     return try? context.fetch(descriptor).first?.toCollection()
   }
 
-  private static func fetchOrderedCollections(
+  nonisolated private static func fetchOrderedCollections(
     context: ModelContext,
     searchText: String,
     sort: String?
@@ -103,13 +103,13 @@ enum KomgaCollectionStore {
     }
   }
 
-  private static func pinnedFirst(_ collections: [KomgaCollection]) -> [KomgaCollection] {
+  nonisolated private static func pinnedFirst(_ collections: [KomgaCollection]) -> [KomgaCollection] {
     let pinned = collections.filter(\.isPinned)
     let unpinned = collections.filter { !$0.isPinned }
     return pinned + unpinned
   }
 
-  private static func sortDescriptors(sort: String?) -> [SortDescriptor<KomgaCollection>] {
+  nonisolated private static func sortDescriptors(sort: String?) -> [SortDescriptor<KomgaCollection>] {
     let isAscending = sort?.contains("desc") != true
 
     if sort?.contains("createdDate") == true {
@@ -129,7 +129,7 @@ enum KomgaCollectionStore {
     ]
   }
 
-  private static func paginate(
+  nonisolated private static func paginate(
     _ collections: [KomgaCollection],
     offset: Int,
     limit: Int

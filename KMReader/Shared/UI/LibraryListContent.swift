@@ -3,7 +3,6 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct LibraryListContent: View {
@@ -11,12 +10,11 @@ struct LibraryListContent: View {
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("isOffline") private var isOffline: Bool = false
 
-  @Query(sort: [SortDescriptor(\KomgaLibrary.name, order: .forward)])
-  private var allLibraries: [KomgaLibrary]
-
   @State private var isLoading = false
   @State private var isLoadingMetrics = false
   @State private var selectedLibraryIds: [String]
+  @State private var libraries: [SidebarLibraryItem] = []
+  @State private var allLibrariesEntry: SidebarLibraryItem?
 
   let selectionEnabled: Bool
   let isSingleSelectionMode: Bool
@@ -27,6 +25,7 @@ struct LibraryListContent: View {
   let onLibrarySelected: ((String?) -> Void)?
   let onEditLibrary: ((String) -> Void)?
   let onDeleteLibrary: ((LibrarySelection) -> Void)?
+  let refreshTrigger: Int
 
   private let metricsLoader = LibraryMetricsLoader.shared
 
@@ -39,7 +38,8 @@ struct LibraryListContent: View {
     enablePullToRefresh: Bool = true,
     onLibrarySelected: ((String?) -> Void)? = nil,
     onEditLibrary: ((String) -> Void)? = nil,
-    onDeleteLibrary: ((LibrarySelection) -> Void)? = nil
+    onDeleteLibrary: ((LibrarySelection) -> Void)? = nil,
+    refreshTrigger: Int = 0
   ) {
     let initialSelection = AppConfig.dashboard.libraryIds
     self.selectionEnabled = selectionEnabled
@@ -51,25 +51,8 @@ struct LibraryListContent: View {
     self.onLibrarySelected = onLibrarySelected
     self.onEditLibrary = onEditLibrary
     self.onDeleteLibrary = onDeleteLibrary
+    self.refreshTrigger = refreshTrigger
     _selectedLibraryIds = State(initialValue: initialSelection)
-  }
-
-  private var libraries: [KomgaLibrary] {
-    guard !current.instanceId.isEmpty else {
-      return []
-    }
-    return allLibraries.filter {
-      $0.instanceId == current.instanceId && $0.libraryId != KomgaLibrary.allLibrariesId
-    }
-  }
-
-  private var allLibrariesEntry: KomgaLibrary? {
-    guard !current.instanceId.isEmpty else {
-      return nil
-    }
-    return allLibraries.first {
-      $0.instanceId == current.instanceId && $0.libraryId == KomgaLibrary.allLibrariesId
-    }
   }
 
   var body: some View {
@@ -129,7 +112,7 @@ struct LibraryListContent: View {
               },
               onEdit: onEditLibrary != nil ? { onEditLibrary?(library.libraryId) } : nil,
               onDelete: onDeleteLibrary != nil
-                ? { onDeleteLibrary?(LibrarySelection(library: library)) } : nil
+                ? { onDeleteLibrary?(LibrarySelection(sidebarItem: library)) } : nil
             )
           }
         }
@@ -137,12 +120,12 @@ struct LibraryListContent: View {
     }
     .animation(.default, value: libraries)
     .formStyle(.grouped)
-    .task {
+    .task(id: current.instanceId) {
       await refreshLibraries(forceMetrics: forceMetricsOnAppear)
     }
-    .onChange(of: libraries) { _, _ in
+    .onChange(of: refreshTrigger) { _, _ in
       Task {
-        await triggerMetricsUpdate(force: false)
+        await refreshLibraries(forceMetrics: true)
       }
     }
     .onChange(of: isSingleSelectionMode) { _, newValue in
@@ -163,8 +146,35 @@ struct LibraryListContent: View {
   func refreshLibraries(forceMetrics: Bool) async {
     isLoading = true
     await LibraryManager.shared.refreshLibraries()
+    await loadLibraryItems()
     await triggerMetricsUpdate(force: forceMetrics)
+    await loadLibraryItems()
     isLoading = false
+  }
+
+  private func loadLibraryItems() async {
+    guard !current.instanceId.isEmpty else {
+      if !libraries.isEmpty { libraries = [] }
+      if allLibrariesEntry != nil { allLibrariesEntry = nil }
+      return
+    }
+
+    do {
+      let database = try await DatabaseOperator.database()
+      let loadedLibraries = try await database.fetchSidebarLibraries(instanceId: current.instanceId)
+      let loadedAllLibrariesEntry = try await database.fetchAllLibrariesItem(
+        instanceId: current.instanceId
+      )
+
+      if libraries != loadedLibraries {
+        libraries = loadedLibraries
+      }
+      if allLibrariesEntry != loadedAllLibrariesEntry {
+        allLibrariesEntry = loadedAllLibrariesEntry
+      }
+    } catch {
+      ErrorManager.shared.alert(error: error)
+    }
   }
 
   private func triggerMetricsUpdate(force: Bool) async {
@@ -189,12 +199,15 @@ struct LibraryListContent: View {
       ensureAllLibrariesEntry: hasAllEntry
     )
 
-    for library in libraries {
-      guard let metrics = metricsByLibrary[library.libraryId] else { continue }
-      library.fileSize = metrics.fileSize
-      library.booksCount = metrics.booksCount
-      library.seriesCount = metrics.seriesCount
-      library.sidecarsCount = metrics.sidecarsCount
+    do {
+      let database = try await DatabaseOperator.database()
+      try await database.updateLibraryMetrics(
+        instanceId: current.instanceId,
+        metricsByLibrary: metricsByLibrary
+      )
+      try await database.commit()
+    } catch {
+      ErrorManager.shared.alert(error: error)
     }
 
     isLoadingMetrics = false
@@ -354,7 +367,7 @@ struct LibraryListContent: View {
 
   // MARK: - Helper Functions
 
-  private func hasMetrics(_ library: KomgaLibrary) -> Bool {
+  private func hasMetrics(_ library: SidebarLibraryItem) -> Bool {
     library.seriesCount != nil || library.booksCount != nil || library.fileSize != nil
       || library.sidecarsCount != nil
   }
@@ -370,14 +383,14 @@ struct LibraryListContent: View {
     return ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .binary)
   }
 
-  private func hasAllLibrariesMetrics(_ entry: KomgaLibrary?) -> Bool {
+  private func hasAllLibrariesMetrics(_ entry: SidebarLibraryItem?) -> Bool {
     guard let entry else { return false }
     return entry.seriesCount != nil || entry.booksCount != nil || entry.fileSize != nil
       || entry.sidecarsCount != nil || entry.collectionsCount != nil
       || entry.readlistsCount != nil
   }
 
-  private func allLibrariesMetricsView(_ entry: KomgaLibrary?) -> Text? {
+  private func allLibrariesMetricsView(_ entry: SidebarLibraryItem?) -> Text? {
     guard let entry else { return nil }
     var lines: [Text] = []
 

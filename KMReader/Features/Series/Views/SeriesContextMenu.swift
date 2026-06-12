@@ -3,7 +3,6 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct SeriesContextMenu: View {
@@ -19,11 +18,11 @@ struct SeriesContextMenu: View {
   var onShowCollectionPicker: (() -> Void)? = nil
   var onDeleteRequested: (() -> Void)? = nil
   var onEditRequested: (() -> Void)? = nil
+  var onMutationCompleted: (() -> Void)? = nil
 
   @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("isOffline") private var isOffline: Bool = false
 
-  @Environment(\.modelContext) private var modelContext
   @Environment(\.readerActions) private var readerActions
 
   private var status: SeriesDownloadStatus {
@@ -205,8 +204,8 @@ struct SeriesContextMenu: View {
     Task {
       let book = await SeriesContinueReadingResolver.resolve(
         seriesId: seriesId,
-        isOffline: isOffline,
-        context: modelContext
+        instanceId: current.instanceId,
+        isOffline: isOffline
       )
       if let book {
         readerActions.open(book: book, incognito: false)
@@ -232,6 +231,7 @@ struct SeriesContextMenu: View {
         try await SeriesService.refreshMetadata(seriesId: seriesId)
         ErrorManager.shared.notify(
           message: String(localized: "notification.series.metadataRefreshed"))
+        onMutationCompleted?()
       } catch {
         ErrorManager.shared.alert(error: error)
       }
@@ -243,6 +243,7 @@ struct SeriesContextMenu: View {
       do {
         try await SeriesService.markAsRead(seriesId: seriesId)
         ErrorManager.shared.notify(message: String(localized: "notification.series.markedRead"))
+        onMutationCompleted?()
       } catch {
         ErrorManager.shared.alert(error: error)
       }
@@ -254,6 +255,7 @@ struct SeriesContextMenu: View {
       do {
         try await SeriesService.markAsUnread(seriesId: seriesId)
         ErrorManager.shared.notify(message: String(localized: "notification.series.markedUnread"))
+        onMutationCompleted?()
       } catch {
         ErrorManager.shared.alert(error: error)
       }
@@ -285,6 +287,7 @@ struct SeriesContextMenu: View {
         seriesId: seriesId, instanceId: current.instanceId, policy: policy
       )
       try? await DatabaseOperator.database().commit()
+      onMutationCompleted?()
     }
   }
 
@@ -298,6 +301,7 @@ struct SeriesContextMenu: View {
         limit: limit
       )
       try? await DatabaseOperator.database().commit()
+      onMutationCompleted?()
     }
   }
 
@@ -378,6 +382,7 @@ struct SeriesContextMenu: View {
       ErrorManager.shared.notify(
         message: String(localized: "notification.series.offlineDownloadQueued")
       )
+      onMutationCompleted?()
     }
   }
 
@@ -393,6 +398,7 @@ struct SeriesContextMenu: View {
       ErrorManager.shared.notify(
         message: String(localized: "notification.series.offlineDownloadQueued")
       )
+      onMutationCompleted?()
     }
   }
 
@@ -405,6 +411,7 @@ struct SeriesContextMenu: View {
       ErrorManager.shared.notify(
         message: String(localized: "notification.series.offlineRemoved")
       )
+      onMutationCompleted?()
     }
   }
 
@@ -417,6 +424,7 @@ struct SeriesContextMenu: View {
       ErrorManager.shared.notify(
         message: String(localized: "notification.series.offlineRemoved")
       )
+      onMutationCompleted?()
     }
   }
 

@@ -602,7 +602,7 @@ actor ReaderProgressDispatchService {
       page: update.page,
       completed: update.completed
     )
-    try await database.commitImmediately()
+    try await database.commit()
     logger.debug(
       "💾 [Progress/Page] Queued offline sync item: book=\(update.bookId), version=\(update.version), page=\(update.page), completed=\(update.completed)"
     )
@@ -688,9 +688,9 @@ actor ReaderProgressDispatchService {
         progression: update.progression
       )
       if AppConfig.isOffline {
-        try await database.commitImmediately()
+        try await database.commit()
       } else {
-        await database.commit()
+        try? await database.commit()
       }
     } catch let apiError as APIError {
       if case .badRequest(let message, _, _, _) = apiError,

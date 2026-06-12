@@ -3,16 +3,14 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct SavedFiltersView: View {
   @Environment(\.dismiss) private var dismiss
-  @Environment(\.modelContext) private var modelContext
-  @Query(sort: \SavedFilter.updatedAt, order: .reverse) private var savedFilters: [SavedFilter]
 
   let filterType: SavedFilterType
-  @State private var filterToRename: SavedFilter?
+  @State private var savedFilters: [SavedFilterDisplayItem] = []
+  @State private var filterToRename: SavedFilterDisplayItem?
   @State private var newName: String = ""
 
   var body: some View {
@@ -21,9 +19,7 @@ struct SavedFiltersView: View {
       size: .medium,
       applyFormStyle: true
     ) {
-      let displayFilters = savedFilters.filter { $0.filterType == filterType }
-
-      if displayFilters.isEmpty {
+      if savedFilters.isEmpty {
         ContentUnavailableView {
           Label("No Saved Filters", systemImage: "bookmark.slash")
         } description: {
@@ -34,7 +30,7 @@ struct SavedFiltersView: View {
       } else {
         List {
           Section(filterType.displayName) {
-            ForEach(displayFilters) { filter in
+            ForEach(savedFilters) { filter in
               filterRow(filter)
             }
           }
@@ -59,10 +55,13 @@ struct SavedFiltersView: View {
         }
       }
     }
+    .task(id: filterType) {
+      await loadFilters()
+    }
   }
 
   @ViewBuilder
-  private func filterRow(_ filter: SavedFilter) -> some View {
+  private func filterRow(_ filter: SavedFilterDisplayItem) -> some View {
     HStack {
       VStack(alignment: .leading, spacing: 4) {
         Text(filter.name)
@@ -125,45 +124,71 @@ struct SavedFiltersView: View {
     }
   }
 
-  private func applyFilterDirectly(_ filter: SavedFilter) {
+  private func applyFilterDirectly(_ filter: SavedFilterDisplayItem) {
     switch filter.filterType {
     case .series:
-      if let options = filter.getSeriesBrowseOptions() {
+      if let options = SeriesBrowseOptions(rawValue: filter.filterDataJSON) {
         AppConfig.seriesBrowseOptions = options.rawValue
       }
     case .books:
-      if let options = filter.getBookBrowseOptions() {
+      if let options = BookBrowseOptions(rawValue: filter.filterDataJSON) {
         AppConfig.bookBrowseOptions = options.rawValue
       }
     case .collectionSeries:
-      if let options = filter.getCollectionSeriesBrowseOptions() {
+      if let options = CollectionSeriesBrowseOptions(rawValue: filter.filterDataJSON) {
         AppConfig.collectionSeriesBrowseOptions = options.rawValue
       }
     case .readListBooks:
-      if let options = filter.getReadListBookBrowseOptions() {
+      if let options = ReadListBookBrowseOptions(rawValue: filter.filterDataJSON) {
         AppConfig.readListBookBrowseOptions = options.rawValue
       }
     case .seriesBooks:
-      if let options = filter.getBookBrowseOptions() {
+      if let options = BookBrowseOptions(rawValue: filter.filterDataJSON) {
         AppConfig.seriesBookBrowseOptions = options.rawValue
       }
     }
   }
 
-  private func deleteFilter(_ filter: SavedFilter) {
-    modelContext.delete(filter)
-    try? modelContext.save()
+  private func deleteFilter(_ filter: SavedFilterDisplayItem) {
+    Task {
+      do {
+        let database = try await DatabaseOperator.database()
+        try await database.deleteSavedFilter(id: filter.id)
+        try await database.commit()
+        await loadFilters()
+      } catch {
+        ErrorManager.shared.alert(error: error)
+      }
+    }
   }
 
-  private func renameFilter(_ filter: SavedFilter, to newName: String) {
+  private func renameFilter(_ filter: SavedFilterDisplayItem, to newName: String) {
     let trimmed = newName.trimmingCharacters(in: .whitespaces)
     guard !trimmed.isEmpty else { return }
 
-    filter.name = trimmed
-    filter.updatedAt = Date()
-    try? modelContext.save()
+    Task {
+      do {
+        let database = try await DatabaseOperator.database()
+        try await database.renameSavedFilter(id: filter.id, name: trimmed)
+        try await database.commit()
+        await loadFilters()
+        filterToRename = nil
+        self.newName = ""
+      } catch {
+        ErrorManager.shared.alert(error: error)
+      }
+    }
+  }
 
-    filterToRename = nil
-    self.newName = ""
+  private func loadFilters() async {
+    do {
+      let database = try await DatabaseOperator.database()
+      let loadedFilters = try await database.fetchSavedFilterDisplayItems(filterType: filterType)
+      if savedFilters != loadedFilters {
+        savedFilters = loadedFilters
+      }
+    } catch {
+      ErrorManager.shared.alert(error: error)
+    }
   }
 }

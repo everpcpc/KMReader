@@ -1,6 +1,5 @@
 #if os(macOS)
   import AppKit
-  import SwiftData
   import SwiftUI
 
   struct EpubThemePreferencesView: View {
@@ -19,7 +18,6 @@
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.modelContext) private var modelContext
 
     init(
       inSheet: Bool = false,
@@ -415,11 +413,20 @@
       let trimmed = newPresetName.trimmingCharacters(in: .whitespaces)
       guard !trimmed.isEmpty else { return }
 
-      let preset = EpubThemePreset.create(name: trimmed, preferences: draft)
-      modelContext.insert(preset)
-      try? modelContext.save()
-      ErrorManager.shared.notify(message: String(localized: "Preset saved: \(trimmed)"))
-      newPresetName = ""
+      Task {
+        do {
+          let database = try await DatabaseOperator.database()
+          try await database.createEpubThemePreset(
+            name: trimmed,
+            preferencesJSON: draft.rawValue
+          )
+          try await database.commit()
+          ErrorManager.shared.notify(message: String(localized: "Preset saved: \(trimmed)"))
+          newPresetName = ""
+        } catch {
+          ErrorManager.shared.alert(error: error)
+        }
+      }
     }
 
     private func savePreferences() {

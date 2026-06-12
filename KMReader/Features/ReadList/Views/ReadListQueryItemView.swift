@@ -3,15 +3,15 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
-/// Wrapper view that accepts only readListId and uses @Query to fetch the read list reactively.
+/// Wrapper view that accepts only readListId and fetches a read-list display projection.
 struct ReadListQueryItemView: View {
   let readListId: String
   var layout: BrowseLayoutMode = .grid
 
-  @Query private var komgaReadLists: [KomgaReadList]
+  @AppStorage("currentAccount") private var current: Current = .init()
+  @State private var item: ReadListDisplayItem?
 
   init(
     readListId: String,
@@ -20,28 +20,46 @@ struct ReadListQueryItemView: View {
     self.readListId = readListId
     self.layout = layout
 
-    let compositeId = CompositeID.generate(id: readListId)
-    _komgaReadLists = Query(filter: #Predicate<KomgaReadList> { $0.id == compositeId })
-  }
-
-  private var komgaReadList: KomgaReadList? {
-    komgaReadLists.first
   }
 
   var body: some View {
-    if let readList = komgaReadList {
-      switch layout {
-      case .grid:
-        ReadListCardView(
-          komgaReadList: readList
-        )
-      case .list:
-        ReadListRowView(
-          komgaReadList: readList
-        )
+    Group {
+      if let item {
+        switch layout {
+        case .grid:
+          ReadListCardView(
+            item: item,
+            onMutationCompleted: reloadItem
+          )
+        case .list:
+          ReadListRowView(
+            item: item,
+            onMutationCompleted: reloadItem
+          )
+        }
+      } else {
+        CardPlaceholder(layout: layout, kind: .readList)
       }
-    } else {
-      CardPlaceholder(layout: layout, kind: .readList)
     }
+    .task(id: "\(current.instanceId)|\(readListId)") {
+      await loadItem()
+    }
+  }
+
+  private func reloadItem() {
+    Task {
+      await loadItem()
+    }
+  }
+
+  private func loadItem() async {
+    guard let database = try? await DatabaseOperator.database() else {
+      item = nil
+      return
+    }
+    item = try? await database.fetchReadListDisplayItem(
+      readListId: readListId,
+      instanceId: current.instanceId
+    )
   }
 }

@@ -240,8 +240,9 @@ enum KomgaBookStore {
     }
   }
 
-  static func fetchBookIds(
+  nonisolated static func fetchBookIds(
     context: ModelContext,
+    instanceId: String = AppConfig.current.instanceId,
     libraryIds: [String]?,
     searchText: String,
     browseOpts: BookBrowseOptions,
@@ -249,7 +250,6 @@ enum KomgaBookStore {
     limit: Int,
     offlineOnly: Bool = false
   ) -> [String] {
-    let instanceId = AppConfig.current.instanceId
     let ids = libraryIds ?? []
     var descriptor = FetchDescriptor<KomgaBook>()
 
@@ -363,7 +363,7 @@ enum KomgaBookStore {
     }
   }
 
-  static func fetchKeepReadingBookIds(
+  nonisolated static func fetchKeepReadingBookIds(
     context: ModelContext,
     libraryIds: [String],
     offset: Int,
@@ -397,7 +397,7 @@ enum KomgaBookStore {
     }
   }
 
-  static func fetchRecentlyReleasedBookIds(
+  nonisolated static func fetchRecentlyReleasedBookIds(
     context: ModelContext,
     libraryIds: [String],
     offset: Int,
@@ -429,7 +429,7 @@ enum KomgaBookStore {
     }
   }
 
-  static func fetchRecentlyReadBookIds(
+  nonisolated static func fetchRecentlyReadBookIds(
     context: ModelContext,
     libraryIds: [String],
     offset: Int,
@@ -465,7 +465,7 @@ enum KomgaBookStore {
     }
   }
 
-  static func fetchRecentlyAddedBookIds(
+  nonisolated static func fetchRecentlyAddedBookIds(
     context: ModelContext,
     libraryIds: [String],
     offset: Int,

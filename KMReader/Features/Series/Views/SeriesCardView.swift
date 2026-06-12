@@ -3,11 +3,11 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct SeriesCardView: View {
-  @Bindable var komgaSeries: KomgaSeries
+  let item: SeriesDisplayItem
+  var onMutationCompleted: (() -> Void)? = nil
 
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
   @AppStorage("cardTextOverlayMode") private var cardTextOverlayMode: Bool = false
@@ -19,16 +19,16 @@ struct SeriesCardView: View {
   @State private var showEditSheet = false
 
   var navDestination: NavDestination {
-    if komgaSeries.oneshot {
-      return NavDestination.oneshotDetail(seriesId: komgaSeries.seriesId)
+    if item.oneshot {
+      return NavDestination.oneshotDetail(seriesId: item.seriesId)
     } else {
-      return NavDestination.seriesDetail(seriesId: komgaSeries.seriesId)
+      return NavDestination.seriesDetail(seriesId: item.seriesId)
     }
   }
 
   var progress: Double {
-    guard komgaSeries.booksCount > 0 else { return 0 }
-    return Double(komgaSeries.booksReadCount) / Double(komgaSeries.booksCount)
+    guard item.booksCount > 0 else { return 0 }
+    return Double(item.booksReadCount) / Double(item.booksCount)
   }
 
   private var contentSpacing: CGFloat {
@@ -36,13 +36,13 @@ struct SeriesCardView: View {
   }
 
   private var coverBlurRadius: CGFloat {
-    thumbnailBlurUnreadCovers && komgaSeries.isUnread ? CoverBlurStyle.unreadRadius : 0
+    thumbnailBlurUnreadCovers && item.isUnread ? CoverBlurStyle.unreadRadius : 0
   }
 
   var body: some View {
     VStack(alignment: .leading, spacing: contentSpacing) {
       ThumbnailImage(
-        id: komgaSeries.seriesId,
+        id: item.seriesId,
         type: .series,
         shadowStyle: .platform,
         contentBlurRadius: coverBlurRadius,
@@ -56,23 +56,23 @@ struct SeriesCardView: View {
               overlayTextContent
             }
           }
-          if thumbnailShowUnreadIndicator && komgaSeries.booksUnreadCount > 0 {
+          if thumbnailShowUnreadIndicator && item.booksUnreadCount > 0 {
             VStack(alignment: .trailing) {
-              UnreadCountBadge(count: komgaSeries.booksUnreadCount)
+              UnreadCountBadge(count: item.booksUnreadCount)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
             }
           }
         }
       } menu: {
         SeriesContextMenu(
-          seriesId: komgaSeries.seriesId,
-          menuTitle: komgaSeries.metaTitle,
-          downloadStatus: komgaSeries.downloadStatus,
-          offlinePolicy: komgaSeries.offlinePolicy,
-          offlinePolicyLimit: komgaSeries.offlinePolicyLimit,
-          booksUnreadCount: komgaSeries.booksUnreadCount,
-          booksReadCount: komgaSeries.booksReadCount,
-          booksInProgressCount: komgaSeries.booksInProgressCount,
+          seriesId: item.seriesId,
+          menuTitle: item.metaTitle,
+          downloadStatus: item.downloadStatus,
+          offlinePolicy: item.offlinePolicy,
+          offlinePolicyLimit: item.offlinePolicyLimit,
+          booksUnreadCount: item.booksUnreadCount,
+          booksReadCount: item.booksReadCount,
+          booksInProgressCount: item.booksInProgressCount,
           onShowCollectionPicker: {
             showCollectionPicker = true
           },
@@ -81,20 +81,21 @@ struct SeriesCardView: View {
           },
           onEditRequested: {
             showEditSheet = true
-          }
+          },
+          onMutationCompleted: onMutationCompleted
         )
       }
 
       if !cardTextOverlayMode && !coverOnlyCards {
         VStack(alignment: .leading) {
-          Text(komgaSeries.metaTitle)
+          Text(item.metaTitle)
             .lineLimit(1)
 
           HStack(spacing: 4) {
-            if komgaSeries.isUnavailable {
+            if item.isUnavailable {
               Text("Unavailable")
                 .foregroundColor(.red)
-            } else if komgaSeries.oneshot {
+            } else if item.oneshot {
               Text("Oneshot")
                 .foregroundColor(.blue)
             } else {
@@ -107,13 +108,13 @@ struct SeriesCardView: View {
                   .foregroundColor(.secondary)
                   .font(.caption2)
               }
-              Text("\(komgaSeries.booksCount) books")
+              Text("\(item.booksCount) books")
                 .lineLimit(1)
             }
-            if komgaSeries.downloadStatus != .notDownloaded {
+            if item.downloadStatus != .notDownloaded {
               Spacer()
-              Image(systemName: komgaSeries.downloadStatus.icon)
-                .foregroundColor(komgaSeries.downloadStatus.color)
+              Image(systemName: item.downloadStatus.icon)
+                .foregroundColor(item.downloadStatus.color)
                 .font(.caption2)
             }
           }
@@ -134,14 +135,14 @@ struct SeriesCardView: View {
     }
     .sheet(isPresented: $showCollectionPicker) {
       CollectionPickerSheet(
-        seriesId: komgaSeries.seriesId,
+        seriesId: item.seriesId,
         onSelect: { collectionId in
           addToCollection(collectionId: collectionId)
         }
       )
     }
     .sheet(isPresented: $showEditSheet) {
-      SeriesEditSheet(series: komgaSeries.toSeries())
+      SeriesEditSheet(series: item.series)
     }
   }
 
@@ -149,12 +150,12 @@ struct SeriesCardView: View {
   private var overlayTextContent: some View {
     let style = CardOverlayTextStyle.standard
 
-    CardOverlayTextStack(title: komgaSeries.metaTitle, style: style) {
+    CardOverlayTextStack(title: item.metaTitle, style: style) {
       HStack(spacing: 4) {
-        if komgaSeries.isUnavailable {
+        if item.isUnavailable {
           Text("Unavailable")
             .foregroundColor(.red)
-        } else if komgaSeries.oneshot {
+        } else if item.oneshot {
           Text("Oneshot")
             .foregroundColor(.blue)
         } else {
@@ -167,13 +168,13 @@ struct SeriesCardView: View {
               .foregroundColor(style.secondaryColor)
               .font(.caption2)
           }
-          Text("\(komgaSeries.booksCount) books")
+          Text("\(item.booksCount) books")
             .lineLimit(1)
         }
-        if komgaSeries.downloadStatus != .notDownloaded {
+        if item.downloadStatus != .notDownloaded {
           Spacer()
-          Image(systemName: komgaSeries.downloadStatus.icon)
-            .foregroundColor(komgaSeries.downloadStatus.color)
+          Image(systemName: item.downloadStatus.icon)
+            .foregroundColor(item.downloadStatus.color)
             .font(.caption2)
         }
       }
@@ -185,10 +186,11 @@ struct SeriesCardView: View {
       do {
         try await CollectionService.addSeriesToCollection(
           collectionId: collectionId,
-          seriesIds: [komgaSeries.seriesId]
+          seriesIds: [item.seriesId]
         )
         ErrorManager.shared.notify(
           message: String(localized: "notification.series.addedToCollection"))
+        onMutationCompleted?()
       } catch {
         ErrorManager.shared.alert(error: error)
       }
@@ -198,8 +200,9 @@ struct SeriesCardView: View {
   private func deleteSeries() {
     Task {
       do {
-        try await SeriesService.deleteSeries(seriesId: komgaSeries.seriesId)
+        try await SeriesService.deleteSeries(seriesId: item.seriesId)
         ErrorManager.shared.notify(message: String(localized: "notification.series.deleted"))
+        onMutationCompleted?()
       } catch {
         ErrorManager.shared.alert(error: error)
       }

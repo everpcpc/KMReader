@@ -3,11 +3,11 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct SeriesRowView: View {
-  @Bindable var komgaSeries: KomgaSeries
+  let item: SeriesDisplayItem
+  var onMutationCompleted: (() -> Void)? = nil
 
   @AppStorage("thumbnailBlurUnreadCovers") private var thumbnailBlurUnreadCovers: Bool = false
 
@@ -16,29 +16,29 @@ struct SeriesRowView: View {
   @State private var showEditSheet = false
 
   var series: Series {
-    komgaSeries.toSeries()
+    item.series
   }
 
   var downloadStatus: SeriesDownloadStatus {
-    komgaSeries.downloadStatus
+    item.downloadStatus
   }
 
   var navDestination: NavDestination {
-    if komgaSeries.oneshot {
-      return NavDestination.oneshotDetail(seriesId: komgaSeries.seriesId)
+    if item.oneshot {
+      return NavDestination.oneshotDetail(seriesId: item.seriesId)
     } else {
-      return NavDestination.seriesDetail(seriesId: komgaSeries.seriesId)
+      return NavDestination.seriesDetail(seriesId: item.seriesId)
     }
   }
 
   var progress: Double {
-    guard komgaSeries.booksCount > 0 else { return 0 }
-    guard komgaSeries.booksReadCount > 0 else { return 0 }
-    return Double(komgaSeries.booksReadCount) / Double(komgaSeries.booksCount)
+    guard item.booksCount > 0 else { return 0 }
+    guard item.booksReadCount > 0 else { return 0 }
+    return Double(item.booksReadCount) / Double(item.booksCount)
   }
 
   private var coverBlurRadius: CGFloat {
-    thumbnailBlurUnreadCovers && komgaSeries.isUnread ? CoverBlurStyle.unreadRadius : 0
+    thumbnailBlurUnreadCovers && item.isUnread ? CoverBlurStyle.unreadRadius : 0
   }
 
   var body: some View {
@@ -113,14 +113,14 @@ struct SeriesRowView: View {
           }
           EllipsisMenuButton {
             SeriesContextMenu(
-              seriesId: komgaSeries.seriesId,
-              menuTitle: komgaSeries.metaTitle,
-              downloadStatus: komgaSeries.downloadStatus,
-              offlinePolicy: komgaSeries.offlinePolicy,
-              offlinePolicyLimit: komgaSeries.offlinePolicyLimit,
-              booksUnreadCount: komgaSeries.booksUnreadCount,
-              booksReadCount: komgaSeries.booksReadCount,
-              booksInProgressCount: komgaSeries.booksInProgressCount,
+              seriesId: item.seriesId,
+              menuTitle: item.metaTitle,
+              downloadStatus: item.downloadStatus,
+              offlinePolicy: item.offlinePolicy,
+              offlinePolicyLimit: item.offlinePolicyLimit,
+              booksUnreadCount: item.booksUnreadCount,
+              booksReadCount: item.booksReadCount,
+              booksInProgressCount: item.booksInProgressCount,
               onShowCollectionPicker: {
                 showCollectionPicker = true
               },
@@ -129,9 +129,10 @@ struct SeriesRowView: View {
               },
               onEditRequested: {
                 showEditSheet = true
-              }
+              },
+              onMutationCompleted: onMutationCompleted
             )
-            .id(komgaSeries.seriesId)
+            .id(item.seriesId)
           }
         }
       }
@@ -166,6 +167,7 @@ struct SeriesRowView: View {
         )
         ErrorManager.shared.notify(
           message: String(localized: "notification.series.addedToCollection"))
+        onMutationCompleted?()
       } catch {
         ErrorManager.shared.alert(error: error)
       }
@@ -177,6 +179,7 @@ struct SeriesRowView: View {
       do {
         try await SeriesService.deleteSeries(seriesId: series.id)
         ErrorManager.shared.notify(message: String(localized: "notification.series.deleted"))
+        onMutationCompleted?()
       } catch {
         ErrorManager.shared.alert(error: error)
       }

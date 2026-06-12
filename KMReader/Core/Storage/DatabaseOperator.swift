@@ -38,6 +38,17 @@ struct DownloadQueueSummary: Sendable {
   }
 }
 
+nonisolated struct HistoricalEventLocalReferences: Equatable, Sendable {
+  let bookNameById: [String: String]
+  let seriesNameById: [String: String]
+
+  static let empty = HistoricalEventLocalReferences(bookNameById: [:], seriesNameById: [:])
+
+  var hasMatches: Bool {
+    !bookNameById.isEmpty || !seriesNameById.isEmpty
+  }
+}
+
 @ModelActor
 actor DatabaseOperator {
   private actor SharedStore {
@@ -62,7 +73,6 @@ actor DatabaseOperator {
   private static let sharedStore = SharedStore()
 
   private let logger = AppLogger(.database)
-  private var pendingCommitTask: Task<Void, Never>?
   private let reconcileDeleteBatchSize = 1000
 
   static func configure(modelContainer: ModelContainer) async {
@@ -77,25 +87,13 @@ actor DatabaseOperator {
     await sharedStore.databaseIfConfigured()
   }
 
-  /// Commits changes with a 500ms debounce to avoid frequent UI updates
-  func commit() {
-    pendingCommitTask?.cancel()
-    pendingCommitTask = Task {
-      try? await Task.sleep(for: .milliseconds(500))
-      guard !Task.isCancelled else { return }
-      do {
-        try modelContext.save()
-      } catch {
-        logger.error("Failed to commit: \(error)")
-      }
+  func commit() throws {
+    do {
+      try modelContext.save()
+    } catch {
+      logger.error("Failed to commit: \(error)")
+      throw error
     }
-  }
-
-  /// Commits changes immediately without debounce
-  func commitImmediately() throws {
-    pendingCommitTask?.cancel()
-    pendingCommitTask = nil
-    try modelContext.save()
   }
 
   func hasChanges() -> Bool {
@@ -103,6 +101,197 @@ actor DatabaseOperator {
   }
 
   // MARK: - Book Operations
+
+  func fetchBookDisplayItem(bookId: String, instanceId: String) throws -> BookDisplayItem? {
+    guard !bookId.isEmpty, !instanceId.isEmpty else { return nil }
+
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: bookId)
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { book in
+        book.id == compositeId
+      }
+    )
+    return try modelContext.fetch(descriptor).first.map(Self.makeBookDisplayItem)
+  }
+
+  func fetchFirstBookDisplayItem(seriesId: String, instanceId: String) throws -> BookDisplayItem? {
+    guard !seriesId.isEmpty, !instanceId.isEmpty else { return nil }
+
+    var descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { book in
+        book.instanceId == instanceId && book.seriesId == seriesId
+      },
+      sortBy: [SortDescriptor(\KomgaBook.metaNumberSort, order: .forward)]
+    )
+    descriptor.fetchLimit = 1
+    return try modelContext.fetch(descriptor).first.map(Self.makeBookDisplayItem)
+  }
+
+  func fetchBrowseBookIds(
+    instanceId: String,
+    libraryIds: [String]?,
+    searchText: String,
+    browseOpts: BookBrowseOptions,
+    offset: Int,
+    limit: Int,
+    offlineOnly: Bool = false
+  ) -> [String] {
+    guard !instanceId.isEmpty else { return [] }
+
+    return KomgaBookStore.fetchBookIds(
+      context: modelContext,
+      instanceId: instanceId,
+      libraryIds: libraryIds,
+      searchText: searchText,
+      browseOpts: browseOpts,
+      offset: offset,
+      limit: limit,
+      offlineOnly: offlineOnly
+    )
+  }
+
+  func fetchSeriesBookIds(
+    seriesId: String,
+    browseOpts: BookBrowseOptions,
+    page: Int,
+    size: Int
+  ) -> [String] {
+    KomgaBookStore.fetchSeriesBooks(
+      context: modelContext,
+      seriesId: seriesId,
+      page: page,
+      size: size,
+      browseOpts: browseOpts
+    ).map(\.id)
+  }
+
+  func fetchReadListBookIds(
+    readListId: String,
+    browseOpts: ReadListBookBrowseOptions,
+    page: Int,
+    size: Int
+  ) -> [String] {
+    KomgaBookStore.fetchReadListBooks(
+      context: modelContext,
+      readListId: readListId,
+      page: page,
+      size: size,
+      browseOpts: browseOpts
+    ).map(\.id)
+  }
+
+  func fetchDashboardOfflineBookIds(
+    section: DashboardSection,
+    libraryIds: [String],
+    offset: Int,
+    limit: Int
+  ) -> [String] {
+    switch section {
+    case .keepReading:
+      return KomgaBookStore.fetchKeepReadingBookIds(
+        context: modelContext,
+        libraryIds: libraryIds,
+        offset: offset,
+        limit: limit
+      )
+    case .onDeck:
+      return []
+    case .recentlyReadBooks:
+      return KomgaBookStore.fetchRecentlyReadBookIds(
+        context: modelContext,
+        libraryIds: libraryIds,
+        offset: offset,
+        limit: limit
+      )
+    case .recentlyReleasedBooks:
+      return KomgaBookStore.fetchRecentlyReleasedBookIds(
+        context: modelContext,
+        libraryIds: libraryIds,
+        offset: offset,
+        limit: limit
+      )
+    case .recentlyAddedBooks:
+      return KomgaBookStore.fetchRecentlyAddedBookIds(
+        context: modelContext,
+        libraryIds: libraryIds,
+        offset: offset,
+        limit: limit
+      )
+    default:
+      return []
+    }
+  }
+
+  func fetchOfflineContinueReadingBook(seriesId: String, instanceId: String) -> Book? {
+    guard !seriesId.isEmpty, !instanceId.isEmpty else { return nil }
+
+    if let inProgress = fetchLatestOfflineBook(
+      seriesId: seriesId,
+      instanceId: instanceId,
+      completed: false
+    ) {
+      return inProgress.toBook()
+    }
+
+    let orderedBooks = fetchOfflineSeriesBooks(seriesId: seriesId, instanceId: instanceId)
+    guard !orderedBooks.isEmpty else { return nil }
+
+    if let lastRead = fetchLatestOfflineBook(
+      seriesId: seriesId,
+      instanceId: instanceId,
+      completed: true
+    ) {
+      if let index = orderedBooks.firstIndex(where: { $0.bookId == lastRead.bookId }) {
+        let nextIndex = orderedBooks.index(after: index)
+        if nextIndex < orderedBooks.endIndex {
+          return orderedBooks[nextIndex].toBook()
+        }
+      }
+    }
+
+    if let firstUnread = orderedBooks.first(where: { $0.isUnread }) {
+      return firstUnread.toBook()
+    }
+
+    return orderedBooks.first?.toBook()
+  }
+
+  private func fetchLatestOfflineBook(
+    seriesId: String,
+    instanceId: String,
+    completed: Bool
+  ) -> KomgaBook? {
+    var descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { book in
+        book.seriesId == seriesId
+          && book.instanceId == instanceId
+          && book.progressReadDate != nil
+          && book.progressCompleted == completed
+      },
+      sortBy: [SortDescriptor(\KomgaBook.progressReadDate, order: .reverse)]
+    )
+    descriptor.fetchLimit = 1
+    return try? modelContext.fetch(descriptor).first
+  }
+
+  private func fetchOfflineSeriesBooks(seriesId: String, instanceId: String) -> [KomgaBook] {
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { book in
+        book.seriesId == seriesId && book.instanceId == instanceId
+      },
+      sortBy: [SortDescriptor(\KomgaBook.metaNumberSort, order: .forward)]
+    )
+    return (try? modelContext.fetch(descriptor)) ?? []
+  }
+
+  private static func makeBookDisplayItem(_ book: KomgaBook) -> BookDisplayItem {
+    BookDisplayItem(
+      instanceId: book.instanceId,
+      book: book.toBook(),
+      downloadStatus: book.downloadStatus,
+      readListIds: book.readListIds
+    )
+  }
 
   func upsertBook(dto: Book, instanceId: String) {
     let compositeId = CompositeID.generate(instanceId: instanceId, id: dto.id)
@@ -540,6 +729,93 @@ actor DatabaseOperator {
 
   // MARK: - Series Operations
 
+  func fetchSeriesDisplayItem(seriesId: String, instanceId: String) throws -> SeriesDisplayItem? {
+    guard !seriesId.isEmpty, !instanceId.isEmpty else { return nil }
+
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: seriesId)
+    let descriptor = FetchDescriptor<KomgaSeries>(
+      predicate: #Predicate { series in
+        series.id == compositeId
+      }
+    )
+    return try modelContext.fetch(descriptor).first.map(Self.makeSeriesDisplayItem)
+  }
+
+  func fetchBrowseSeriesIds(
+    instanceId: String,
+    libraryIds: [String]?,
+    searchText: String,
+    browseOpts: SeriesBrowseOptions,
+    offset: Int,
+    limit: Int,
+    offlineOnly: Bool = false
+  ) -> [String] {
+    guard !instanceId.isEmpty else { return [] }
+
+    return KomgaSeriesStore.fetchSeriesIds(
+      context: modelContext,
+      instanceId: instanceId,
+      libraryIds: libraryIds,
+      searchText: searchText,
+      browseOpts: browseOpts,
+      offset: offset,
+      limit: limit,
+      offlineOnly: offlineOnly
+    )
+  }
+
+  func fetchCollectionSeriesIds(
+    collectionId: String,
+    browseOpts: CollectionSeriesBrowseOptions,
+    page: Int,
+    size: Int
+  ) -> [String] {
+    KomgaSeriesStore.fetchCollectionSeries(
+      context: modelContext,
+      collectionId: collectionId,
+      page: page,
+      size: size,
+      browseOpts: browseOpts
+    ).map(\.id)
+  }
+
+  func fetchDashboardOfflineSeriesIds(
+    section: DashboardSection,
+    libraryIds: [String],
+    offset: Int,
+    limit: Int
+  ) -> [String] {
+    switch section {
+    case .recentlyAddedSeries:
+      return KomgaSeriesStore.fetchNewlyAddedSeriesIds(
+        context: modelContext,
+        libraryIds: libraryIds,
+        offset: offset,
+        limit: limit
+      )
+    case .recentlyUpdatedSeries:
+      return KomgaSeriesStore.fetchRecentlyUpdatedSeriesIds(
+        context: modelContext,
+        libraryIds: libraryIds,
+        offset: offset,
+        limit: limit
+      )
+    default:
+      return []
+    }
+  }
+
+  private static func makeSeriesDisplayItem(_ series: KomgaSeries) -> SeriesDisplayItem {
+    SeriesDisplayItem(
+      instanceId: series.instanceId,
+      series: series.toSeries(),
+      downloadStatus: series.downloadStatus,
+      offlinePolicy: series.offlinePolicy,
+      offlinePolicyLimit: series.offlinePolicyLimit,
+      collectionIds: series.collectionIds
+    )
+  }
+
   func upsertSeries(dto: Series, instanceId: String) {
     let compositeId = CompositeID.generate(instanceId: instanceId, id: dto.id)
     let descriptor = FetchDescriptor<KomgaSeries>(predicate: #Predicate { $0.id == compositeId })
@@ -685,6 +961,135 @@ actor DatabaseOperator {
 
   // MARK: - Collection Operations
 
+  func fetchSidebarCollections(instanceId: String) throws -> [SidebarCollectionItem] {
+    guard !instanceId.isEmpty else { return [] }
+
+    let descriptor = FetchDescriptor<KomgaCollection>(
+      predicate: #Predicate { collection in
+        collection.instanceId == instanceId
+      },
+      sortBy: [SortDescriptor(\KomgaCollection.name, order: .forward)]
+    )
+    return try modelContext.fetch(descriptor).map { collection in
+      SidebarCollectionItem(
+        collectionId: collection.collectionId,
+        name: collection.name,
+        seriesCount: collection.seriesIds.count
+      )
+    }
+  }
+
+  func fetchSidebarCollections(instanceId: String, collectionIds: Set<String>) throws
+    -> [SidebarCollectionItem]
+  {
+    guard !instanceId.isEmpty, !collectionIds.isEmpty else { return [] }
+
+    let descriptor = FetchDescriptor<KomgaCollection>(
+      predicate: #Predicate { collection in
+        collection.instanceId == instanceId && collectionIds.contains(collection.collectionId)
+      },
+      sortBy: [SortDescriptor(\KomgaCollection.name, order: .forward)]
+    )
+    return try modelContext.fetch(descriptor).map { collection in
+      SidebarCollectionItem(
+        collectionId: collection.collectionId,
+        name: collection.name,
+        seriesCount: collection.seriesIds.count
+      )
+    }
+  }
+
+  func fetchPinnedCollectionDisplayItems(instanceId: String) throws -> [CollectionDisplayItem] {
+    guard !instanceId.isEmpty else { return [] }
+
+    let descriptor = FetchDescriptor<KomgaCollection>(
+      predicate: #Predicate { collection in
+        collection.instanceId == instanceId && collection.isPinned == true
+      },
+      sortBy: [SortDescriptor(\KomgaCollection.lastModifiedDate, order: .reverse)]
+    )
+    return try modelContext.fetch(descriptor).map { collection in
+      CollectionDisplayItem(
+        collectionId: collection.collectionId,
+        instanceId: collection.instanceId,
+        name: collection.name,
+        ordered: collection.ordered,
+        createdDate: collection.createdDate,
+        lastModifiedDate: collection.lastModifiedDate,
+        filtered: collection.filtered,
+        isPinned: collection.isPinned,
+        seriesIds: collection.seriesIds
+      )
+    }
+  }
+
+  func fetchCollectionDisplayItems(instanceId: String) throws -> [CollectionDisplayItem] {
+    guard !instanceId.isEmpty else { return [] }
+
+    let descriptor = FetchDescriptor<KomgaCollection>(
+      predicate: #Predicate { collection in
+        collection.instanceId == instanceId
+      },
+      sortBy: [SortDescriptor(\KomgaCollection.name, order: .forward)]
+    )
+    return try modelContext.fetch(descriptor).map { collection in
+      CollectionDisplayItem(
+        collectionId: collection.collectionId,
+        instanceId: collection.instanceId,
+        name: collection.name,
+        ordered: collection.ordered,
+        createdDate: collection.createdDate,
+        lastModifiedDate: collection.lastModifiedDate,
+        filtered: collection.filtered,
+        isPinned: collection.isPinned,
+        seriesIds: collection.seriesIds
+      )
+    }
+  }
+
+  func fetchCollectionIds(
+    libraryIds: [String]?,
+    searchText: String,
+    sort: String?,
+    offset: Int,
+    limit: Int
+  ) -> [String] {
+    KomgaCollectionStore.fetchCollectionIds(
+      context: modelContext,
+      libraryIds: libraryIds,
+      searchText: searchText,
+      sort: sort,
+      offset: offset,
+      limit: limit
+    )
+  }
+
+  func fetchCollectionDisplayItem(collectionId: String, instanceId: String) throws
+    -> CollectionDisplayItem?
+  {
+    guard !collectionId.isEmpty, !instanceId.isEmpty else { return nil }
+
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: collectionId)
+    let descriptor = FetchDescriptor<KomgaCollection>(
+      predicate: #Predicate { collection in
+        collection.id == compositeId
+      }
+    )
+    return try modelContext.fetch(descriptor).first.map { collection in
+      CollectionDisplayItem(
+        collectionId: collection.collectionId,
+        instanceId: collection.instanceId,
+        name: collection.name,
+        ordered: collection.ordered,
+        createdDate: collection.createdDate,
+        lastModifiedDate: collection.lastModifiedDate,
+        filtered: collection.filtered,
+        isPinned: collection.isPinned,
+        seriesIds: collection.seriesIds
+      )
+    }
+  }
+
   func upsertCollection(dto: SeriesCollection, instanceId: String) {
     let compositeId = CompositeID.generate(instanceId: instanceId, id: dto.id)
     let descriptor = FetchDescriptor<KomgaCollection>(
@@ -780,6 +1185,141 @@ actor DatabaseOperator {
   }
 
   // MARK: - ReadList Operations
+
+  func fetchSidebarReadLists(instanceId: String) throws -> [SidebarReadListItem] {
+    guard !instanceId.isEmpty else { return [] }
+
+    let descriptor = FetchDescriptor<KomgaReadList>(
+      predicate: #Predicate { readList in
+        readList.instanceId == instanceId
+      },
+      sortBy: [SortDescriptor(\KomgaReadList.name, order: .forward)]
+    )
+    return try modelContext.fetch(descriptor).map { readList in
+      SidebarReadListItem(
+        readListId: readList.readListId,
+        name: readList.name,
+        bookCount: readList.bookIds.count
+      )
+    }
+  }
+
+  func fetchSidebarReadLists(instanceId: String, readListIds: Set<String>) throws
+    -> [SidebarReadListItem]
+  {
+    guard !instanceId.isEmpty, !readListIds.isEmpty else { return [] }
+
+    let descriptor = FetchDescriptor<KomgaReadList>(
+      predicate: #Predicate { readList in
+        readList.instanceId == instanceId && readListIds.contains(readList.readListId)
+      },
+      sortBy: [SortDescriptor(\KomgaReadList.name, order: .forward)]
+    )
+    return try modelContext.fetch(descriptor).map { readList in
+      SidebarReadListItem(
+        readListId: readList.readListId,
+        name: readList.name,
+        bookCount: readList.bookIds.count
+      )
+    }
+  }
+
+  func fetchPinnedReadListDisplayItems(instanceId: String) throws -> [ReadListDisplayItem] {
+    guard !instanceId.isEmpty else { return [] }
+
+    let descriptor = FetchDescriptor<KomgaReadList>(
+      predicate: #Predicate { readList in
+        readList.instanceId == instanceId && readList.isPinned == true
+      },
+      sortBy: [SortDescriptor(\KomgaReadList.lastModifiedDate, order: .reverse)]
+    )
+    return try modelContext.fetch(descriptor).map { readList in
+      ReadListDisplayItem(
+        readListId: readList.readListId,
+        instanceId: readList.instanceId,
+        name: readList.name,
+        summary: readList.summary,
+        ordered: readList.ordered,
+        createdDate: readList.createdDate,
+        lastModifiedDate: readList.lastModifiedDate,
+        filtered: readList.filtered,
+        isPinned: readList.isPinned,
+        bookIds: readList.bookIds,
+        downloadStatus: readList.downloadStatus
+      )
+    }
+  }
+
+  func fetchReadListDisplayItems(instanceId: String) throws -> [ReadListDisplayItem] {
+    guard !instanceId.isEmpty else { return [] }
+
+    let descriptor = FetchDescriptor<KomgaReadList>(
+      predicate: #Predicate { readList in
+        readList.instanceId == instanceId
+      },
+      sortBy: [SortDescriptor(\KomgaReadList.name, order: .forward)]
+    )
+    return try modelContext.fetch(descriptor).map { readList in
+      ReadListDisplayItem(
+        readListId: readList.readListId,
+        instanceId: readList.instanceId,
+        name: readList.name,
+        summary: readList.summary,
+        ordered: readList.ordered,
+        createdDate: readList.createdDate,
+        lastModifiedDate: readList.lastModifiedDate,
+        filtered: readList.filtered,
+        isPinned: readList.isPinned,
+        bookIds: readList.bookIds,
+        downloadStatus: readList.downloadStatus
+      )
+    }
+  }
+
+  func fetchReadListIds(
+    libraryIds: [String]?,
+    searchText: String,
+    sort: String?,
+    offset: Int,
+    limit: Int
+  ) -> [String] {
+    KomgaReadListStore.fetchReadListIds(
+      context: modelContext,
+      libraryIds: libraryIds,
+      searchText: searchText,
+      sort: sort,
+      offset: offset,
+      limit: limit
+    )
+  }
+
+  func fetchReadListDisplayItem(readListId: String, instanceId: String) throws
+    -> ReadListDisplayItem?
+  {
+    guard !readListId.isEmpty, !instanceId.isEmpty else { return nil }
+
+    let compositeId = CompositeID.generate(instanceId: instanceId, id: readListId)
+    let descriptor = FetchDescriptor<KomgaReadList>(
+      predicate: #Predicate { readList in
+        readList.id == compositeId
+      }
+    )
+    return try modelContext.fetch(descriptor).first.map { readList in
+      ReadListDisplayItem(
+        readListId: readList.readListId,
+        instanceId: readList.instanceId,
+        name: readList.name,
+        summary: readList.summary,
+        ordered: readList.ordered,
+        createdDate: readList.createdDate,
+        lastModifiedDate: readList.lastModifiedDate,
+        filtered: readList.filtered,
+        isPinned: readList.isPinned,
+        bookIds: readList.bookIds,
+        downloadStatus: readList.downloadStatus
+      )
+    }
+  }
 
   func upsertReadList(dto: ReadList, instanceId: String) {
     let compositeId = CompositeID.generate(instanceId: instanceId, id: dto.id)
@@ -1177,7 +1717,70 @@ actor DatabaseOperator {
     }
   }
 
+  func fetchHistoricalEventLocalReferences(
+    instanceId: String,
+    bookIds: Set<String>,
+    seriesIds: Set<String>
+  ) throws -> HistoricalEventLocalReferences {
+    guard !instanceId.isEmpty, !bookIds.isEmpty || !seriesIds.isEmpty else {
+      return .empty
+    }
+
+    var bookNameById: [String: String] = [:]
+    if !bookIds.isEmpty {
+      let descriptor = FetchDescriptor<KomgaBook>(
+        predicate: #Predicate { book in
+          book.instanceId == instanceId && bookIds.contains(book.bookId)
+        }
+      )
+      for book in try modelContext.fetch(descriptor) {
+        bookNameById[book.bookId] = book.metaTitle
+      }
+    }
+
+    var seriesNameById: [String: String] = [:]
+    if !seriesIds.isEmpty {
+      let descriptor = FetchDescriptor<KomgaSeries>(
+        predicate: #Predicate { series in
+          series.instanceId == instanceId && seriesIds.contains(series.seriesId)
+        }
+      )
+      for series in try modelContext.fetch(descriptor) {
+        seriesNameById[series.seriesId] = series.metaTitle
+      }
+    }
+
+    return HistoricalEventLocalReferences(
+      bookNameById: bookNameById,
+      seriesNameById: seriesNameById
+    )
+  }
+
   // MARK: - Book Download Status Operations
+
+  func fetchOfflineTaskItems(instanceId: String) throws -> [OfflineTaskItem] {
+    guard !instanceId.isEmpty else { return [] }
+
+    let descriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { book in
+        book.instanceId == instanceId
+          && (book.downloadStatusRaw == "pending" || book.downloadStatusRaw == "downloading"
+            || book.downloadStatusRaw == "failed")
+      },
+      sortBy: [SortDescriptor(\KomgaBook.downloadAt, order: .forward)]
+    )
+    return try modelContext.fetch(descriptor).map { book in
+      OfflineTaskItem(
+        id: book.id,
+        bookId: book.bookId,
+        seriesTitle: book.seriesTitle,
+        metaNumber: book.metaNumber,
+        metaTitle: book.metaTitle,
+        downloadStatusRaw: book.downloadStatusRaw,
+        downloadStatus: book.downloadStatus
+      )
+    }
+  }
 
   func updateBookDownloadStatus(
     bookId: String,
@@ -1482,7 +2085,7 @@ actor DatabaseOperator {
         }
         self.syncSeriesDownloadStatus(
           seriesId: seriesId, instanceId: instanceId)
-        self.commit()
+        try? self.commit()
       }
     }
   }
@@ -1580,7 +2183,7 @@ actor DatabaseOperator {
       }
       self.syncSeriesDownloadStatus(
         seriesId: seriesId, instanceId: instanceId)
-      self.commit()
+      try? self.commit()
     }
   }
 
@@ -1614,7 +2217,7 @@ actor DatabaseOperator {
       }
       self.syncSeriesDownloadStatus(
         seriesId: seriesId, instanceId: instanceId)
-      self.commit()
+      try? self.commit()
     }
   }
 
@@ -1868,7 +2471,7 @@ actor DatabaseOperator {
       }
       self.syncReadListDownloadStatus(
         readListId: readListId, instanceId: instanceId)
-      self.commit()
+      try? self.commit()
     }
   }
 
@@ -1905,11 +2508,82 @@ actor DatabaseOperator {
       }
       self.syncReadListDownloadStatus(
         readListId: readListId, instanceId: instanceId)
-      self.commit()
+      try? self.commit()
     }
   }
 
   // MARK: - Library Operations
+
+  func fetchSidebarLibraries(instanceId: String) throws -> [SidebarLibraryItem] {
+    guard !instanceId.isEmpty else { return [] }
+
+    let allLibrariesId = KomgaLibrary.allLibrariesId
+    let descriptor = FetchDescriptor<KomgaLibrary>(
+      predicate: #Predicate { library in
+        library.instanceId == instanceId && library.libraryId != allLibrariesId
+      },
+      sortBy: [SortDescriptor(\KomgaLibrary.name, order: .forward)]
+    )
+    return try modelContext.fetch(descriptor).map { library in
+      SidebarLibraryItem(
+        libraryId: library.libraryId,
+        name: library.name,
+        fileSize: library.fileSize,
+        booksCount: library.booksCount,
+        seriesCount: library.seriesCount,
+        sidecarsCount: library.sidecarsCount,
+        collectionsCount: library.collectionsCount,
+        readlistsCount: library.readlistsCount
+      )
+    }
+  }
+
+  func fetchAllLibrariesItem(instanceId: String) throws -> SidebarLibraryItem? {
+    guard !instanceId.isEmpty else { return nil }
+
+    let allLibrariesId = KomgaLibrary.allLibrariesId
+    let descriptor = FetchDescriptor<KomgaLibrary>(
+      predicate: #Predicate { library in
+        library.instanceId == instanceId && library.libraryId == allLibrariesId
+      }
+    )
+    guard let library = try modelContext.fetch(descriptor).first else { return nil }
+    return SidebarLibraryItem(
+      libraryId: library.libraryId,
+      name: library.name,
+      fileSize: library.fileSize,
+      booksCount: library.booksCount,
+      seriesCount: library.seriesCount,
+      sidecarsCount: library.sidecarsCount,
+      collectionsCount: library.collectionsCount,
+      readlistsCount: library.readlistsCount
+    )
+  }
+
+  func updateLibraryMetrics(
+    instanceId: String,
+    metricsByLibrary: [String: LibraryMetricValues]
+  ) throws {
+    guard !instanceId.isEmpty, !metricsByLibrary.isEmpty else { return }
+
+    let libraryIds = Set(metricsByLibrary.keys)
+    let descriptor = FetchDescriptor<KomgaLibrary>(
+      predicate: #Predicate { library in
+        library.instanceId == instanceId && libraryIds.contains(library.libraryId)
+      }
+    )
+    let libraries = try modelContext.fetch(descriptor)
+
+    for library in libraries {
+      guard let metrics = metricsByLibrary[library.libraryId] else { continue }
+      if library.fileSize != metrics.fileSize { library.fileSize = metrics.fileSize }
+      if library.booksCount != metrics.booksCount { library.booksCount = metrics.booksCount }
+      if library.seriesCount != metrics.seriesCount { library.seriesCount = metrics.seriesCount }
+      if library.sidecarsCount != metrics.sidecarsCount {
+        library.sidecarsCount = metrics.sidecarsCount
+      }
+    }
+  }
 
   func replaceLibraries(_ libraries: [LibraryInfo], for instanceId: String) throws {
     let descriptor = FetchDescriptor<KomgaLibrary>(
@@ -2047,6 +2721,171 @@ actor DatabaseOperator {
     }
   }
 
+  // MARK: - Saved Filter Operations
+
+  func fetchSavedFilterDisplayItems(filterType: SavedFilterType) throws -> [SavedFilterDisplayItem]
+  {
+    let filterTypeRaw = filterType.rawValue
+    let descriptor = FetchDescriptor<SavedFilter>(
+      predicate: #Predicate { filter in
+        filter.filterTypeRaw == filterTypeRaw
+      },
+      sortBy: [SortDescriptor(\SavedFilter.updatedAt, order: .reverse)]
+    )
+    return try modelContext.fetch(descriptor).map { filter in
+      SavedFilterDisplayItem(
+        id: filter.id,
+        name: filter.name,
+        filterType: filter.filterType,
+        filterDataJSON: filter.filterDataJSON,
+        updatedAt: filter.updatedAt
+      )
+    }
+  }
+
+  func createSavedFilter(
+    name: String,
+    filterType: SavedFilterType,
+    filterDataJSON: String
+  ) throws {
+    modelContext.insert(
+      SavedFilter(
+        name: name,
+        filterType: filterType,
+        filterDataJSON: filterDataJSON
+      )
+    )
+  }
+
+  func renameSavedFilter(id: UUID, name: String) throws {
+    let descriptor = FetchDescriptor<SavedFilter>(
+      predicate: #Predicate { filter in
+        filter.id == id
+      }
+    )
+    guard let filter = try modelContext.fetch(descriptor).first else { return }
+    filter.name = name
+    filter.updatedAt = Date()
+  }
+
+  func deleteSavedFilter(id: UUID) throws {
+    let descriptor = FetchDescriptor<SavedFilter>(
+      predicate: #Predicate { filter in
+        filter.id == id
+      }
+    )
+    guard let filter = try modelContext.fetch(descriptor).first else { return }
+    modelContext.delete(filter)
+  }
+
+  // MARK: - EPUB Theme Preset Operations
+
+  func fetchEpubThemePresetDisplayItems() throws -> [EpubThemePresetDisplayItem] {
+    let descriptor = FetchDescriptor<EpubThemePreset>(
+      sortBy: [SortDescriptor(\EpubThemePreset.updatedAt, order: .reverse)]
+    )
+    return try modelContext.fetch(descriptor).map { preset in
+      EpubThemePresetDisplayItem(
+        id: preset.id,
+        name: preset.name,
+        preferencesJSON: preset.preferencesJSON,
+        updatedAt: preset.updatedAt
+      )
+    }
+  }
+
+  func createEpubThemePreset(name: String, preferencesJSON: String) throws {
+    modelContext.insert(
+      EpubThemePreset(
+        name: name,
+        preferencesJSON: preferencesJSON
+      )
+    )
+  }
+
+  func renameEpubThemePreset(id: UUID, name: String) throws {
+    let descriptor = FetchDescriptor<EpubThemePreset>(
+      predicate: #Predicate { preset in
+        preset.id == id
+      }
+    )
+    guard let preset = try modelContext.fetch(descriptor).first else { return }
+    preset.name = name
+    preset.updatedAt = Date()
+  }
+
+  func deleteEpubThemePreset(id: UUID) throws {
+    let descriptor = FetchDescriptor<EpubThemePreset>(
+      predicate: #Predicate { preset in
+        preset.id == id
+      }
+    )
+    guard let preset = try modelContext.fetch(descriptor).first else { return }
+    modelContext.delete(preset)
+  }
+
+  // MARK: - Custom Font Operations
+
+  func fetchCustomFontDisplayItems() throws -> [CustomFontDisplayItem] {
+    let descriptor = FetchDescriptor<CustomFont>(
+      sortBy: [SortDescriptor(\CustomFont.name, order: .forward)]
+    )
+    return try modelContext.fetch(descriptor).map(Self.makeCustomFontDisplayItem)
+  }
+
+  func fetchCustomFontPath(name: String) throws -> String? {
+    let descriptor = FetchDescriptor<CustomFont>(
+      predicate: #Predicate { font in
+        font.name == name
+      }
+    )
+    return try modelContext.fetch(descriptor).first?.path
+  }
+
+  func customFontExists(name: String) throws -> Bool {
+    let descriptor = FetchDescriptor<CustomFont>(
+      predicate: #Predicate { font in
+        font.name == name
+      }
+    )
+    return try modelContext.fetchCount(descriptor) > 0
+  }
+
+  func createCustomFont(
+    name: String,
+    path: String? = nil,
+    fileName: String? = nil,
+    fileSize: Int64? = nil
+  ) throws {
+    modelContext.insert(
+      CustomFont(
+        name: name,
+        path: path,
+        fileName: fileName,
+        fileSize: fileSize
+      )
+    )
+  }
+
+  func deleteCustomFont(name: String) throws {
+    let descriptor = FetchDescriptor<CustomFont>(
+      predicate: #Predicate { font in
+        font.name == name
+      }
+    )
+    guard let font = try modelContext.fetch(descriptor).first else { return }
+    modelContext.delete(font)
+  }
+
+  private static func makeCustomFontDisplayItem(_ font: CustomFont) -> CustomFontDisplayItem {
+    CustomFontDisplayItem(
+      name: font.name,
+      path: font.path,
+      fileName: font.fileName,
+      fileSize: font.fileSize
+    )
+  }
+
   // MARK: - Instance Operations
 
   func upsertInstance(
@@ -2119,6 +2958,64 @@ actor DatabaseOperator {
     }
   }
 
+  func fetchServerDisplayItems() throws -> [ServerDisplayItem] {
+    let descriptor = FetchDescriptor<KomgaInstance>(
+      sortBy: [
+        SortDescriptor(\KomgaInstance.lastUsedAt, order: .reverse),
+        SortDescriptor(\KomgaInstance.name, order: .forward),
+      ]
+    )
+    return try modelContext.fetch(descriptor).map(Self.makeServerDisplayItem)
+  }
+
+  func updateServerDisplayItem(
+    id: UUID,
+    name: String,
+    serverURL: String,
+    username: String,
+    authToken: String,
+    authMethod: AuthenticationMethod
+  ) throws -> ServerDisplayItem? {
+    let descriptor = FetchDescriptor<KomgaInstance>(
+      predicate: #Predicate { instance in
+        instance.id == id
+      }
+    )
+    guard let instance = try modelContext.fetch(descriptor).first else { return nil }
+
+    instance.name = name
+    instance.serverURL = serverURL
+    instance.username = username
+    instance.authToken = authToken
+    instance.authMethod = authMethod
+    instance.lastUsedAt = Date()
+
+    return Self.makeServerDisplayItem(instance)
+  }
+
+  func deleteServerDisplayItem(id: UUID) throws {
+    let descriptor = FetchDescriptor<KomgaInstance>(
+      predicate: #Predicate { instance in
+        instance.id == id
+      }
+    )
+    guard let instance = try modelContext.fetch(descriptor).first else { return }
+    modelContext.delete(instance)
+  }
+
+  private static func makeServerDisplayItem(_ instance: KomgaInstance) -> ServerDisplayItem {
+    ServerDisplayItem(
+      id: instance.id,
+      name: instance.name,
+      serverURL: instance.serverURL,
+      username: instance.username,
+      authToken: instance.authToken,
+      isAdmin: instance.isAdmin,
+      authMethod: instance.resolvedAuthMethod,
+      lastUsedAt: instance.lastUsedAt
+    )
+  }
+
   func updateSeriesLastSyncedAt(instanceId: String, date: Date) throws {
     guard let uuid = UUID(uuidString: instanceId) else { return }
     let descriptor = FetchDescriptor<KomgaInstance>(
@@ -2164,6 +3061,21 @@ actor DatabaseOperator {
       return (Date(timeIntervalSince1970: 0), Date(timeIntervalSince1970: 0))
     }
     return (instance.seriesLastSyncedAt, instance.booksLastSyncedAt)
+  }
+
+  func fetchOfflineInstanceSyncInfo(instanceId: String) throws -> OfflineInstanceSyncInfo? {
+    guard let uuid = UUID(uuidString: instanceId) else { return nil }
+    let descriptor = FetchDescriptor<KomgaInstance>(
+      predicate: #Predicate { instance in
+        instance.id == uuid
+      }
+    )
+    guard let instance = try modelContext.fetch(descriptor).first else { return nil }
+    return OfflineInstanceSyncInfo(
+      instanceId: instanceId,
+      seriesLastSyncedAt: instance.seriesLastSyncedAt,
+      booksLastSyncedAt: instance.booksLastSyncedAt
+    )
   }
 
   func fetchLibraries(instanceId: String) -> [LibraryInfo] {
@@ -2262,7 +3174,7 @@ actor DatabaseOperator {
     syncReadListsContainingBooks(bookIds: affectedBookIds, instanceId: instanceId)
 
     if queuedCount > 0 {
-      commit()
+      try? commit()
     }
     return queuedCount
   }
@@ -2291,6 +3203,94 @@ actor DatabaseOperator {
     fetchBooksCount(instanceId: instanceId, status: "downloaded")
   }
 
+  func fetchOfflineDownloadedBooksSnapshot(instanceId: String) throws -> OfflineDownloadedBooksSnapshot
+  {
+    guard !instanceId.isEmpty else { return .empty }
+
+    let bookDescriptor = FetchDescriptor<KomgaBook>(
+      predicate: #Predicate { book in
+        book.instanceId == instanceId && book.downloadStatusRaw == "downloaded"
+      },
+      sortBy: [SortDescriptor(\KomgaBook.libraryId, order: .forward)]
+    )
+    let downloadedBooks = try modelContext.fetch(bookDescriptor)
+    guard !downloadedBooks.isEmpty else { return .empty }
+
+    let libraryDescriptor = FetchDescriptor<KomgaLibrary>(
+      predicate: #Predicate { library in
+        library.instanceId == instanceId
+      }
+    )
+    let libraryMap = Dictionary(
+      uniqueKeysWithValues: try modelContext.fetch(libraryDescriptor).map { library in
+        (library.libraryId, library.name)
+      }
+    )
+
+    let seriesIds = Set(downloadedBooks.filter { !$0.oneshot }.map(\.seriesId))
+    let seriesMap: [String: String]
+    if seriesIds.isEmpty {
+      seriesMap = [:]
+    } else {
+      let compositeSeriesIds = seriesIds.map {
+        CompositeID.generate(instanceId: instanceId, id: $0)
+      }
+      let seriesDescriptor = FetchDescriptor<KomgaSeries>(
+        predicate: #Predicate { series in
+          compositeSeriesIds.contains(series.id)
+        }
+      )
+      seriesMap = Dictionary(
+        uniqueKeysWithValues: try modelContext.fetch(seriesDescriptor).map { series in
+          (series.seriesId, series.name)
+        }
+      )
+    }
+
+    let libraryBooksMap = Dictionary(grouping: downloadedBooks) { $0.libraryId }
+    var libraryGroups: [OfflineDownloadedLibraryGroup] = []
+
+    for (libraryId, libraryBooks) in libraryBooksMap {
+      let oneshotBooks = libraryBooks.filter(\.oneshot)
+        .map(Self.makeOfflineDownloadedBookItem)
+        .sorted {
+          $0.oneshotTitle.localizedCaseInsensitiveCompare($1.oneshotTitle) == .orderedAscending
+        }
+
+      let seriesBooksMap = Dictionary(grouping: libraryBooks.filter { !$0.oneshot }) { $0.seriesId }
+      var seriesGroups: [OfflineDownloadedSeriesGroup] = []
+      for (seriesId, seriesBooks) in seriesBooksMap {
+        let bookItems = seriesBooks
+          .map(Self.makeOfflineDownloadedBookItem)
+          .sorted { $0.metaNumberSort < $1.metaNumberSort }
+        seriesGroups.append(
+          OfflineDownloadedSeriesGroup(
+            id: seriesId,
+            name: seriesMap[seriesId] ?? bookItems.first?.seriesTitle,
+            books: bookItems
+          )
+        )
+      }
+      seriesGroups.sort {
+        ($0.name ?? "").localizedCaseInsensitiveCompare($1.name ?? "") == .orderedAscending
+      }
+
+      libraryGroups.append(
+        OfflineDownloadedLibraryGroup(
+          id: libraryId,
+          name: libraryMap[libraryId],
+          seriesGroups: seriesGroups,
+          oneshotBooks: oneshotBooks
+        )
+      )
+    }
+
+    libraryGroups.sort {
+      ($0.name ?? "").localizedCaseInsensitiveCompare($1.name ?? "") == .orderedAscending
+    }
+    return OfflineDownloadedBooksSnapshot(libraryGroups: libraryGroups)
+  }
+
   func fetchDownloadedBooks(instanceId: String) -> [Book] {
     let descriptor = FetchDescriptor<KomgaBook>(
       predicate: #Predicate { $0.instanceId == instanceId && $0.downloadStatusRaw == "downloaded" }
@@ -2302,6 +3302,24 @@ actor DatabaseOperator {
     } catch {
       return []
     }
+  }
+
+  private static func makeOfflineDownloadedBookItem(_ book: KomgaBook) -> OfflineDownloadedBookItem
+  {
+    OfflineDownloadedBookItem(
+      id: book.id,
+      instanceId: book.instanceId,
+      bookId: book.bookId,
+      seriesId: book.seriesId,
+      libraryId: book.libraryId,
+      bookName: book.name,
+      seriesTitle: book.seriesTitle,
+      metaNumber: book.metaNumber,
+      metaTitle: book.metaTitle,
+      metaNumberSort: book.metaNumberSort,
+      downloadedSize: book.downloadedSize,
+      isReadCompleted: book.readProgress?.completed == true
+    )
   }
 
   func fetchOfflineEpubBookIdsMissingProgression(instanceId: String) async -> [String] {

@@ -5,7 +5,6 @@
 
 #if os(iOS)
   import CoreText
-  import SwiftData
   import SwiftUI
   import UIKit
   import UniformTypeIdentifiers
@@ -16,9 +15,7 @@
     @State private var fontInputErrorMessage: String = ""
     @State private var showFontPicker: Bool = false
     @State private var showDocumentPicker: Bool = false
-
-    @Query(sort: \CustomFont.name, order: .forward) private var customFonts: [CustomFont]
-    @Environment(\.modelContext) private var modelContext
+    @State private var customFonts: [CustomFontDisplayItem] = []
 
     var body: some View {
       SheetView(title: String(localized: "Custom Fonts"), size: .large, applyFormStyle: true) {
@@ -155,6 +152,9 @@
           handleFontFileImport(url)
         }
       }
+      .task {
+        await loadCustomFonts()
+      }
     }
 
     private func handleFontPickerSelection(_ font: UIFont) {
@@ -169,24 +169,9 @@
         return
       }
 
-      // Add font to custom fonts list (even if it's in system fonts,
-      // because it might be a profile-installed font that we want to ensure is available)
-      let customFont = CustomFont(name: familyName)
-      modelContext.insert(customFont)
-      do {
-        try modelContext.save()
-      } catch {
-        showFontInputError = true
-        fontInputErrorMessage = "Failed to save font: \(error.localizedDescription)"
-        return
+      Task {
+        await saveCustomFont(name: familyName)
       }
-
-      // Refresh font provider
-      FontProvider.refresh()
-
-      // Clear any error
-      showFontInputError = false
-      fontInputErrorMessage = ""
     }
 
     private func handleFontFileImport(_ url: URL) {
@@ -272,26 +257,15 @@
         return
       }
 
-      // Add font to custom fonts list with relative path, fileName, and fileSize
-      let customFont = CustomFont(
-        name: actualFontName, path: relativePath, fileName: fileName, fileSize: fileSize)
-      modelContext.insert(customFont)
-      do {
-        try modelContext.save()
-      } catch {
-        showFontInputError = true
-        fontInputErrorMessage = "Failed to save font: \(error.localizedDescription)"
-        // Clean up
-        FontFileManager.deleteFont(at: relativePath)
-        return
+      Task {
+        await saveCustomFont(
+          name: actualFontName,
+          path: relativePath,
+          fileName: fileName,
+          fileSize: fileSize,
+          cleanupPathOnFailure: relativePath
+        )
       }
-
-      // Refresh font provider
-      FontProvider.refresh()
-
-      // Clear any error
-      showFontInputError = false
-      fontInputErrorMessage = ""
     }
 
     private func addCustomFont() {
@@ -323,43 +297,27 @@
         return
       }
 
-      // Add font to custom fonts list
-      let customFont = CustomFont(name: fontName)
-      modelContext.insert(customFont)
-      do {
-        try modelContext.save()
-      } catch {
-        showFontInputError = true
-        fontInputErrorMessage = "Failed to save font: \(error.localizedDescription)"
-        return
+      Task {
+        await saveCustomFont(name: fontName, clearInputOnSuccess: true)
       }
-
-      // Clear input and error
-      customFontInput = ""
-      showFontInputError = false
-      fontInputErrorMessage = ""
-
-      // Refresh font provider
-      FontProvider.refresh()
     }
 
-    private func removeCustomFont(_ font: CustomFont) {
-      // If this is an imported font, clean up the file
-      if let relativePath = font.path {
-        FontFileManager.deleteFont(at: relativePath)
+    private func removeCustomFont(_ font: CustomFontDisplayItem) {
+      Task {
+        do {
+          let database = try await DatabaseOperator.database()
+          try await database.deleteCustomFont(name: font.name)
+          try await database.commit()
+          if let relativePath = font.path {
+            FontFileManager.deleteFont(at: relativePath)
+          }
+          await loadCustomFonts()
+          FontProvider.refresh()
+        } catch {
+          showFontInputError = true
+          fontInputErrorMessage = "Failed to delete font: \(error.localizedDescription)"
+        }
       }
-
-      modelContext.delete(font)
-      do {
-        try modelContext.save()
-      } catch {
-        showFontInputError = true
-        fontInputErrorMessage = "Failed to delete font: \(error.localizedDescription)"
-        return
-      }
-
-      // Refresh font provider
-      FontProvider.refresh()
     }
 
     private func isFontAvailable(_ fontName: String) -> Bool {
@@ -386,6 +344,53 @@
       formatter.allowedUnits = [.useKB, .useMB]
       formatter.countStyle = .file
       return formatter.string(fromByteCount: bytes)
+    }
+
+    private func saveCustomFont(
+      name: String,
+      path: String? = nil,
+      fileName: String? = nil,
+      fileSize: Int64? = nil,
+      clearInputOnSuccess: Bool = false,
+      cleanupPathOnFailure: String? = nil
+    ) async {
+      do {
+        let database = try await DatabaseOperator.database()
+        try await database.createCustomFont(
+          name: name,
+          path: path,
+          fileName: fileName,
+          fileSize: fileSize
+        )
+        try await database.commit()
+
+        if clearInputOnSuccess {
+          customFontInput = ""
+        }
+        showFontInputError = false
+        fontInputErrorMessage = ""
+        await loadCustomFonts()
+        FontProvider.refresh()
+      } catch {
+        if let cleanupPathOnFailure {
+          FontFileManager.deleteFont(at: cleanupPathOnFailure)
+        }
+        showFontInputError = true
+        fontInputErrorMessage = "Failed to save font: \(error.localizedDescription)"
+      }
+    }
+
+    private func loadCustomFonts() async {
+      do {
+        let database = try await DatabaseOperator.database()
+        let loadedFonts = try await database.fetchCustomFontDisplayItems()
+        if customFonts != loadedFonts {
+          customFonts = loadedFonts
+        }
+      } catch {
+        showFontInputError = true
+        fontInputErrorMessage = "Failed to load fonts: \(error.localizedDescription)"
+      }
     }
   }
 

@@ -14,6 +14,7 @@ struct ReadListContextMenu: View {
   var onDeleteRequested: (() -> Void)? = nil
   var onEditRequested: (() -> Void)? = nil
   var onPinToggleRequested: (() -> Void)? = nil
+  var onMutationCompleted: (() -> Void)? = nil
 
   @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("isOffline") private var isOffline: Bool = false
@@ -145,6 +146,7 @@ struct ReadListContextMenu: View {
       ErrorManager.shared.notify(
         message: String(localized: "notification.readList.offlineDownloadQueued")
       )
+      onMutationCompleted?()
     }
   }
 
@@ -160,6 +162,7 @@ struct ReadListContextMenu: View {
       ErrorManager.shared.notify(
         message: String(localized: "notification.readList.offlineDownloadQueued")
       )
+      onMutationCompleted?()
     }
   }
 
@@ -173,6 +176,7 @@ struct ReadListContextMenu: View {
       ErrorManager.shared.notify(
         message: String(localized: "notification.readList.offlineRemoved")
       )
+      onMutationCompleted?()
     }
   }
 
@@ -185,6 +189,7 @@ struct ReadListContextMenu: View {
       ErrorManager.shared.notify(
         message: String(localized: "notification.readList.offlineRemoved")
       )
+      onMutationCompleted?()
     }
   }
 

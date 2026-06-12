@@ -3,7 +3,6 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 @MainActor
@@ -19,8 +18,6 @@ struct DashboardSectionDetailView: View {
   @State private var isLoading = false
   @State private var isQueueingAllOffline = false
   @State private var hasLoadedInitial = false
-
-  @Environment(\.modelContext) private var modelContext
 
   private var columns: [GridItem] {
     LayoutConfig.adaptiveColumns(for: gridDensity)
@@ -210,15 +207,13 @@ struct DashboardSectionDetailView: View {
       let ids: [String]
       switch section.contentKind {
       case .books:
-        ids = section.fetchOfflineBookIds(
-          context: modelContext,
+        ids = await section.fetchOfflineBookIds(
           libraryIds: libraryIds,
           offset: pagination.currentPage * pagination.pageSize,
           limit: pagination.pageSize
         )
       case .series:
-        ids = section.fetchOfflineSeriesIds(
-          context: modelContext,
+        ids = await section.fetchOfflineSeriesIds(
           libraryIds: libraryIds,
           offset: pagination.currentPage * pagination.pageSize,
           limit: pagination.pageSize

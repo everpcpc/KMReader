@@ -3,7 +3,6 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 // Books list view for read list
@@ -21,17 +20,11 @@ struct BooksListViewForReadList: View {
   @State private var selectedBookIds: Set<String> = []
   @State private var isSelectionMode = false
   @State private var isDeleting = false
-  @Environment(\.modelContext) private var modelContext
-
-  @Query private var readLists: [KomgaReadList]
-
-  private var readList: KomgaReadList? {
-    readLists.first
-  }
+  @State private var readListItem: ReadListDisplayItem?
 
   private var readListContext: ReaderReadListContext? {
-    guard let readList else { return nil }
-    return ReaderReadListContext(id: readList.readListId, name: readList.name)
+    guard let readListItem else { return nil }
+    return ReaderReadListContext(id: readListItem.readListId, name: readListItem.name)
   }
 
   init(
@@ -42,9 +35,6 @@ struct BooksListViewForReadList: View {
     self.readListId = readListId
     self._showFilterSheet = showFilterSheet
     self._showSavedFilters = showSavedFilters
-
-    let compositeId = CompositeID.generate(id: readListId)
-    _readLists = Query(filter: #Predicate<KomgaReadList> { $0.id == compositeId })
   }
 
   private var supportsSelectionMode: Bool {
@@ -101,10 +91,10 @@ struct BooksListViewForReadList: View {
       if supportsSelectionMode && isSelectionMode {
         SelectionToolbar(
           selectedCount: selectedBookIds.count,
-          totalCount: readList?.bookIds.count ?? 0,
+          totalCount: readListItem?.bookCount ?? 0,
           isDeleting: isDeleting,
           onSelectAll: {
-            if let bookIds = readList?.bookIds {
+            if let bookIds = readListItem?.bookIds {
               if selectedBookIds.count == bookIds.count {
                 selectedBookIds.removeAll()
               } else {
@@ -125,7 +115,7 @@ struct BooksListViewForReadList: View {
         .padding(.horizontal)
       }
 
-      if readList?.bookIds != nil {
+      if readListItem != nil {
         ReadListBooksQueryView(
           readListId: readListId,
           readListContext: readListContext,
@@ -158,11 +148,22 @@ struct BooksListViewForReadList: View {
   }
 
   private func refreshBooks() async {
+    await loadReadList()
     await bookViewModel.loadReadListBooks(
-      context: modelContext,
       readListId: readListId,
       browseOpts: browseOpts,
       refresh: true
+    )
+  }
+
+  private func loadReadList() async {
+    guard let database = try? await DatabaseOperator.database() else {
+      readListItem = nil
+      return
+    }
+    readListItem = try? await database.fetchReadListDisplayItem(
+      readListId: readListId,
+      instanceId: current.instanceId
     )
   }
 
@@ -180,6 +181,7 @@ struct BooksListViewForReadList: View {
       )
       // Sync the readlist to update its bookIds in local SwiftData
       _ = try? await SyncService.syncReadList(id: readListId)
+      await loadReadList()
 
       ErrorManager.shared.notify(message: String(localized: "notification.readList.booksRemoved"))
 

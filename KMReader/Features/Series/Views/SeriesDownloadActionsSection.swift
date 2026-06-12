@@ -3,32 +3,23 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct SeriesDownloadActionsSection: View {
-  @Bindable var komgaSeries: KomgaSeries
+  let seriesId: String
+  let status: SeriesDownloadStatus
+  let policy: SeriesOfflinePolicy
+  let offlinePolicyLimit: Int
+  var onMutationCompleted: (() -> Void)? = nil
 
   @AppStorage("currentAccount") private var current: Current = .init()
-
-  private var series: Series {
-    komgaSeries.toSeries()
-  }
-
-  private var status: SeriesDownloadStatus {
-    komgaSeries.downloadStatus
-  }
-
-  private var policy: SeriesOfflinePolicy {
-    komgaSeries.offlinePolicy
-  }
 
   private var limitPresets: [Int] {
     [1, 3, 5, 10, 25, 50, 0]
   }
 
   private var policyLabel: Text {
-    Text("Offline Policy") + Text(" : ") + Text(policy.title(limit: komgaSeries.offlinePolicyLimit))
+    Text("Offline Policy") + Text(" : ") + Text(policy.title(limit: offlinePolicyLimit))
   }
 
   private var actions: [SeriesDownloadAction] {
@@ -182,31 +173,33 @@ struct SeriesDownloadActionsSection: View {
     Task {
       // Sync books first if policy is not manual
       if newPolicy != .manual {
-        try? await SyncService.syncAllSeriesBooks(seriesId: series.id)
+        try? await SyncService.syncAllSeriesBooks(seriesId: seriesId)
       }
       try? await DatabaseOperator.database().updateSeriesOfflinePolicy(
-        seriesId: series.id, instanceId: current.instanceId, policy: newPolicy
+        seriesId: seriesId, instanceId: current.instanceId, policy: newPolicy
       )
       try? await DatabaseOperator.database().commit()
+      onMutationCompleted?()
     }
   }
 
   private func updatePolicyAndLimit(_ newPolicy: SeriesOfflinePolicy, limit: Int) {
     Task {
-      try? await SyncService.syncAllSeriesBooks(seriesId: series.id)
+      try? await SyncService.syncAllSeriesBooks(seriesId: seriesId)
       try? await DatabaseOperator.database().updateSeriesOfflinePolicy(
-        seriesId: series.id,
+        seriesId: seriesId,
         instanceId: current.instanceId,
         policy: newPolicy,
         limit: limit
       )
       try? await DatabaseOperator.database().commit()
+      onMutationCompleted?()
     }
   }
 
   @ViewBuilder
   private func offlinePolicyLabel(_ value: SeriesOfflinePolicy) -> some View {
-    let title = value.title(limit: komgaSeries.offlinePolicyLimit)
+    let title = value.title(limit: offlinePolicyLimit)
     if value == policy {
       Label(title, systemImage: "checkmark")
     } else {
@@ -217,7 +210,7 @@ struct SeriesDownloadActionsSection: View {
   @ViewBuilder
   private func limitOptionLabel(policy: SeriesOfflinePolicy, limit: Int) -> some View {
     let title = SeriesOfflinePolicy.limitTitle(limit)
-    if komgaSeries.offlinePolicy == policy && komgaSeries.offlinePolicyLimit == limit {
+    if self.policy == policy && offlinePolicyLimit == limit {
       Label(title, systemImage: "checkmark")
     } else {
       Text(title)
@@ -229,7 +222,7 @@ struct SeriesDownloadActionsSection: View {
     case .download:
       downloadAll()
     case .downloadUnread:
-      let limit = pendingUnreadLimit ?? komgaSeries.offlinePolicyLimit
+      let limit = pendingUnreadLimit ?? offlinePolicyLimit
       pendingUnreadLimit = nil
       downloadUnread(limit: limit)
     case .removeRead:
@@ -242,22 +235,23 @@ struct SeriesDownloadActionsSection: View {
   private func downloadAll() {
     Task {
       // Sync books first
-      try? await SyncService.syncAllSeriesBooks(seriesId: series.id)
+      try? await SyncService.syncAllSeriesBooks(seriesId: seriesId)
       try? await DatabaseOperator.database().downloadSeriesOffline(
-        seriesId: series.id, instanceId: current.instanceId
+        seriesId: seriesId, instanceId: current.instanceId
       )
       try? await DatabaseOperator.database().commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.series.offlineDownloadQueued")
       )
+      onMutationCompleted?()
     }
   }
 
   private func downloadUnread(limit: Int) {
     Task {
-      try? await SyncService.syncAllSeriesBooks(seriesId: series.id)
+      try? await SyncService.syncAllSeriesBooks(seriesId: seriesId)
       try? await DatabaseOperator.database().downloadSeriesUnreadOffline(
-        seriesId: series.id,
+        seriesId: seriesId,
         instanceId: current.instanceId,
         limit: limit
       )
@@ -265,19 +259,21 @@ struct SeriesDownloadActionsSection: View {
       ErrorManager.shared.notify(
         message: String(localized: "notification.series.offlineDownloadQueued")
       )
+      onMutationCompleted?()
     }
   }
 
   private func removeRead() {
     Task {
       try? await DatabaseOperator.database().removeSeriesReadOffline(
-        seriesId: series.id,
+        seriesId: seriesId,
         instanceId: current.instanceId
       )
       try? await DatabaseOperator.database().commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.series.offlineRemoved")
       )
+      onMutationCompleted?()
     }
   }
 
@@ -295,12 +291,13 @@ struct SeriesDownloadActionsSection: View {
   private func removeAll() {
     Task {
       try? await DatabaseOperator.database().removeSeriesOffline(
-        seriesId: series.id, instanceId: current.instanceId
+        seriesId: seriesId, instanceId: current.instanceId
       )
       try? await DatabaseOperator.database().commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.series.offlineRemoved")
       )
+      onMutationCompleted?()
     }
   }
 }

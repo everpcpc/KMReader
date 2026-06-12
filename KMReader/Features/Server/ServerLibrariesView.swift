@@ -12,6 +12,7 @@ struct ServerLibrariesView: View {
   @State private var deleteConfirmationText: String = ""
   @State private var showAddSheet = false
   @State private var libraryToEdit: Library?
+  @State private var libraryListRefreshTrigger = 0
 
   private var isDeleteAlertPresented: Binding<Bool> {
     Binding(
@@ -43,7 +44,8 @@ struct ServerLibrariesView: View {
       onDeleteLibrary: { library in
         libraryPendingDelete = library
         deleteConfirmationText = ""
-      }
+      },
+      refreshTrigger: libraryListRefreshTrigger
     )
     .inlineNavigationBarTitle(ServerSection.libraries.title)
     .toolbar {
@@ -57,10 +59,10 @@ struct ServerLibrariesView: View {
         }
       }
     }
-    .sheet(isPresented: $showAddSheet) {
+    .sheet(isPresented: $showAddSheet, onDismiss: refreshLibraryList) {
       LibraryAddSheet()
     }
-    .sheet(isPresented: isEditSheetPresented) {
+    .sheet(isPresented: isEditSheetPresented, onDismiss: refreshLibraryList) {
       if let library = libraryToEdit {
         LibraryEditSheet(library: library)
       }
@@ -103,6 +105,7 @@ struct ServerLibrariesView: View {
       do {
         try await LibraryService.deleteLibrary(id: library.libraryId)
         await LibraryManager.shared.refreshLibraries()
+        refreshLibraryList()
         ErrorManager.shared.notify(
           message: String(localized: "notification.library.deleted"))
       } catch {
@@ -111,6 +114,10 @@ struct ServerLibrariesView: View {
       libraryPendingDelete = nil
       deleteConfirmationText = ""
     }
+  }
+
+  private func refreshLibraryList() {
+    libraryListRefreshTrigger += 1
   }
 }
 

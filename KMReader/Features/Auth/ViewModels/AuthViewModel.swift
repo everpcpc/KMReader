@@ -4,7 +4,6 @@
 //
 
 import Foundation
-import SwiftData
 import SwiftUI
 
 @MainActor
@@ -140,9 +139,9 @@ class AuthViewModel {
     }
   }
 
-  func switchTo(instance: KomgaInstance) async -> Bool {
+  func switchTo(instance: ServerDisplayItem) async -> Bool {
     isSwitching = true
-    switchingInstanceId = instance.id.uuidString
+    switchingInstanceId = instance.instanceId
     defer {
       isSwitching = false
       switchingInstanceId = nil
@@ -156,7 +155,7 @@ class AuthViewModel {
       let validatedUser = try await AuthService.establishSession(
         serverURL: instance.serverURL,
         authToken: instance.authToken,
-        authMethod: instance.resolvedAuthMethod,
+        authMethod: instance.authMethod,
         timeout: AppConfig.authTimeout
       )
 
@@ -165,10 +164,10 @@ class AuthViewModel {
         serverURL: instance.serverURL,
         username: instance.username,
         authToken: instance.authToken,
-        authMethod: instance.resolvedAuthMethod,
+        authMethod: instance.authMethod,
         user: validatedUser,
         displayName: instance.displayName,
-        instanceId: instance.id.uuidString,
+        instanceId: instance.instanceId,
         shouldPersistInstance: false,
         successMessage: String(localized: "Switched to \(instance.name)")
       )
@@ -185,10 +184,10 @@ class AuthViewModel {
           serverURL: instance.serverURL,
           serverDisplayName: instance.displayName,
           authToken: instance.authToken,
-          authMethod: instance.resolvedAuthMethod,
+          authMethod: instance.authMethod,
           username: instance.username,
           isAdmin: false,
-          instanceId: instance.id.uuidString
+          instanceId: instance.instanceId
         )
 
         AppConfig.isLoggedIn = true

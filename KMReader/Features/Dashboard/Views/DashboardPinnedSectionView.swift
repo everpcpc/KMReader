@@ -3,7 +3,6 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 @MainActor
@@ -17,13 +16,11 @@ struct DashboardPinnedSectionView: View {
   private var showDashboardSectionGradientBackground: Bool =
     AppConfig.showDashboardSectionGradientBackground
 
-  @Query private var pinnedCollections: [KomgaCollection]
-  @Query private var pinnedReadLists: [KomgaReadList]
-
   @Environment(\.colorScheme) private var colorScheme
 
   @State private var isLoading = false
-  @State private var hasLoadedInitial = false
+  @State private var pinnedCollections: [CollectionDisplayItem] = []
+  @State private var pinnedReadLists: [ReadListDisplayItem] = []
   @State private var isHoveringScrollArea = false
   @State private var hoverShowDelayTask: Task<Void, Never>?
   @State private var hoverHideDelayTask: Task<Void, Never>?
@@ -31,20 +28,6 @@ struct DashboardPinnedSectionView: View {
   init(section: DashboardSection, refreshTrigger: DashboardRefreshTrigger) {
     self.section = section
     self.refreshTrigger = refreshTrigger
-
-    let instanceId = AppConfig.current.instanceId
-    _pinnedCollections = Query(
-      filter: #Predicate<KomgaCollection> { item in
-        item.instanceId == instanceId && item.isPinned == true
-      },
-      sort: [SortDescriptor(\KomgaCollection.lastModifiedDate, order: .reverse)]
-    )
-    _pinnedReadLists = Query(
-      filter: #Predicate<KomgaReadList> { item in
-        item.instanceId == instanceId && item.isPinned == true
-      },
-      sort: [SortDescriptor(\KomgaReadList.lastModifiedDate, order: .reverse)]
-    )
   }
 
   private var isSupportedSection: Bool {
@@ -158,8 +141,9 @@ struct DashboardPinnedSectionView: View {
                 case .collections:
                   ForEach(pinnedCollections) { collection in
                     CollectionCompactCardView(
-                      komgaCollection: collection,
-                      coverWidth: compactCoverWidth
+                      item: collection,
+                      coverWidth: compactCoverWidth,
+                      onChanged: schedulePinnedItemsReload
                     )
                     .id(collection.collectionId)
                     .frame(width: compactCardWidth)
@@ -167,8 +151,9 @@ struct DashboardPinnedSectionView: View {
                 case .readLists:
                   ForEach(pinnedReadLists) { readList in
                     ReadListCompactCardView(
-                      komgaReadList: readList,
-                      coverWidth: compactCoverWidth
+                      item: readList,
+                      coverWidth: compactCoverWidth,
+                      onChanged: schedulePinnedItemsReload
                     )
                     .id(readList.readListId)
                     .frame(width: compactCardWidth)
@@ -234,17 +219,22 @@ struct DashboardPinnedSectionView: View {
           await refresh()
         }
       }
-      .task {
-        guard !hasLoadedInitial else { return }
-        hasLoadedInitial = true
+      .task(id: currentInstanceId) {
         await refresh()
       }
     }
   }
 
   private func refresh() async {
-    guard !isLoading, !AppConfig.isOffline else { return }
+    guard !isLoading else { return }
     isLoading = true
+    defer {
+      isLoading = false
+    }
+
+    await loadPinnedItems()
+
+    guard !AppConfig.isOffline else { return }
     switch section.contentKind {
     case .collections:
       await SyncService.syncCollections(instanceId: currentInstanceId)
@@ -253,6 +243,46 @@ struct DashboardPinnedSectionView: View {
     default:
       break
     }
-    isLoading = false
+    await loadPinnedItems()
+  }
+
+  private func schedulePinnedItemsReload() {
+    Task {
+      await loadPinnedItems()
+    }
+  }
+
+  private func loadPinnedItems() async {
+    guard !currentInstanceId.isEmpty else {
+      if !pinnedCollections.isEmpty { pinnedCollections = [] }
+      if !pinnedReadLists.isEmpty { pinnedReadLists = [] }
+      return
+    }
+
+    do {
+      let database = try await DatabaseOperator.database()
+      switch section.contentKind {
+      case .collections:
+        let loadedCollections = try await database.fetchPinnedCollectionDisplayItems(
+          instanceId: currentInstanceId
+        )
+        if pinnedCollections != loadedCollections {
+          pinnedCollections = loadedCollections
+        }
+        if !pinnedReadLists.isEmpty { pinnedReadLists = [] }
+      case .readLists:
+        let loadedReadLists = try await database.fetchPinnedReadListDisplayItems(
+          instanceId: currentInstanceId
+        )
+        if pinnedReadLists != loadedReadLists {
+          pinnedReadLists = loadedReadLists
+        }
+        if !pinnedCollections.isEmpty { pinnedCollections = [] }
+      default:
+        break
+      }
+    } catch {
+      ErrorManager.shared.alert(error: error)
+    }
   }
 }

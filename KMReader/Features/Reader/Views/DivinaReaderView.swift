@@ -1354,7 +1354,7 @@ struct DivinaReaderView: View {
 
       if let resolvedBook, let database {
         await database.upsertBook(dto: resolvedBook, instanceId: instanceId)
-        await database.commit()
+        try? await database.commit()
       }
       return resolvedBook
     } catch {

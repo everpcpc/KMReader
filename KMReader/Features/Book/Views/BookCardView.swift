@@ -3,12 +3,12 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct BookCardView: View {
-  @Bindable var komgaBook: KomgaBook
+  let item: BookDisplayItem
   var onReadBook: ((Bool) -> Void)? = nil
+  var onMutationCompleted: (() -> Void)? = nil
   var showSeriesTitle: Bool = false
   var showSeriesNavigation: Bool = true
 
@@ -23,24 +23,24 @@ struct BookCardView: View {
   @State private var showEditSheet = false
 
   private var progress: Double {
-    guard let progressPage = komgaBook.progressPage else { return 0 }
-    guard komgaBook.mediaPagesCount > 0 else { return 0 }
-    return Double(progressPage) / Double(komgaBook.mediaPagesCount)
+    guard let progressPage = item.progressPage else { return 0 }
+    guard item.mediaPagesCount > 0 else { return 0 }
+    return Double(progressPage) / Double(item.mediaPagesCount)
   }
 
   var shouldShowSeriesTitle: Bool {
-    return showSeriesTitle && showBookCardSeriesTitle && !komgaBook.seriesTitle.isEmpty
+    return showSeriesTitle && showBookCardSeriesTitle && !item.seriesTitle.isEmpty
   }
 
   var bookTitleLine: String {
-    if komgaBook.oneshot {
-      return komgaBook.metaTitle
+    if item.oneshot {
+      return item.metaTitle
     }
-    return String("\(komgaBook.metaNumber) - \(komgaBook.metaTitle)")
+    return String("\(item.metaNumber) - \(item.metaTitle)")
   }
 
   var bookTitleLineLimit: Int {
-    (shouldShowSeriesTitle || komgaBook.oneshot) ? 1 : 2
+    (shouldShowSeriesTitle || item.oneshot) ? 1 : 2
   }
 
   var contentSpacing: CGFloat {
@@ -54,17 +54,17 @@ struct BookCardView: View {
   }
 
   private var coverBlurRadius: CGFloat {
-    thumbnailBlurUnreadCovers && komgaBook.isUnread ? CoverBlurStyle.unreadRadius : 0
+    thumbnailBlurUnreadCovers && item.isUnread ? CoverBlurStyle.unreadRadius : 0
   }
 
   private var completedMetaText: String {
-    komgaBook.completedLastReadText ?? "\(komgaBook.mediaPagesCount) pages"
+    item.completedLastReadText ?? "\(item.mediaPagesCount) pages"
   }
 
   var body: some View {
     VStack(alignment: .leading, spacing: contentSpacing) {
       ThumbnailImage(
-        id: komgaBook.bookId,
+        id: item.bookId,
         type: .book,
         shadowStyle: .platform,
         contentBlurRadius: coverBlurRadius,
@@ -79,15 +79,15 @@ struct BookCardView: View {
             }
           }
 
-          if komgaBook.isUnread && thumbnailShowUnreadIndicator {
+          if item.isUnread && thumbnailShowUnreadIndicator {
             UnreadIndicator()
               .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
           }
         }
       } menu: {
         BookContextMenu(
-          book: komgaBook.toBook(),
-          downloadStatus: komgaBook.downloadStatus,
+          book: item.book,
+          downloadStatus: item.downloadStatus,
           onReadBook: onReadBook,
           onShowReadListPicker: {
             showReadListPicker = true
@@ -98,24 +98,25 @@ struct BookCardView: View {
           onEditRequested: {
             showEditSheet = true
           },
+          onMutationCompleted: onMutationCompleted,
           showSeriesNavigation: showSeriesNavigation
         )
       }
 
       if thumbnailShowProgressBar && !cardTextOverlayMode {
         ReadingProgressBar(progress: progress, type: .card)
-          .opacity(komgaBook.isInProgress ? 1 : 0)
+          .opacity(item.isInProgress ? 1 : 0)
       }
 
       if !cardTextOverlayMode && !coverOnlyCards {
         VStack(alignment: .leading) {
-          if komgaBook.oneshot {
+          if item.oneshot {
             Text("Oneshot")
               .font(.caption)
               .foregroundColor(.blue)
               .lineLimit(1)
           } else if shouldShowSeriesTitle {
-            Text(komgaBook.seriesTitle)
+            Text(item.seriesTitle)
               .font(.caption)
               .foregroundColor(.secondary)
               .lineLimit(1)
@@ -125,8 +126,8 @@ struct BookCardView: View {
             .lineLimit(bookTitleLineLimit)
 
           HStack(spacing: 4) {
-            let mediaStatus = komgaBook.media?.statusValue ?? .unknown
-            if komgaBook.isUnavailable {
+            let mediaStatus = item.media.statusValue
+            if item.isUnavailable {
               Text("Unavailable")
                 .foregroundColor(.red)
             } else if mediaStatus != .ready {
@@ -142,13 +143,13 @@ struct BookCardView: View {
                   .foregroundColor(.secondary)
                   .font(.caption2)
               }
-              Text(progress == 1 ? completedMetaText : "\(komgaBook.mediaPagesCount) pages")
+              Text(progress == 1 ? completedMetaText : "\(item.mediaPagesCount) pages")
                 .lineLimit(1)
             }
-            if komgaBook.downloadStatus != .notDownloaded {
+            if item.downloadStatus != .notDownloaded {
               Spacer()
-              Image(systemName: komgaBook.downloadStatus.displayIcon)
-                .foregroundColor(komgaBook.downloadStatus.displayColor)
+              Image(systemName: item.downloadStatus.displayIcon)
+                .foregroundColor(item.downloadStatus.displayColor)
                 .font(.caption2)
             }
           }
@@ -168,14 +169,14 @@ struct BookCardView: View {
     }
     .sheet(isPresented: $showReadListPicker) {
       ReadListPickerSheet(
-        bookId: komgaBook.bookId,
+        bookId: item.bookId,
         onSelect: { readListId in
           addToReadList(readListId: readListId)
         }
       )
     }
     .sheet(isPresented: $showEditSheet) {
-      BookEditSheet(book: komgaBook.toBook())
+      BookEditSheet(book: item.book)
     }
 
   }
@@ -183,18 +184,18 @@ struct BookCardView: View {
   @ViewBuilder
   private var overlayTextContent: some View {
     let style = CardOverlayTextStyle.standard
-    let showDownloadIcon = komgaBook.downloadStatus != .notDownloaded
-    let showProgressBar = komgaBook.isInProgress && thumbnailShowProgressBar
+    let showDownloadIcon = item.downloadStatus != .notDownloaded
+    let showProgressBar = item.isInProgress && thumbnailShowProgressBar
 
     CardOverlayTextStack(
       title: bookTitleLine,
-      subtitle: (shouldShowSeriesTitle && !komgaBook.oneshot) ? komgaBook.seriesTitle : nil,
+      subtitle: (shouldShowSeriesTitle && !item.oneshot) ? item.seriesTitle : nil,
       titleLineLimit: bookTitleLineLimit,
       style: style
     ) {
       HStack(spacing: 4) {
-        let mediaStatus = komgaBook.media?.statusValue ?? .unknown
-        if komgaBook.isUnavailable {
+        let mediaStatus = item.media.statusValue
+        if item.isUnavailable {
           Text("Unavailable")
             .foregroundColor(.red)
         } else if mediaStatus != .ready {
@@ -210,13 +211,13 @@ struct BookCardView: View {
               .foregroundColor(style.secondaryColor)
               .font(.caption2)
           }
-          Text(progress == 1 ? completedMetaText : "\(komgaBook.mediaPagesCount) pages")
+          Text(progress == 1 ? completedMetaText : "\(item.mediaPagesCount) pages")
             .lineLimit(1)
         }
         if showDownloadIcon && !showProgressBar {
           Spacer()
-          Image(systemName: komgaBook.downloadStatus.displayIcon)
-            .foregroundColor(komgaBook.downloadStatus.displayColor)
+          Image(systemName: item.downloadStatus.displayIcon)
+            .foregroundColor(item.downloadStatus.displayColor)
             .font(.caption2)
         }
       }
@@ -227,8 +228,8 @@ struct BookCardView: View {
             .padding(.top, 2)
             .layoutPriority(1)
           if showDownloadIcon {
-            Image(systemName: komgaBook.downloadStatus.displayIcon)
-              .foregroundColor(komgaBook.downloadStatus.displayColor)
+            Image(systemName: item.downloadStatus.displayIcon)
+              .foregroundColor(item.downloadStatus.displayColor)
               .font(.caption2)
           }
         }
@@ -241,10 +242,11 @@ struct BookCardView: View {
       do {
         try await ReadListService.addBooksToReadList(
           readListId: readListId,
-          bookIds: [komgaBook.bookId]
+          bookIds: [item.bookId]
         )
         ErrorManager.shared.notify(
           message: String(localized: "notification.book.booksAddedToReadList"))
+        onMutationCompleted?()
       } catch {
         ErrorManager.shared.alert(error: error)
       }
@@ -254,9 +256,10 @@ struct BookCardView: View {
   private func deleteBook() {
     Task {
       do {
-        try await BookService.deleteBook(bookId: komgaBook.bookId)
-        await CacheManager.clearCache(forBookId: komgaBook.bookId)
+        try await BookService.deleteBook(bookId: item.bookId)
+        await CacheManager.clearCache(forBookId: item.bookId)
         ErrorManager.shared.notify(message: String(localized: "notification.book.deleted"))
+        onMutationCompleted?()
       } catch {
         ErrorManager.shared.alert(error: error)
       }

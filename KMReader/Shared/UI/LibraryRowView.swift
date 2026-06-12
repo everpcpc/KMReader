@@ -3,13 +3,12 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct LibraryRowView: View {
   @AppStorage("isOffline") private var isOffline: Bool = false
   @AppStorage("currentAccount") private var current: Current = .init()
-  @Bindable var library: KomgaLibrary
+  let library: SidebarLibraryItem
   let selectionEnabled: Bool
   let isSingleSelectionMode: Bool
   let isSelected: Bool
@@ -19,7 +18,7 @@ struct LibraryRowView: View {
   let onDelete: (() -> Void)?
 
   init(
-    library: KomgaLibrary,
+    library: SidebarLibraryItem,
     selectionEnabled: Bool = false,
     isSingleSelectionMode: Bool = false,
     isSelected: Bool,

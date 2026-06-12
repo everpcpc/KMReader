@@ -3,7 +3,6 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
 struct CollectionsBrowseView: View {
@@ -12,7 +11,6 @@ struct CollectionsBrowseView: View {
   let refreshTrigger: UUID
   @Binding var showFilterSheet: Bool
 
-  @Environment(\.modelContext) private var modelContext
   @AppStorage("collectionSortOptions") private var sortOpts: SimpleSortOptions =
     SimpleSortOptions()
   @AppStorage("collectionBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
@@ -123,16 +121,16 @@ struct CollectionsBrowseView: View {
   }
 
   private func loadCollectionIds() async throws -> [String] {
-    let localIds = localCollectionIds()
+    let localIds = await localCollectionIds()
     guard !AppConfig.isOffline else { return localIds }
 
     let serverIds = Set(try await syncCollectionIds())
     return localIds.filter { serverIds.contains($0) }
   }
 
-  private func localCollectionIds() -> [String] {
-    KomgaCollectionStore.fetchCollectionIds(
-      context: modelContext,
+  private func localCollectionIds() async -> [String] {
+    guard let database = try? await DatabaseOperator.database() else { return [] }
+    return await database.fetchCollectionIds(
       libraryIds: libraryIds,
       searchText: searchText,
       sort: sortOpts.sortString,

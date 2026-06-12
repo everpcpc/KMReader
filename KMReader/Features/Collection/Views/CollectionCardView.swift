@@ -6,7 +6,8 @@
 import SwiftUI
 
 struct CollectionCardView: View {
-  @Bindable var komgaCollection: KomgaCollection
+  let item: CollectionDisplayItem
+  var onMutationCompleted: (() -> Void)? = nil
 
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
   @AppStorage("cardTextOverlayMode") private var cardTextOverlayMode: Bool = false
@@ -20,11 +21,11 @@ struct CollectionCardView: View {
   var body: some View {
     VStack(alignment: .leading, spacing: contentSpacing) {
       ThumbnailImage(
-        id: komgaCollection.collectionId,
+        id: item.collectionId,
         type: .collection,
         shadowStyle: .platform,
         alignment: .bottom,
-        navigationLink: NavDestination.collectionDetail(collectionId: komgaCollection.collectionId),
+        navigationLink: NavDestination.collectionDetail(collectionId: item.collectionId),
         preserveAspectRatioOverride: cardTextOverlayMode ? false : nil
       ) {
         if cardTextOverlayMode {
@@ -34,9 +35,9 @@ struct CollectionCardView: View {
         }
       } menu: {
         CollectionContextMenu(
-          collectionId: komgaCollection.collectionId,
-          menuTitle: komgaCollection.name,
-          isPinned: komgaCollection.isPinned,
+          collectionId: item.collectionId,
+          menuTitle: item.name,
+          isPinned: item.isPinned,
           onDeleteRequested: {
             showDeleteConfirmation = true
           },
@@ -52,15 +53,15 @@ struct CollectionCardView: View {
       if !cardTextOverlayMode && !coverOnlyCards {
         VStack(alignment: .leading) {
           HStack(spacing: 4) {
-            if komgaCollection.isPinned {
+            if item.isPinned {
               Image(systemName: "pin.fill")
             }
-            Text(komgaCollection.name)
+            Text(item.name)
               .lineLimit(1)
           }
 
           HStack(spacing: 4) {
-            Text("\(komgaCollection.seriesIds.count) series")
+            Text("\(item.seriesCount) series")
             Spacer()
           }.foregroundColor(.secondary)
         }.font(.footnote)
@@ -77,18 +78,18 @@ struct CollectionCardView: View {
       Text("Are you sure you want to delete this collection? This action cannot be undone.")
     }
     .sheet(isPresented: $showEditSheet) {
-      CollectionEditSheet(collection: komgaCollection.toCollection())
+      CollectionEditSheet(collection: item.collection)
     }
   }
 
   @ViewBuilder
   private var overlayTextContent: some View {
     CardOverlayTextStack(
-      title: komgaCollection.name,
-      titleLeadingSystemImage: komgaCollection.isPinned ? "pin.fill" : nil
+      title: item.name,
+      titleLeadingSystemImage: item.isPinned ? "pin.fill" : nil
     ) {
       HStack(spacing: 4) {
-        Text("\(komgaCollection.seriesIds.count) series")
+        Text("\(item.seriesCount) series")
       }
     }
   }
@@ -97,8 +98,9 @@ struct CollectionCardView: View {
     Task {
       do {
         try await CollectionService.deleteCollection(
-          collectionId: komgaCollection.collectionId)
+          collectionId: item.collectionId)
         ErrorManager.shared.notify(message: String(localized: "notification.collection.deleted"))
+        onMutationCompleted?()
       } catch {
         ErrorManager.shared.alert(error: error)
       }
@@ -106,14 +108,15 @@ struct CollectionCardView: View {
   }
 
   private func togglePinned() {
-    let nextPinned = !komgaCollection.isPinned
+    let nextPinned = !item.isPinned
     Task {
       try? await DatabaseOperator.database().setCollectionPinned(
-        collectionId: komgaCollection.collectionId,
-        instanceId: komgaCollection.instanceId,
+        collectionId: item.collectionId,
+        instanceId: item.instanceId,
         isPinned: nextPinned
       )
       try? await DatabaseOperator.database().commit()
+      onMutationCompleted?()
     }
   }
 }

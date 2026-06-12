@@ -3,10 +3,9 @@
 //
 //
 
-import SwiftData
 import SwiftUI
 
-/// Wrapper view that accepts only bookId and uses @Query to fetch the book reactively.
+/// Wrapper view that accepts only bookId and fetches a book display projection.
 struct BookQueryItemView: View {
   let bookId: String
   let layout: BrowseLayoutMode
@@ -14,8 +13,9 @@ struct BookQueryItemView: View {
   var showSeriesNavigation: Bool = true
   var readListContext: ReaderReadListContext? = nil
 
+  @AppStorage("currentAccount") private var current: Current = .init()
   @Environment(\.readerActions) private var readerActions
-  @Query private var komgaBooks: [KomgaBook]
+  @State private var item: BookDisplayItem?
 
   init(
     bookId: String,
@@ -30,46 +30,64 @@ struct BookQueryItemView: View {
     self.showSeriesNavigation = showSeriesNavigation
     self.readListContext = readListContext
 
-    let compositeId = CompositeID.generate(id: bookId)
-    _komgaBooks = Query(filter: #Predicate<KomgaBook> { $0.id == compositeId })
-  }
-
-  private var komgaBook: KomgaBook? {
-    komgaBooks.first
   }
 
   var body: some View {
-    if let book = komgaBook {
-      switch layout {
-      case .grid:
-        BookCardView(
-          komgaBook: book,
-          onReadBook: { incognito in
-            readerActions.open(
-              book: book.toBook(),
-              incognito: incognito,
-              readListContext: readListContext
-            )
-          },
-          showSeriesTitle: showSeriesTitle,
-          showSeriesNavigation: showSeriesNavigation
-        )
-      case .list:
-        BookRowView(
-          komgaBook: book,
-          onReadBook: { incognito in
-            readerActions.open(
-              book: book.toBook(),
-              incognito: incognito,
-              readListContext: readListContext
-            )
-          },
-          showSeriesTitle: showSeriesTitle,
-          showSeriesNavigation: showSeriesNavigation
-        )
+    Group {
+      if let item {
+        switch layout {
+        case .grid:
+          BookCardView(
+            item: item,
+            onReadBook: { incognito in
+              readerActions.open(
+                book: item.book,
+                incognito: incognito,
+                readListContext: readListContext
+              )
+            },
+            onMutationCompleted: reloadItem,
+            showSeriesTitle: showSeriesTitle,
+            showSeriesNavigation: showSeriesNavigation
+          )
+        case .list:
+          BookRowView(
+            item: item,
+            onReadBook: { incognito in
+              readerActions.open(
+                book: item.book,
+                incognito: incognito,
+                readListContext: readListContext
+              )
+            },
+            onMutationCompleted: reloadItem,
+            showSeriesTitle: showSeriesTitle,
+            showSeriesNavigation: showSeriesNavigation
+          )
+        }
+      } else {
+        CardPlaceholder(layout: layout, kind: .book)
       }
-    } else {
-      CardPlaceholder(layout: layout, kind: .book)
     }
+    .task(id: "\(current.instanceId)|\(bookId)") {
+      await loadItem()
+    }
+  }
+
+  private func reloadItem() {
+    Task {
+      await loadItem()
+    }
+  }
+
+  private func loadItem() async {
+    guard let database = try? await DatabaseOperator.database() else {
+      item = nil
+      return
+    }
+    item = try? await database.fetchBookDisplayItem(
+      bookId: bookId,
+      instanceId: current.instanceId
+    )
   }
 }

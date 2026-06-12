@@ -63,7 +63,7 @@ actor ProgressSyncService {
       do {
         let outcome = try await syncProgressItem(item)
         await database.deletePendingProgress(id: item.id)
-        await database.commit()
+        try? await database.commit()
 
         switch outcome {
         case .replayed:
@@ -84,7 +84,7 @@ actor ProgressSyncService {
               "⏭️ Ignored progress conflict (409) for book \(item.bookId) (pending id=\(item.id))"
             )
             await database.deletePendingProgress(id: item.id)
-            await database.commit()
+            try? await database.commit()
             ignoredConflictCount += 1
             if item.completed {
               completedBookIds.insert(item.bookId)
@@ -99,7 +99,7 @@ actor ProgressSyncService {
               "⏭️ Ignored non-retryable progress error (\(statusCode)) for book \(item.bookId) (pending id=\(item.id))"
             )
             await database.deletePendingProgress(id: item.id)
-            await database.commit()
+            try? await database.commit()
             ignoredNonRetryableCount += 1
             continue
           }
