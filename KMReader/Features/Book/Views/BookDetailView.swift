@@ -162,6 +162,12 @@ struct BookDetailView: View {
         if let book {
           _ = try? await SyncService.syncBookAndSeries(
             bookId: bookId, seriesId: book.seriesId)
+          await ContentProjectionNotifier.postBookAndSeriesDidChange(
+            bookId: bookId,
+            seriesId: book.seriesId
+          )
+        } else {
+          await ContentProjectionNotifier.postBookDidChange(bookId: bookId)
         }
         ErrorManager.shared.notify(message: String(localized: "notification.book.markedRead"))
         await loadBook()
@@ -175,6 +181,19 @@ struct BookDetailView: View {
     Task {
       do {
         try await BookService.markAsUnread(bookId: bookId)
+        if let book {
+          _ = try? await SyncService.syncBookAndSeries(
+            bookId: bookId,
+            seriesId: book.seriesId
+          )
+          await ContentProjectionNotifier.postBookAndSeriesDidChange(
+            bookId: bookId,
+            seriesId: book.seriesId
+          )
+        } else {
+          _ = try? await SyncService.syncBook(bookId: bookId)
+          await ContentProjectionNotifier.postBookDidChange(bookId: bookId)
+        }
         ErrorManager.shared.notify(message: String(localized: "notification.book.markedUnread"))
         await loadBook()
       } catch {

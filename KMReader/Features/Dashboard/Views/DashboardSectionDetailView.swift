@@ -18,6 +18,7 @@ struct DashboardSectionDetailView: View {
   @State private var isLoading = false
   @State private var isQueueingAllOffline = false
   @State private var hasLoadedInitial = false
+  @State private var projectionRefreshTask: Task<Void, Never>?
 
   private var columns: [GridItem] {
     LayoutConfig.adaptiveColumns(for: gridDensity)
@@ -67,6 +68,22 @@ struct DashboardSectionDetailView: View {
     }
     .refreshable {
       await loadItems(refresh: true)
+    }
+    .onReceive(NotificationCenter.default.publisher(for: .bookProjectionDidChange)) { _ in
+      guard section.contentKind == .books else { return }
+      scheduleProjectionRefresh()
+    }
+    .onReceive(NotificationCenter.default.publisher(for: .seriesProjectionDidChange)) { _ in
+      guard section.contentKind == .series else { return }
+      scheduleProjectionRefresh()
+    }
+    .onReceive(NotificationCenter.default.publisher(for: .sseEventReceived)) { notification in
+      guard let info = notification.userInfo?["info"] as? SSEEventInfo else { return }
+      handleSSEEvent(info)
+    }
+    .onDisappear {
+      projectionRefreshTask?.cancel()
+      projectionRefreshTask = nil
     }
     #if os(iOS) || os(macOS)
       .toolbar {
@@ -253,6 +270,39 @@ struct DashboardSectionDetailView: View {
 
     withAnimation {
       isLoading = false
+    }
+  }
+
+  private func scheduleProjectionRefresh() {
+    projectionRefreshTask?.cancel()
+    projectionRefreshTask = Task { @MainActor in
+      do {
+        try await Task.sleep(nanoseconds: 750_000_000)
+      } catch {
+        return
+      }
+
+      guard !Task.isCancelled else { return }
+      await loadItems(refresh: true)
+      projectionRefreshTask = nil
+    }
+  }
+
+  private func handleSSEEvent(_ info: SSEEventInfo) {
+    guard AppConfig.enableSSEAutoRefresh else { return }
+
+    switch info.type {
+    case .readProgressChanged, .readProgressDeleted, .readProgressSeriesChanged,
+      .readProgressSeriesDeleted:
+      scheduleProjectionRefresh()
+    case .bookChanged, .bookDeleted:
+      guard section.contentKind == .books else { return }
+      scheduleProjectionRefresh()
+    case .seriesChanged, .seriesDeleted:
+      guard section.contentKind == .series else { return }
+      scheduleProjectionRefresh()
+    default:
+      break
     }
   }
 

@@ -30,6 +30,7 @@ struct BrowseView: View {
   @State private var showLibraryPicker = false
   @State private var showFilterSheet = false
   @State private var showSavedFilters = false
+  @State private var projectionRefreshTask: Task<Void, Never>?
 
   private var effectiveContent: BrowseContentType {
     fixedContent ?? browseContent
@@ -226,6 +227,22 @@ struct BrowseView: View {
       initializedLibraryIdsKey = resolvedLibraryIdsKey
       refreshBrowse()
     }
+    .onReceive(NotificationCenter.default.publisher(for: .bookProjectionDidChange)) { _ in
+      guard effectiveContent == .books else { return }
+      scheduleProjectionRefresh()
+    }
+    .onReceive(NotificationCenter.default.publisher(for: .seriesProjectionDidChange)) { _ in
+      guard effectiveContent == .series else { return }
+      scheduleProjectionRefresh()
+    }
+    .onReceive(NotificationCenter.default.publisher(for: .sseEventReceived)) { notification in
+      guard let info = notification.userInfo?["info"] as? SSEEventInfo else { return }
+      handleSSEEvent(info)
+    }
+    .onDisappear {
+      projectionRefreshTask?.cancel()
+      projectionRefreshTask = nil
+    }
   }
 
   private func refreshBrowse() {
@@ -234,6 +251,44 @@ struct BrowseView: View {
     Task {
       try? await Task.sleep(nanoseconds: 2_000_000_000)  // 2 seconds
       isRefreshDisabled = false
+    }
+  }
+
+  private func scheduleProjectionRefresh() {
+    guard !authViewModel.isSwitching else { return }
+
+    projectionRefreshTask?.cancel()
+    projectionRefreshTask = Task { @MainActor in
+      do {
+        try await Task.sleep(nanoseconds: 750_000_000)
+      } catch {
+        return
+      }
+
+      guard !Task.isCancelled else { return }
+      refreshBrowse()
+      projectionRefreshTask = nil
+    }
+  }
+
+  private func handleSSEEvent(_ info: SSEEventInfo) {
+    guard AppConfig.enableSSEAutoRefresh else { return }
+
+    switch info.type {
+    case .readProgressChanged, .readProgressDeleted:
+      guard effectiveContent == .books else { return }
+      scheduleProjectionRefresh()
+    case .readProgressSeriesChanged, .readProgressSeriesDeleted:
+      guard effectiveContent == .series else { return }
+      scheduleProjectionRefresh()
+    case .bookChanged, .bookDeleted:
+      guard effectiveContent == .books else { return }
+      scheduleProjectionRefresh()
+    case .seriesChanged, .seriesDeleted:
+      guard effectiveContent == .series else { return }
+      scheduleProjectionRefresh()
+    default:
+      break
     }
   }
 
