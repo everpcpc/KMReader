@@ -124,6 +124,7 @@ struct ReadListDetailView: View {
 // Helper functions for ReadListDetailView
 extension ReadListDetailView {
   private func loadReadListDetails() async {
+    await loadLocalReadList()
     do {
       _ = try await SyncService.syncReadList(id: readListId)
     } catch {

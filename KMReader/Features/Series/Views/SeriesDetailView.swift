@@ -176,6 +176,7 @@ struct SeriesDetailView: View {
 
 extension SeriesDetailView {
   private func refreshSeriesData() async {
+    await loadLocalSeries()
     do {
       _ = try await SyncService.syncSeriesDetail(seriesId: seriesId)
       await SyncService.syncSeriesCollections(seriesId: seriesId)

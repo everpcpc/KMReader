@@ -145,6 +145,7 @@ struct LibraryListContent: View {
 
   func refreshLibraries(forceMetrics: Bool) async {
     isLoading = true
+    await loadLibraryItems()
     await LibraryManager.shared.refreshLibraries()
     await loadLibraryItems()
     await triggerMetricsUpdate(force: forceMetrics)

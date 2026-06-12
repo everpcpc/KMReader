@@ -108,6 +108,7 @@ struct CollectionDetailView: View {
 // Helper functions for CollectionDetailView
 extension CollectionDetailView {
   private func loadCollectionDetails() async {
+    await loadLocalCollection()
     do {
       _ = try await SyncService.syncCollection(id: collectionId)
     } catch {

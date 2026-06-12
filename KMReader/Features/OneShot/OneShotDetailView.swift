@@ -140,6 +140,7 @@ struct OneshotDetailView: View {
 
   private func refreshOneshotData() async {
     isLoading = true
+    await loadLocalOneshot()
     do {
       _ = try await SyncService.syncSeriesDetail(seriesId: seriesId)
       let fetchedBooks = try await SyncService.syncBooks(

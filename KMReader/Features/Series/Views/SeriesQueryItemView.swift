@@ -44,6 +44,11 @@ struct SeriesQueryItemView: View {
     .task(id: "\(current.instanceId)|\(seriesId)") {
       await loadItem()
     }
+    .onReceive(NotificationCenter.default.publisher(for: .seriesProjectionDidChange)) {
+      notification in
+      guard notification.userInfo?["seriesId"] as? String == seriesId else { return }
+      reloadItem()
+    }
   }
 
   private func reloadItem() {
