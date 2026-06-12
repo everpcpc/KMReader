@@ -62,9 +62,15 @@ struct SeriesRowView: View {
 
         HStack {
           VStack(alignment: .leading, spacing: 4) {
-            Label(series.statusDisplayName, systemImage: series.statusIcon)
-              .font(.footnote)
-              .foregroundColor(series.statusColor)
+            if series.oneshot {
+              Label(series.readStatusDisplayName, systemImage: series.readStatusIcon)
+                .font(.footnote)
+                .foregroundColor(series.readStatusColor)
+            } else {
+              Label(series.statusDisplayName, systemImage: series.statusIcon)
+                .font(.footnote)
+                .foregroundColor(series.statusColor)
+            }
 
             if let releaseDate = series.booksMetadata.releaseDate {
               Label("Release: \(releaseDate)", systemImage: "calendar")
