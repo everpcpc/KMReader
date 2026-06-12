@@ -860,6 +860,7 @@ class ReaderViewModel {
       case .downloaded:
         if updatesLoadingState {
           loadingProgress = 1.0
+          loadingDetail = nil
         }
         return
       case .failed(let error):
@@ -873,6 +874,12 @@ class ReaderViewModel {
           let progress = DownloadProgressTracker.shared.progress[book.id]
         {
           loadingProgress = progress
+          if progress >= 1 {
+            loadingTitle = String(localized: "Processing offline files...")
+            loadingDetail = nil
+          } else {
+            loadingTitle = String(localized: "Downloading book...")
+          }
         }
       }
 

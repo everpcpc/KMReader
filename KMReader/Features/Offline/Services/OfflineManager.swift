@@ -64,6 +64,7 @@ actor OfflineManager {
   private var completedDownloadsSinceLastNotification = 0
   #if os(iOS)
     private var foregroundDownloadInfoByBookId: [String: (instanceId: String, info: DownloadInfo)] = [:]
+    private var liveActivityProgressSnapshots: [String: (progress: Double, updatedAt: Date)] = [:]
   #endif
 
   private let logger = AppLogger(.offline)
@@ -92,6 +93,15 @@ actor OfflineManager {
           expectedBytes: expectedBytes
         )
       }
+      #if os(iOS)
+        Task {
+          await self.updateDownloadLiveActivityProgress(
+            bookId: bookId,
+            receivedBytes: receivedBytes,
+            expectedBytes: expectedBytes
+          )
+        }
+      #endif
     }
 
     #if os(iOS)
@@ -120,6 +130,17 @@ actor OfflineManager {
           Task {
             await self.handleBackgroundDownloadFailed(
               bookId: bookId, pageNumber: pageNumber, error: error)
+          }
+        }
+
+        manager.onDownloadProgress = { [weak self] bookId, receivedBytes, expectedBytes in
+          guard let self = self else { return }
+          Task {
+            await self.updateDownloadLiveActivityProgress(
+              bookId: bookId,
+              receivedBytes: receivedBytes,
+              expectedBytes: expectedBytes
+            )
           }
         }
 
@@ -1196,6 +1217,7 @@ actor OfflineManager {
       backgroundDownloadTotalTasks.removeValue(forKey: bookId)
       backgroundDownloadCompletedTasks.removeValue(forKey: bookId)
       backgroundDownloadFinalizingBooks.remove(bookId)
+      liveActivityProgressSnapshots.removeValue(forKey: bookId)
     }
   #endif
 
@@ -1235,6 +1257,14 @@ actor OfflineManager {
         case .pages:
           try await downloadPages(bookId: info.bookId, to: bookDir)
         }
+
+        #if os(iOS)
+          await self.updateDownloadLiveActivityProcessing(
+            bookId: info.bookId,
+            instanceId: instanceId,
+            seriesTitle: info.seriesTitle
+          )
+        #endif
 
         // Mark complete in SwiftData
         await finalizeDownload(
@@ -1602,19 +1632,94 @@ actor OfflineManager {
   }
 
   #if os(iOS)
-    private func updateForegroundLiveActivityProgress(bookId: String, progress: Double) async {
-      guard let entry = foregroundDownloadInfoByBookId[bookId] else { return }
+    private func updateDownloadLiveActivityProgress(
+      bookId: String,
+      receivedBytes: Int64,
+      expectedBytes: Int64?
+    ) async {
+      guard let expectedBytes, expectedBytes > 0 else { return }
+      let progress = Double(receivedBytes) / Double(expectedBytes)
+      await updateDownloadLiveActivityProgress(bookId: bookId, progress: progress)
+    }
+
+    private func updateDownloadLiveActivityProgress(
+      bookId: String,
+      progress: Double,
+      bookInfoOverride: String? = nil
+    ) async {
+      let clampedProgress = min(max(progress, 0), 1)
+      guard shouldUpdateLiveActivityProgress(bookId: bookId, progress: clampedProgress) else {
+        return
+      }
+
+      let activityInfo: (instanceId: String, seriesTitle: String?, bookInfo: String)?
+      if let entry = foregroundDownloadInfoByBookId[bookId] {
+        activityInfo = (
+          instanceId: entry.instanceId,
+          seriesTitle: entry.info.seriesTitle,
+          bookInfo: bookInfoOverride ?? entry.info.bookInfo
+        )
+      } else if let entry = backgroundDownloadInfo[bookId] {
+        activityInfo = (
+          instanceId: entry.instanceId,
+          seriesTitle: entry.seriesTitle,
+          bookInfo: bookInfoOverride ?? entry.bookInfo
+        )
+      } else {
+        return
+      }
+
+      guard let activityInfo else { return }
       let pendingBooks =
-        (try? await DatabaseOperator.database().fetchPendingBooks(instanceId: entry.instanceId))
+        (try? await DatabaseOperator.database().fetchPendingBooks(instanceId: activityInfo.instanceId))
         ?? []
       let failedCount =
         (try? await DatabaseOperator.database().fetchFailedBooksCount(
-          instanceId: entry.instanceId
+          instanceId: activityInfo.instanceId
         )) ?? 0
       await LiveActivityManager.shared.updateActivity(
-        seriesTitle: entry.info.seriesTitle,
-        bookInfo: entry.info.bookInfo,
-        progress: progress,
+        seriesTitle: activityInfo.seriesTitle,
+        bookInfo: activityInfo.bookInfo,
+        progress: clampedProgress,
+        pendingCount: pendingBooks.count,
+        failedCount: failedCount
+      )
+    }
+
+    private func shouldUpdateLiveActivityProgress(bookId: String, progress: Double) -> Bool {
+      let now = Date()
+      let isTerminalValue = progress <= 0 || progress >= 1
+
+      guard let snapshot = liveActivityProgressSnapshots[bookId] else {
+        liveActivityProgressSnapshots[bookId] = (progress: progress, updatedAt: now)
+        return true
+      }
+
+      let hasMeaningfulDelta = abs(snapshot.progress - progress) >= 0.01
+      let isDue = now.timeIntervalSince(snapshot.updatedAt) >= 0.5
+      guard isTerminalValue || hasMeaningfulDelta || isDue else {
+        return false
+      }
+
+      liveActivityProgressSnapshots[bookId] = (progress: progress, updatedAt: now)
+      return true
+    }
+
+    private func updateDownloadLiveActivityProcessing(
+      bookId: String,
+      instanceId: String,
+      seriesTitle: String?
+    ) async {
+      liveActivityProgressSnapshots.removeValue(forKey: bookId)
+      let pendingBooks =
+        (try? await DatabaseOperator.database().fetchPendingBooks(instanceId: instanceId)) ?? []
+      let failedCount =
+        (try? await DatabaseOperator.database().fetchFailedBooksCount(instanceId: instanceId))
+        ?? 0
+      await LiveActivityManager.shared.updateActivity(
+        seriesTitle: seriesTitle,
+        bookInfo: String(localized: "Processing offline files..."),
+        progress: 1.0,
         pendingCount: pendingBooks.count,
         failedCount: failedCount
       )
@@ -1622,6 +1727,7 @@ actor OfflineManager {
 
     private func finishForegroundLiveActivity(bookId: String, instanceId: String) async {
       foregroundDownloadInfoByBookId.removeValue(forKey: bookId)
+      liveActivityProgressSnapshots.removeValue(forKey: bookId)
 
       let pendingBooks =
         (try? await DatabaseOperator.database().fetchPendingBooks(instanceId: instanceId)) ?? []
@@ -1910,20 +2016,10 @@ actor OfflineManager {
       logger.debug(
         "🔒 Claimed background finalize for book \(bookId), completed=\(completedTasks)/\(totalTasks)"
       )
-      let pendingBooks =
-        (try? await DatabaseOperator.database().fetchPendingBooks(
-          instanceId: info.instanceId
-        )) ?? []
-      let failedCount =
-        (try? await DatabaseOperator.database().fetchFailedBooksCount(
-          instanceId: info.instanceId
-        )) ?? 0
-      await LiveActivityManager.shared.updateActivity(
-        seriesTitle: info.seriesTitle,
-        bookInfo: String(localized: "Processing offline files..."),
-        progress: 0.0,
-        pendingCount: pendingBooks.count,
-        failedCount: failedCount
+      await updateDownloadLiveActivityProcessing(
+        bookId: bookId,
+        instanceId: info.instanceId,
+        seriesTitle: info.seriesTitle
       )
       await finalizeBackgroundBookDownload(bookId: bookId, info: info)
     }
@@ -2128,8 +2224,15 @@ actor OfflineManager {
     Self.excludeFromBackupIfNeeded(at: archiveFile)
 
     await MainActor.run {
-      DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: 0.5)
+      DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: 1.0)
     }
+    #if os(iOS)
+      await updateDownloadLiveActivityProgress(
+        bookId: bookId,
+        progress: 1.0,
+        bookInfoOverride: String(localized: "Processing offline files...")
+      )
+    #endif
 
     try Task.checkCancellation()
     try extractImageArchive(archiveFile: archiveFile, format: format, pages: pages, bookDir: bookDir)
@@ -2139,7 +2242,7 @@ actor OfflineManager {
       DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: 1.0)
     }
     #if os(iOS)
-      await updateForegroundLiveActivityProgress(bookId: bookId, progress: 1.0)
+      await updateDownloadLiveActivityProgress(bookId: bookId, progress: 1.0)
     #endif
   }
 
@@ -2157,8 +2260,15 @@ actor OfflineManager {
     Self.excludeFromBackupIfNeeded(at: epubFile)
 
     await MainActor.run {
-      DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: 0.5)
+      DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: 1.0)
     }
+    #if os(iOS)
+      await updateDownloadLiveActivityProgress(
+        bookId: bookId,
+        progress: 1.0,
+        bookInfoOverride: String(localized: "Processing offline files...")
+      )
+    #endif
 
     try Task.checkCancellation()
     try extractEpubDivinaImages(epubFile: epubFile, pages: pages, bookDir: bookDir)
@@ -2168,7 +2278,7 @@ actor OfflineManager {
       DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: 1.0)
     }
     #if os(iOS)
-      await updateForegroundLiveActivityProgress(bookId: bookId, progress: 1.0)
+      await updateDownloadLiveActivityProgress(bookId: bookId, progress: 1.0)
     #endif
   }
 
@@ -2240,7 +2350,7 @@ actor OfflineManager {
       DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: 1.0)
     }
     #if os(iOS)
-      await updateForegroundLiveActivityProgress(bookId: bookId, progress: 1.0)
+      await updateDownloadLiveActivityProgress(bookId: bookId, progress: 1.0)
     #endif
   }
 
@@ -2258,8 +2368,15 @@ actor OfflineManager {
     Self.excludeFromBackupIfNeeded(at: epubFile)
 
     await MainActor.run {
-      DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: 0.5)
+      DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: 1.0)
     }
+    #if os(iOS)
+      await updateDownloadLiveActivityProgress(
+        bookId: bookId,
+        progress: 1.0,
+        bookInfoOverride: String(localized: "Processing offline files...")
+      )
+    #endif
 
     try Task.checkCancellation()
     try extractEpubToWebPub(epubFile: epubFile, bookId: bookId, manifest: manifest, bookDir: bookDir)
@@ -2271,7 +2388,7 @@ actor OfflineManager {
       DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: 1.0)
     }
     #if os(iOS)
-      await updateForegroundLiveActivityProgress(bookId: bookId, progress: 1.0)
+      await updateDownloadLiveActivityProgress(bookId: bookId, progress: 1.0)
     #endif
   }
 
