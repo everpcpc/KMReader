@@ -40,19 +40,35 @@ extension Series {
     }
   }
 
+  var readStatus: ReadStatus {
+    ReadStatus.fromSeriesCounts(
+      booksCount: booksCount,
+      booksReadCount: booksReadCount,
+      booksInProgressCount: booksInProgressCount
+    )
+  }
+
+  var readStatusDisplayName: String {
+    readStatus.displayName
+  }
+
+  var readStatusIcon: String {
+    switch readStatus {
+    case .read: return "checkmark.circle.fill"
+    case .inProgress: return "circle.righthalf.filled"
+    case .unread: return "circle"
+    }
+  }
+
   var lastUpdatedDisplay: String {
     lastModified.formatted(date: .abbreviated, time: .omitted)
   }
 
   var readStatusColor: Color {
-    if booksCount == 0 {
-      return .secondary
-    } else if booksReadCount == booksCount {
-      return .green
-    } else if booksReadCount > 0 {
-      return .blue
-    } else {
-      return .secondary
+    switch readStatus {
+    case .read: return .green
+    case .inProgress: return .blue
+    case .unread: return .secondary
     }
   }
 }
