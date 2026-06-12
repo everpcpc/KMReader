@@ -95,7 +95,7 @@ struct SplashView: View {
           .opacity(isVisible ? 1.0 : 0.0)
 
         // Tagline
-        Text("Your personal manga reader")
+        Text("Your Komga library, ready to read")
           .font(.subheadline)
           .foregroundStyle(.secondary)
           .tracking(0.5)

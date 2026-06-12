@@ -26,7 +26,7 @@ struct LandingView: View {
         .foregroundStyle(.primary)
 
       // Tagline
-      Text("Your personal manga and comic reader")
+      Text("Your Komga library, ready to read")
         .font(.title3)
         .foregroundStyle(.secondary)
         .multilineTextAlignment(.center)

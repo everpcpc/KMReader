@@ -80162,130 +80162,66 @@
         }
       }
     },
-    "Your personal manga and comic reader" : {
+    "Your Komga library, ready to read" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ihr persönlicher Manga- und Comic-Reader"
+            "value" : "Ihre Komga-Bibliothek, bereit zum Lesen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Your personal manga and comic reader"
+            "value" : "Your Komga library, ready to read"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tu lector personal de manga y comics"
+            "value" : "Tu biblioteca Komga, lista para leer"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Votre lecteur personnel de mangas et de BD"
+            "value" : "Votre bibliothèque Komga, prête à lire"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Il tuo lettore personale di manga e fumetti"
+            "value" : "La tua libreria Komga, pronta da leggere"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "あなた専用のマンガ・コミックリーダー"
+            "value" : "Komgaライブラリを、すぐ読める場所に"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "개인 만화 및 코믹 리더"
+            "value" : "Komga 라이브러리를 바로 읽을 수 있게"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ваш персональный ридер манги и комиксов"
+            "value" : "Ваша библиотека Komga всегда готова к чтению"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你的漫画阅读器"
+            "value" : "你的 Komga 书库，随时开读"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你的漫畫閱讀器"
-          }
-        }
-      }
-    },
-    "Your personal manga reader" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ihr persönlicher Manga-Reader"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your personal manga reader"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tu lector personal de manga"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Votre lecteur personnel de mangas"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Il tuo lettore personale di manga"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "あなた専用のマンガリーダー"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "개인 만화 리더"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ваш персональный ридер манги"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "你的漫画阅读器"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "你的漫畫閱讀器"
+            "value" : "你的 Komga 書庫，隨時開讀"
           }
         }
       }
