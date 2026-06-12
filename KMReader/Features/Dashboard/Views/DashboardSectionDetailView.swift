@@ -20,6 +20,9 @@ struct DashboardSectionDetailView: View {
   @State private var hasLoadedInitial = false
   @State private var projectionRefreshTask: Task<Void, Never>?
 
+  private static let localProjectionRefreshDelay: UInt64 = 750_000_000
+  private static let remoteProjectionRefreshDelay: UInt64 = 5_000_000_000
+
   private var columns: [GridItem] {
     LayoutConfig.adaptiveColumns(for: gridDensity)
   }
@@ -273,11 +276,11 @@ struct DashboardSectionDetailView: View {
     }
   }
 
-  private func scheduleProjectionRefresh() {
+  private func scheduleProjectionRefresh(after delay: UInt64 = Self.localProjectionRefreshDelay) {
     projectionRefreshTask?.cancel()
     projectionRefreshTask = Task { @MainActor in
       do {
-        try await Task.sleep(nanoseconds: 750_000_000)
+        try await Task.sleep(nanoseconds: delay)
       } catch {
         return
       }
@@ -294,13 +297,13 @@ struct DashboardSectionDetailView: View {
     switch info.type {
     case .readProgressChanged, .readProgressDeleted, .readProgressSeriesChanged,
       .readProgressSeriesDeleted:
-      scheduleProjectionRefresh()
+      scheduleProjectionRefresh(after: Self.remoteProjectionRefreshDelay)
     case .bookChanged, .bookDeleted:
       guard section.contentKind == .books else { return }
-      scheduleProjectionRefresh()
+      scheduleProjectionRefresh(after: Self.remoteProjectionRefreshDelay)
     case .seriesChanged, .seriesDeleted:
       guard section.contentKind == .series else { return }
-      scheduleProjectionRefresh()
+      scheduleProjectionRefresh(after: Self.remoteProjectionRefreshDelay)
     default:
       break
     }
