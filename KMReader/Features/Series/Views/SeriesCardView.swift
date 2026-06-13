@@ -95,9 +95,6 @@ struct SeriesCardView: View {
             if item.isUnavailable {
               Text("Unavailable")
                 .foregroundColor(.red)
-            } else if item.oneshot {
-              Label(item.series.readStatusDisplayName, systemImage: item.series.readStatusIcon)
-                .foregroundColor(item.series.readStatusColor)
             } else {
               if progress > 0 && progress < 1 {
                 Text("\(progress * 100, specifier: "%.0f")%")
@@ -155,9 +152,6 @@ struct SeriesCardView: View {
         if item.isUnavailable {
           Text("Unavailable")
             .foregroundColor(.red)
-        } else if item.oneshot {
-          Label(item.series.readStatusDisplayName, systemImage: item.series.readStatusIcon)
-            .foregroundColor(item.series.readStatusColor)
         } else {
           if progress > 0 && progress < 1 {
             Text("\(progress * 100, specifier: "%.0f")%")
