@@ -14,8 +14,13 @@ jobs:
     outputs:
       marketing_version: ${{ steps.version.outputs.marketing }}
       build_number: ${{ steps.version.outputs.build }}
+      base_marketing_version: ${{ steps.changed.outputs.base_marketing }}
+      base_build_number: ${{ steps.changed.outputs.base_build }}
       build_changed: ${{ steps.changed.outputs.build_changed }}
       marketing_changed: ${{ steps.changed.outputs.marketing_changed }}
+      create_release: ${{ steps.changed.outputs.create_release }}
+      release_version: ${{ steps.changed.outputs.release_version }}
+      release_sha: ${{ steps.changed.outputs.release_sha }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -31,28 +36,8 @@ jobs:
             echo "project.pbxproj not found at $FILE" >&2
             exit 1
           fi
-          BASE="${{ github.event.before }}"
-          HEAD="${{ github.sha }}"
-          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
-            if git rev-parse "${HEAD}^" >/dev/null 2>&1; then
-              BASE="$(git rev-parse "${HEAD}^")"
-            else
-              BASE=""
-            fi
-          fi
 
-          if [ -n "$BASE" ] && git cat-file -e "$BASE"^{commit} 2>/dev/null; then
-            PREV_FILE_CONTENT=$(git show "$BASE:$FILE" 2>/dev/null || true)
-          else
-            PREV_FILE_CONTENT=""
-          fi
-
-          if [ -n "$PREV_FILE_CONTENT" ]; then
-            MARKETING=$(printf "%s" "$PREV_FILE_CONTENT" | awk 'match($0,/MARKETING_VERSION = ([^;]+);/,a){gsub(/"/,"",a[1]); print a[1]; exit}')
-          else
-            MARKETING=$(awk 'match($0,/MARKETING_VERSION = ([^;]+);/,a){gsub(/"/,"",a[1]); print a[1]; exit}' "$FILE")
-          fi
-
+          MARKETING=$(awk 'match($0,/MARKETING_VERSION = ([^;]+);/,a){gsub(/"/,"",a[1]); print a[1]; exit}' "$FILE")
           BUILD=$(awk 'match($0,/CURRENT_PROJECT_VERSION = ([^;]+);/,a){gsub(/"/,"",a[1]); print a[1]; exit}' "$FILE")
           if [ -z "$MARKETING" ]; then
             echo "MARKETING_VERSION not found in $FILE" >&2
@@ -76,6 +61,8 @@ jobs:
           FILE="KMReader.xcodeproj/project.pbxproj"
           BASE="${{ github.event.before }}"
           HEAD="${{ github.sha }}"
+          HEAD_MARKETING="${{ steps.version.outputs.marketing }}"
+
           if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
             if git rev-parse "${HEAD}^" >/dev/null 2>&1; then
               BASE="$(git rev-parse "${HEAD}^")"
@@ -84,9 +71,34 @@ jobs:
             fi
           fi
 
+          read_project_value() {
+            local source="$1"
+            local key="$2"
+            git show "$source:$FILE" | awk -v key="$key" '$0 ~ key " = " { sub(".*" key " = ", "", $0); sub(";.*", "", $0); gsub(/"/, "", $0); print $0; exit }'
+          }
+
+          parse_major_minor() {
+            local version="$1"
+            local prefix="$2"
+            if [[ "$version" =~ ^([0-9]+)\.([0-9]+)$ ]]; then
+              printf -v "${prefix}_MAJOR" "%s" "${BASH_REMATCH[1]}"
+              printf -v "${prefix}_MINOR" "%s" "${BASH_REMATCH[2]}"
+              return 0
+            fi
+            return 1
+          }
+
           BUILD_CHANGED=false
           MARKETING_CHANGED=false
+          CREATE_RELEASE=false
+          BASE_MARKETING=""
+          BASE_BUILD=""
+          RELEASE_VERSION=""
+          RELEASE_SHA=""
           if [ -n "$BASE" ] && git cat-file -e "$BASE"^{commit} 2>/dev/null; then
+            BASE_MARKETING="$(read_project_value "$BASE" MARKETING_VERSION)"
+            BASE_BUILD="$(read_project_value "$BASE" CURRENT_PROJECT_VERSION)"
+
             DIFF=$(git diff "$BASE" "$HEAD" -- "$FILE" || true)
             if echo "$DIFF" | grep -q 'CURRENT_PROJECT_VERSION'; then
               BUILD_CHANGED=true
@@ -94,18 +106,41 @@ jobs:
             if echo "$DIFF" | grep -q 'MARKETING_VERSION'; then
               MARKETING_CHANGED=true
             fi
+
+            if [ "$MARKETING_CHANGED" = true ] \
+              && parse_major_minor "$BASE_MARKETING" BASE_VERSION \
+              && parse_major_minor "$HEAD_MARKETING" HEAD_VERSION; then
+              if [ "$BASE_VERSION_MAJOR" -eq "$HEAD_VERSION_MAJOR" ] \
+                && [ "$HEAD_VERSION_MINOR" -eq $((BASE_VERSION_MINOR + 1)) ]; then
+                CREATE_RELEASE=true
+                RELEASE_VERSION="$BASE_MARKETING"
+                RELEASE_SHA="$BASE"
+              fi
+            fi
           else
             BUILD_CHANGED=true
             MARKETING_CHANGED=true
           fi
 
+          echo "Base MARKETING_VERSION: ${BASE_MARKETING:-unknown}"
+          echo "Base CURRENT_PROJECT_VERSION: ${BASE_BUILD:-unknown}"
+          echo "Create delayed release: $CREATE_RELEASE"
+          if [ "$CREATE_RELEASE" = true ]; then
+            echo "Release target: v$RELEASE_VERSION at $RELEASE_SHA"
+          fi
+
+          echo "base_marketing=$BASE_MARKETING" >> "$GITHUB_OUTPUT"
+          echo "base_build=$BASE_BUILD" >> "$GITHUB_OUTPUT"
           echo "build_changed=$BUILD_CHANGED" >> "$GITHUB_OUTPUT"
           echo "marketing_changed=$MARKETING_CHANGED" >> "$GITHUB_OUTPUT"
+          echo "create_release=$CREATE_RELEASE" >> "$GITHUB_OUTPUT"
+          echo "release_version=$RELEASE_VERSION" >> "$GITHUB_OUTPUT"
+          echo "release_sha=$RELEASE_SHA" >> "$GITHUB_OUTPUT"
 
   release:
     runs-on: ubuntu-latest
     needs: detect
-    if: needs.detect.outputs.marketing_changed == 'true'
+    if: needs.detect.outputs.create_release == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -113,15 +148,16 @@ jobs:
       - name: Ensure GitHub release exists
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ needs.detect.outputs.marketing_version }}
+          VERSION: ${{ needs.detect.outputs.release_version }}
+          TARGET_SHA: ${{ needs.detect.outputs.release_sha }}
         run: |
           set -euo pipefail
           TAG="v${VERSION}"
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "Release $TAG already exists."
           else
-            echo "Creating stable release: $TAG"
-            gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --generate-notes
+            echo "Creating stable release: $TAG at $TARGET_SHA"
+            gh release create "$TAG" --target "$TARGET_SHA" --title "$TAG" --generate-notes
           fi
 
   upload:
