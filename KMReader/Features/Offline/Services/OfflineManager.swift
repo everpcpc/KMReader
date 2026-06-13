@@ -348,6 +348,7 @@ actor OfflineManager {
         downloadAt: .now
       )
       try? await DatabaseOperator.database().commit()
+      await postDownloadProjectionDidChange(bookId: info.bookId, instanceId: instanceId)
       await refreshQueueStatus(instanceId: instanceId)
       await syncDownloadQueue(instanceId: instanceId)
     }
@@ -361,6 +362,7 @@ actor OfflineManager {
       downloadAt: .now
     )
     try? await DatabaseOperator.database().commit()
+    await postDownloadProjectionDidChange(bookId: bookId, instanceId: instanceId)
     await refreshQueueStatus(instanceId: instanceId)
     await syncDownloadQueue(instanceId: instanceId)
   }
@@ -380,6 +382,7 @@ actor OfflineManager {
         downloadAt: .now
       )
       try? await DatabaseOperator.database().commit()
+      await postDownloadProjectionDidChange(bookId: info.bookId, instanceId: instanceId)
     case .pending:
       break
     }
@@ -403,6 +406,7 @@ actor OfflineManager {
     )
     if commit {
       try? await DatabaseOperator.database().commit()
+      await postDownloadProjectionDidChange(bookId: bookId, instanceId: instanceId)
       await refreshQueueStatus(instanceId: instanceId)
     }
 
@@ -452,6 +456,7 @@ actor OfflineManager {
     try? await DatabaseOperator.database().syncReadListsContainingBooks(
       bookIds: bookIds, instanceId: instanceId)
     try? await DatabaseOperator.database().commit()
+    await postDownloadProjectionsDidChange(bookIds: bookIds, instanceId: instanceId)
     await refreshQueueStatus(instanceId: instanceId)
   }
 
@@ -485,6 +490,10 @@ actor OfflineManager {
     try? await DatabaseOperator.database().syncReadListsContainingBooks(
       bookIds: books.map { $0.id }, instanceId: instanceId)
     try? await DatabaseOperator.database().commit()
+    await postDownloadProjectionsDidChange(
+      bookIds: books.map { $0.id },
+      instanceId: instanceId
+    )
     await refreshQueueStatus(instanceId: instanceId)
 
     #if os(iOS) || os(macOS)
@@ -526,6 +535,10 @@ actor OfflineManager {
     try? await DatabaseOperator.database().syncReadListsContainingBooks(
       bookIds: readBooks.map { $0.id }, instanceId: instanceId)
     try? await DatabaseOperator.database().commit()
+    await postDownloadProjectionsDidChange(
+      bookIds: readBooks.map { $0.id },
+      instanceId: instanceId
+    )
     await refreshQueueStatus(instanceId: instanceId)
   }
 
@@ -593,6 +606,7 @@ actor OfflineManager {
     )
     if commit {
       try? await DatabaseOperator.database().commit()
+      await postDownloadProjectionDidChange(bookId: bookId, instanceId: resolvedInstanceId)
       await refreshQueueStatus(instanceId: resolvedInstanceId)
     }
   }
@@ -609,6 +623,7 @@ actor OfflineManager {
       try? await DatabaseOperator.database().commit()
     }
     activeTasks.removeAll()
+    await postDownloadProjectionsDidChange(bookIds: bookIds, instanceId: instanceId)
     await MainActor.run {
       for bookId in bookIds {
         DownloadProgressTracker.shared.clearProgress(bookId: bookId)
@@ -622,15 +637,25 @@ actor OfflineManager {
   }
 
   func retryFailedDownloads(instanceId: String) async {
+    let failedBookIds =
+      ((try? await DatabaseOperator.database().fetchOfflineTaskItems(instanceId: instanceId)) ?? [])
+      .filter { $0.isFailed }
+      .map(\.bookId)
     try? await DatabaseOperator.database().retryFailedBooks(instanceId: instanceId)
     try? await DatabaseOperator.database().commit()
+    await postDownloadProjectionsDidChange(bookIds: failedBookIds, instanceId: instanceId)
     await refreshQueueStatus(instanceId: instanceId)
     await syncDownloadQueue(instanceId: instanceId)
   }
 
   func cancelFailedDownloads(instanceId: String) async {
+    let failedBookIds =
+      ((try? await DatabaseOperator.database().fetchOfflineTaskItems(instanceId: instanceId)) ?? [])
+      .filter { $0.isFailed }
+      .map(\.bookId)
     try? await DatabaseOperator.database().cancelFailedBooks(instanceId: instanceId)
     try? await DatabaseOperator.database().commit()
+    await postDownloadProjectionsDidChange(bookIds: failedBookIds, instanceId: instanceId)
     await refreshQueueStatus(instanceId: instanceId)
   }
 
@@ -957,6 +982,7 @@ actor OfflineManager {
           status: .failed(error: error.localizedDescription)
         )
         try? await DatabaseOperator.database().commit()
+        await postDownloadProjectionDidChange(bookId: info.bookId, instanceId: instanceId)
         await refreshQueueStatus(instanceId: instanceId)
         await syncDownloadQueue(instanceId: instanceId)
       }
@@ -1316,6 +1342,7 @@ actor OfflineManager {
               status: .failed(error: error.localizedDescription)
             )
             try? await DatabaseOperator.database().commit()
+            await self.postDownloadProjectionDidChange(bookId: info.bookId, instanceId: instanceId)
             await self.refreshQueueStatus(instanceId: instanceId)
           }
         }
@@ -1411,6 +1438,7 @@ actor OfflineManager {
       downloadedSize: size
     )
     try? await DatabaseOperator.database().commit()
+    await postDownloadProjectionDidChange(bookId: bookId, instanceId: instanceId)
   }
 
   func readOfflinePDFPreparationStamp(instanceId: String, bookId: String) async -> String? {
@@ -1582,6 +1610,20 @@ actor OfflineManager {
         failed: summary.failedCount
       )
     }
+  }
+
+  private func postDownloadProjectionDidChange(bookId: String, instanceId: String) async {
+    await ContentProjectionNotifier.postBookAndSeriesDidChange(
+      bookId: bookId,
+      instanceId: instanceId
+    )
+  }
+
+  private func postDownloadProjectionsDidChange(bookIds: [String], instanceId: String) async {
+    await ContentProjectionNotifier.postBooksAndSeriesDidChange(
+      bookIds: bookIds,
+      instanceId: instanceId
+    )
   }
 
   private func removeBookAfterPermanentNotFound(bookId: String, instanceId: String) async {
@@ -1934,6 +1976,7 @@ actor OfflineManager {
         status: .failed(error: error.localizedDescription)
       )
       try? await DatabaseOperator.database().commit()
+      await postDownloadProjectionDidChange(bookId: bookId, instanceId: info.instanceId)
       await refreshQueueStatus(instanceId: info.instanceId)
 
       // Cancel remaining downloads for this book
@@ -2044,6 +2087,7 @@ actor OfflineManager {
           try? await DatabaseOperator.database().updateBookDownloadStatus(
             bookId: bookId, instanceId: info.instanceId, status: .failed(error: message))
           try? await DatabaseOperator.database().commit()
+          await postDownloadProjectionDidChange(bookId: bookId, instanceId: info.instanceId)
           clearBackgroundDownloadContext(bookId: bookId)
           removeActiveTask(bookId)
           await refreshQueueStatus(instanceId: info.instanceId)
@@ -2081,6 +2125,7 @@ actor OfflineManager {
           try? await DatabaseOperator.database().updateBookDownloadStatus(
             bookId: bookId, instanceId: info.instanceId, status: .failed(error: message))
           try? await DatabaseOperator.database().commit()
+          await postDownloadProjectionDidChange(bookId: bookId, instanceId: info.instanceId)
           clearBackgroundDownloadContext(bookId: bookId)
           removeActiveTask(bookId)
           await refreshQueueStatus(instanceId: info.instanceId)
@@ -2118,6 +2163,7 @@ actor OfflineManager {
             status: .failed(error: "Offline EPUB download is incomplete. Please retry downloading this book.")
           )
           try? await DatabaseOperator.database().commit()
+          await postDownloadProjectionDidChange(bookId: bookId, instanceId: info.instanceId)
           clearBackgroundDownloadContext(bookId: bookId)
           removeActiveTask(bookId)
           await refreshQueueStatus(instanceId: info.instanceId)
@@ -2809,6 +2855,7 @@ actor OfflineManager {
       downloadAt: .now
     )
     try? await DatabaseOperator.database().commit()
+    await postDownloadProjectionDidChange(bookId: bookId, instanceId: instanceId)
     await refreshQueueStatus(instanceId: instanceId)
     await clearCachesAfterDownload(bookId: bookId)
     completedDownloadsSinceLastNotification += 1

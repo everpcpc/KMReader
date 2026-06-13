@@ -53,12 +53,35 @@ nonisolated enum ContentProjectionNotifier {
   }
 
   static func postBookAndSeriesDidChange(bookId: String, seriesId: String? = nil) async {
+    await postBookAndSeriesDidChange(
+      bookId: bookId,
+      instanceId: AppConfig.current.instanceId,
+      seriesId: seriesId
+    )
+  }
+
+  static func postBookAndSeriesDidChange(
+    bookId: String,
+    instanceId: String,
+    seriesId: String? = nil
+  ) async {
     await postBookDidChange(bookId: bookId)
 
     if let seriesId {
       await postSeriesDidChange(seriesId: seriesId)
     } else {
-      await postSeriesDidChange(forBookId: bookId)
+      await postSeriesDidChange(forBookId: bookId, instanceId: instanceId)
+    }
+  }
+
+  static func postBooksAndSeriesDidChange(bookIds: [String], instanceId: String) async {
+    let ids = Set(bookIds.filter { !$0.isEmpty })
+    guard !ids.isEmpty else { return }
+
+    await postBooksDidChange(bookIds: Array(ids))
+    let seriesIds = await fetchSeriesIds(forBookIds: Array(ids), instanceId: instanceId)
+    for seriesId in seriesIds {
+      await postSeriesDidChange(seriesId: seriesId)
     }
   }
 
@@ -70,16 +93,37 @@ nonisolated enum ContentProjectionNotifier {
     await postSeriesDidChange(seriesId: seriesId)
   }
 
-  private static func postSeriesDidChange(forBookId bookId: String) async {
+  private static func postSeriesDidChange(forBookId bookId: String, instanceId: String) async {
+    guard let seriesId = await fetchSeriesId(forBookId: bookId, instanceId: instanceId) else {
+      return
+    }
+
+    await postSeriesDidChange(seriesId: seriesId)
+  }
+
+  private static func fetchSeriesId(forBookId bookId: String, instanceId: String) async -> String? {
     guard
       let database = try? await DatabaseOperator.database(),
       let item = try? await database.fetchBookDisplayItem(
         bookId: bookId,
-        instanceId: AppConfig.current.instanceId
+        instanceId: instanceId
       )
-    else { return }
+    else { return nil }
 
-    await postSeriesDidChange(seriesId: item.book.seriesId)
+    return item.book.seriesId
+  }
+
+  private static func fetchSeriesIds(forBookIds bookIds: [String], instanceId: String) async
+    -> Set<String>
+  {
+    var seriesIds = Set<String>()
+    for bookId in Set(bookIds) {
+      if let seriesId = await fetchSeriesId(forBookId: bookId, instanceId: instanceId) {
+        seriesIds.insert(seriesId)
+      }
+    }
+
+    return seriesIds
   }
 
   private static func fetchSeriesBookIds(seriesId: String) async -> [String] {
