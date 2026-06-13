@@ -63,9 +63,9 @@ struct SeriesRowView: View {
         HStack {
           VStack(alignment: .leading, spacing: 4) {
             if series.oneshot {
-              Label(series.readStatusDisplayName, systemImage: series.readStatusIcon)
+              Label("Oneshot", systemImage: "book.closed")
                 .font(.footnote)
-                .foregroundColor(series.readStatusColor)
+                .foregroundColor(.blue)
             } else {
               Label(series.statusDisplayName, systemImage: series.statusIcon)
                 .font(.footnote)
@@ -86,25 +86,8 @@ struct SeriesRowView: View {
               if series.deleted {
                 Text("Unavailable")
                   .foregroundColor(.red)
-              } else if series.oneshot {
-                Text("Oneshot")
-                  .foregroundColor(.blue)
               } else {
-                HStack(spacing: 4) {
-                  Label("\(series.booksCount) books", systemImage: ContentIcon.book)
-                  Text("•")
-                  if series.booksUnreadCount > 0 {
-                    Image(systemName: "circle.righthalf.filled")
-                      .foregroundColor(series.readStatusColor)
-                    Text("\(series.booksUnreadCount) unread")
-                      .foregroundColor(series.readStatusColor)
-                    Text("•")
-                    Text("\(progress * 100, specifier: "%.0f")%")
-                  } else {
-                    Label("All read", systemImage: "checkmark.circle.fill")
-                      .foregroundColor(series.readStatusColor)
-                  }
-                }
+                readingProgressSummary
               }
             }
             .font(.footnote)
@@ -161,6 +144,34 @@ struct SeriesRowView: View {
     }
     .sheet(isPresented: $showEditSheet) {
       SeriesEditSheet(series: series)
+    }
+  }
+
+  @ViewBuilder
+  private var readingProgressSummary: some View {
+    HStack(spacing: 4) {
+      Label("\(series.booksCount) books", systemImage: ContentIcon.book)
+      Text("•")
+
+      switch series.readStatus {
+      case .read:
+        Label("All read", systemImage: series.readStatusIcon)
+          .foregroundColor(series.readStatusColor)
+      case .inProgress:
+        Image(systemName: series.readStatusIcon)
+          .foregroundColor(series.readStatusColor)
+        Text(series.booksUnreadCount > 0 ? "\(series.booksUnreadCount) unread" : series.readStatusDisplayName)
+          .foregroundColor(series.readStatusColor)
+        Text("•")
+        Text("\(progress * 100, specifier: "%.0f")%")
+      case .unread:
+        Image(systemName: "circle.righthalf.filled")
+          .foregroundColor(series.readStatusColor)
+        Text("\(series.booksUnreadCount) unread")
+          .foregroundColor(series.readStatusColor)
+        Text("•")
+        Text("\(progress * 100, specifier: "%.0f")%")
+      }
     }
   }
 
