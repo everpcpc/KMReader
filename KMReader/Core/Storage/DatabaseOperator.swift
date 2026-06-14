@@ -70,10 +70,10 @@ actor DatabaseOperator {
   }
 
   private static let sharedStore = SharedStore()
+  nonisolated static let recordFetchChunkSize = 900
 
   let dbQueue: DatabaseQueue
   let logger = AppLogger(.database)
-  let reconcileDeleteBatchSize = 1000
 
   init(databaseQueue: DatabaseQueue) {
     self.dbQueue = databaseQueue

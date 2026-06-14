@@ -201,7 +201,7 @@ extension DatabaseOperator {
   func upsertBooks(_ books: [Book], instanceId: String) {
     do {
       try write { db in
-        let existingBooks = try fetchBooks(db: db, instanceId: instanceId)
+        let existingBooks = try fetchBooksByIds(db: db, ids: books.map(\.id), instanceId: instanceId)
         let existingById = Dictionary(uniqueKeysWithValues: existingBooks.map { ($0.bookId, $0) })
 
         for book in books {
@@ -237,7 +237,7 @@ extension DatabaseOperator {
   func upsertReadingProgressBooks(
     _ books: [Book],
     instanceId: String,
-    replaceExisting: Bool = false
+    replaceExisting: Bool = true
   ) {
     do {
       try write { db in
@@ -308,11 +308,10 @@ extension DatabaseOperator {
   func deleteBooksNotIn(_ bookIds: Set<String>, instanceId: String) -> Int {
     (try? write { db in
       let existingBooks = try fetchBooks(db: db, instanceId: instanceId)
-      let page = existingBooks.prefix(reconcileDeleteBatchSize)
-      guard !page.isEmpty else { return 0 }
+      guard !existingBooks.isEmpty else { return 0 }
 
       var deletedCount = 0
-      for book in page where !bookIds.contains(book.bookId) {
+      for book in existingBooks where !bookIds.contains(book.bookId) {
         try KomgaBook.deleteOne(db, key: book.id)
         deletedCount += 1
       }
@@ -468,7 +467,16 @@ extension DatabaseOperator {
 extension DatabaseOperator {
   func fetchBooksByIds(db: Database, ids: [String], instanceId: String) throws -> [KomgaBook] {
     guard !ids.isEmpty else { return [] }
-    let books = try fetchBooks(db: db, instanceId: instanceId).filter { ids.contains($0.bookId) }
+    let uniqueCompositeIds = Array(Set(ids.map { CompositeID.generate(instanceId: instanceId, id: $0) }))
+    var books: [KomgaBook] = []
+
+    for start in stride(from: 0, to: uniqueCompositeIds.count, by: Self.recordFetchChunkSize) {
+      let end = min(start + Self.recordFetchChunkSize, uniqueCompositeIds.count)
+      let chunk = Array(uniqueCompositeIds[start..<end])
+      let fetched = try KomgaBook.fetchAll(db, keys: chunk)
+      books.append(contentsOf: fetched)
+    }
+
     return Self.orderedByIds(books, ids: ids, id: \.bookId)
   }
 
@@ -519,7 +527,7 @@ extension DatabaseOperator {
   func applyBook(dto: Book, to existing: inout KomgaBook) {
     let mediaRaw = RawCodableStore.encode(dto.media)
     let metadataRaw = RawCodableStore.encode(dto.metadata)
-    let readProgressRaw = dto.readProgress.map(RawCodableStore.encode)
+    let readProgressRaw = RawCodableStore.encodeOptional(dto.readProgress)
 
     if existing.name != dto.name { existing.name = dto.name }
     if existing.url != dto.url { existing.url = dto.url }
@@ -533,7 +541,7 @@ extension DatabaseOperator {
     if metadataRaw == nil || existing.metadataRaw != metadataRaw {
       existing.updateMetadata(dto.metadata, raw: metadataRaw)
     }
-    if let readProgressRaw, existing.readProgressRaw != readProgressRaw {
+    if existing.readProgressRaw != readProgressRaw {
       existing.updateReadProgress(dto.readProgress, raw: readProgressRaw)
     }
     if existing.isUnavailable != dto.deleted { existing.isUnavailable = dto.deleted }

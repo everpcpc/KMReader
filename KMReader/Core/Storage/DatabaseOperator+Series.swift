@@ -128,7 +128,7 @@ extension DatabaseOperator {
   func upsertSeriesList(_ seriesList: [Series], instanceId: String) {
     do {
       try write { db in
-        let existingSeries = try fetchSeriesRecords(db: db, instanceId: instanceId)
+        let existingSeries = try fetchSeriesByIds(db: db, ids: seriesList.map(\.id), instanceId: instanceId)
         let existingById = Dictionary(uniqueKeysWithValues: existingSeries.map { ($0.seriesId, $0) })
 
         for series in seriesList {
@@ -162,11 +162,10 @@ extension DatabaseOperator {
   func deleteSeriesNotIn(_ seriesIds: Set<String>, instanceId: String) -> Int {
     (try? write { db in
       let existingSeries = try fetchSeriesRecords(db: db, instanceId: instanceId)
-      let page = existingSeries.prefix(reconcileDeleteBatchSize)
-      guard !page.isEmpty else { return 0 }
+      guard !existingSeries.isEmpty else { return 0 }
 
       var deletedCount = 0
-      for series in page where !seriesIds.contains(series.seriesId) {
+      for series in existingSeries where !seriesIds.contains(series.seriesId) {
         try KomgaSeries.deleteOne(db, key: series.id)
         deletedCount += 1
       }
@@ -210,7 +209,16 @@ extension DatabaseOperator {
 extension DatabaseOperator {
   func fetchSeriesByIds(db: Database, ids: [String], instanceId: String) throws -> [KomgaSeries] {
     guard !ids.isEmpty else { return [] }
-    let series = try fetchSeriesRecords(db: db, instanceId: instanceId).filter { ids.contains($0.seriesId) }
+    let uniqueCompositeIds = Array(Set(ids.map { CompositeID.generate(instanceId: instanceId, id: $0) }))
+    var series: [KomgaSeries] = []
+
+    for start in stride(from: 0, to: uniqueCompositeIds.count, by: Self.recordFetchChunkSize) {
+      let end = min(start + Self.recordFetchChunkSize, uniqueCompositeIds.count)
+      let chunk = Array(uniqueCompositeIds[start..<end])
+      let fetched = try KomgaSeries.fetchAll(db, keys: chunk)
+      series.append(contentsOf: fetched)
+    }
+
     return Self.orderedByIds(series, ids: ids, id: \.seriesId)
   }
 
@@ -392,7 +400,14 @@ extension DatabaseOperator {
 
   nonisolated static func sortSeries(_ series: [KomgaSeries], sort: String) -> [KomgaSeries] {
     if sort == "random" {
-      return series.shuffled()
+      return series.sorted {
+        let lhsKey = stableRandomSortKey($0.seriesId)
+        let rhsKey = stableRandomSortKey($1.seriesId)
+        if lhsKey == rhsKey {
+          return $0.seriesId < $1.seriesId
+        }
+        return lhsKey < rhsKey
+      }
     }
     let isAsc = !sort.contains("desc")
     if sort.contains("metadata.titleSort") {
@@ -411,5 +426,14 @@ extension DatabaseOperator {
       return series.sorted { isAsc ? $0.booksCount < $1.booksCount : $0.booksCount > $1.booksCount }
     }
     return series.sorted { isAsc ? $0.metaTitleSort < $1.metaTitleSort : $0.metaTitleSort > $1.metaTitleSort }
+  }
+
+  nonisolated static func stableRandomSortKey(_ value: String) -> UInt64 {
+    var hash: UInt64 = 14_695_981_039_346_656_037
+    for byte in value.utf8 {
+      hash ^= UInt64(byte)
+      hash &*= 1_099_511_628_211
+    }
+    return hash
   }
 }
