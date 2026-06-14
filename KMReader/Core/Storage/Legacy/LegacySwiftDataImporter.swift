@@ -72,7 +72,12 @@ enum LegacySwiftDataImporter {
   }
 
   private static func importAll(from context: ModelContext, into dbQueue: DatabaseQueue) throws {
-    try importBatches(KMReaderSchemaV6.KomgaInstance.self, from: context, into: dbQueue) { db, instance in
+    try importBatches(
+      KMReaderSchemaV6.KomgaInstance.self,
+      from: context,
+      into: dbQueue,
+      sortBy: [SortDescriptor(\.id, order: .forward)]
+    ) { db, instance in
       var record = KomgaInstance(
         id: instance.id,
         name: instance.name,
@@ -89,7 +94,12 @@ enum LegacySwiftDataImporter {
       try record.save(db)
     }
 
-    try importBatches(KMReaderSchemaV6.KomgaLibrary.self, from: context, into: dbQueue) { db, library in
+    try importBatches(
+      KMReaderSchemaV6.KomgaLibrary.self,
+      from: context,
+      into: dbQueue,
+      sortBy: [SortDescriptor(\.id, order: .forward)]
+    ) { db, library in
       var record = KomgaLibrary(
         id: library.id,
         instanceId: library.instanceId,
@@ -106,7 +116,12 @@ enum LegacySwiftDataImporter {
       try record.save(db)
     }
 
-    try importBatches(KMReaderSchemaV6.KomgaSeries.self, from: context, into: dbQueue) { db, item in
+    try importBatches(
+      KMReaderSchemaV6.KomgaSeries.self,
+      from: context,
+      into: dbQueue,
+      sortBy: [SortDescriptor(\.id, order: .forward)]
+    ) { db, item in
       let metadata = RawCodableStore.decode(SeriesMetadata.self, from: item.metadataRaw) ?? .empty
       let booksMetadata = RawCodableStore.decode(SeriesBooksMetadata.self, from: item.booksMetadataRaw) ?? .empty
       var record = KomgaSeries(
@@ -148,7 +163,12 @@ enum LegacySwiftDataImporter {
       try record.save(db)
     }
 
-    try importBatches(KMReaderSchemaV6.KomgaBook.self, from: context, into: dbQueue) { db, item in
+    try importBatches(
+      KMReaderSchemaV6.KomgaBook.self,
+      from: context,
+      into: dbQueue,
+      sortBy: [SortDescriptor(\.id, order: .forward)]
+    ) { db, item in
       let media = RawCodableStore.decode(Media.self, from: item.mediaRaw) ?? .empty
       let metadata = RawCodableStore.decode(BookMetadata.self, from: item.metadataRaw) ?? .empty
       let readProgress = RawCodableStore.decode(ReadProgress.self, from: item.readProgressRaw)
@@ -201,7 +221,12 @@ enum LegacySwiftDataImporter {
       try record.save(db)
     }
 
-    try importBatches(KMReaderSchemaV6.KomgaCollection.self, from: context, into: dbQueue) { db, item in
+    try importBatches(
+      KMReaderSchemaV6.KomgaCollection.self,
+      from: context,
+      into: dbQueue,
+      sortBy: [SortDescriptor(\.id, order: .forward)]
+    ) { db, item in
       let seriesIds = item.seriesIdsRaw.flatMap { try? JSONDecoder().decode([String].self, from: $0) } ?? []
       var record = KomgaCollection(
         id: item.id,
@@ -219,7 +244,12 @@ enum LegacySwiftDataImporter {
       try record.save(db)
     }
 
-    try importBatches(KMReaderSchemaV6.KomgaReadList.self, from: context, into: dbQueue) { db, item in
+    try importBatches(
+      KMReaderSchemaV6.KomgaReadList.self,
+      from: context,
+      into: dbQueue,
+      sortBy: [SortDescriptor(\.id, order: .forward)]
+    ) { db, item in
       let bookIds = item.bookIdsRaw.flatMap { try? JSONDecoder().decode([String].self, from: $0) } ?? []
       var record = KomgaReadList(
         id: item.id,
@@ -244,7 +274,12 @@ enum LegacySwiftDataImporter {
       try record.save(db)
     }
 
-    try importBatches(KMReaderSchemaV6.CustomFontV1.self, from: context, into: dbQueue) { db, item in
+    try importBatches(
+      KMReaderSchemaV6.CustomFontV1.self,
+      from: context,
+      into: dbQueue,
+      sortBy: [SortDescriptor(\.name, order: .forward)]
+    ) { db, item in
       var record = CustomFont(
         name: item.name,
         path: item.path,
@@ -255,7 +290,12 @@ enum LegacySwiftDataImporter {
       try record.save(db)
     }
 
-    try importBatches(KMReaderSchemaV6.PendingProgress.self, from: context, into: dbQueue) { db, item in
+    try importBatches(
+      KMReaderSchemaV6.PendingProgress.self,
+      from: context,
+      into: dbQueue,
+      sortBy: [SortDescriptor(\.id, order: .forward)]
+    ) { db, item in
       var record = PendingProgress(
         instanceId: item.instanceId,
         bookId: item.bookId,
@@ -268,7 +308,12 @@ enum LegacySwiftDataImporter {
       try record.save(db)
     }
 
-    try importBatches(KMReaderSchemaV6.SavedFilterV1.self, from: context, into: dbQueue) { db, item in
+    try importBatches(
+      KMReaderSchemaV6.SavedFilterV1.self,
+      from: context,
+      into: dbQueue,
+      sortBy: [SortDescriptor(\.id, order: .forward)]
+    ) { db, item in
       let filterType = SavedFilterType(rawValue: item.filterTypeRaw) ?? .series
       var record = SavedFilter(
         id: item.id,
@@ -282,7 +327,12 @@ enum LegacySwiftDataImporter {
       try record.save(db)
     }
 
-    try importBatches(KMReaderSchemaV6.EpubThemePresetV1.self, from: context, into: dbQueue) { db, item in
+    try importBatches(
+      KMReaderSchemaV6.EpubThemePresetV1.self,
+      from: context,
+      into: dbQueue,
+      sortBy: [SortDescriptor(\.id, order: .forward)]
+    ) { db, item in
       var record = EpubThemePreset(
         id: item.id,
         name: item.name,
@@ -298,13 +348,14 @@ enum LegacySwiftDataImporter {
     _ modelType: LegacyModel.Type,
     from context: ModelContext,
     into dbQueue: DatabaseQueue,
+    sortBy: [SortDescriptor<LegacyModel>],
     importRecord: (Database, LegacyModel) throws -> Void
   ) throws {
     _ = modelType
     var offset = 0
 
     while true {
-      var descriptor = FetchDescriptor<LegacyModel>()
+      var descriptor = FetchDescriptor<LegacyModel>(sortBy: sortBy)
       descriptor.fetchLimit = DatabaseOperator.recordFetchChunkSize
       descriptor.fetchOffset = offset
 

@@ -286,17 +286,6 @@ extension DatabaseOperator {
               seriesTitle: book.seriesTitle
             )
             try save(newBook, db: db)
-            let newStatus = readingStatus(
-              progressCompleted: newBook.progressCompleted,
-              progressPage: newBook.progressPage
-            )
-            updateSeriesReadingCounts(
-              db: db,
-              seriesId: newBook.seriesId,
-              instanceId: instanceId,
-              oldStatus: 0,
-              newStatus: newStatus
-            )
           }
         }
       }

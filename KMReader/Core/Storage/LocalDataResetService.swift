@@ -21,7 +21,7 @@ enum LocalDataResetService {
   static func resetAllLocalData() throws {
     let fileManager = FileManager.default
 
-    removeLegacyStoreFiles(fileManager: fileManager)
+    removePersistentStoreFiles(fileManager: fileManager)
 
     for directory in resetDirectories(fileManager: fileManager) {
       try? removeDirectoryContents(at: directory, fileManager: fileManager)
@@ -30,7 +30,7 @@ enum LocalDataResetService {
     resetStandardDefaults()
     resetSharedDefaults()
 
-    let remainingStores = existingLegacyStoreFiles(fileManager: fileManager)
+    let remainingStores = existingPersistentStoreFiles(fileManager: fileManager)
     if !remainingStores.isEmpty {
       throw ResetError.persistentStoreStillExists(remainingStores)
     }
@@ -84,19 +84,19 @@ enum LocalDataResetService {
     }
   }
 
-  private static func removeLegacyStoreFiles(fileManager: FileManager) {
-    for url in legacyStoreFileCandidates(fileManager: fileManager) {
+  private static func removePersistentStoreFiles(fileManager: FileManager) {
+    for url in persistentStoreFileCandidates(fileManager: fileManager) {
       try? fileManager.removeItem(at: url)
     }
   }
 
-  private static func existingLegacyStoreFiles(fileManager: FileManager) -> [URL] {
-    legacyStoreFileCandidates(fileManager: fileManager).filter { url in
+  private static func existingPersistentStoreFiles(fileManager: FileManager) -> [URL] {
+    persistentStoreFileCandidates(fileManager: fileManager).filter { url in
       fileManager.fileExists(atPath: url.path)
     }
   }
 
-  private static func legacyStoreFileCandidates(fileManager: FileManager) -> [URL] {
+  private static func persistentStoreFileCandidates(fileManager: FileManager) -> [URL] {
     var storeDirectories: [URL] = []
 
     if let applicationSupport = fileManager.urls(
@@ -114,6 +114,9 @@ enum LocalDataResetService {
       "default.store",
       "default.store-shm",
       "default.store-wal",
+      LocalDatabase.fileName,
+      "\(LocalDatabase.fileName)-shm",
+      "\(LocalDatabase.fileName)-wal",
     ]
 
     return storeDirectories.flatMap { directory in
