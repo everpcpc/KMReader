@@ -295,7 +295,7 @@ extension DatabaseOperator {
 
   func syncSeriesReadingStatus(db: Database, seriesId: String, instanceId: String) {
     guard var series = try? fetchSeriesRecord(db: db, id: seriesId, instanceId: instanceId) else { return }
-    let books = (try? fetchBooks(db: db, instanceId: instanceId).filter { $0.seriesId == seriesId }) ?? []
+    let books = (try? fetchBooks(db: db, instanceId: instanceId, seriesId: seriesId)) ?? []
     var read = 0
     var inProgress = 0
     var unread = 0

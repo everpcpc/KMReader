@@ -55,14 +55,27 @@ extension DatabaseOperator {
     offset: Int,
     limit: Int
   ) -> [String] {
-    (try? read { db in
-      let collections = try orderedCollections(
-        db: db,
-        instanceId: instanceId,
-        searchText: searchText,
-        sort: sort
+    guard limit > 0 else { return [] }
+    return (try? read { db in
+      var sql = """
+        SELECT collection_id
+        FROM \(KomgaCollection.databaseTableName)
+        WHERE instance_id = ?
+        """
+      var arguments: StatementArguments = [instanceId]
+      let trimmedSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+      if !trimmedSearch.isEmpty {
+        sql += "\nAND name LIKE ? ESCAPE char(92)"
+        arguments += StatementArguments([Self.sqlContainsPattern(trimmedSearch)])
+      }
+      sql += "\nORDER BY is_pinned DESC, \(Self.collectionOrderSQL(sort: sort))"
+      sql += "\nLIMIT ? OFFSET ?"
+      arguments += StatementArguments([limit, max(0, offset)])
+      return try String.fetchAll(
+        db,
+        sql: sql,
+        arguments: arguments
       )
-      return Self.paginate(collections, offset: offset, limit: limit).map(\.collectionId)
     }) ?? []
   }
 
@@ -203,14 +216,28 @@ extension DatabaseOperator {
     offset: Int,
     limit: Int
   ) -> [String] {
-    (try? read { db in
-      let readLists = try orderedReadLists(
-        db: db,
-        instanceId: instanceId,
-        searchText: searchText,
-        sort: sort
+    guard limit > 0 else { return [] }
+    return (try? read { db in
+      var sql = """
+        SELECT read_list_id
+        FROM \(KomgaReadList.databaseTableName)
+        WHERE instance_id = ?
+        """
+      var arguments: StatementArguments = [instanceId]
+      let trimmedSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+      if !trimmedSearch.isEmpty {
+        let pattern = Self.sqlContainsPattern(trimmedSearch)
+        sql += "\nAND (name LIKE ? ESCAPE char(92) OR summary LIKE ? ESCAPE char(92))"
+        arguments += StatementArguments([pattern, pattern])
+      }
+      sql += "\nORDER BY is_pinned DESC, \(Self.readListOrderSQL(sort: sort))"
+      sql += "\nLIMIT ? OFFSET ?"
+      arguments += StatementArguments([limit, max(0, offset)])
+      return try String.fetchAll(
+        db,
+        sql: sql,
+        arguments: arguments
       )
-      return Self.paginate(readLists, offset: offset, limit: limit).map(\.readListId)
     }) ?? []
   }
 
@@ -410,5 +437,27 @@ extension DatabaseOperator {
       return readLists.sorted { isAscending ? $0.lastModifiedDate < $1.lastModifiedDate : $0.lastModifiedDate > $1.lastModifiedDate }
     }
     return readLists.sorted { isAscending ? $0.name < $1.name : $0.name > $1.name }
+  }
+
+  nonisolated static func collectionOrderSQL(sort: String?) -> String {
+    let direction = sort?.contains("desc") == true ? "DESC" : "ASC"
+    if sort?.contains("createdDate") == true {
+      return "created_date \(direction), id ASC"
+    }
+    if sort?.contains("lastModifiedDate") == true {
+      return "last_modified_date \(direction), id ASC"
+    }
+    return "name \(direction), id ASC"
+  }
+
+  nonisolated static func readListOrderSQL(sort: String?) -> String {
+    let direction = sort?.contains("desc") == true ? "DESC" : "ASC"
+    if sort?.contains("createdDate") == true {
+      return "created_date \(direction), id ASC"
+    }
+    if sort?.contains("lastModifiedDate") == true {
+      return "last_modified_date \(direction), id ASC"
+    }
+    return "name \(direction), id ASC"
   }
 }

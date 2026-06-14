@@ -74,16 +74,18 @@ extension DatabaseOperator {
 
   func deleteLibrary(libraryId: String, instanceId: String) {
     try? write { db in
-      let libraries = try fetchLibraryRecords(db: db, instanceId: instanceId)
-      for library in libraries where library.libraryId == libraryId {
-        try KomgaLibrary.deleteOne(db, key: library.id)
-      }
-      for book in try fetchBooks(db: db, instanceId: instanceId) where book.libraryId == libraryId {
-        try KomgaBook.deleteOne(db, key: book.id)
-      }
-      for series in try fetchSeriesRecords(db: db, instanceId: instanceId) where series.libraryId == libraryId {
-        try KomgaSeries.deleteOne(db, key: series.id)
-      }
+      try db.execute(
+        sql: "DELETE FROM \(KomgaLibrary.databaseTableName) WHERE instance_id = ? AND library_id = ?",
+        arguments: [instanceId, libraryId]
+      )
+      try db.execute(
+        sql: "DELETE FROM \(KomgaBook.databaseTableName) WHERE instance_id = ? AND library_id = ?",
+        arguments: [instanceId, libraryId]
+      )
+      try db.execute(
+        sql: "DELETE FROM \(KomgaSeries.databaseTableName) WHERE instance_id = ? AND library_id = ?",
+        arguments: [instanceId, libraryId]
+      )
     }
   }
 
@@ -129,8 +131,10 @@ extension DatabaseOperator {
 
   func retryFailedBooks(instanceId: String) {
     try? write { db in
-      var books = try fetchBooks(db: db, instanceId: instanceId)
-      for index in books.indices where books[index].downloadStatusRaw == "failed" {
+      var books = try KomgaBook
+        .filter(KomgaBook.Columns.instanceId == instanceId && KomgaBook.Columns.downloadStatusRaw == "failed")
+        .fetchAll(db)
+      for index in books.indices {
         books[index].downloadStatusRaw = "pending"
         books[index].downloadError = nil
         books[index].downloadAt = Date.now
@@ -141,8 +145,10 @@ extension DatabaseOperator {
 
   func cancelFailedBooks(instanceId: String) {
     try? write { db in
-      var books = try fetchBooks(db: db, instanceId: instanceId)
-      for index in books.indices where books[index].downloadStatusRaw == "failed" {
+      var books = try KomgaBook
+        .filter(KomgaBook.Columns.instanceId == instanceId && KomgaBook.Columns.downloadStatusRaw == "failed")
+        .fetchAll(db)
+      for index in books.indices {
         books[index].downloadStatusRaw = "notDownloaded"
         books[index].downloadError = nil
         books[index].downloadAt = nil
@@ -494,8 +500,9 @@ extension DatabaseOperator {
 
   func fetchDownloadedBooks(instanceId: String) -> [Book] {
     (try? read { db in
-      try fetchBooks(db: db, instanceId: instanceId)
-        .filter { $0.downloadStatusRaw == "downloaded" }
+      try KomgaBook
+        .filter(KomgaBook.Columns.instanceId == instanceId && KomgaBook.Columns.downloadStatusRaw == "downloaded")
+        .fetchAll(db)
         .map { $0.toBook() }
     }) ?? []
   }
@@ -503,15 +510,26 @@ extension DatabaseOperator {
   func fetchOfflineDownloadedBooksSnapshot(instanceId: String) throws -> OfflineDownloadedBooksSnapshot {
     guard !instanceId.isEmpty else { return .empty }
     return try read { db in
-      let downloadedBooks = try fetchBooks(db: db, instanceId: instanceId)
-        .filter { $0.downloadStatusRaw == "downloaded" }
+      let downloadedBooks = try KomgaBook
+        .filter(KomgaBook.Columns.instanceId == instanceId && KomgaBook.Columns.downloadStatusRaw == "downloaded")
+        .fetchAll(db)
       guard !downloadedBooks.isEmpty else { return .empty }
 
+      let downloadedLibraryIds = Array(Set(downloadedBooks.map(\.libraryId)))
+      let downloadedSeriesIds = Array(Set(downloadedBooks.lazy.filter { !$0.oneshot }.map(\.seriesId)))
       let libraryMap = Dictionary(
-        uniqueKeysWithValues: try fetchLibraryRecords(db: db, instanceId: instanceId).map { ($0.libraryId, $0.name) }
+        uniqueKeysWithValues: try fetchLibraryRecords(
+          db: db,
+          instanceId: instanceId,
+          libraryIds: downloadedLibraryIds
+        ).map { ($0.libraryId, $0.name) }
       )
       let seriesMap = Dictionary(
-        uniqueKeysWithValues: try fetchSeriesRecords(db: db, instanceId: instanceId).map { ($0.seriesId, $0.name) }
+        uniqueKeysWithValues: try fetchSeriesByIds(
+          db: db,
+          ids: downloadedSeriesIds,
+          instanceId: instanceId
+        ).map { ($0.seriesId, $0.name) }
       )
       let libraryBooksMap = Dictionary(grouping: downloadedBooks) { $0.libraryId }
       var libraryGroups: [OfflineDownloadedLibraryGroup] = []
@@ -560,8 +578,18 @@ extension DatabaseOperator {
 
   func fetchOfflineEpubBookIdsMissingProgression(instanceId: String) async -> [String] {
     guard let results = try? read({ db in
-      try fetchBooks(db: db, instanceId: instanceId)
-        .filter { $0.downloadStatusRaw == "downloaded" && $0.mediaProfile == "EPUB" && ($0.progressPage ?? 0) > 0 }
+      try KomgaBook.fetchAll(
+        db,
+        sql: """
+          SELECT *
+          FROM \(KomgaBook.databaseTableName)
+          WHERE instance_id = ?
+          AND download_status_raw = 'downloaded'
+          AND media_profile = 'EPUB'
+          AND COALESCE(progress_page, 0) > 0
+          """,
+        arguments: [instanceId]
+      )
     }) else {
       return []
     }
@@ -577,9 +605,18 @@ extension DatabaseOperator {
   func fetchReadBooksEligibleForAutoDelete(instanceId: String) -> [(id: String, seriesId: String)] {
     (try? read { db in
       let now = Date.now
-      return try fetchBooks(db: db, instanceId: instanceId)
-        .filter { $0.downloadStatusRaw == "downloaded" && $0.progressCompleted == true }
-        .compactMap { book in
+      let books = try KomgaBook.fetchAll(
+        db,
+        sql: """
+          SELECT *
+          FROM \(KomgaBook.databaseTableName)
+          WHERE instance_id = ?
+          AND download_status_raw = 'downloaded'
+          AND progress_completed = 1
+          """,
+        arguments: [instanceId]
+      )
+      return books.compactMap { book in
           if let downloadAt = book.downloadAt, now.timeIntervalSince(downloadAt) < 300 {
             return nil
           }
@@ -596,10 +633,19 @@ extension DatabaseOperator {
     limit: Int
   ) -> [Book] {
     (try? read { db in
-      let books = try fetchBooks(db: db, instanceId: instanceId)
-        .filter { (libraryIds.isEmpty || libraryIds.contains($0.libraryId)) && $0.progressReadDate != nil && $0.progressCompleted == false }
-        .sorted { ($0.progressReadDate ?? .distantPast) > ($1.progressReadDate ?? .distantPast) }
-      return Array(books.prefix(limit)).map { $0.toBook() }
+      var sql = """
+        SELECT *
+        FROM \(KomgaBook.databaseTableName)
+        WHERE instance_id = ?
+        AND progress_read_date IS NOT NULL
+        AND progress_completed = 0
+        """
+      var arguments: StatementArguments = [instanceId]
+      Self.appendSQLInFilter(column: "library_id", values: libraryIds, sql: &sql, arguments: &arguments)
+      sql += "\nORDER BY progress_read_date DESC, id ASC"
+      sql += "\nLIMIT ?"
+      arguments += StatementArguments([limit])
+      return try KomgaBook.fetchAll(db, sql: sql, arguments: arguments).map { $0.toBook() }
     }) ?? []
   }
 
@@ -609,10 +655,17 @@ extension DatabaseOperator {
     limit: Int
   ) -> [Book] {
     (try? read { db in
-      let books = try fetchBooks(db: db, instanceId: instanceId)
-        .filter { libraryIds.isEmpty || libraryIds.contains($0.libraryId) }
-        .sorted { $0.created > $1.created }
-      return Array(books.prefix(limit)).map { $0.toBook() }
+      var sql = """
+        SELECT *
+        FROM \(KomgaBook.databaseTableName)
+        WHERE instance_id = ?
+        """
+      var arguments: StatementArguments = [instanceId]
+      Self.appendSQLInFilter(column: "library_id", values: libraryIds, sql: &sql, arguments: &arguments)
+      sql += "\nORDER BY created DESC, id ASC"
+      sql += "\nLIMIT ?"
+      arguments += StatementArguments([limit])
+      return try KomgaBook.fetchAll(db, sql: sql, arguments: arguments).map { $0.toBook() }
     }) ?? []
   }
 
@@ -622,10 +675,17 @@ extension DatabaseOperator {
     limit: Int
   ) -> [Series] {
     (try? read { db in
-      let series = try fetchSeriesRecords(db: db, instanceId: instanceId)
-        .filter { libraryIds.isEmpty || libraryIds.contains($0.libraryId) }
-        .sorted { $0.lastModified > $1.lastModified }
-      return Array(series.prefix(limit)).map { $0.toSeries() }
+      var sql = """
+        SELECT *
+        FROM \(KomgaSeries.databaseTableName)
+        WHERE instance_id = ?
+        """
+      var arguments: StatementArguments = [instanceId]
+      Self.appendSQLInFilter(column: "library_id", values: libraryIds, sql: &sql, arguments: &arguments)
+      sql += "\nORDER BY last_modified DESC, id ASC"
+      sql += "\nLIMIT ?"
+      arguments += StatementArguments([limit])
+      return try KomgaSeries.fetchAll(db, sql: sql, arguments: arguments).map { $0.toSeries() }
     }) ?? []
   }
 
@@ -720,13 +780,13 @@ extension DatabaseOperator {
 
   func fetchPendingProgress(instanceId: String, limit: Int? = nil) -> [PendingProgressSummary] {
     (try? read { db in
-      var items = try PendingProgress.fetchAll(db)
-        .filter { $0.instanceId == instanceId }
-        .sorted { $0.createdAt < $1.createdAt }
+      var request = PendingProgress
+        .filter(Column("instance_id") == instanceId)
+        .order(Column("created_at"), Column("id"))
       if let limit {
-        items = Array(items.prefix(limit))
+        request = request.limit(limit)
       }
-      return items.map {
+      return try request.fetchAll(db).map {
         PendingProgressSummary(
           id: $0.id,
           instanceId: $0.instanceId,
@@ -752,6 +812,18 @@ extension DatabaseOperator {
     try KomgaLibrary
       .filter(KomgaLibrary.Columns.instanceId == instanceId)
       .fetchAll(db)
+  }
+
+  func fetchLibraryRecords(db: Database, instanceId: String, libraryIds: [String]) throws -> [KomgaLibrary] {
+    guard !libraryIds.isEmpty else { return [] }
+    var sql = """
+      SELECT *
+      FROM \(KomgaLibrary.databaseTableName)
+      WHERE instance_id = ?
+      """
+    var arguments: StatementArguments = [instanceId]
+    Self.appendSQLInFilter(column: "library_id", values: libraryIds, sql: &sql, arguments: &arguments)
+    return try KomgaLibrary.fetchAll(db, sql: sql, arguments: arguments)
   }
 
   func fetchBooksCount(instanceId: String, status: String) -> Int {

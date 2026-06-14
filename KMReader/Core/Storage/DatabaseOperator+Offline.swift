@@ -58,20 +58,28 @@ extension DatabaseOperator {
   func fetchOfflineTaskItems(instanceId: String) throws -> [OfflineTaskItem] {
     guard !instanceId.isEmpty else { return [] }
     return try read { db in
-      try fetchBooks(db: db, instanceId: instanceId)
-        .filter { ["pending", "downloading", "failed"].contains($0.downloadStatusRaw) }
-        .sorted { ($0.downloadAt ?? .distantPast) < ($1.downloadAt ?? .distantPast) }
-        .map { book in
-          OfflineTaskItem(
-            id: book.id,
-            bookId: book.bookId,
-            seriesTitle: book.seriesTitle,
-            metaNumber: book.metaNumber,
-            metaTitle: book.metaTitle,
-            downloadStatusRaw: book.downloadStatusRaw,
-            downloadStatus: book.downloadStatus
-          )
-        }
+      let books = try KomgaBook.fetchAll(
+        db,
+        sql: """
+          SELECT *
+          FROM \(KomgaBook.databaseTableName)
+          WHERE instance_id = ?
+          AND download_status_raw IN ('pending', 'downloading', 'failed')
+          ORDER BY download_at ASC, id ASC
+          """,
+        arguments: [instanceId]
+      )
+      return books.map { book in
+        OfflineTaskItem(
+          id: book.id,
+          bookId: book.bookId,
+          seriesTitle: book.seriesTitle,
+          metaNumber: book.metaNumber,
+          metaTitle: book.metaTitle,
+          downloadStatusRaw: book.downloadStatusRaw,
+          downloadStatus: book.downloadStatus
+        )
+      }
     }
   }
 
@@ -667,8 +675,7 @@ extension DatabaseOperator {
           return
         }
         series.offlinePolicyRaw = SeriesOfflinePolicy.manual.rawValue
-        var books = try fetchBooks(db: db, instanceId: instanceId)
-          .filter { $0.seriesId == seriesId }
+        var books = try fetchBooks(db: db, instanceId: instanceId, seriesId: seriesId)
           .sorted { $0.metaNumberSort < $1.metaNumberSort }
         if case .unread(let limit) = mode {
           let unreadBooks = books.filter { $0.progressCompleted != true }
@@ -708,7 +715,7 @@ extension DatabaseOperator {
           return
         }
         series.offlinePolicyRaw = SeriesOfflinePolicy.manual.rawValue
-        var books = try fetchBooks(db: db, instanceId: instanceId).filter { $0.seriesId == seriesId }
+        var books = try fetchBooks(db: db, instanceId: instanceId, seriesId: seriesId)
         for index in books.indices {
           if readOnly && books[index].progressCompleted != true {
             continue

@@ -17,10 +17,10 @@ extension DatabaseOperator {
   func fetchFirstBookDisplayItem(seriesId: String, instanceId: String) throws -> BookDisplayItem? {
     guard !seriesId.isEmpty, !instanceId.isEmpty else { return nil }
     return try read { db in
-      try fetchBooks(db: db, instanceId: instanceId)
-        .filter { $0.seriesId == seriesId }
-        .sorted { $0.metaNumberSort < $1.metaNumberSort }
-        .first
+      try KomgaBook
+        .filter(KomgaBook.Columns.instanceId == instanceId && KomgaBook.Columns.seriesId == seriesId)
+        .order(KomgaBook.Columns.metaNumberSort, KomgaBook.Columns.id)
+        .fetchOne(db)
         .map(Self.makeBookDisplayItem)
     }
   }
@@ -276,6 +276,7 @@ extension DatabaseOperator {
         for book in books {
           let compositeId = CompositeID.generate(instanceId: instanceId, id: book.id)
           if var existing = try KomgaBook.fetchOne(db, key: compositeId) {
+            let oldSeriesId = existing.seriesId
             let oldStatus = readingStatus(
               progressCompleted: existing.progressCompleted,
               progressPage: existing.progressPage
@@ -289,13 +290,30 @@ extension DatabaseOperator {
               progressCompleted: existing.progressCompleted,
               progressPage: existing.progressPage
             )
-            updateSeriesReadingCounts(
-              db: db,
-              seriesId: existing.seriesId,
-              instanceId: instanceId,
-              oldStatus: oldStatus,
-              newStatus: newStatus
-            )
+            if oldSeriesId == existing.seriesId {
+              updateSeriesReadingCounts(
+                db: db,
+                seriesId: existing.seriesId,
+                instanceId: instanceId,
+                oldStatus: oldStatus,
+                newStatus: newStatus
+              )
+            } else {
+              updateSeriesReadingCounts(
+                db: db,
+                seriesId: oldSeriesId,
+                instanceId: instanceId,
+                oldStatus: oldStatus,
+                newStatus: -1
+              )
+              updateSeriesReadingCounts(
+                db: db,
+                seriesId: existing.seriesId,
+                instanceId: instanceId,
+                oldStatus: -1,
+                newStatus: newStatus
+              )
+            }
           } else if replaceExisting {
             let newBook = KomgaBook(
               id: compositeId,
@@ -524,7 +542,7 @@ extension DatabaseOperator {
     size: Int,
     browseOpts: BookBrowseOptions = BookBrowseOptions()
   ) throws -> [Book] {
-    let books = try fetchBooks(db: db, instanceId: instanceId).filter { $0.seriesId == seriesId }
+    let books = try fetchBooks(db: db, instanceId: instanceId, seriesId: seriesId)
     return Self.paginate(
       Self.filteredBrowseBooks(books, libraryIds: nil, searchText: "", browseOpts: browseOpts),
       offset: page * size,
@@ -598,9 +616,14 @@ extension DatabaseOperator {
   }
 
   func fetchOfflineSeriesBooks(db: Database, seriesId: String, instanceId: String) throws -> [KomgaBook] {
-    try fetchBooks(db: db, instanceId: instanceId)
-      .filter { $0.seriesId == seriesId && $0.downloadStatusRaw == "downloaded" }
-      .sorted { $0.metaNumberSort < $1.metaNumberSort }
+    try KomgaBook
+      .filter(
+        KomgaBook.Columns.instanceId == instanceId
+          && KomgaBook.Columns.seriesId == seriesId
+          && KomgaBook.Columns.downloadStatusRaw == "downloaded"
+      )
+      .order(KomgaBook.Columns.metaNumberSort, KomgaBook.Columns.id)
+      .fetchAll(db)
   }
 
   func updateSeriesReadingCounts(
