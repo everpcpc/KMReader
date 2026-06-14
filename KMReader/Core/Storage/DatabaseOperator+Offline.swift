@@ -406,7 +406,7 @@ extension DatabaseOperator {
     }
     let now = Date.now
 
-    for sourceBook in sortedBooks {
+    for (sortedIndex, sourceBook) in sortedBooks.enumerated() {
       guard let index = books.firstIndex(where: { $0.id == sourceBook.id }) else { continue }
       let isRead = books[index].progressCompleted ?? false
       let isDownloaded = books[index].downloadStatusRaw == "downloaded"
@@ -439,7 +439,7 @@ extension DatabaseOperator {
       if shouldBeOffline {
         if !isDownloaded && !isPending && !isFailed {
           books[index].downloadStatusRaw = "pending"
-          books[index].downloadAt = now.addingTimeInterval(Double(index) * 0.001)
+          books[index].downloadAt = now.addingTimeInterval(Double(sortedIndex) * 0.001)
           try? save(books[index], db: db)
           needsSyncQueue = true
         }

@@ -96,29 +96,41 @@ extension DatabaseOperator {
     offset: Int,
     limit: Int
   ) -> [String] {
+    guard limit > 0 else { return [] }
     let instanceId = AppConfig.current.instanceId
     return (try? read { db in
-      let books = try fetchBooks(db: db, instanceId: instanceId).filter { book in
-        libraryIds.isEmpty || libraryIds.contains(book.libraryId)
+      var sql = """
+        SELECT book_id
+        FROM \(KomgaBook.databaseTableName)
+        WHERE instance_id = ?
+        """
+      var arguments: StatementArguments = [instanceId]
+
+      if !libraryIds.isEmpty {
+        let placeholders = Array(repeating: "?", count: libraryIds.count).joined(separator: ", ")
+        sql += "\nAND library_id IN (\(placeholders))"
+        arguments += StatementArguments(libraryIds)
       }
-      let ordered: [KomgaBook]
+
       switch section {
       case .keepReading:
-        ordered = books
-          .filter { $0.progressReadDate != nil && $0.progressCompleted == false }
-          .sorted { ($0.progressReadDate ?? .distantPast) > ($1.progressReadDate ?? .distantPast) }
+        sql += "\nAND progress_read_date IS NOT NULL AND progress_completed = 0"
+        sql += "\nORDER BY progress_read_date DESC, id ASC"
       case .recentlyReadBooks:
-        ordered = books
-          .filter { $0.progressReadDate != nil && $0.progressCompleted == true }
-          .sorted { ($0.progressReadDate ?? .distantPast) > ($1.progressReadDate ?? .distantPast) }
+        sql += "\nAND progress_read_date IS NOT NULL AND progress_completed = 1"
+        sql += "\nORDER BY progress_read_date DESC, id ASC"
       case .recentlyReleasedBooks:
-        ordered = books.sorted { ($0.metaReleaseDate ?? "") > ($1.metaReleaseDate ?? "") }
+        sql += "\nORDER BY COALESCE(meta_release_date, '') DESC, id ASC"
       case .recentlyAddedBooks:
-        ordered = books.sorted { $0.created > $1.created }
+        sql += "\nORDER BY created DESC, id ASC"
       default:
-        ordered = []
+        return []
       }
-      return Self.paginate(ordered, offset: offset, limit: limit).map(\.bookId)
+
+      sql += "\nLIMIT ? OFFSET ?"
+      arguments += StatementArguments([limit, max(0, offset)])
+
+      return try String.fetchAll(db, sql: sql, arguments: arguments)
     }) ?? []
   }
 
@@ -691,6 +703,19 @@ extension DatabaseOperator {
     }
     if sort.contains("downloadAt") {
       return books.sorted { isAsc ? ($0.downloadAt ?? .distantPast) < ($1.downloadAt ?? .distantPast) : ($0.downloadAt ?? .distantPast) > ($1.downloadAt ?? .distantPast) }
+    }
+    if sort.contains("series") && sort.contains("metadata.numberSort") {
+      return books.sorted {
+        let lhsSeries = $0.seriesTitle.isEmpty ? $0.seriesId : $0.seriesTitle
+        let rhsSeries = $1.seriesTitle.isEmpty ? $1.seriesId : $1.seriesTitle
+        if lhsSeries != rhsSeries {
+          return isAsc ? lhsSeries < rhsSeries : lhsSeries > rhsSeries
+        }
+        if $0.metaNumberSort != $1.metaNumberSort {
+          return isAsc ? $0.metaNumberSort < $1.metaNumberSort : $0.metaNumberSort > $1.metaNumberSort
+        }
+        return isAsc ? $0.name < $1.name : $0.name > $1.name
+      }
     }
     if sort.contains("metadata.numberSort") {
       return books.sorted { isAsc ? $0.metaNumberSort < $1.metaNumberSort : $0.metaNumberSort > $1.metaNumberSort }
