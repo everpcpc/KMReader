@@ -6,7 +6,7 @@
 import Foundation
 import GRDB
 
-extension KomgaInstance: FetchableRecord, MutablePersistableRecord {
+nonisolated extension KomgaInstance: FetchableRecord, MutablePersistableRecord {
   nonisolated static let databaseTableName = "komga_instances"
 
   nonisolated enum Columns {
@@ -28,7 +28,7 @@ extension KomgaInstance: FetchableRecord, MutablePersistableRecord {
   }
 }
 
-extension KomgaLibrary: FetchableRecord, MutablePersistableRecord {
+nonisolated extension KomgaLibrary: FetchableRecord, MutablePersistableRecord {
   nonisolated static let databaseTableName = "komga_libraries"
 
   nonisolated enum Columns {
@@ -52,7 +52,7 @@ extension KomgaLibrary: FetchableRecord, MutablePersistableRecord {
   }
 }
 
-extension KomgaSeries: FetchableRecord, MutablePersistableRecord {
+nonisolated extension KomgaSeries: FetchableRecord, MutablePersistableRecord {
   nonisolated static let databaseTableName = "komga_series"
 
   nonisolated enum Columns {
@@ -102,7 +102,7 @@ extension KomgaSeries: FetchableRecord, MutablePersistableRecord {
   }
 }
 
-extension KomgaBook: FetchableRecord, MutablePersistableRecord {
+nonisolated extension KomgaBook: FetchableRecord, MutablePersistableRecord {
   nonisolated static let databaseTableName = "komga_books"
 
   nonisolated enum Columns {
@@ -165,7 +165,7 @@ extension KomgaBook: FetchableRecord, MutablePersistableRecord {
   }
 }
 
-extension KomgaCollection: FetchableRecord, MutablePersistableRecord {
+nonisolated extension KomgaCollection: FetchableRecord, MutablePersistableRecord {
   nonisolated static let databaseTableName = "komga_collections"
 
   nonisolated enum Columns {
@@ -188,7 +188,7 @@ extension KomgaCollection: FetchableRecord, MutablePersistableRecord {
   }
 }
 
-extension KomgaReadList: FetchableRecord, MutablePersistableRecord {
+nonisolated extension KomgaReadList: FetchableRecord, MutablePersistableRecord {
   nonisolated static let databaseTableName = "komga_read_lists"
 
   nonisolated enum Columns {
@@ -218,7 +218,7 @@ extension KomgaReadList: FetchableRecord, MutablePersistableRecord {
   }
 }
 
-extension CustomFont: FetchableRecord, MutablePersistableRecord {
+nonisolated extension CustomFont: FetchableRecord, MutablePersistableRecord {
   nonisolated static let databaseTableName = "custom_fonts"
 
   enum CodingKeys: String, CodingKey {
@@ -230,7 +230,7 @@ extension CustomFont: FetchableRecord, MutablePersistableRecord {
   }
 }
 
-extension PendingProgress: FetchableRecord, MutablePersistableRecord {
+nonisolated extension PendingProgress: FetchableRecord, MutablePersistableRecord {
   nonisolated static let databaseTableName = "pending_progress"
 
   enum CodingKeys: String, CodingKey {
@@ -244,7 +244,7 @@ extension PendingProgress: FetchableRecord, MutablePersistableRecord {
   }
 }
 
-extension SavedFilter: FetchableRecord, MutablePersistableRecord {
+nonisolated extension SavedFilter: FetchableRecord, MutablePersistableRecord {
   nonisolated static let databaseTableName = "saved_filters"
 
   enum CodingKeys: String, CodingKey {
@@ -257,7 +257,7 @@ extension SavedFilter: FetchableRecord, MutablePersistableRecord {
   }
 }
 
-extension EpubThemePreset: FetchableRecord, MutablePersistableRecord {
+nonisolated extension EpubThemePreset: FetchableRecord, MutablePersistableRecord {
   nonisolated static let databaseTableName = "epub_theme_presets"
 
   enum CodingKeys: String, CodingKey {

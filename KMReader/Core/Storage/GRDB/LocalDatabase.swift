@@ -12,7 +12,7 @@ enum LegacyImportMarkerState: String, Codable, Sendable {
   case failed
 }
 
-struct LocalMigrationMarker: Codable, FetchableRecord, MutablePersistableRecord, Sendable {
+nonisolated struct LocalMigrationMarker: Codable, Sendable {
   static let databaseTableName = "local_migration_markers"
 
   var key: String
@@ -39,6 +39,8 @@ struct LocalMigrationMarker: Codable, FetchableRecord, MutablePersistableRecord,
     case updatedAt = "updated_at"
   }
 }
+
+nonisolated extension LocalMigrationMarker: FetchableRecord, MutablePersistableRecord {}
 
 enum LocalDatabase {
   static let fileName = "KMReader.sqlite"
