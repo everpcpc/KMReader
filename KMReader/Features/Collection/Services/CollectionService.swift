@@ -146,7 +146,6 @@ nonisolated enum CollectionService {
     // Delete from local database
     let instanceId = AppConfig.current.instanceId
     try await DatabaseOperator.database().deleteCollection(id: collectionId, instanceId: instanceId)
-    try await DatabaseOperator.database().commit()
   }
 
   static func removeSeriesFromCollection(collectionId: String, seriesIds: [String]) async throws {

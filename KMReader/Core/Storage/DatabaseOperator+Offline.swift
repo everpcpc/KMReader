@@ -465,7 +465,6 @@ extension DatabaseOperator {
             instanceId: instanceId, bookId: bookId, commit: false, syncSeriesStatus: false)
         }
         self.syncSeriesDownloadStatus(seriesId: seriesId, instanceId: instanceId)
-        try? self.commit()
       }
     }
   }
@@ -733,7 +732,6 @@ extension DatabaseOperator {
             instanceId: instanceId, bookId: bookId, commit: false, syncSeriesStatus: false)
         }
         self.syncSeriesDownloadStatus(seriesId: seriesId, instanceId: instanceId)
-        try? self.commit()
       }
     } catch {
       logger.error("Failed to remove series offline books: \(error)")
@@ -811,7 +809,6 @@ extension DatabaseOperator {
             instanceId: instanceId, bookId: bookId, commit: false, syncSeriesStatus: false)
         }
         self.syncReadListDownloadStatus(readListId: readListId, instanceId: instanceId)
-        try? self.commit()
       }
     } catch {
       logger.error("Failed to remove read-list offline books: \(error)")

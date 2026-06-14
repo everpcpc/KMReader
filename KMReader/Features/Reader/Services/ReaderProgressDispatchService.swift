@@ -390,7 +390,6 @@ actor ReaderProgressDispatchService {
         page: update.page,
         completed: update.completed
       )
-      try await database.commit()
     } catch {
       guard localPageCacheTokens[update.bookId] == token else { return }
       localPageCacheTokens.removeValue(forKey: update.bookId)
@@ -629,7 +628,6 @@ actor ReaderProgressDispatchService {
       page: update.page,
       completed: update.completed
     )
-    try await database.commit()
     await ContentProjectionNotifier.postBookAndSeriesDidChange(bookId: update.bookId)
     logger.debug(
       "💾 [Progress/Page] Queued offline sync item: book=\(update.bookId), version=\(update.version), page=\(update.page), completed=\(update.completed)"
@@ -716,9 +714,7 @@ actor ReaderProgressDispatchService {
         progression: update.progression
       )
       if AppConfig.isOffline {
-        try await database.commit()
       } else {
-        try? await database.commit()
       }
       await ContentProjectionNotifier.postBookAndSeriesDidChange(bookId: update.bookId)
     } catch let apiError as APIError {

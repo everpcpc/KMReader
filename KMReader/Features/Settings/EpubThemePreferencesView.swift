@@ -448,7 +448,6 @@
             name: trimmed,
             preferencesJSON: draft.rawValue
           )
-          try await database.commit()
           ErrorManager.shared.notify(message: String(localized: "Preset saved: \(trimmed)"))
           newPresetName = ""
         } catch {
@@ -464,7 +463,6 @@
             bookId: bookId,
             preferences: draft
           )
-          try? await DatabaseOperator.database().commit()
         }
         onThemePreferencesSaved?(draft)
         dismiss()
@@ -482,7 +480,6 @@
           bookId: bookId,
           preferences: nil
         )
-        try? await DatabaseOperator.database().commit()
       }
       onThemePreferencesCleared?()
       ErrorManager.shared.notify(message: String(localized: "Reset to Global"))

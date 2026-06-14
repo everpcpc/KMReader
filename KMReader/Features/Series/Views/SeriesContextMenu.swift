@@ -292,7 +292,6 @@ struct SeriesContextMenu: View {
       try? await DatabaseOperator.database().updateSeriesOfflinePolicy(
         seriesId: seriesId, instanceId: current.instanceId, policy: policy
       )
-      try? await DatabaseOperator.database().commit()
       onMutationCompleted?()
     }
   }
@@ -306,7 +305,6 @@ struct SeriesContextMenu: View {
         policy: policy,
         limit: limit
       )
-      try? await DatabaseOperator.database().commit()
       onMutationCompleted?()
     }
   }
@@ -384,7 +382,6 @@ struct SeriesContextMenu: View {
       try? await DatabaseOperator.database().downloadSeriesOffline(
         seriesId: seriesId, instanceId: current.instanceId
       )
-      try? await DatabaseOperator.database().commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.series.offlineDownloadQueued")
       )
@@ -400,7 +397,6 @@ struct SeriesContextMenu: View {
         instanceId: current.instanceId,
         limit: limit
       )
-      try? await DatabaseOperator.database().commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.series.offlineDownloadQueued")
       )
@@ -413,7 +409,6 @@ struct SeriesContextMenu: View {
       try? await DatabaseOperator.database().removeSeriesReadOffline(
         seriesId: seriesId, instanceId: current.instanceId
       )
-      try? await DatabaseOperator.database().commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.series.offlineRemoved")
       )
@@ -426,7 +421,6 @@ struct SeriesContextMenu: View {
       try? await DatabaseOperator.database().removeSeriesOffline(
         seriesId: seriesId, instanceId: current.instanceId
       )
-      try? await DatabaseOperator.database().commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.series.offlineRemoved")
       )

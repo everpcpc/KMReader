@@ -248,7 +248,6 @@ struct ServerListView: View {
         do {
           let database = try await DatabaseOperator.database()
           await database.updateInstanceLastUsed(instanceId: instance.instanceId)
-          try await database.commit()
           await loadInstances()
         } catch {
           ErrorManager.shared.alert(error: error)
@@ -269,7 +268,6 @@ struct ServerListView: View {
       do {
         let database = try await DatabaseOperator.database()
         try await database.deleteServerDisplayItem(id: instance.id)
-        try await database.commit()
         await loadInstances()
         ErrorManager.shared.notify(message: String(localized: "notification.server.deleted"))
         instancePendingDeletion = nil

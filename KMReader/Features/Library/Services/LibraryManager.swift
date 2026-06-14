@@ -37,7 +37,6 @@ class LibraryManager {
       let fullLibraries = try await LibraryService.getLibraries()
       let infos = fullLibraries.map { LibraryInfo(id: $0.id, name: $0.name) }
       try await DatabaseOperator.database().replaceLibraries(infos, for: instanceId)
-      try await DatabaseOperator.database().commit()
       hasLoaded = true
     } catch {
       ErrorManager.shared.alert(error: error)

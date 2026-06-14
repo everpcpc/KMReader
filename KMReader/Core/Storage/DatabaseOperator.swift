@@ -91,12 +91,6 @@ actor DatabaseOperator {
     await sharedStore.databaseIfConfigured()
   }
 
-  func commit() throws {}
-
-  func hasChanges() -> Bool {
-    false
-  }
-
   func read<T>(_ body: (Database) throws -> T) throws -> T {
     try dbQueue.read(body)
   }

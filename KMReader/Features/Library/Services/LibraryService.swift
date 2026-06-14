@@ -75,6 +75,5 @@ nonisolated enum LibraryService {
     // Delete from local database (also removes related books and series)
     let instanceId = AppConfig.current.instanceId
     try await DatabaseOperator.database().deleteLibrary(libraryId: id, instanceId: instanceId)
-    try await DatabaseOperator.database().commit()
   }
 }

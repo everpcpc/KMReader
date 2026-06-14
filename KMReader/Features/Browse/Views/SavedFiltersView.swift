@@ -154,7 +154,6 @@ struct SavedFiltersView: View {
       do {
         let database = try await DatabaseOperator.database()
         try await database.deleteSavedFilter(id: filter.id)
-        try await database.commit()
         await loadFilters()
       } catch {
         ErrorManager.shared.alert(error: error)
@@ -170,7 +169,6 @@ struct SavedFiltersView: View {
       do {
         let database = try await DatabaseOperator.database()
         try await database.renameSavedFilter(id: filter.id, name: trimmed)
-        try await database.commit()
         await loadFilters()
         filterToRename = nil
         self.newName = ""

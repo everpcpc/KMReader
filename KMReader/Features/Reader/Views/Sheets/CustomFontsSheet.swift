@@ -307,7 +307,6 @@
         do {
           let database = try await DatabaseOperator.database()
           try await database.deleteCustomFont(name: font.name)
-          try await database.commit()
           if let relativePath = font.path {
             FontFileManager.deleteFont(at: relativePath)
           }
@@ -362,7 +361,6 @@
           fileName: fileName,
           fileSize: fileSize
         )
-        try await database.commit()
 
         if clearInputOnSuccess {
           customFontInput = ""

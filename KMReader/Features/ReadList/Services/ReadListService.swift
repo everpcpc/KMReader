@@ -122,7 +122,6 @@ nonisolated enum ReadListService {
     // Delete from local database
     let instanceId = AppConfig.current.instanceId
     try await DatabaseOperator.database().deleteReadList(id: readListId, instanceId: instanceId)
-    try await DatabaseOperator.database().commit()
   }
 
   static func removeBooksFromReadList(readListId: String, bookIds: [String]) async throws {

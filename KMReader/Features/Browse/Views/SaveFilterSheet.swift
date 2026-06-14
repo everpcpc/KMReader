@@ -82,7 +82,6 @@ struct SaveFilterSheet: View {
           filterType: filterType,
           filterDataJSON: filterDataJSON
         )
-        try await database.commit()
         dismiss()
       } catch {
         ErrorManager.shared.alert(error: error)
