@@ -12,16 +12,16 @@ enum KMReaderSchemaV5: VersionedSchema {
 
   static var models: [any PersistentModel.Type] {
     [
-      KomgaInstance.self,
-      KomgaLibrary.self,
-      KomgaSeries.self,
-      KomgaBook.self,
-      KomgaCollection.self,
-      KomgaReadList.self,
-      CustomFont.self,
-      PendingProgress.self,
-      SavedFilter.self,
-      EpubThemePreset.self,
+      KMReaderSchemaV6.KomgaInstance.self,
+      KMReaderSchemaV6.KomgaLibrary.self,
+      KMReaderSchemaV6.KomgaSeries.self,
+      KMReaderSchemaV6.KomgaBook.self,
+      KMReaderSchemaV6.KomgaCollection.self,
+      KMReaderSchemaV6.KomgaReadList.self,
+      KMReaderSchemaV6.CustomFontV1.self,
+      KMReaderSchemaV6.PendingProgress.self,
+      KMReaderSchemaV6.SavedFilterV1.self,
+      KMReaderSchemaV6.EpubThemePresetV1.self,
     ]
   }
 }

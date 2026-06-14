@@ -119,7 +119,7 @@ nonisolated enum ReadListService {
       path: "/api/v1/readlists/\(readListId)",
       method: "DELETE"
     )
-    // Delete from local SwiftData
+    // Delete from local database
     let instanceId = AppConfig.current.instanceId
     try await DatabaseOperator.database().deleteReadList(id: readListId, instanceId: instanceId)
     try await DatabaseOperator.database().commit()

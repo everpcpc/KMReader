@@ -106,7 +106,7 @@ struct StartupFailureView: View {
 
 #Preview {
   StartupFailureView(
-    details: "SwiftDataError.migrationFailed(code: 134110)",
+    details: "Database migration failed(code: 134110)",
     onRetry: {},
     onReset: {}
   )

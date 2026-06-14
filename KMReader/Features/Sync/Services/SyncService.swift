@@ -5,7 +5,6 @@
 
 import Foundation
 import OSLog
-import SwiftData
 
 extension Notification.Name {
   static let sidebarProjectionDidChange = Notification.Name("SidebarProjectionDidChange")

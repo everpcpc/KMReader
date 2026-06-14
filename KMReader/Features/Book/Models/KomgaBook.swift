@@ -3,11 +3,116 @@
 //
 
 import Foundation
-import SwiftData
 
-typealias KomgaBook = KMReaderSchemaV6.KomgaBook
+nonisolated struct KomgaBook: Codable, Equatable, Sendable {
+  var id: String
+  var bookId: String
+  var seriesId: String
+  var libraryId: String
+  var instanceId: String
+  var name: String
+  var url: String
+  var number: Double
+  var created: Date
+  var lastModified: Date
+  var sizeBytes: Int64
+  var size: String
+  var mediaRaw: Data?
+  var metadataRaw: Data?
+  var readProgressRaw: Data?
+  var mediaPagesCount: Int
+  var mediaProfile: String?
+  var metaTitle: String
+  var metaNumber: String
+  var metaNumberSort: Double
+  var metaReleaseDate: String?
+  var progressPage: Int?
+  var progressCompleted: Bool?
+  var progressReadDate: Date?
+  var metaAuthorsIndex: String
+  var metaTagsIndex: String
+  var isUnavailable: Bool
+  var oneshot: Bool
+  var seriesTitle: String
+  var pagesRaw: Data?
+  var tocRaw: Data?
+  var webPubManifestRaw: Data?
+  var epubProgressionRaw: Data?
+  var downloadStatusRaw: String
+  var downloadError: String?
+  var downloadAt: Date?
+  var downloadedSize: Int64
+  var readListIdsRaw: Data?
+  var isolatePagesRaw: Data?
+  var pageRotationsRaw: Data?
+  var epubPreferencesRaw: String?
 
-extension KomgaBook {
+  init(
+    id: String? = nil,
+    bookId: String,
+    seriesId: String,
+    libraryId: String,
+    instanceId: String,
+    name: String,
+    url: String,
+    number: Double,
+    created: Date,
+    lastModified: Date,
+    sizeBytes: Int64,
+    size: String,
+    media: Media,
+    metadata: BookMetadata,
+    readProgress: ReadProgress?,
+    isUnavailable: Bool,
+    oneshot: Bool,
+    seriesTitle: String = "",
+    downloadedSize: Int64 = 0
+  ) {
+    self.id = id ?? CompositeID.generate(instanceId: instanceId, id: bookId)
+    self.bookId = bookId
+    self.seriesId = seriesId
+    self.libraryId = libraryId
+    self.instanceId = instanceId
+    self.name = name
+    self.url = url
+    self.number = number
+    self.created = created
+    self.lastModified = lastModified
+    self.sizeBytes = sizeBytes
+    self.size = size
+    self.mediaRaw = RawCodableStore.encode(media)
+    self.metadataRaw = RawCodableStore.encode(metadata)
+    self.readProgressRaw = RawCodableStore.encodeOptional(readProgress)
+    self.mediaPagesCount = media.pagesCount
+    self.mediaProfile = media.mediaProfile
+    self.metaTitle = metadata.title
+    self.metaNumber = metadata.number
+    self.metaNumberSort = metadata.numberSort
+    self.metaReleaseDate = metadata.releaseDate
+    self.progressPage = readProgress?.page
+    self.progressCompleted = readProgress?.completed
+    self.progressReadDate = readProgress?.readDate
+    self.metaAuthorsIndex = MetadataIndex.encode(values: metadata.authors?.map(\.name) ?? [])
+    self.metaTagsIndex = MetadataIndex.encode(values: metadata.tags ?? [])
+    self.isUnavailable = isUnavailable
+    self.oneshot = oneshot
+    self.seriesTitle = seriesTitle
+    self.pagesRaw = nil
+    self.tocRaw = nil
+    self.webPubManifestRaw = nil
+    self.epubProgressionRaw = nil
+    self.downloadStatusRaw = "notDownloaded"
+    self.downloadError = nil
+    self.downloadAt = nil
+    self.downloadedSize = downloadedSize
+    self.readListIdsRaw = try? JSONEncoder().encode([] as [String])
+    self.isolatePagesRaw = try? JSONEncoder().encode([] as [Int])
+    self.pageRotationsRaw = nil
+    self.epubPreferencesRaw = nil
+  }
+}
+
+nonisolated extension KomgaBook {
   var readListIds: [String] {
     get { readListIdsRaw.flatMap { try? JSONDecoder().decode([String].self, from: $0) } ?? [] }
     set { readListIdsRaw = try? JSONEncoder().encode(newValue) }
@@ -93,37 +198,37 @@ extension KomgaBook {
     hasStartedReading && !isCompleted
   }
 
-  func updateMedia(_ media: Media, raw: Data?) {
+  mutating func updateMedia(_ media: Media, raw: Data?) {
     mediaRaw = raw ?? RawCodableStore.encode(media)
     syncMediaFields(media)
   }
 
-  func updateMetadata(_ metadata: BookMetadata, raw: Data?) {
+  mutating func updateMetadata(_ metadata: BookMetadata, raw: Data?) {
     metadataRaw = raw ?? RawCodableStore.encode(metadata)
     syncMetadataFields(metadata)
   }
 
-  func applyContent(media: Media, metadata: BookMetadata, readProgress: ReadProgress?) {
+  mutating func applyContent(media: Media, metadata: BookMetadata, readProgress: ReadProgress?) {
     updateMedia(media, raw: RawCodableStore.encode(media))
     updateMetadata(metadata, raw: RawCodableStore.encode(metadata))
     updateReadProgress(readProgress, raw: RawCodableStore.encodeOptional(readProgress))
   }
 
-  func updateReadProgress(_ readProgress: ReadProgress?) {
+  mutating func updateReadProgress(_ readProgress: ReadProgress?) {
     updateReadProgress(readProgress, raw: RawCodableStore.encodeOptional(readProgress))
   }
 
-  func updateReadProgress(_ readProgress: ReadProgress?, raw: Data?) {
+  mutating func updateReadProgress(_ readProgress: ReadProgress?, raw: Data?) {
     readProgressRaw = raw
     syncReadProgressFields(readProgress)
   }
 
-  private func syncMediaFields(_ media: Media) {
+  private mutating func syncMediaFields(_ media: Media) {
     mediaPagesCount = media.pagesCount
     mediaProfile = media.mediaProfile
   }
 
-  private func syncMetadataFields(_ metadata: BookMetadata) {
+  private mutating func syncMetadataFields(_ metadata: BookMetadata) {
     metaTitle = metadata.title
     metaNumber = metadata.number
     metaNumberSort = metadata.numberSort
@@ -133,7 +238,7 @@ extension KomgaBook {
 
   }
 
-  private func syncReadProgressFields(_ readProgress: ReadProgress?) {
+  private mutating func syncReadProgressFields(_ readProgress: ReadProgress?) {
     progressPage = readProgress?.page
     progressCompleted = readProgress?.completed
     progressReadDate = readProgress?.readDate

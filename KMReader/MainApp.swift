@@ -3,7 +3,7 @@
 //
 //
 
-import SwiftData
+import GRDB
 import SwiftUI
 
 #if os(iOS) || os(macOS)
@@ -61,9 +61,9 @@ struct MainApp: App {
     @Environment(\.openWindow) private var openWindow
   #endif
 
-  @State private var modelContainer: ModelContainer?
-  @State private var isPreparingModelContainer = false
-  @State private var modelContainerFailureDetails: String?
+  @State private var databaseQueue: DatabaseQueue?
+  @State private var isPreparingDatabase = false
+  @State private var databaseFailureDetails: String?
   @State private var authViewModel: AuthViewModel
   @State private var readerPresentation = ReaderPresentationManager()
   private let deepLinkRouter = DeepLinkRouter.shared
@@ -75,97 +75,80 @@ struct MainApp: App {
     _authViewModel = State(initialValue: AuthViewModel())
   }
 
-  private func makeModelContainer() throws -> ModelContainer {
-    let schema = Schema(versionedSchema: KMReaderSchemaV6.self)
-    let configuration = ModelConfiguration(schema: schema)
-
-    do {
-      return try ModelContainer(
-        for: schema,
-        migrationPlan: KMReaderMigrationPlan.self,
-        configurations: [configuration]
-      )
-    } catch {
-      let stagedErrorMessage = String(describing: error)
-      AppLogger(.database).warning(
-        "Staged SwiftData migration failed; retrying with inferred lightweight migration for legacy runtime-backed V4/V5 stores: \(stagedErrorMessage)"
-      )
-      return try ModelContainer(for: schema, configurations: [configuration])
-    }
-  }
-
   @MainActor
-  private func prepareModelContainerIfNeeded(forceRetry: Bool = false) async {
-    guard modelContainer == nil, !isPreparingModelContainer else { return }
-    isPreparingModelContainer = true
-    defer { isPreparingModelContainer = false }
+  private func prepareDatabaseIfNeeded(forceRetry: Bool = false) async {
+    guard databaseQueue == nil, !isPreparingDatabase else { return }
+    isPreparingDatabase = true
+    defer { isPreparingDatabase = false }
     if forceRetry {
-      modelContainerFailureDetails = nil
+      databaseFailureDetails = nil
     }
 
     do {
-      let container = try makeModelContainer()
-      CustomFontStore.shared.configure(with: container)
-      await DatabaseOperator.configure(modelContainer: container)
+      let queue = try LocalDatabase.open()
+      try LocalDatabase.migrate(queue)
+      try LegacySwiftDataImporter.importIfNeeded(into: queue)
+      CustomFontStore.shared.configure(with: queue)
+      await DatabaseOperator.configure(databaseQueue: queue)
       _ = OfflineManager.shared
-      modelContainer = container
+      databaseQueue = queue
       #if os(iOS)
         QuickActionService.handlePendingShortcutIfNeeded()
       #endif
-      modelContainerFailureDetails = nil
+      databaseFailureDetails = nil
     } catch {
       let errorMessage = String(describing: error)
-      AppLogger(.database).error("Failed to create ModelContainer: \(errorMessage)")
-      modelContainerFailureDetails = errorMessage
+      AppLogger(.database).error("Failed to prepare local database: \(errorMessage)")
+      databaseFailureDetails = errorMessage
     }
   }
 
   @MainActor
-  private func resetLocalDataAndRetryModelContainer() async {
-    modelContainer = nil
-    modelContainerFailureDetails = nil
+  private func resetLocalDataAndRetryDatabase() async {
+    databaseQueue = nil
+    databaseFailureDetails = nil
 
     do {
       try LocalDataResetService.resetAllLocalData()
       authViewModel = AuthViewModel()
-      await prepareModelContainerIfNeeded(forceRetry: true)
+      await prepareDatabaseIfNeeded(forceRetry: true)
     } catch {
       let errorMessage = String(describing: error)
       AppLogger(.database).error("Failed to reset local data: \(errorMessage)")
-      modelContainerFailureDetails = errorMessage
+      databaseFailureDetails = errorMessage
     }
   }
 
   @ViewBuilder
-  private func modelContainerGate<Content: View>(
-    @ViewBuilder content: (ModelContainer) -> Content
+  private func databaseGate<Content: View>(
+    @ViewBuilder content: () -> Content
   ) -> some View {
-    if let modelContainer {
-      content(modelContainer)
-    } else if let modelContainerFailureDetails {
+    if databaseQueue != nil {
+      content()
+    } else if let databaseFailureDetails {
       StartupFailureView(
-        details: modelContainerFailureDetails,
+        details: databaseFailureDetails,
         onRetry: {
           Task {
-            await prepareModelContainerIfNeeded(forceRetry: true)
+            await prepareDatabaseIfNeeded(forceRetry: true)
           }
         },
         onReset: {
           Task {
-            await resetLocalDataAndRetryModelContainer()
+            await resetLocalDataAndRetryDatabase()
           }
         }
       )
     } else {
       SplashView(isMigration: true)
         .task {
-          await prepareModelContainerIfNeeded()
+          await prepareDatabaseIfNeeded()
         }
     }
   }
 
   @ViewBuilder
-  private func mainWindowContent(modelContainer: ModelContainer) -> some View {
+  private func mainWindowContent() -> some View {
     ContentView(
       authViewModel: authViewModel,
       readerPresentation: readerPresentation
@@ -183,7 +166,6 @@ struct MainApp: App {
         NotificationOverlay()
       }
     #endif
-    .modelContainer(modelContainer)
     .task {
       await StoreManager.shared.start()
     }
@@ -393,8 +375,8 @@ struct MainApp: App {
 
   var body: some Scene {
     WindowGroup {
-      modelContainerGate { modelContainer in
-        mainWindowContent(modelContainer: modelContainer)
+      databaseGate {
+        mainWindowContent()
       }
       .onOpenURL { url in
         deepLinkRouter.handle(url: url)
@@ -421,9 +403,8 @@ struct MainApp: App {
     #endif
     #if os(macOS)
       WindowGroup(id: "reader") {
-        modelContainerGate { modelContainer in
+        databaseGate {
           ReaderWindowView(readerPresentation: readerPresentation)
-            .modelContainer(modelContainer)
         }
         .preferredColorScheme(appColorScheme.colorScheme)
       }
@@ -431,9 +412,8 @@ struct MainApp: App {
       .defaultSize(width: 1200, height: 800)
 
       Settings {
-        modelContainerGate { modelContainer in
+        databaseGate {
           SettingsView_macOS()
-            .modelContainer(modelContainer)
         }
         .preferredColorScheme(appColorScheme.colorScheme)
       }

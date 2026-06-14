@@ -21,7 +21,7 @@ enum LocalDataResetService {
   static func resetAllLocalData() throws {
     let fileManager = FileManager.default
 
-    removeSwiftDataStoreFiles(fileManager: fileManager)
+    removeLegacyStoreFiles(fileManager: fileManager)
 
     for directory in resetDirectories(fileManager: fileManager) {
       try? removeDirectoryContents(at: directory, fileManager: fileManager)
@@ -30,7 +30,7 @@ enum LocalDataResetService {
     resetStandardDefaults()
     resetSharedDefaults()
 
-    let remainingStores = existingSwiftDataStoreFiles(fileManager: fileManager)
+    let remainingStores = existingLegacyStoreFiles(fileManager: fileManager)
     if !remainingStores.isEmpty {
       throw ResetError.persistentStoreStillExists(remainingStores)
     }
@@ -84,19 +84,19 @@ enum LocalDataResetService {
     }
   }
 
-  private static func removeSwiftDataStoreFiles(fileManager: FileManager) {
-    for url in swiftDataStoreFileCandidates(fileManager: fileManager) {
+  private static func removeLegacyStoreFiles(fileManager: FileManager) {
+    for url in legacyStoreFileCandidates(fileManager: fileManager) {
       try? fileManager.removeItem(at: url)
     }
   }
 
-  private static func existingSwiftDataStoreFiles(fileManager: FileManager) -> [URL] {
-    swiftDataStoreFileCandidates(fileManager: fileManager).filter { url in
+  private static func existingLegacyStoreFiles(fileManager: FileManager) -> [URL] {
+    legacyStoreFileCandidates(fileManager: fileManager).filter { url in
       fileManager.fileExists(atPath: url.path)
     }
   }
 
-  private static func swiftDataStoreFileCandidates(fileManager: FileManager) -> [URL] {
+  private static func legacyStoreFileCandidates(fileManager: FileManager) -> [URL] {
     var storeDirectories: [URL] = []
 
     if let applicationSupport = fileManager.urls(

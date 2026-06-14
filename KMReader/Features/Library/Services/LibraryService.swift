@@ -72,7 +72,7 @@ nonisolated enum LibraryService {
       path: "/api/v1/libraries/\(id)",
       method: "DELETE"
     )
-    // Delete from local SwiftData (also removes related books and series)
+    // Delete from local database (also removes related books and series)
     let instanceId = AppConfig.current.instanceId
     try await DatabaseOperator.database().deleteLibrary(libraryId: id, instanceId: instanceId)
     try await DatabaseOperator.database().commit()

@@ -49,7 +49,7 @@ struct DownloadInfo: Sendable {
 }
 
 /// Actor for managing offline book downloads with proper thread isolation.
-/// Download status is persisted in SwiftData via KomgaBook.downloadStatus.
+/// Download status is persisted in the local database via KomgaBook.downloadStatus.
 /// Progress is tracked via DownloadProgressTracker for UI display.
 @globalActor
 actor OfflineManager {
@@ -288,7 +288,7 @@ actor OfflineManager {
 
   // MARK: - Public API
 
-  /// Get the download status of a book from SwiftData.
+  /// Get the download status of a book from the local database.
   func getDownloadStatus(bookId: String) async -> DownloadStatus {
     (try? await DatabaseOperator.database().getDownloadStatus(bookId: bookId)) ?? .notDownloaded
   }
@@ -399,7 +399,7 @@ actor OfflineManager {
       bookId: bookId, instanceId: instanceId, commit: false, syncSeriesStatus: syncSeriesStatus)
     let dir = bookDirectory(instanceId: instanceId, bookId: bookId)
 
-    // Update SwiftData
+    // Update local database
     try? await DatabaseOperator.database().updateBookDownloadStatus(
       bookId: bookId, instanceId: instanceId, status: .notDownloaded,
       syncSeriesStatus: syncSeriesStatus
@@ -542,7 +542,7 @@ actor OfflineManager {
     await refreshQueueStatus(instanceId: instanceId)
   }
 
-  /// Cleanup orphaned offline files that no longer have corresponding SwiftData entries.
+  /// Cleanup orphaned offline files that no longer have corresponding local database entries.
   /// Returns the number of orphaned directories deleted and total bytes freed.
   func cleanupOrphanedFiles() async -> (deletedCount: Int, bytesFreed: Int64) {
     let instanceId = AppConfig.current.instanceId
@@ -553,7 +553,7 @@ actor OfflineManager {
       return (0, 0)
     }
 
-    // Get all downloaded book IDs from SwiftData
+    // Get all downloaded book IDs from local database
     let downloadedBooks =
       (try? await DatabaseOperator.database().fetchDownloadedBooks(instanceId: instanceId)) ?? []
     let downloadedBookIds = Set(downloadedBooks.map { $0.id })
@@ -570,7 +570,7 @@ actor OfflineManager {
         continue
       }
 
-      // Check if this book is still in downloaded state in SwiftData
+      // Check if this book is still in downloaded state in local database
       if !downloadedBookIds.contains(bookId) {
         // Orphaned directory - calculate size and delete
         if let size = try? Self.calculateDirectorySize(bookDir) {
@@ -1292,7 +1292,7 @@ actor OfflineManager {
           )
         #endif
 
-        // Mark complete in SwiftData
+        // Mark complete in local database
         await finalizeDownload(
           instanceId: instanceId,
           bookId: info.bookId,

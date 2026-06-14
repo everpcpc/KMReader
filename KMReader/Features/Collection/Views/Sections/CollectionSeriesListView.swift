@@ -188,7 +188,7 @@ struct CollectionSeriesListView: View {
         collectionId: collectionId,
         seriesIds: Array(selectedSeriesIds)
       )
-      // Sync the collection to update its seriesIds in local SwiftData
+      // Sync the collection to update its local series IDs
       _ = try? await SyncService.syncCollection(id: collectionId)
       await loadCollection()
 

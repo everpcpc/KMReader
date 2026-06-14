@@ -15,6 +15,7 @@ struct CollectionsBrowseView: View {
     SimpleSortOptions()
   @AppStorage("collectionBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
+  @AppStorage("currentAccount") private var current: Current = .init()
   @State private var isLoading = false
   @State private var items: [IdentifiedString] = []
   @State private var loadID = UUID()
@@ -129,8 +130,10 @@ struct CollectionsBrowseView: View {
   }
 
   private func localCollectionIds() async -> [String] {
+    guard !current.instanceId.isEmpty else { return [] }
     guard let database = try? await DatabaseOperator.database() else { return [] }
     return await database.fetchCollectionIds(
+      instanceId: current.instanceId,
       libraryIds: libraryIds,
       searchText: searchText,
       sort: sortOpts.sortString,
