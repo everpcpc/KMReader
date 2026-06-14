@@ -652,9 +652,19 @@ extension DatabaseOperator {
 
   func fetchTotalBooksCount(instanceId: String, libraryId: String? = nil) -> Int {
     (try? read { db in
-      try fetchBooks(db: db, instanceId: instanceId).filter { book in
-        libraryId == nil || book.libraryId == libraryId
-      }.count
+      var sql = """
+        SELECT COUNT(*)
+        FROM \(KomgaBook.databaseTableName)
+        WHERE instance_id = ?
+        """
+      var arguments: StatementArguments = [instanceId]
+
+      if let libraryId {
+        sql += "\nAND library_id = ?"
+        arguments += StatementArguments([libraryId])
+      }
+
+      return try Int.fetchOne(db, sql: sql, arguments: arguments) ?? 0
     }) ?? 0
   }
 

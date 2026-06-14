@@ -63,21 +63,35 @@ extension DatabaseOperator {
     offset: Int,
     limit: Int
   ) -> [String] {
+    guard limit > 0 else { return [] }
     let instanceId = AppConfig.current.instanceId
     return (try? read { db in
-      let series = try fetchSeriesRecords(db: db, instanceId: instanceId).filter { item in
-        libraryIds.isEmpty || libraryIds.contains(item.libraryId)
+      var sql = """
+        SELECT series_id
+        FROM \(KomgaSeries.databaseTableName)
+        WHERE instance_id = ?
+        """
+      var arguments: StatementArguments = [instanceId]
+
+      if !libraryIds.isEmpty {
+        let placeholders = Array(repeating: "?", count: libraryIds.count).joined(separator: ", ")
+        sql += "\nAND library_id IN (\(placeholders))"
+        arguments += StatementArguments(libraryIds)
       }
-      let ordered: [KomgaSeries]
+
       switch section {
       case .recentlyAddedSeries:
-        ordered = series.sorted { $0.created > $1.created }
+        sql += "\nORDER BY created DESC, id ASC"
       case .recentlyUpdatedSeries:
-        ordered = series.sorted { $0.lastModified > $1.lastModified }
+        sql += "\nORDER BY last_modified DESC, id ASC"
       default:
-        ordered = []
+        return []
       }
-      return Self.paginate(ordered, offset: offset, limit: limit).map(\.seriesId)
+
+      sql += "\nLIMIT ? OFFSET ?"
+      arguments += StatementArguments([limit, max(0, offset)])
+
+      return try String.fetchAll(db, sql: sql, arguments: arguments)
     }) ?? []
   }
 

@@ -59,10 +59,10 @@ extension DatabaseOperator {
   ) -> [String] {
     let instanceId = AppConfig.current.instanceId
     return (try? read { db in
-      let books = try fetchBooks(db: db, instanceId: instanceId)
+      let books = try fetchBooks(db: db, instanceId: instanceId, seriesId: seriesId)
       return Self.paginate(
         Self.filteredBrowseBooks(
-          books.filter { $0.seriesId == seriesId },
+          books,
           libraryIds: nil,
           searchText: "",
           browseOpts: browseOpts
@@ -158,6 +158,12 @@ extension DatabaseOperator {
         if let nextBook = orderedBooks.first(where: { $0.metaNumberSort > lastRead.metaNumberSort }) {
           return nextBook.toBook()
         }
+      }
+
+      if let firstUnread = orderedBooks.first(where: {
+        Self.readStatus(completed: $0.progressCompleted, readDate: $0.progressReadDate) == .unread
+      }) {
+        return firstUnread.toBook()
       }
 
       return orderedBooks.first?.toBook()
