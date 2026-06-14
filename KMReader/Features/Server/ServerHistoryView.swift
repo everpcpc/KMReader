@@ -315,14 +315,6 @@ struct ServerHistoryView: View {
       await database.deleteSeries(id: seriesId, instanceId: instanceId)
     }
 
-    do {
-      try await database.commit()
-    } catch {
-      ErrorManager.shared.alert(error: error)
-      isClearingLocal = false
-      return
-    }
-
     for bookId in bookIds {
       bookNameById.removeValue(forKey: bookId)
     }

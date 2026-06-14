@@ -115,7 +115,6 @@ struct CollectionCardView: View {
         instanceId: item.instanceId,
         isPinned: nextPinned
       )
-      try? await DatabaseOperator.database().commit()
       onMutationCompleted?()
     }
   }

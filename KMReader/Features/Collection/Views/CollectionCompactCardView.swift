@@ -105,7 +105,6 @@ struct CollectionCompactCardView: View {
           instanceId: item.instanceId,
           isPinned: nextPinned
         )
-        try? await database.commit()
         onChanged()
       } catch {
         ErrorManager.shared.alert(error: error)

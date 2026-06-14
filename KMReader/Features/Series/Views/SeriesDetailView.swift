@@ -289,7 +289,7 @@ extension SeriesDetailView {
           collectionId: collectionId,
           seriesIds: [seriesId]
         )
-        // Sync the collection to update its seriesIds in local SwiftData
+        // Sync the collection to update its local series IDs
         _ = try? await SyncService.syncCollection(id: collectionId)
         ErrorManager.shared.notify(
           message: String(localized: "notification.series.addedToCollection"))

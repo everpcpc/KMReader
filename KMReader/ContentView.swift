@@ -191,9 +191,6 @@ struct ContentView: View {
             }
             Task(priority: .utility) {
               await SSEService.shared.disconnect(notify: false)
-              if let database = await DatabaseOperator.databaseIfConfigured() {
-                try? await database.commit()
-              }
             }
             WidgetDataService.refreshWidgetData()
           }

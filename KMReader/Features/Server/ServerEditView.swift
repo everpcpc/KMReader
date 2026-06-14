@@ -299,7 +299,6 @@ struct ServerEditView: View {
           isSaving = false
           return
         }
-        try await database.commit()
         isSaving = false
 
         if current.instanceId == updatedInstance.instanceId {

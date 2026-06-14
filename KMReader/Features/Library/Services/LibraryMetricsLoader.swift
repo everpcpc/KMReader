@@ -125,7 +125,6 @@ struct LibraryMetricsLoader {
         collectionsCount: nil,
         readlistsCount: nil
       )
-      try? await database?.commit()
     }
 
     var metrics = AllLibrariesMetricsData()
@@ -210,7 +209,6 @@ struct LibraryMetricsLoader {
       collectionsCount: metrics.collectionsCount,
       readlistsCount: metrics.readlistsCount
     )
-    try? await database?.commit()
   }
 }
 

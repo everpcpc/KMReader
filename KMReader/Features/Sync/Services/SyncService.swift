@@ -5,7 +5,6 @@
 
 import Foundation
 import OSLog
-import SwiftData
 
 extension Notification.Name {
   static let sidebarProjectionDidChange = Notification.Name("SidebarProjectionDidChange")
@@ -41,7 +40,6 @@ nonisolated enum SyncService {
       let libraries = try await LibraryService.getLibraries()
       let libraryInfos = libraries.map { LibraryInfo(id: $0.id, name: $0.name) }
       try await database.replaceLibraries(libraryInfos, for: instanceId)
-      try? await database.commit()
       await postSidebarProjectionDidChange(instanceId: instanceId)
       logger.info("📚 Synced \(libraries.count) libraries")
     } catch {
@@ -67,7 +65,6 @@ nonisolated enum SyncService {
         remoteCollectionIds,
         instanceId: instanceId
       )
-      try? await database.commit()
       await postSidebarProjectionDidChange(instanceId: instanceId)
       if deletedCount > 0 {
         logger.info("🧹 Removed \(deletedCount) stale collections")
@@ -96,7 +93,6 @@ nonisolated enum SyncService {
         remoteReadListIds,
         instanceId: instanceId
       )
-      try? await database.commit()
       await postSidebarProjectionDidChange(instanceId: instanceId)
       if deletedCount > 0 {
         logger.info("🧹 Removed \(deletedCount) stale read lists")
@@ -121,7 +117,6 @@ nonisolated enum SyncService {
         await database.upsertSeriesList(result.content, instanceId: instanceId)
         hasMore = !result.last
         page += 1
-        try? await database.commit()
       }
       logger.info("📚 Synced series for library \(libraryId)")
     } catch {
@@ -147,7 +142,6 @@ nonisolated enum SyncService {
 
     let instanceId = AppConfig.current.instanceId
     await database.upsertSeriesList(result.content, instanceId: instanceId)
-    try? await database.commit()
 
     return result
   }
@@ -158,12 +152,10 @@ nonisolated enum SyncService {
       let series = try await SeriesService.getOneSeries(id: seriesId)
       let instanceId = AppConfig.current.instanceId
       await database.upsertSeries(dto: series, instanceId: instanceId)
-      try? await database.commit()
       return series
     } catch APIError.notFound {
       let instanceId = AppConfig.current.instanceId
       await database.deleteSeries(id: seriesId, instanceId: instanceId)
-      try? await database.commit()
       throw APIError.notFound(message: "Series not found", url: nil, response: nil, request: nil)
     }
   }
@@ -174,7 +166,6 @@ nonisolated enum SyncService {
       libraryIds: libraryIds, page: page, size: size)
     let instanceId = AppConfig.current.instanceId
     await database.upsertSeriesList(result.content, instanceId: instanceId)
-    try? await database.commit()
     return result
   }
 
@@ -184,7 +175,6 @@ nonisolated enum SyncService {
       libraryIds: libraryIds, page: page, size: size)
     let instanceId = AppConfig.current.instanceId
     await database.upsertSeriesList(result.content, instanceId: instanceId)
-    try? await database.commit()
     return result
   }
 
@@ -203,7 +193,6 @@ nonisolated enum SyncService {
     )
     let instanceId = AppConfig.current.instanceId
     await database.upsertBooks(result.content, instanceId: instanceId)
-    try? await database.commit()
     return result
   }
 
@@ -223,7 +212,6 @@ nonisolated enum SyncService {
 
     let instanceId = AppConfig.current.instanceId
     await database.upsertBooks(result.content, instanceId: instanceId)
-    try? await database.commit()
 
     return result
   }
@@ -246,7 +234,6 @@ nonisolated enum SyncService {
 
     let instanceId = AppConfig.current.instanceId
     await database.upsertBooks(result.content, instanceId: instanceId)
-    try? await database.commit()
 
     return result
   }
@@ -257,7 +244,6 @@ nonisolated enum SyncService {
       libraryIds: libraryIds, page: page, size: size)
     let instanceId = AppConfig.current.instanceId
     await database.upsertBooks(result.content, instanceId: instanceId)
-    try? await database.commit()
     return result
   }
 
@@ -267,7 +253,6 @@ nonisolated enum SyncService {
       libraryIds: libraryIds, page: page, size: size)
     let instanceId = AppConfig.current.instanceId
     await database.upsertBooks(result.content, instanceId: instanceId)
-    try? await database.commit()
     return result
   }
 
@@ -279,7 +264,6 @@ nonisolated enum SyncService {
       libraryIds: libraryIds, page: page, size: size)
     let instanceId = AppConfig.current.instanceId
     await database.upsertBooks(result.content, instanceId: instanceId)
-    try? await database.commit()
     return result
   }
 
@@ -291,7 +275,6 @@ nonisolated enum SyncService {
       libraryIds: libraryIds, page: page, size: size)
     let instanceId = AppConfig.current.instanceId
     await database.upsertBooks(result.content, instanceId: instanceId)
-    try? await database.commit()
     return result
   }
 
@@ -313,7 +296,6 @@ nonisolated enum SyncService {
       hasMore = !result.last
       page += 1
     }
-    try? await database.commit()
     logger.info("📚 Synced all books for series \(seriesId)")
   }
 
@@ -336,7 +318,6 @@ nonisolated enum SyncService {
       hasMore = !result.last
       page += 1
     }
-    try? await database.commit()
     logger.info("📖 Synced all books for readlist \(readListId)")
   }
 
@@ -346,12 +327,10 @@ nonisolated enum SyncService {
       let book = try await BookService.getBook(id: bookId)
       let instanceId = AppConfig.current.instanceId
       await database.upsertBook(dto: book, instanceId: instanceId)
-      try? await database.commit()
       return book
     } catch APIError.notFound {
       let instanceId = AppConfig.current.instanceId
       await database.deleteBook(id: bookId, instanceId: instanceId)
-      try? await database.commit()
       throw APIError.notFound(message: "Book not found", url: nil, response: nil, request: nil)
     }
   }
@@ -367,7 +346,6 @@ nonisolated enum SyncService {
     let instanceId = AppConfig.current.instanceId
     await database.upsertBook(dto: book, instanceId: instanceId)
     await database.upsertSeries(dto: series, instanceId: instanceId)
-    try? await database.commit()
   }
 
   /// Batch sync multiple books and series concurrently with a single commit
@@ -404,7 +382,6 @@ nonisolated enum SyncService {
       }
 
       // Single commit after all fetches complete
-      try? await database.commit()
     } catch {
       logger.error("❌ Failed to sync visited items: \(error)")
     }
@@ -416,7 +393,6 @@ nonisolated enum SyncService {
       if let book = try await BookService.getNextBook(bookId: bookId, readListId: readListId) {
         let instanceId = AppConfig.current.instanceId
         await database.upsertBook(dto: book, instanceId: instanceId)
-        try? await database.commit()
         return book
       }
     } catch {
@@ -434,7 +410,6 @@ nonisolated enum SyncService {
       ) {
         let instanceId = AppConfig.current.instanceId
         await database.upsertBook(dto: book, instanceId: instanceId)
-        try? await database.commit()
         return book
       }
     } catch {
@@ -460,7 +435,6 @@ nonisolated enum SyncService {
     )
     let instanceId = AppConfig.current.instanceId
     await database.upsertCollections(result.content, instanceId: instanceId)
-    try? await database.commit()
     return result
   }
 
@@ -470,12 +444,10 @@ nonisolated enum SyncService {
       let collection = try await CollectionService.getCollection(id: id)
       let instanceId = AppConfig.current.instanceId
       await database.upsertCollection(dto: collection, instanceId: instanceId)
-      try? await database.commit()
       return collection
     } catch APIError.notFound {
       let instanceId = AppConfig.current.instanceId
       await database.deleteCollection(id: id, instanceId: instanceId)
-      try? await database.commit()
       throw APIError.notFound(message: "Collection not found", url: nil, response: nil, request: nil)
     }
   }
@@ -490,7 +462,6 @@ nonisolated enum SyncService {
       let collectionIds = collections.map { $0.id }
       await database.updateSeriesCollectionIds(
         seriesId: seriesId, collectionIds: collectionIds, instanceId: instanceId)
-      try? await database.commit()
     } catch {
       logger.error("❌ Failed to sync series collections: \(error)")
     }
@@ -513,7 +484,6 @@ nonisolated enum SyncService {
     )
     let instanceId = AppConfig.current.instanceId
     await database.upsertSeriesList(result.content, instanceId: instanceId)
-    try? await database.commit()
     return result
   }
 
@@ -534,7 +504,6 @@ nonisolated enum SyncService {
     )
     let instanceId = AppConfig.current.instanceId
     await database.upsertReadLists(result.content, instanceId: instanceId)
-    try? await database.commit()
     return result
   }
 
@@ -544,12 +513,10 @@ nonisolated enum SyncService {
       let readList = try await ReadListService.getReadList(id: id)
       let instanceId = AppConfig.current.instanceId
       await database.upsertReadList(dto: readList, instanceId: instanceId)
-      try? await database.commit()
       return readList
     } catch APIError.notFound {
       let instanceId = AppConfig.current.instanceId
       await database.deleteReadList(id: id, instanceId: instanceId)
-      try? await database.commit()
       throw APIError.notFound(message: "Read list not found", url: nil, response: nil, request: nil)
     }
   }
@@ -571,7 +538,6 @@ nonisolated enum SyncService {
     )
     let instanceId = AppConfig.current.instanceId
     await database.upsertBooks(result.content, instanceId: instanceId)
-    try? await database.commit()
     return result
   }
 
@@ -585,7 +551,6 @@ nonisolated enum SyncService {
       let readListIds = readLists.map { $0.id }
       await database.updateBookReadListIds(
         bookId: bookId, readListIds: readListIds, instanceId: instanceId)
-      try? await database.commit()
     } catch {
       logger.error("❌ Failed to sync book read lists: \(error)")
     }

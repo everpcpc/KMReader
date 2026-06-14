@@ -262,7 +262,7 @@ struct OneshotDetailView: View {
           readListId: readListId,
           bookIds: [bookId]
         )
-        // Sync the readlist to update its bookIds in local SwiftData
+        // Sync the readlist to update its local book IDs
         _ = try? await SyncService.syncReadList(id: readListId)
         ErrorManager.shared.notify(
           message: String(localized: "notification.book.booksAddedToReadList"))

@@ -15,6 +15,7 @@ struct ReadListsBrowseView: View {
     SimpleSortOptions()
   @AppStorage("readListBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
+  @AppStorage("currentAccount") private var current: Current = .init()
   @State private var isLoading = false
   @State private var items: [IdentifiedString] = []
   @State private var loadID = UUID()
@@ -130,8 +131,10 @@ struct ReadListsBrowseView: View {
   }
 
   private func localReadListIds() async -> [String] {
+    guard !current.instanceId.isEmpty else { return [] }
     guard let database = try? await DatabaseOperator.database() else { return [] }
     return await database.fetchReadListIds(
+      instanceId: current.instanceId,
       libraryIds: libraryIds,
       searchText: searchText,
       sort: sortOpts.sortString,

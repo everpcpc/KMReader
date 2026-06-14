@@ -174,7 +174,6 @@ extension ReadListDetailView {
         instanceId: item.instanceId,
         isPinned: nextPinned
       )
-      try? await DatabaseOperator.database().commit()
       await loadLocalReadList()
     }
   }

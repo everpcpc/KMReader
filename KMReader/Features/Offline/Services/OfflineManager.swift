@@ -49,7 +49,7 @@ struct DownloadInfo: Sendable {
 }
 
 /// Actor for managing offline book downloads with proper thread isolation.
-/// Download status is persisted in SwiftData via KomgaBook.downloadStatus.
+/// Download status is persisted in the local database via KomgaBook.downloadStatus.
 /// Progress is tracked via DownloadProgressTracker for UI display.
 @globalActor
 actor OfflineManager {
@@ -288,7 +288,7 @@ actor OfflineManager {
 
   // MARK: - Public API
 
-  /// Get the download status of a book from SwiftData.
+  /// Get the download status of a book from the local database.
   func getDownloadStatus(bookId: String) async -> DownloadStatus {
     (try? await DatabaseOperator.database().getDownloadStatus(bookId: bookId)) ?? .notDownloaded
   }
@@ -347,7 +347,6 @@ actor OfflineManager {
         status: .pending,
         downloadAt: .now
       )
-      try? await DatabaseOperator.database().commit()
       await postDownloadProjectionDidChange(bookId: info.bookId, instanceId: instanceId)
       await refreshQueueStatus(instanceId: instanceId)
       await syncDownloadQueue(instanceId: instanceId)
@@ -361,7 +360,6 @@ actor OfflineManager {
       status: .pending,
       downloadAt: .now
     )
-    try? await DatabaseOperator.database().commit()
     await postDownloadProjectionDidChange(bookId: bookId, instanceId: instanceId)
     await refreshQueueStatus(instanceId: instanceId)
     await syncDownloadQueue(instanceId: instanceId)
@@ -381,7 +379,6 @@ actor OfflineManager {
         status: .pending,
         downloadAt: .now
       )
-      try? await DatabaseOperator.database().commit()
       await postDownloadProjectionDidChange(bookId: info.bookId, instanceId: instanceId)
     case .pending:
       break
@@ -399,13 +396,12 @@ actor OfflineManager {
       bookId: bookId, instanceId: instanceId, commit: false, syncSeriesStatus: syncSeriesStatus)
     let dir = bookDirectory(instanceId: instanceId, bookId: bookId)
 
-    // Update SwiftData
+    // Update local database
     try? await DatabaseOperator.database().updateBookDownloadStatus(
       bookId: bookId, instanceId: instanceId, status: .notDownloaded,
       syncSeriesStatus: syncSeriesStatus
     )
     if commit {
-      try? await DatabaseOperator.database().commit()
       await postDownloadProjectionDidChange(bookId: bookId, instanceId: instanceId)
       await refreshQueueStatus(instanceId: instanceId)
     }
@@ -455,7 +451,6 @@ actor OfflineManager {
     // Also sync readlists containing these books
     try? await DatabaseOperator.database().syncReadListsContainingBooks(
       bookIds: bookIds, instanceId: instanceId)
-    try? await DatabaseOperator.database().commit()
     await postDownloadProjectionsDidChange(bookIds: bookIds, instanceId: instanceId)
     await refreshQueueStatus(instanceId: instanceId)
   }
@@ -489,7 +484,6 @@ actor OfflineManager {
     // Also sync readlists containing these books
     try? await DatabaseOperator.database().syncReadListsContainingBooks(
       bookIds: books.map { $0.id }, instanceId: instanceId)
-    try? await DatabaseOperator.database().commit()
     await postDownloadProjectionsDidChange(
       bookIds: books.map { $0.id },
       instanceId: instanceId
@@ -534,7 +528,6 @@ actor OfflineManager {
     // Also sync readlists containing these books
     try? await DatabaseOperator.database().syncReadListsContainingBooks(
       bookIds: readBooks.map { $0.id }, instanceId: instanceId)
-    try? await DatabaseOperator.database().commit()
     await postDownloadProjectionsDidChange(
       bookIds: readBooks.map { $0.id },
       instanceId: instanceId
@@ -542,7 +535,7 @@ actor OfflineManager {
     await refreshQueueStatus(instanceId: instanceId)
   }
 
-  /// Cleanup orphaned offline files that no longer have corresponding SwiftData entries.
+  /// Cleanup orphaned offline files that no longer have corresponding local database entries.
   /// Returns the number of orphaned directories deleted and total bytes freed.
   func cleanupOrphanedFiles() async -> (deletedCount: Int, bytesFreed: Int64) {
     let instanceId = AppConfig.current.instanceId
@@ -553,7 +546,7 @@ actor OfflineManager {
       return (0, 0)
     }
 
-    // Get all downloaded book IDs from SwiftData
+    // Get all downloaded book IDs from local database
     let downloadedBooks =
       (try? await DatabaseOperator.database().fetchDownloadedBooks(instanceId: instanceId)) ?? []
     let downloadedBookIds = Set(downloadedBooks.map { $0.id })
@@ -570,7 +563,7 @@ actor OfflineManager {
         continue
       }
 
-      // Check if this book is still in downloaded state in SwiftData
+      // Check if this book is still in downloaded state in local database
       if !downloadedBookIds.contains(bookId) {
         // Orphaned directory - calculate size and delete
         if let size = try? Self.calculateDirectorySize(bookDir) {
@@ -605,7 +598,6 @@ actor OfflineManager {
       syncSeriesStatus: syncSeriesStatus
     )
     if commit {
-      try? await DatabaseOperator.database().commit()
       await postDownloadProjectionDidChange(bookId: bookId, instanceId: resolvedInstanceId)
       await refreshQueueStatus(instanceId: resolvedInstanceId)
     }
@@ -620,7 +612,6 @@ actor OfflineManager {
       try? await DatabaseOperator.database().updateBookDownloadStatus(
         bookId: bookId, instanceId: instanceId, status: .notDownloaded
       )
-      try? await DatabaseOperator.database().commit()
     }
     activeTasks.removeAll()
     await postDownloadProjectionsDidChange(bookIds: bookIds, instanceId: instanceId)
@@ -642,7 +633,6 @@ actor OfflineManager {
       .filter { $0.isFailed }
       .map(\.bookId)
     try? await DatabaseOperator.database().retryFailedBooks(instanceId: instanceId)
-    try? await DatabaseOperator.database().commit()
     await postDownloadProjectionsDidChange(bookIds: failedBookIds, instanceId: instanceId)
     await refreshQueueStatus(instanceId: instanceId)
     await syncDownloadQueue(instanceId: instanceId)
@@ -654,7 +644,6 @@ actor OfflineManager {
       .filter { $0.isFailed }
       .map(\.bookId)
     try? await DatabaseOperator.database().cancelFailedBooks(instanceId: instanceId)
-    try? await DatabaseOperator.database().commit()
     await postDownloadProjectionsDidChange(bookIds: failedBookIds, instanceId: instanceId)
     await refreshQueueStatus(instanceId: instanceId)
   }
@@ -859,7 +848,6 @@ actor OfflineManager {
     }
 
     if syncedCount > 0 {
-      try? await DatabaseOperator.database().commit()
     }
 
     logger.info(
@@ -920,7 +908,6 @@ actor OfflineManager {
             bookId: info.bookId,
             manifest: webPubManifest
           )
-          try? await DatabaseOperator.database().commit()
           try Self.writeWebPubManifestSidecar(webPubManifest, to: bookDir)
           try await scheduleBackgroundEpubDownload(
             instanceId: instanceId,
@@ -981,7 +968,6 @@ actor OfflineManager {
           instanceId: instanceId,
           status: .failed(error: error.localizedDescription)
         )
-        try? await DatabaseOperator.database().commit()
         await postDownloadProjectionDidChange(bookId: info.bookId, instanceId: instanceId)
         await refreshQueueStatus(instanceId: instanceId)
         await syncDownloadQueue(instanceId: instanceId)
@@ -1292,7 +1278,7 @@ actor OfflineManager {
           )
         #endif
 
-        // Mark complete in SwiftData
+        // Mark complete in local database
         await finalizeDownload(
           instanceId: instanceId,
           bookId: info.bookId,
@@ -1341,7 +1327,6 @@ actor OfflineManager {
               instanceId: instanceId,
               status: .failed(error: error.localizedDescription)
             )
-            try? await DatabaseOperator.database().commit()
             await self.postDownloadProjectionDidChange(bookId: info.bookId, instanceId: instanceId)
             await self.refreshQueueStatus(instanceId: instanceId)
           }
@@ -1437,7 +1422,6 @@ actor OfflineManager {
       status: .downloaded,
       downloadedSize: size
     )
-    try? await DatabaseOperator.database().commit()
     await postDownloadProjectionDidChange(bookId: bookId, instanceId: instanceId)
   }
 
@@ -1501,7 +1485,6 @@ actor OfflineManager {
   func updateLocalProgress(bookId: String, page: Int, completed: Bool) async {
     try? await DatabaseOperator.database().updateReadingProgress(
       bookId: bookId, page: page, completed: completed)
-    try? await DatabaseOperator.database().commit()
   }
 
   private nonisolated static func calculateDirectorySize(_ url: URL) throws -> Int64 {
@@ -1638,7 +1621,6 @@ actor OfflineManager {
       bookId: bookId,
       instanceId: instanceId
     )
-    try? await DatabaseOperator.database().commit()
     await refreshQueueStatus(instanceId: instanceId)
   }
 
@@ -1975,7 +1957,6 @@ actor OfflineManager {
         instanceId: info.instanceId,
         status: .failed(error: error.localizedDescription)
       )
-      try? await DatabaseOperator.database().commit()
       await postDownloadProjectionDidChange(bookId: bookId, instanceId: info.instanceId)
       await refreshQueueStatus(instanceId: info.instanceId)
 
@@ -2086,7 +2067,6 @@ actor OfflineManager {
           try? FileManager.default.removeItem(at: bookDir)
           try? await DatabaseOperator.database().updateBookDownloadStatus(
             bookId: bookId, instanceId: info.instanceId, status: .failed(error: message))
-          try? await DatabaseOperator.database().commit()
           await postDownloadProjectionDidChange(bookId: bookId, instanceId: info.instanceId)
           clearBackgroundDownloadContext(bookId: bookId)
           removeActiveTask(bookId)
@@ -2124,7 +2104,6 @@ actor OfflineManager {
           try? FileManager.default.removeItem(at: bookDir)
           try? await DatabaseOperator.database().updateBookDownloadStatus(
             bookId: bookId, instanceId: info.instanceId, status: .failed(error: message))
-          try? await DatabaseOperator.database().commit()
           await postDownloadProjectionDidChange(bookId: bookId, instanceId: info.instanceId)
           clearBackgroundDownloadContext(bookId: bookId)
           removeActiveTask(bookId)
@@ -2162,7 +2141,6 @@ actor OfflineManager {
             instanceId: info.instanceId,
             status: .failed(error: "Offline EPUB download is incomplete. Please retry downloading this book.")
           )
-          try? await DatabaseOperator.database().commit()
           await postDownloadProjectionDidChange(bookId: bookId, instanceId: info.instanceId)
           clearBackgroundDownloadContext(bookId: bookId)
           removeActiveTask(bookId)
@@ -2217,7 +2195,6 @@ actor OfflineManager {
   {
     let pages = try await BookService.getBookPages(id: bookId)
     try? await DatabaseOperator.database().updateBookPages(bookId: bookId, pages: pages)
-    try? await DatabaseOperator.database().commit()
     if let bookDir {
       try Self.writeArchivePagesSidecar(pages, to: bookDir)
     }
@@ -2229,7 +2206,6 @@ actor OfflineManager {
     if let manifest = try? await BookService.getBookManifest(id: bookId) {
       let toc = await ReaderManifestService(bookId: bookId).parseTOC(manifest: manifest)
       try? await DatabaseOperator.database().updateBookTOC(bookId: bookId, toc: toc)
-      try? await DatabaseOperator.database().commit()
     }
   }
 
@@ -2239,7 +2215,6 @@ actor OfflineManager {
   ) async {
     let toc = await ReaderManifestService(bookId: bookId).parseTOC(manifest: manifest)
     try? await DatabaseOperator.database().updateBookTOC(bookId: bookId, toc: toc)
-    try? await DatabaseOperator.database().commit()
   }
 
   private func downloadWebPubEpub(bookId: String, to bookDir: URL) async throws {
@@ -2247,7 +2222,6 @@ actor OfflineManager {
 
     let webPubManifest = try await BookService.getBookWebPubManifest(bookId: bookId)
     try? await DatabaseOperator.database().updateBookWebPubManifest(bookId: bookId, manifest: webPubManifest)
-    try? await DatabaseOperator.database().commit()
     try Self.writeWebPubManifestSidecar(webPubManifest, to: bookDir)
 
     // Download the original EPUB file and extract as ZIP
@@ -2854,7 +2828,6 @@ actor OfflineManager {
       status: .downloaded,
       downloadAt: .now
     )
-    try? await DatabaseOperator.database().commit()
     await postDownloadProjectionDidChange(bookId: bookId, instanceId: instanceId)
     await refreshQueueStatus(instanceId: instanceId)
     await clearCachesAfterDownload(bookId: bookId)
@@ -2883,7 +2856,6 @@ actor OfflineManager {
         status: .downloaded,
         downloadedSize: size
       )
-      try? await DatabaseOperator.database().commit()
     }
   }
 

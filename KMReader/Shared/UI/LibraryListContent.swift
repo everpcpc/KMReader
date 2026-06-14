@@ -206,7 +206,6 @@ struct LibraryListContent: View {
         instanceId: current.instanceId,
         metricsByLibrary: metricsByLibrary
       )
-      try await database.commit()
     } catch {
       ErrorManager.shared.alert(error: error)
     }

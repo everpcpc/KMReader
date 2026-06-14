@@ -145,7 +145,6 @@ struct EpubThemePresetsView: View {
       do {
         let database = try await DatabaseOperator.database()
         try await database.deleteEpubThemePreset(id: preset.id)
-        try await database.commit()
         await loadPresets()
       } catch {
         ErrorManager.shared.alert(error: error)
@@ -161,7 +160,6 @@ struct EpubThemePresetsView: View {
       do {
         let database = try await DatabaseOperator.database()
         try await database.renameEpubThemePreset(id: preset.id, name: trimmed)
-        try await database.commit()
         await loadPresets()
         presetToRename = nil
         self.newName = ""

@@ -1086,7 +1086,6 @@
           bookId: bookId,
           progression: progression
         )
-        try? await database.commit()
         logger.debug(
           "Synced remote EPUB progression to local storage: href=\(progression.locator.href), progression=\(progression.locator.locations?.progression ?? 0)"
         )
@@ -1095,7 +1094,6 @@
           bookId: bookId,
           progression: nil
         )
-        try? await database.commit()
         logger.debug("Synced remote EPUB progression to local storage: missing progression")
       case .retryableFailure(let error):
         logger.warning(
@@ -1106,7 +1104,6 @@
           bookId: bookId,
           progression: nil
         )
-        try? await database.commit()
         logger.warning(
           "Ignoring non-retryable remote EPUB progression payload for book \(bookId): \(error.localizedDescription)"
         )

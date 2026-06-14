@@ -210,7 +210,7 @@ struct BooksListViewForReadList: View {
         readListId: readListId,
         bookIds: Array(selectedBookIds)
       )
-      // Sync the readlist to update its bookIds in local SwiftData
+      // Sync the readlist to update its local book IDs
       _ = try? await SyncService.syncReadList(id: readListId)
       await loadReadList()
 

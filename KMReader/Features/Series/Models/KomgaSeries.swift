@@ -3,11 +3,100 @@
 //
 
 import Foundation
-import SwiftData
 
-typealias KomgaSeries = KMReaderSchemaV6.KomgaSeries
+nonisolated struct KomgaSeries: Codable, Equatable, Sendable {
+  var id: String
+  var seriesId: String
+  var libraryId: String
+  var instanceId: String
+  var name: String
+  var url: String
+  var created: Date
+  var lastModified: Date
+  var booksCount: Int
+  var booksReadCount: Int
+  var booksUnreadCount: Int
+  var booksInProgressCount: Int
+  var metadataRaw: Data?
+  var booksMetadataRaw: Data?
+  var metaTitle: String
+  var metaTitleSort: String
+  var metaPublisherIndex: String
+  var metaAuthorsIndex: String
+  var metaGenresIndex: String
+  var metaTagsIndex: String
+  var metaLanguageIndex: String
+  var isUnavailable: Bool
+  var oneshot: Bool
+  var downloadStatusRaw: String
+  var downloadError: String?
+  var downloadAt: Date?
+  var downloadedSize: Int64
+  var downloadedBooks: Int
+  var pendingBooks: Int
+  var offlinePolicyRaw: String
+  var offlinePolicyLimit: Int
+  var collectionIdsRaw: Data?
 
-extension KomgaSeries {
+  init(
+    id: String? = nil,
+    seriesId: String,
+    libraryId: String,
+    instanceId: String,
+    name: String,
+    url: String,
+    created: Date,
+    lastModified: Date,
+    booksCount: Int,
+    booksReadCount: Int,
+    booksUnreadCount: Int,
+    booksInProgressCount: Int,
+    metadata: SeriesMetadata,
+    booksMetadata: SeriesBooksMetadata,
+    isUnavailable: Bool,
+    oneshot: Bool,
+    downloadedBooks: Int = 0,
+    pendingBooks: Int = 0,
+    downloadedSize: Int64 = 0,
+    offlinePolicy: SeriesOfflinePolicy = .manual,
+    offlinePolicyLimit: Int = 0
+  ) {
+    self.id = id ?? CompositeID.generate(instanceId: instanceId, id: seriesId)
+    self.seriesId = seriesId
+    self.libraryId = libraryId
+    self.instanceId = instanceId
+    self.name = name
+    self.url = url
+    self.created = created
+    self.lastModified = lastModified
+    self.booksCount = booksCount
+    self.booksReadCount = booksReadCount
+    self.booksUnreadCount = booksUnreadCount
+    self.booksInProgressCount = booksInProgressCount
+    self.metadataRaw = RawCodableStore.encode(metadata)
+    self.booksMetadataRaw = RawCodableStore.encode(booksMetadata)
+    self.metaTitle = metadata.title
+    self.metaTitleSort = metadata.titleSort
+    self.metaPublisherIndex = MetadataIndex.encode(value: metadata.publisher)
+    self.metaAuthorsIndex = MetadataIndex.encode(values: booksMetadata.authors?.map(\.name) ?? [])
+    self.metaGenresIndex = MetadataIndex.encode(values: metadata.genres ?? [])
+    self.metaTagsIndex = MetadataIndex.encode(values: metadata.tags ?? [])
+    self.metaLanguageIndex = MetadataIndex.encode(value: metadata.language)
+    self.isUnavailable = isUnavailable
+    self.oneshot = oneshot
+    self.downloadStatusRaw = "notDownloaded"
+    self.downloadError = nil
+    self.downloadAt = nil
+    self.downloadedSize = downloadedSize
+    self.downloadedBooks = downloadedBooks
+    self.pendingBooks = pendingBooks
+    self.offlinePolicyRaw = offlinePolicy.rawValue
+    self.offlinePolicyLimit = offlinePolicyLimit
+    self.collectionIdsRaw = try? JSONEncoder().encode([] as [String])
+  }
+}
+
+nonisolated extension KomgaSeries {
   var collectionIds: [String] {
     get {
       collectionIdsRaw.flatMap { try? JSONDecoder().decode([String].self, from: $0) } ?? []
@@ -73,22 +162,22 @@ extension KomgaSeries {
     }
   }
 
-  func updateMetadata(_ metadata: SeriesMetadata, raw: Data?) {
+  mutating func updateMetadata(_ metadata: SeriesMetadata, raw: Data?) {
     metadataRaw = raw ?? RawCodableStore.encode(metadata)
     syncMetadataFields(metadata)
   }
 
-  func updateBooksMetadata(_ booksMetadata: SeriesBooksMetadata, raw: Data?) {
+  mutating func updateBooksMetadata(_ booksMetadata: SeriesBooksMetadata, raw: Data?) {
     booksMetadataRaw = raw ?? RawCodableStore.encode(booksMetadata)
     syncBooksMetadataFields(booksMetadata)
   }
 
-  func applyContent(metadata: SeriesMetadata, booksMetadata: SeriesBooksMetadata) {
+  mutating func applyContent(metadata: SeriesMetadata, booksMetadata: SeriesBooksMetadata) {
     updateMetadata(metadata, raw: RawCodableStore.encode(metadata))
     updateBooksMetadata(booksMetadata, raw: RawCodableStore.encode(booksMetadata))
   }
 
-  private func syncMetadataFields(_ metadata: SeriesMetadata) {
+  private mutating func syncMetadataFields(_ metadata: SeriesMetadata) {
     metaTitle = metadata.title
     metaTitleSort = metadata.titleSort
 
@@ -98,7 +187,7 @@ extension KomgaSeries {
     metaLanguageIndex = MetadataIndex.encode(value: metadata.language)
   }
 
-  private func syncBooksMetadataFields(_ booksMetadata: SeriesBooksMetadata) {
+  private mutating func syncBooksMetadataFields(_ booksMetadata: SeriesBooksMetadata) {
     metaAuthorsIndex = MetadataIndex.encode(values: booksMetadata.authors?.map(\.name) ?? [])
   }
 

@@ -138,7 +138,6 @@ struct ReadListDownloadActionsSection: View {
       try? await DatabaseOperator.database().downloadReadListOffline(
         readListId: readListId, instanceId: current.instanceId
       )
-      try? await DatabaseOperator.database().commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.readList.offlineDownloadQueued")
       )
@@ -154,7 +153,6 @@ struct ReadListDownloadActionsSection: View {
         instanceId: current.instanceId,
         limit: limit
       )
-      try? await DatabaseOperator.database().commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.readList.offlineDownloadQueued")
       )
@@ -168,7 +166,6 @@ struct ReadListDownloadActionsSection: View {
         readListId: readListId,
         instanceId: current.instanceId
       )
-      try? await DatabaseOperator.database().commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.readList.offlineRemoved")
       )
@@ -192,7 +189,6 @@ struct ReadListDownloadActionsSection: View {
       try? await DatabaseOperator.database().removeReadListOffline(
         readListId: readListId, instanceId: current.instanceId
       )
-      try? await DatabaseOperator.database().commit()
       ErrorManager.shared.notify(
         message: String(localized: "notification.readList.offlineRemoved")
       )

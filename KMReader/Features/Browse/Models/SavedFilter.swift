@@ -4,7 +4,6 @@
 //
 
 import Foundation
-import SwiftData
 
 nonisolated enum SavedFilterType: String, CaseIterable, Identifiable, Sendable {
   case series
@@ -32,9 +31,32 @@ nonisolated enum SavedFilterType: String, CaseIterable, Identifiable, Sendable {
   }
 }
 
-typealias SavedFilter = KMReaderSchemaV6.SavedFilterV1
+nonisolated struct SavedFilter: Codable, Equatable, Sendable {
+  var id: UUID
+  var name: String
+  var filterTypeRaw: String
+  var filterDataJSON: String
+  var createdAt: Date
+  var updatedAt: Date
 
-extension SavedFilter {
+  init(
+    id: UUID = UUID(),
+    name: String,
+    filterType: SavedFilterType,
+    filterDataJSON: String,
+    createdAt: Date = Date(),
+    updatedAt: Date = Date()
+  ) {
+    self.id = id
+    self.name = name
+    self.filterTypeRaw = filterType.rawValue
+    self.filterDataJSON = filterDataJSON
+    self.createdAt = createdAt
+    self.updatedAt = updatedAt
+  }
+}
+
+nonisolated extension SavedFilter {
   var filterType: SavedFilterType {
     get {
       SavedFilterType(rawValue: filterTypeRaw) ?? .series

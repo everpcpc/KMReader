@@ -6,7 +6,7 @@
 import Foundation
 import SwiftUI
 
-/// Status of an offline book download (persisted in SwiftData).
+/// Status of an offline book download (persisted in the local database).
 /// Note: Downloading progress is tracked separately in OfflineManager.
 nonisolated enum DownloadStatus: Equatable, Sendable {
   case notDownloaded
