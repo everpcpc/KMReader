@@ -85,9 +85,9 @@ struct MainApp: App {
     }
 
     do {
-      let queue = try LocalDatabase.open()
-      try LocalDatabase.migrate(queue)
-      try LegacySwiftDataImporter.importIfNeeded(into: queue)
+      let queue = try await Task.detached(priority: .userInitiated) {
+        try Self.makePreparedDatabaseQueue()
+      }.value
       CustomFontStore.shared.configure(with: queue)
       await DatabaseOperator.configure(databaseQueue: queue)
       _ = OfflineManager.shared
@@ -101,6 +101,13 @@ struct MainApp: App {
       AppLogger(.database).error("Failed to prepare local database: \(errorMessage)")
       databaseFailureDetails = errorMessage
     }
+  }
+
+  private nonisolated static func makePreparedDatabaseQueue() throws -> DatabaseQueue {
+    let queue = try LocalDatabase.open()
+    try LocalDatabase.migrate(queue)
+    try LegacySwiftDataImporter.importIfNeeded(into: queue)
+    return queue
   }
 
   @MainActor

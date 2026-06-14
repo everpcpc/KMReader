@@ -42,7 +42,7 @@ nonisolated struct LocalMigrationMarker: Codable, Sendable {
 
 nonisolated extension LocalMigrationMarker: FetchableRecord, MutablePersistableRecord {}
 
-enum LocalDatabase {
+nonisolated enum LocalDatabase {
   static let fileName = "KMReader.sqlite"
   static let legacyImportMarkerKey = "swiftdata_v6_import"
 

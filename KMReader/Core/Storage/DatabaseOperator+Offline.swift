@@ -366,7 +366,7 @@ extension DatabaseOperator {
   }
 
   func syncSeriesDownloadStatus(db: Database, series: inout KomgaSeries) {
-    let books = (try? fetchBooks(db: db, instanceId: series.instanceId).filter { $0.seriesId == series.seriesId }) ?? []
+    let books = (try? fetchBooks(db: db, instanceId: series.instanceId, seriesId: series.seriesId)) ?? []
     let totalCount = series.booksCount
     let downloadedCount = books.filter { $0.downloadStatusRaw == "downloaded" }.count
     let pendingCount = books.filter { $0.downloadStatusRaw == "pending" }.count

@@ -736,7 +736,9 @@ extension DatabaseOperator {
 
   func fetchBooksCount(instanceId: String, status: String) -> Int {
     (try? read { db in
-      try fetchBooks(db: db, instanceId: instanceId).filter { $0.downloadStatusRaw == status }.count
+      try KomgaBook
+        .filter(KomgaBook.Columns.instanceId == instanceId && KomgaBook.Columns.downloadStatusRaw == status)
+        .fetchCount(db)
     }) ?? 0
   }
 

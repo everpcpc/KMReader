@@ -296,14 +296,29 @@ extension DatabaseOperator {
 
   func deleteBooksNotIn(_ bookIds: Set<String>, instanceId: String) -> Int {
     (try? write { db in
-      let existingBooks = try fetchBooks(db: db, instanceId: instanceId)
-      guard !existingBooks.isEmpty else { return 0 }
-
       var deletedCount = 0
-      for book in existingBooks where !bookIds.contains(book.bookId) {
-        try KomgaBook.deleteOne(db, key: book.id)
-        deletedCount += 1
+      var lastScannedId: String?
+
+      while true {
+        var request = KomgaBook
+          .filter(KomgaBook.Columns.instanceId == instanceId)
+          .order(KomgaBook.Columns.id)
+          .limit(Self.recordFetchChunkSize)
+
+        if let lastScannedId {
+          request = request.filter(KomgaBook.Columns.id > lastScannedId)
+        }
+
+        let batch = try request.fetchAll(db)
+        guard !batch.isEmpty else { break }
+        lastScannedId = batch.last?.id
+
+        for book in batch where !bookIds.contains(book.bookId) {
+          try KomgaBook.deleteOne(db, key: book.id)
+          deletedCount += 1
+        }
       }
+
       return deletedCount
     }) ?? 0
   }

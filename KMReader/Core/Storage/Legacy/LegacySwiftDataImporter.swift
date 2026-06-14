@@ -7,7 +7,7 @@ import Foundation
 import GRDB
 import SwiftData
 
-enum LegacySwiftDataImporter {
+nonisolated enum LegacySwiftDataImporter {
   static func importIfNeeded(into dbQueue: DatabaseQueue) throws {
     let marker = try dbQueue.read { db in
       try LocalMigrationMarker.fetchOne(db, key: LocalDatabase.legacyImportMarkerKey)

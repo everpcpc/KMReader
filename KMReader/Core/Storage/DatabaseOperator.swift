@@ -177,6 +177,12 @@ extension DatabaseOperator {
       .fetchAll(db)
   }
 
+  func fetchBooks(db: Database, instanceId: String, seriesId: String) throws -> [KomgaBook] {
+    try KomgaBook
+      .filter(KomgaBook.Columns.instanceId == instanceId && KomgaBook.Columns.seriesId == seriesId)
+      .fetchAll(db)
+  }
+
   func fetchSeriesRecords(db: Database, instanceId: String) throws -> [KomgaSeries] {
     try KomgaSeries
       .filter(KomgaSeries.Columns.instanceId == instanceId)

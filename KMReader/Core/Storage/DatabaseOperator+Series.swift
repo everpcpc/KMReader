@@ -161,14 +161,29 @@ extension DatabaseOperator {
 
   func deleteSeriesNotIn(_ seriesIds: Set<String>, instanceId: String) -> Int {
     (try? write { db in
-      let existingSeries = try fetchSeriesRecords(db: db, instanceId: instanceId)
-      guard !existingSeries.isEmpty else { return 0 }
-
       var deletedCount = 0
-      for series in existingSeries where !seriesIds.contains(series.seriesId) {
-        try KomgaSeries.deleteOne(db, key: series.id)
-        deletedCount += 1
+      var lastScannedId: String?
+
+      while true {
+        var request = KomgaSeries
+          .filter(KomgaSeries.Columns.instanceId == instanceId)
+          .order(KomgaSeries.Columns.id)
+          .limit(Self.recordFetchChunkSize)
+
+        if let lastScannedId {
+          request = request.filter(KomgaSeries.Columns.id > lastScannedId)
+        }
+
+        let batch = try request.fetchAll(db)
+        guard !batch.isEmpty else { break }
+        lastScannedId = batch.last?.id
+
+        for series in batch where !seriesIds.contains(series.seriesId) {
+          try KomgaSeries.deleteOne(db, key: series.id)
+          deletedCount += 1
+        }
       }
+
       return deletedCount
     }) ?? 0
   }
