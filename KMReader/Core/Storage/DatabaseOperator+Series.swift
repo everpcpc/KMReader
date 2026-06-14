@@ -24,18 +24,17 @@ extension DatabaseOperator {
     offlineOnly: Bool = false
   ) -> [String] {
     guard !instanceId.isEmpty else { return [] }
+    guard limit > 0 else { return [] }
     return (try? read { db in
-      let series = try fetchSeriesRecords(db: db, instanceId: instanceId)
-      return Self.paginate(
-        Self.filteredBrowseSeries(
-          series,
-          libraryIds: libraryIds,
-          searchText: searchText,
-          browseOpts: browseOpts,
-          offlineOnly: offlineOnly
-        ),
+      try fetchBrowseSeriesRecords(
+        db: db,
+        instanceId: instanceId,
+        libraryIds: libraryIds ?? [],
+        searchText: searchText,
+        browseOpts: browseOpts,
         offset: offset,
-        limit: limit
+        limit: limit,
+        offlineOnly: offlineOnly
       ).map(\.seriesId)
     }) ?? []
   }
@@ -425,6 +424,251 @@ extension DatabaseOperator {
       }
     }
     return matchesSeriesMetadataFilter(series: series, filter: collectionBrowseOpts.metadataFilter)
+  }
+
+  func fetchBrowseSeriesRecords(
+    db: Database,
+    instanceId: String,
+    libraryIds: [String],
+    searchText: String,
+    browseOpts: SeriesBrowseOptions,
+    offset: Int,
+    limit: Int,
+    offlineOnly: Bool
+  ) throws -> [KomgaSeries] {
+    let safeOffset = max(0, offset)
+    if browseOpts.sortString == "random" {
+      let candidates = try fetchBrowseSeriesSQLCandidates(
+        db: db,
+        instanceId: instanceId,
+        libraryIds: libraryIds,
+        searchText: searchText,
+        browseOpts: browseOpts,
+        offset: nil,
+        limit: nil,
+        offlineOnly: offlineOnly
+      )
+      return Self.paginate(
+        Self.filteredBrowseSeries(
+          candidates,
+          libraryIds: nil,
+          searchText: searchText,
+          browseOpts: browseOpts,
+          offlineOnly: offlineOnly
+        ),
+        offset: safeOffset,
+        limit: limit
+      )
+    }
+
+    let requiresResidualFilter =
+      browseOpts.completeFilter.isActive
+      || !browseOpts.includeSeriesStatuses.isEmpty
+      || !browseOpts.excludeSeriesStatuses.isEmpty
+
+    if !requiresResidualFilter {
+      return try fetchBrowseSeriesSQLCandidates(
+        db: db,
+        instanceId: instanceId,
+        libraryIds: libraryIds,
+        searchText: searchText,
+        browseOpts: browseOpts,
+        offset: safeOffset,
+        limit: limit,
+        offlineOnly: offlineOnly
+      )
+    }
+
+    var matched: [KomgaSeries] = []
+    var skipped = 0
+    var sqlOffset = 0
+
+    while matched.count < limit {
+      let chunk = try fetchBrowseSeriesSQLCandidates(
+        db: db,
+        instanceId: instanceId,
+        libraryIds: libraryIds,
+        searchText: searchText,
+        browseOpts: browseOpts,
+        offset: sqlOffset,
+        limit: Self.recordFetchChunkSize,
+        offlineOnly: offlineOnly
+      )
+      guard !chunk.isEmpty else { break }
+      sqlOffset += chunk.count
+
+      for item in chunk where Self.matchesSeries(item, browseOpts: browseOpts) {
+        if skipped < safeOffset {
+          skipped += 1
+        } else {
+          matched.append(item)
+          if matched.count == limit { break }
+        }
+      }
+    }
+
+    return matched
+  }
+
+  func fetchBrowseSeriesSQLCandidates(
+    db: Database,
+    instanceId: String,
+    libraryIds: [String],
+    searchText: String,
+    browseOpts: SeriesBrowseOptions,
+    offset: Int?,
+    limit: Int?,
+    offlineOnly: Bool
+  ) throws -> [KomgaSeries] {
+    var sql = """
+      SELECT *
+      FROM \(KomgaSeries.databaseTableName)
+      WHERE instance_id = ?
+      """
+    var arguments: StatementArguments = [instanceId]
+
+    Self.appendSQLInFilter(column: "library_id", values: libraryIds, sql: &sql, arguments: &arguments)
+    Self.appendSeriesBrowseSQLFilters(
+      searchText: searchText,
+      browseOpts: browseOpts,
+      offlineOnly: offlineOnly,
+      sql: &sql,
+      arguments: &arguments
+    )
+
+    if let orderSQL = Self.seriesBrowseOrderSQL(sort: browseOpts.sortString) {
+      sql += "\nORDER BY \(orderSQL)"
+    }
+
+    if let limit {
+      sql += "\nLIMIT ? OFFSET ?"
+      arguments += StatementArguments([limit, max(0, offset ?? 0)])
+    }
+
+    return try KomgaSeries.fetchAll(db, sql: sql, arguments: arguments)
+  }
+
+  nonisolated static func appendSeriesBrowseSQLFilters(
+    searchText: String,
+    browseOpts: SeriesBrowseOptions,
+    offlineOnly: Bool,
+    sql: inout String,
+    arguments: inout StatementArguments
+  ) {
+    let trimmedSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+    if !trimmedSearch.isEmpty {
+      let pattern = sqlContainsPattern(trimmedSearch)
+      sql += "\nAND (name LIKE ? ESCAPE char(92) OR meta_title LIKE ? ESCAPE char(92))"
+      arguments += StatementArguments([pattern, pattern])
+    }
+
+    if offlineOnly {
+      sql += "\nAND (downloaded_books > 0 OR pending_books > 0 OR download_status_raw = 'downloaded')"
+    }
+
+    if let deletedState = browseOpts.deletedFilter.effectiveBool {
+      sql += "\nAND is_unavailable = ?"
+      arguments += StatementArguments([deletedState])
+    }
+
+    if let oneshotState = browseOpts.oneshotFilter.effectiveBool {
+      sql += "\nAND oneshot = ?"
+      arguments += StatementArguments([oneshotState])
+    }
+
+    appendSeriesReadStatusSQLFilter(
+      include: browseOpts.includeReadStatuses,
+      exclude: browseOpts.excludeReadStatuses,
+      sql: &sql
+    )
+    appendSeriesMetadataSQLFilter(browseOpts.metadataFilter, sql: &sql, arguments: &arguments)
+  }
+
+  nonisolated static func appendSeriesReadStatusSQLFilter(
+    include: Set<ReadStatus>,
+    exclude: Set<ReadStatus>,
+    sql: inout String
+  ) {
+    if !include.isEmpty {
+      let clauses = include.sorted { $0.rawValue < $1.rawValue }.map(seriesReadStatusSQL)
+      sql += "\nAND (\(clauses.joined(separator: " OR ")))"
+    }
+
+    if !exclude.isEmpty {
+      let clauses = exclude.sorted { $0.rawValue < $1.rawValue }.map(seriesReadStatusSQL)
+      sql += "\nAND NOT (\(clauses.joined(separator: " OR ")))"
+    }
+  }
+
+  nonisolated static func seriesReadStatusSQL(_ status: ReadStatus) -> String {
+    switch status {
+    case .read:
+      return "(books_count > 0 AND books_read_count = books_count)"
+    case .inProgress:
+      return "(NOT (books_count > 0 AND books_read_count = books_count) AND (books_read_count > 0 OR books_in_progress_count > 0))"
+    case .unread:
+      return "(books_read_count <= 0 AND books_in_progress_count <= 0)"
+    }
+  }
+
+  nonisolated static func appendSeriesMetadataSQLFilter(
+    _ filter: MetadataFilterConfig,
+    sql: inout String,
+    arguments: inout StatementArguments
+  ) {
+    appendMetadataIndexSQLFilter(
+      column: "meta_publisher_index",
+      values: filter.publishers,
+      logic: filter.publishersLogic,
+      sql: &sql,
+      arguments: &arguments
+    )
+    appendMetadataIndexSQLFilter(
+      column: "meta_authors_index",
+      values: filter.authors,
+      logic: filter.authorsLogic,
+      sql: &sql,
+      arguments: &arguments
+    )
+    appendMetadataIndexSQLFilter(
+      column: "meta_genres_index",
+      values: filter.genres,
+      logic: filter.genresLogic,
+      sql: &sql,
+      arguments: &arguments
+    )
+    appendMetadataIndexSQLFilter(
+      column: "meta_tags_index",
+      values: filter.tags,
+      logic: filter.tagsLogic,
+      sql: &sql,
+      arguments: &arguments
+    )
+    appendMetadataIndexSQLFilter(
+      column: "meta_language_index",
+      values: filter.languages,
+      logic: filter.languagesLogic,
+      sql: &sql,
+      arguments: &arguments
+    )
+  }
+
+  nonisolated static func seriesBrowseOrderSQL(sort: String) -> String? {
+    guard sort != "random" else { return nil }
+    let direction = sort.contains("desc") ? "DESC" : "ASC"
+    if sort.contains("created") {
+      return "created \(direction), id ASC"
+    }
+    if sort.contains("lastModified") {
+      return "last_modified \(direction), id ASC"
+    }
+    if sort.contains("downloadAt") {
+      return "download_at \(direction), id ASC"
+    }
+    if sort.contains("booksCount") {
+      return "books_count \(direction), id ASC"
+    }
+    return "meta_title_sort \(direction), id ASC"
   }
 
   nonisolated static func sortSeries(_ series: [KomgaSeries], sort: String) -> [KomgaSeries] {

@@ -34,7 +34,7 @@ extension DatabaseOperator {
     return try read { db in
       var bookNameById: [String: String] = [:]
       if !bookIds.isEmpty {
-        let books = try fetchBooks(db: db, instanceId: instanceId).filter { bookIds.contains($0.bookId) }
+        let books = try fetchBooksByIds(db: db, ids: Array(bookIds), instanceId: instanceId)
         for book in books {
           bookNameById[book.bookId] = book.metaTitle
         }
@@ -42,7 +42,7 @@ extension DatabaseOperator {
 
       var seriesNameById: [String: String] = [:]
       if !seriesIds.isEmpty {
-        let series = try fetchSeriesRecords(db: db, instanceId: instanceId).filter { seriesIds.contains($0.seriesId) }
+        let series = try fetchSeriesByIds(db: db, ids: Array(seriesIds), instanceId: instanceId)
         for item in series {
           seriesNameById[item.seriesId] = item.metaTitle
         }

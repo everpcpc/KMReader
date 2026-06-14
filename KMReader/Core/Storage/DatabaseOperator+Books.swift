@@ -35,19 +35,33 @@ extension DatabaseOperator {
     offlineOnly: Bool = false
   ) -> [String] {
     guard !instanceId.isEmpty else { return [] }
+    guard limit > 0 else { return [] }
     return (try? read { db in
-      let books = try fetchBooks(db: db, instanceId: instanceId)
-      return Self.paginate(
-        Self.filteredBrowseBooks(
-          books,
-          libraryIds: libraryIds,
-          searchText: searchText,
-          browseOpts: browseOpts,
-          offlineOnly: offlineOnly
-        ),
-        offset: offset,
-        limit: limit
-      ).map(\.bookId)
+      var sql = """
+        SELECT book_id
+        FROM \(KomgaBook.databaseTableName)
+        WHERE instance_id = ?
+        """
+      var arguments: StatementArguments = [instanceId]
+
+      Self.appendSQLInFilter(
+        column: "library_id",
+        values: libraryIds ?? [],
+        sql: &sql,
+        arguments: &arguments
+      )
+      Self.appendBookBrowseSQLFilters(
+        searchText: searchText,
+        browseOpts: browseOpts,
+        offlineOnly: offlineOnly,
+        sql: &sql,
+        arguments: &arguments
+      )
+      sql += "\nORDER BY \(Self.bookBrowseOrderSQL(sort: browseOpts.sortString))"
+      sql += "\nLIMIT ? OFFSET ?"
+      arguments += StatementArguments([limit, max(0, offset)])
+
+      return try String.fetchAll(db, sql: sql, arguments: arguments)
     }) ?? []
   }
 
@@ -694,6 +708,145 @@ extension DatabaseOperator {
       return false
     }
     return matchesBookMetadataFilter(book: book, filter: readListBrowseOpts.metadataFilter)
+  }
+
+  nonisolated static func appendBookBrowseSQLFilters(
+    searchText: String,
+    browseOpts: BookBrowseOptions,
+    offlineOnly: Bool,
+    sql: inout String,
+    arguments: inout StatementArguments
+  ) {
+    let trimmedSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+    if !trimmedSearch.isEmpty {
+      let pattern = sqlContainsPattern(trimmedSearch)
+      sql += "\nAND (name LIKE ? ESCAPE char(92) OR meta_title LIKE ? ESCAPE char(92))"
+      arguments += StatementArguments([pattern, pattern])
+    }
+
+    if offlineOnly {
+      sql += "\nAND download_status_raw IN ('downloaded', 'pending')"
+    }
+
+    if let deletedState = browseOpts.deletedFilter.effectiveBool {
+      sql += "\nAND is_unavailable = ?"
+      arguments += StatementArguments([deletedState])
+    }
+
+    if let oneshotState = browseOpts.oneshotFilter.effectiveBool {
+      sql += "\nAND oneshot = ?"
+      arguments += StatementArguments([oneshotState])
+    }
+
+    appendBookReadStatusSQLFilter(
+      include: browseOpts.includeReadStatuses,
+      exclude: browseOpts.excludeReadStatuses,
+      sql: &sql
+    )
+    appendBookMetadataSQLFilter(browseOpts.metadataFilter, sql: &sql, arguments: &arguments)
+  }
+
+  nonisolated static func appendBookReadStatusSQLFilter(
+    include: Set<ReadStatus>,
+    exclude: Set<ReadStatus>,
+    sql: inout String
+  ) {
+    if !include.isEmpty {
+      let clauses = include.sorted { $0.rawValue < $1.rawValue }.map(bookReadStatusSQL)
+      sql += "\nAND (\(clauses.joined(separator: " OR ")))"
+    }
+
+    if !exclude.isEmpty {
+      let clauses = exclude.sorted { $0.rawValue < $1.rawValue }.map(bookReadStatusSQL)
+      sql += "\nAND NOT (\(clauses.joined(separator: " OR ")))"
+    }
+  }
+
+  nonisolated static func bookReadStatusSQL(_ status: ReadStatus) -> String {
+    switch status {
+    case .read:
+      return "(progress_completed = 1)"
+    case .inProgress:
+      return "(COALESCE(progress_completed, 0) = 0 AND progress_read_date IS NOT NULL)"
+    case .unread:
+      return "(COALESCE(progress_completed, 0) = 0 AND progress_read_date IS NULL)"
+    }
+  }
+
+  nonisolated static func appendBookMetadataSQLFilter(
+    _ filter: MetadataFilterConfig,
+    sql: inout String,
+    arguments: inout StatementArguments
+  ) {
+    appendMetadataIndexSQLFilter(
+      column: "meta_authors_index",
+      values: filter.authors,
+      logic: filter.authorsLogic,
+      sql: &sql,
+      arguments: &arguments
+    )
+    appendMetadataIndexSQLFilter(
+      column: "meta_tags_index",
+      values: filter.tags,
+      logic: filter.tagsLogic,
+      sql: &sql,
+      arguments: &arguments
+    )
+  }
+
+  nonisolated static func appendMetadataIndexSQLFilter(
+    column: String,
+    values: [String]?,
+    logic: FilterLogic,
+    sql: inout String,
+    arguments: inout StatementArguments
+  ) {
+    let patterns = (values ?? []).compactMap(sqlMetadataIndexPattern)
+    guard !patterns.isEmpty else { return }
+
+    switch logic {
+    case .all:
+      for pattern in patterns {
+        sql += "\nAND \(column) LIKE ? ESCAPE char(92)"
+        arguments += StatementArguments([pattern])
+      }
+    case .any:
+      let clauses = Array(repeating: "\(column) LIKE ? ESCAPE char(92)", count: patterns.count)
+      sql += "\nAND (\(clauses.joined(separator: " OR ")))"
+      arguments += StatementArguments(patterns)
+    }
+  }
+
+  nonisolated static func bookBrowseOrderSQL(sort: String) -> String {
+    let direction = sort.contains("desc") ? "DESC" : "ASC"
+    if sort.contains("series") && sort.contains("metadata.numberSort") {
+      return "COALESCE(NULLIF(series_title, ''), series_id) \(direction), meta_number_sort \(direction), name \(direction), id ASC"
+    }
+    if sort.contains("createdDate") {
+      return "created \(direction), id ASC"
+    }
+    if sort.contains("lastModifiedDate") {
+      return "last_modified \(direction), id ASC"
+    }
+    if sort.contains("metadata.releaseDate") {
+      return "COALESCE(meta_release_date, '') \(direction), id ASC"
+    }
+    if sort.contains("readProgress.readDate") {
+      return "progress_read_date \(direction), id ASC"
+    }
+    if sort.contains("downloadAt") {
+      return "download_at \(direction), id ASC"
+    }
+    if sort.contains("fileSize") {
+      return "size_bytes \(direction), id ASC"
+    }
+    if sort.contains("name") {
+      return "name \(direction), id ASC"
+    }
+    if sort.contains("media.pagesCount") {
+      return "media_pages_count \(direction), id ASC"
+    }
+    return "meta_title \(direction), id ASC"
   }
 
   nonisolated static func sortBooks(_ books: [KomgaBook], sort: String) -> [KomgaBook] {

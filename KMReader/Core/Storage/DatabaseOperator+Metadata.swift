@@ -433,13 +433,13 @@ extension DatabaseOperator {
 
   func fetchPendingBooks(instanceId: String, limit: Int? = nil) -> [Book] {
     (try? read { db in
-      var books = try fetchBooks(db: db, instanceId: instanceId)
-        .filter { $0.downloadStatusRaw == "pending" }
-        .sorted { ($0.downloadAt ?? .distantPast) < ($1.downloadAt ?? .distantPast) }
+      var request = KomgaBook
+        .filter(KomgaBook.Columns.instanceId == instanceId && KomgaBook.Columns.downloadStatusRaw == "pending")
+        .order(KomgaBook.Columns.downloadAt, KomgaBook.Columns.id)
       if let limit {
-        books = Array(books.prefix(limit))
+        request = request.limit(limit)
       }
-      return books.map { $0.toBook() }
+      return try request.fetchAll(db).map { $0.toBook() }
     }) ?? []
   }
 
@@ -631,12 +631,20 @@ extension DatabaseOperator {
 
   func fetchBooksWithReadProgressForStats(instanceId: String, libraryId: String?) -> [Book] {
     (try? read { db in
-      try fetchBooks(db: db, instanceId: instanceId)
-        .filter { book in
-          (libraryId == nil || book.libraryId == libraryId)
-            && (book.progressPage != nil || book.progressCompleted != nil || book.progressReadDate != nil)
-        }
-        .map { $0.toBook() }
+      var sql = """
+        SELECT *
+        FROM \(KomgaBook.databaseTableName)
+        WHERE instance_id = ?
+        AND (progress_page IS NOT NULL OR progress_completed IS NOT NULL OR progress_read_date IS NOT NULL)
+        """
+      var arguments: StatementArguments = [instanceId]
+
+      if let libraryId {
+        sql += "\nAND library_id = ?"
+        arguments += StatementArguments([libraryId])
+      }
+
+      return try KomgaBook.fetchAll(db, sql: sql, arguments: arguments).map { $0.toBook() }
     }) ?? []
   }
 
@@ -670,7 +678,9 @@ extension DatabaseOperator {
 
   func fetchTotalSeriesCount(instanceId: String) -> Int {
     (try? read { db in
-      try fetchSeriesRecords(db: db, instanceId: instanceId).count
+      try KomgaSeries
+        .filter(KomgaSeries.Columns.instanceId == instanceId)
+        .fetchCount(db)
     }) ?? 0
   }
 

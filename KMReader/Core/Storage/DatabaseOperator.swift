@@ -219,6 +219,34 @@ extension DatabaseOperator {
     }
   }
 
+  nonisolated static func appendSQLInFilter(
+    column: String,
+    values: [String],
+    sql: inout String,
+    arguments: inout StatementArguments
+  ) {
+    guard !values.isEmpty else { return }
+    let placeholders = Array(repeating: "?", count: values.count).joined(separator: ", ")
+    sql += "\nAND \(column) IN (\(placeholders))"
+    arguments += StatementArguments(values)
+  }
+
+  nonisolated static func sqlContainsPattern(_ value: String) -> String {
+    "%\(escapedSQLLike(value))%"
+  }
+
+  nonisolated static func sqlMetadataIndexPattern(_ value: String) -> String? {
+    guard let normalized = MetadataIndex.normalize(value) else { return nil }
+    return "%|\(escapedSQLLike(normalized))|%"
+  }
+
+  nonisolated static func escapedSQLLike(_ value: String) -> String {
+    value
+      .replacingOccurrences(of: "\\", with: "\\\\")
+      .replacingOccurrences(of: "%", with: "\\%")
+      .replacingOccurrences(of: "_", with: "\\_")
+  }
+
   nonisolated static func readStatus(completed: Bool?, readDate: Date?) -> ReadStatus {
     if completed == true {
       return .read
