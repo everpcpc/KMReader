@@ -937,7 +937,7 @@ class ReaderViewModel {
         onProgress: { [weak self] progress in
           guard let self else { return }
           self.updateLoadingTitle(String(localized: "Offline DIVINA Rendering"))
-          self.clearLoadingProgress()
+          self.updateLoadingProgress(progress.fractionCompleted)
           self.updateLoadingDetail("\(progress.completedPages) / \(progress.totalPages)")
         }
       )
