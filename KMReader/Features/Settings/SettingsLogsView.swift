@@ -7,119 +7,62 @@ import Flow
 import SwiftUI
 
 struct SettingsLogsView: View {
-  @State private var logEntries: [LogStore.LogEntry] = []
+  @State private var pagination = PaginationState<LogStore.LogEntry>(pageSize: 50)
   @State private var categoryCounts: [LogStore.CategoryCount] = []
   @State private var isLoading = false
   @State private var selectedLevel: LogLevel = .info
   @State private var selectedCategory: String = "All"
-  @State private var selectedTimeRange: TimeRange = .oneHour
-  @State private var selectedLimit: LogLimit = .fifty
   @State private var searchText = ""
+  @State private var isLoadingMore = false
+  @State private var queryGeneration = 0
+  @State private var activeQueryKey: LogQueryKey?
+  @State private var lastTriggeredEntryId: Int64?
+
+  private var currentQueryKey: LogQueryKey {
+    LogQueryKey(
+      minPriority: selectedLevel.priority,
+      category: selectedCategory == "All" ? nil : selectedCategory,
+      search: searchText.isEmpty ? nil : searchText
+    )
+  }
 
   private var totalCount: Int {
     categoryCounts.reduce(0) { $0 + $1.count }
   }
 
   var body: some View {
-    Form {
+    List {
       Section {
-        if isLoading {
+        if isLoading && pagination.isEmpty {
           HStack {
             Spacer()
             ProgressView()
             Spacer()
           }
-        } else if logEntries.isEmpty {
+        } else if pagination.isEmpty {
           Text(String(localized: "settings.logs.empty"))
             .foregroundColor(.secondary)
         } else {
-          ForEach(logEntries) { entry in
-            LogEntryRow(entry: entry)
-              .tvFocusableHighlight()
-              #if os(iOS) || os(macOS)
-                .contextMenu {
-                  Button {
-                    copyToClipboard(formatEntry(entry))
-                  } label: {
-                    Label(String(localized: "Copy"), systemImage: "doc.on.doc")
-                  }
-                }
-              #endif
+          ForEach(pagination.items) { entry in
+            logEntryRow(entry)
+          }
+
+          if isLoadingMore {
+            HStack {
+              Spacer()
+              ProgressView()
+              Spacer()
+            }
           }
         }
       } header: {
-        VStack(alignment: .leading, spacing: 12) {
-          #if os(macOS)
-            TextField(String(localized: "settings.logs.search"), text: $searchText)
-              .textFieldStyle(.roundedBorder)
-              .onSubmit {
-                Task { await loadLogs() }
-              }
-          #endif
-
-          HStack {
-            Menu {
-              Picker("Time", selection: $selectedTimeRange) {
-                ForEach(TimeRange.allCases, id: \.self) { range in
-                  Text(range.displayName).tag(range)
-                }
-              }
-              .pickerStyle(.inline)
-            } label: {
-              LogFilterChip(icon: "clock", text: selectedTimeRange.displayName)
-            }
-
-            Menu {
-              Picker("Level", selection: $selectedLevel) {
-                ForEach(LogLevel.allCases, id: \.self) { level in
-                  Text(level.rawValue).tag(level)
-                }
-              }
-              .pickerStyle(.inline)
-            } label: {
-              LogFilterChip(icon: "flag", text: selectedLevel.rawValue, color: selectedLevel.color)
-            }
-
-            Menu {
-              Picker("Limit", selection: $selectedLimit) {
-                ForEach(LogLimit.allCases, id: \.self) { limit in
-                  Text(limit.displayName).tag(limit)
-                }
-              }
-              .pickerStyle(.inline)
-            } label: {
-              LogFilterChip(icon: "number", text: selectedLimit.displayName)
-            }
-          }
-          .adaptiveButtonStyle(.bordered)
-
-          HFlow(spacing: 8) {
-            CategoryChip(
-              name: "All",
-              count: totalCount,
-              isSelected: selectedCategory == "All"
-            ) {
-              selectedCategory = "All"
-            }
-
-            ForEach(categoryCounts, id: \.category) { category in
-              CategoryChip(
-                name: category.category,
-                count: category.count,
-                isSelected: selectedCategory == category.category
-              ) {
-                selectedCategory = category.category
-              }
-            }
-          }
-        }
+        filterControls
       }
     }
-    .formStyle(.grouped)
-    .animation(.default, value: logEntries)
+    .optimizedListStyle(alternatesRowBackgrounds: true)
+    .animation(.default, value: pagination.items)
     .animation(.default, value: categoryCounts)
     .animation(.default, value: isLoading)
-    .animation(.default, value: selectedTimeRange)
     .animation(.default, value: selectedLevel)
     .animation(.default, value: selectedCategory)
     #if os(iOS)
@@ -128,16 +71,10 @@ struct SettingsLogsView: View {
     .onSubmit(of: .search) {
       Task { await loadLogs() }
     }
-    .onChange(of: selectedTimeRange) {
-      Task { await loadLogs() }
-    }
     .onChange(of: selectedLevel) {
       Task { await loadLogs() }
     }
     .onChange(of: selectedCategory) {
-      Task { await loadLogs() }
-    }
-    .onChange(of: selectedLimit) {
       Task { await loadLogs() }
     }
     .refreshable {
@@ -158,33 +95,137 @@ struct SettingsLogsView: View {
     .inlineNavigationBarTitle(SettingsSection.logs.title)
   }
 
+  @ViewBuilder
+  private var filterControls: some View {
+    VStack(alignment: .leading, spacing: 12) {
+      #if os(macOS)
+        TextField(String(localized: "settings.logs.search"), text: $searchText)
+          .textFieldStyle(.roundedBorder)
+          .onSubmit {
+            Task { await loadLogs() }
+          }
+      #endif
+
+      HFlow(spacing: 8) {
+        Menu {
+          Picker("Level", selection: $selectedLevel) {
+            ForEach(LogLevel.allCases, id: \.self) { level in
+              Text(level.rawValue).tag(level)
+            }
+          }
+          .pickerStyle(.inline)
+        } label: {
+          LogFilterChip(icon: "flag", text: selectedLevel.rawValue, color: selectedLevel.color)
+        }
+
+        CategoryChip(
+          name: "All",
+          count: totalCount,
+          isSelected: selectedCategory == "All"
+        ) {
+          selectedCategory = "All"
+        }
+
+        ForEach(categoryCounts, id: \.category) { category in
+          CategoryChip(
+            name: category.category,
+            count: category.count,
+            isSelected: selectedCategory == category.category
+          ) {
+            selectedCategory = category.category
+          }
+        }
+      }
+      .adaptiveButtonStyle(.bordered)
+    }
+  }
+
+  @ViewBuilder
+  private func logEntryRow(_ entry: LogStore.LogEntry) -> some View {
+    LogEntryRow(entry: entry)
+      .tvFocusableHighlight()
+      .onAppear {
+        guard pagination.hasMorePages,
+          !isLoading,
+          !isLoadingMore,
+          pagination.shouldLoadMore(after: entry, threshold: 3),
+          lastTriggeredEntryId != entry.id
+        else {
+          return
+        }
+
+        lastTriggeredEntryId = entry.id
+        Task {
+          await loadMoreLogs()
+        }
+      }
+      #if os(iOS) || os(macOS)
+        .contextMenu {
+          Button {
+            copyToClipboard(formatEntry(entry))
+          } label: {
+            Label(String(localized: "Copy"), systemImage: "doc.on.doc")
+          }
+        }
+      #endif
+  }
+
   private func loadLogs() async {
-    isLoading = logEntries.isEmpty
-    await loadCategoryCounts()
-    let since = Date().addingTimeInterval(selectedTimeRange.interval)
-    let results = await LogStore.shared.query(
-      minPriority: selectedLevel.priority,
-      category: selectedCategory == "All" ? nil : selectedCategory,
-      search: searchText.isEmpty ? nil : searchText,
-      since: since,
-      limit: selectedLimit.value
+    queryGeneration += 1
+    let generation = queryGeneration
+    let queryKey = currentQueryKey
+    pagination = PaginationState<LogStore.LogEntry>(pageSize: pagination.pageSize)
+    lastTriggeredEntryId = nil
+    isLoading = true
+    isLoadingMore = false
+    activeQueryKey = queryKey
+
+    let counts = await LogStore.shared.categoryCounts(
+      minPriority: queryKey.minPriority,
+      search: queryKey.search
     )
+    let entries = await LogStore.shared.query(
+      minPriority: queryKey.minPriority,
+      category: queryKey.category,
+      search: queryKey.search,
+      limit: pagination.pageSize
+    )
+    guard generation == queryGeneration, activeQueryKey == queryKey else { return }
+
     withAnimation {
-      logEntries = results
+      categoryCounts = counts
+      _ = pagination.applyPage(entries)
+      pagination.advance(moreAvailable: entries.count == pagination.pageSize)
       isLoading = false
     }
   }
 
-  private func loadCategoryCounts() async {
-    let since = Date().addingTimeInterval(selectedTimeRange.interval)
-    categoryCounts = await LogStore.shared.categoryCounts(
-      minPriority: selectedLevel.priority,
-      since: since
+  private func loadMoreLogs() async {
+    guard pagination.hasMorePages && !isLoading && !isLoadingMore else { return }
+    guard let lastEntry = pagination.items.last else { return }
+    guard let queryKey = activeQueryKey else { return }
+    isLoadingMore = true
+
+    let generation = queryGeneration
+    let entries = await LogStore.shared.query(
+      minPriority: queryKey.minPriority,
+      category: queryKey.category,
+      search: queryKey.search,
+      before: LogStore.PageCursor(entry: lastEntry),
+      limit: pagination.pageSize
     )
+    guard generation == queryGeneration, activeQueryKey == queryKey else { return }
+
+    withAnimation {
+      _ = pagination.applyPage(entries)
+      pagination.advance(moreAvailable: entries.count == pagination.pageSize)
+      isLoadingMore = false
+      lastTriggeredEntryId = nil
+    }
   }
 
   private func exportLogs() -> String {
-    logEntries.map { formatEntry($0) }.joined(separator: "\n")
+    pagination.items.map { formatEntry($0) }.joined(separator: "\n")
   }
 
   private func formatEntry(_ entry: LogStore.LogEntry) -> String {
@@ -206,39 +247,10 @@ struct SettingsLogsView: View {
   }
 }
 
-// MARK: - Time Range
-
-enum TimeRange: String, CaseIterable, Hashable {
-  case fiveMinutes = "5m"
-  case thirtyMinutes = "30m"
-  case oneHour = "1h"
-  case sixHours = "6h"
-  case twentyFourHours = "24h"
-
-  var displayName: String { rawValue }
-
-  var interval: TimeInterval {
-    switch self {
-    case .fiveMinutes: return -5 * 60
-    case .thirtyMinutes: return -30 * 60
-    case .oneHour: return -60 * 60
-    case .sixHours: return -6 * 60 * 60
-    case .twentyFourHours: return -24 * 60 * 60
-    }
-  }
-}
-
-// MARK: - Log Limit
-
-enum LogLimit: Int, CaseIterable, Hashable {
-  case fifty = 50
-  case oneHundred = 100
-  case twoHundred = 200
-  case fiveHundred = 500
-
-  var displayName: String { "\(rawValue)" }
-
-  var value: Int { rawValue }
+private struct LogQueryKey: Hashable {
+  let minPriority: Int
+  let category: String?
+  let search: String?
 }
 
 // MARK: - Log Filter Chip
