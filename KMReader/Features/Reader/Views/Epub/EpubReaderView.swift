@@ -653,10 +653,7 @@
     }
 
     private var loadingProgress: Double? {
-      if viewModel.loadingStage == .processingOfflineFiles {
-        return 1.0
-      }
-
+      guard viewModel.loadingStage == .downloading else { return nil }
       if let expectedBytes = viewModel.downloadBytesExpected, expectedBytes > 0 {
         return viewModel.downloadProgress
       }
