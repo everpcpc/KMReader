@@ -657,10 +657,11 @@
         return 1.0
       }
 
-      guard viewModel.downloadBytesReceived > 0 || viewModel.downloadProgress > 0 else {
-        return nil
+      if let expectedBytes = viewModel.downloadBytesExpected, expectedBytes > 0 {
+        return viewModel.downloadProgress
       }
-      return viewModel.downloadProgress
+
+      return viewModel.downloadProgress > 0 ? viewModel.downloadProgress : nil
     }
 
     private var loadingDetail: String? {
@@ -668,11 +669,15 @@
       case .fetchingMetadata:
         return String(localized: "Fetching book metadata")
       case .downloading:
-        if let expectedBytes = viewModel.downloadBytesExpected {
+        if let expectedBytes = viewModel.downloadBytesExpected, expectedBytes > 0 {
           let received = Double(viewModel.downloadBytesReceived)
           let expected = Double(expectedBytes)
           return
             "\(String(format: "%.1f", received / 1024 / 1024)) / \(String(format: "%.1f", expected / 1024 / 1024)) MB"
+        }
+        if viewModel.downloadBytesReceived > 0 {
+          let received = Double(viewModel.downloadBytesReceived)
+          return "\(String(format: "%.1f", received / 1024 / 1024)) MB"
         }
         return String(localized: "Downloading book content")
       case .processingOfflineFiles:

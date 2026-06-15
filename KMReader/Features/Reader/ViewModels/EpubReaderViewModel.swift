@@ -469,7 +469,10 @@
       expected: Int64?,
       progressChanged: Bool
     ) {
-      guard progressChanged || downloadBytesReceived == 0 || downloadBytesExpected != expected else { return }
+      guard downloadBytesReceived != received || downloadBytesExpected != expected else { return }
+      guard
+        expected == nil || progressChanged || downloadBytesReceived == 0 || downloadBytesExpected != expected
+      else { return }
       downloadBytesReceived = received
       downloadBytesExpected = expected
     }
