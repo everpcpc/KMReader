@@ -17,7 +17,8 @@
     @AppStorage("epubPageTransitionStyle") private var epubPageTransitionStyle: PageTransitionStyle = .scroll
     @AppStorage("animateEpubTapTurns") private var animateEpubTapTurns: Bool = AppConfig.animateEpubTapTurns
     @AppStorage("epubShowsStatusBarWhileReading") private var epubShowsStatusBarWhileReading: Bool = false
-    @AppStorage("epubShowsProgressFooter") private var epubShowsProgressFooter: Bool = false
+    @AppStorage("epubOverlayPreferences") private var epubOverlayPreferences: EpubOverlayPreferences = AppConfig
+      .epubOverlayPreferences
     @AppStorage("epubShowKeyboardHelpOverlay") private var showKeyboardHelpOverlay: Bool = AppConfig
       .epubShowKeyboardHelpOverlay
     @AppStorage("epubTapZoneMode") private var epubTapZoneMode: TapZoneMode = AppConfig.epubTapZoneMode
@@ -127,15 +128,6 @@
           }
         }
 
-        Toggle(isOn: $epubShowsProgressFooter) {
-          VStack(alignment: .leading, spacing: 4) {
-            Text(String(localized: "Show Progress Footer"))
-            Text(String(localized: "Show book progress at the bottom while reading."))
-              .font(.caption)
-              .foregroundStyle(.secondary)
-          }
-        }
-
         Toggle(isOn: $showKeyboardHelpOverlay) {
           VStack(alignment: .leading, spacing: 4) {
             Text("Auto-Show Keyboard Help")
@@ -145,6 +137,8 @@
           }
         }
       }
+
+      EpubOverlayPreferencesEditor(preferences: $epubOverlayPreferences)
     }
   }
 #endif

@@ -1080,15 +1080,17 @@ enum AppConfig {
     }
   }
 
-  static nonisolated var epubShowsProgressFooter: Bool {
+  static nonisolated var epubOverlayPreferences: EpubOverlayPreferences {
     get {
-      if UserDefaults.standard.object(forKey: "epubShowsProgressFooter") != nil {
-        return UserDefaults.standard.bool(forKey: "epubShowsProgressFooter")
+      if let stored = UserDefaults.standard.string(forKey: "epubOverlayPreferences"),
+        let preferences = EpubOverlayPreferences(rawValue: stored)
+      {
+        return preferences
       }
-      return false
+      return EpubOverlayPreferences()
     }
     set {
-      UserDefaults.standard.set(newValue, forKey: "epubShowsProgressFooter")
+      UserDefaults.standard.set(newValue.rawValue, forKey: "epubOverlayPreferences")
     }
   }
 
