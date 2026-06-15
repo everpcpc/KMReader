@@ -15,7 +15,7 @@ nonisolated enum ArchiveExtractionService {
   static func extractFiles(
     from archiveFile: URL,
     destinationsByArchivePath: [String: URL],
-    normalizePath: (String) -> String?
+    normalizePath: @Sendable (String) -> String?
   ) throws -> [ExtractedFile] {
     guard !destinationsByArchivePath.isEmpty else { return [] }
 
@@ -46,6 +46,28 @@ nonisolated enum ArchiveExtractionService {
     }
 
     return extracted
+  }
+
+  static func regularArchivePaths(
+    in archiveFile: URL,
+    normalizePath: @Sendable (String) -> String?
+  ) throws -> [String: String] {
+    let entries = try ArchiveReader().entries(at: archiveFile)
+    var pathsByNormalizedPath: [String: String] = [:]
+
+    for entry in entries where entry.fileType == .regular {
+      guard let normalizedPath = normalizePath(entry.path) else { continue }
+      pathsByNormalizedPath[normalizedPath] = entry.path
+    }
+
+    return pathsByNormalizedPath
+  }
+
+  static func fileData(
+    from archiveFile: URL,
+    entryPath: String
+  ) throws -> Data {
+    return try ArchiveReader().data(forEntryPath: entryPath, in: archiveFile)
   }
 
   private static func makeStagingDirectory() throws -> URL {

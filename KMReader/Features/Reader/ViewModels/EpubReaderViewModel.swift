@@ -198,6 +198,12 @@
           )
         }
         try await ensureOfflineReady(downloadInfo: downloadInfo, instanceId: instanceId)
+        loadingStage = .processingOfflineFiles
+        _ = try await OfflineManager.shared.prepareOfflineWebPubIfNeeded(
+          instanceId: instanceId,
+          info: downloadInfo
+        )
+        loadingStage = .preparingReader
 
         guard
           let database = await DatabaseOperator.databaseIfConfigured(),

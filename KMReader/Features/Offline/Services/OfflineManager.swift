@@ -53,6 +53,12 @@ struct DownloadInfo: Sendable {
 /// Progress is tracked via DownloadProgressTracker for UI display.
 @globalActor
 actor OfflineManager {
+  private struct ArchivePathIndexCacheKey: Hashable {
+    let path: String
+    let fileSize: Int64
+    let modificationTime: TimeInterval
+  }
+
   static let shared = OfflineManager()
 
   private var activeTasks: [String: Task<Void, Never>] = [:]
@@ -68,7 +74,9 @@ actor OfflineManager {
   #endif
 
   private let logger = AppLogger(.offline)
-  private let pageImageCache = ImageCache()
+  private var pageImageCachesByInstanceId: [String: ImageCache] = [:]
+  private var archivePathIndexesByCacheKey: [ArchivePathIndexCacheKey: [String: String]] = [:]
+  private static let archivePathIndexCacheLimit = 8
 
   private init() {
     _ = NotificationCenter.default.addObserver(
@@ -1003,6 +1011,7 @@ actor OfflineManager {
           continue
         }
         if await copyCachedPageIfAvailable(
+          instanceId: instanceId,
           bookId: info.bookId,
           page: page,
           destination: destination
@@ -1122,7 +1131,6 @@ actor OfflineManager {
       if FileManager.default.fileExists(atPath: destinationURL.path) {
         logger.info("✅ Background image archive already exists for book: \(info.bookId)")
         try await finalizeExistingImageArchiveFile(info: info, bookDir: bookDir)
-        try? FileManager.default.removeItem(at: destinationURL)
         await MainActor.run {
           DownloadProgressTracker.shared.updateProgress(bookId: info.bookId, value: 1.0)
         }
@@ -1165,8 +1173,6 @@ actor OfflineManager {
       let destinationURL = bookDir.appendingPathComponent(Self.epubFileName)
       if FileManager.default.fileExists(atPath: destinationURL.path) {
         logger.info("✅ Background EPUB already exists for book: \(info.bookId)")
-        try await finalizeExistingEpubFile(instanceId: instanceId, info: info, bookDir: bookDir)
-        try? FileManager.default.removeItem(at: destinationURL)
         await MainActor.run {
           DownloadProgressTracker.shared.updateProgress(bookId: info.bookId, value: 1.0)
         }
@@ -1258,16 +1264,14 @@ actor OfflineManager {
         logger.info("⬇️ Starting download for book: \(info.bookInfo) (\(info.bookId))")
 
         switch info.kind {
-        case .epubWebPub:
-          try await downloadWebPubEpub(bookId: info.bookId, to: bookDir)
-        case .epubDivina:
-          try await downloadDivinaEpub(bookId: info.bookId, to: bookDir)
+        case .epubWebPub, .epubDivina:
+          try await downloadEpub(bookId: info.bookId, kind: info.kind, to: bookDir)
         case .pdf:
           try await downloadPdfFile(bookId: info.bookId, to: bookDir)
         case .archiveImages(let format):
           try await downloadImageArchive(bookId: info.bookId, format: format, to: bookDir)
         case .pages:
-          try await downloadPages(bookId: info.bookId, to: bookDir)
+          try await downloadPages(instanceId: instanceId, bookId: info.bookId, to: bookDir)
         }
 
         #if os(iOS)
@@ -1359,7 +1363,47 @@ actor OfflineManager {
     if FileManager.default.fileExists(atPath: file.path) {
       return file
     }
+    if let database = try? await DatabaseOperator.database(),
+      let page = await database.fetchPages(id: bookId)?.first(where: { $0.number == pageNumber })
+    {
+      return await getOfflinePageImageURL(instanceId: instanceId, bookId: bookId, page: page)
+    }
     return nil
+  }
+
+  func getOfflinePageImageURL(
+    instanceId: String, bookId: String, page: BookPage
+  ) async -> URL? {
+    guard await isBookDownloaded(bookId: bookId) else { return nil }
+    let dir = bookDirectory(instanceId: instanceId, bookId: bookId)
+
+    for file in offlinePageImageFileURLs(bookDir: dir, page: page) {
+      if FileManager.default.fileExists(atPath: file.path) {
+        return file
+      }
+    }
+
+    let cache = pageImageCache(for: instanceId)
+    if await cache.hasImage(bookId: bookId, page: page) {
+      return cache.imageFileURL(bookId: bookId, page: page)
+    }
+
+    guard let archiveFile = existingArchivedPageSourceURL(in: dir) else {
+      return nil
+    }
+
+    do {
+      let data = try await archivedPageData(from: archiveFile, page: page)
+
+      await cache.storeImageData(data, bookId: bookId, page: page)
+      let cachedURL = cache.imageFileURL(bookId: bookId, page: page)
+      return FileManager.default.fileExists(atPath: cachedURL.path) ? cachedURL : nil
+    } catch {
+      logger.error(
+        "❌ Failed to materialize archived page \(page.number) for book \(bookId): \(error)"
+      )
+      return nil
+    }
   }
 
   func storeOfflinePageImage(
@@ -1464,6 +1508,44 @@ actor OfflineManager {
       Self.pdfFileName
     )
     return FileManager.default.fileExists(atPath: file.path) ? file : nil
+  }
+
+  func prepareOfflineWebPubIfNeeded(instanceId: String, info: DownloadInfo) async throws -> Bool {
+    guard await isBookDownloaded(bookId: info.bookId) else { return false }
+    guard case .epubWebPub = info.kind else { return false }
+
+    let bookDir = bookDirectory(instanceId: instanceId, bookId: info.bookId)
+    guard let epubFile = existingEpubFileURL(in: bookDir) else { return false }
+
+    var manifest = try? Self.readWebPubManifestSidecar(from: bookDir)
+    if manifest == nil {
+      manifest = try? await DatabaseOperator.database().fetchWebPubManifest(
+        bookId: info.bookId,
+        instanceId: instanceId
+      )
+    }
+    guard let manifest else {
+      throw AppErrorType.missingRequiredData(
+        message: "Missing WebPub manifest for offline EPUB extraction."
+      )
+    }
+
+    try Task.checkCancellation()
+    try extractEpubToWebPub(
+      epubFile: epubFile,
+      bookId: info.bookId,
+      manifest: manifest,
+      bookDir: bookDir
+    )
+    try Task.checkCancellation()
+    do {
+      try FileManager.default.removeItem(at: epubFile)
+    } catch {
+      logger.warning("⚠️ Failed to remove prepared EPUB file for book \(info.bookId): \(error)")
+    }
+
+    await refreshDownloadedBookSize(instanceId: instanceId, bookId: info.bookId)
+    return true
   }
 
   // MARK: - Resource Fetchers (Offline-Aware)
@@ -2058,11 +2140,11 @@ actor OfflineManager {
       logger.info("✅ Background downloads finished for book: \(bookId)")
       let bookDir = bookDirectory(instanceId: info.instanceId, bookId: bookId)
 
-      let archiveExtractionFile = imageArchiveFileURL(for: info.kind, bookDir: bookDir)
-      if let archiveExtractionFile, FileManager.default.fileExists(atPath: archiveExtractionFile.path) {
+      let archiveFile = imageArchiveFileURL(for: info.kind, bookDir: bookDir)
+      if let archiveFile, FileManager.default.fileExists(atPath: archiveFile.path) {
         let recoveryMessage = "Offline archive download is incomplete. Please retry downloading this book."
 
-        func failArchiveExtraction(_ message: String) async {
+        func failArchiveValidation(_ message: String) async {
           logger.error("❌ \(message): \(bookId)")
           try? FileManager.default.removeItem(at: bookDir)
           try? await DatabaseOperator.database().updateBookDownloadStatus(
@@ -2084,62 +2166,36 @@ actor OfflineManager {
             ),
             bookDir: bookDir
           )
-          try? FileManager.default.removeItem(at: archiveExtractionFile)
         } catch {
           logger.error(
-            "❌ Background archive extraction failed for book \(bookId), file=\(archiveExtractionFile.lastPathComponent), bookDir=\(bookDir.path), error=\(String(describing: error))"
+            "❌ Background archive validation failed for book \(bookId), file=\(archiveFile.lastPathComponent), bookDir=\(bookDir.path), error=\(String(describing: error))"
           )
-          await failArchiveExtraction(recoveryMessage)
+          await failArchiveValidation(recoveryMessage)
           return
         }
       }
 
-      // Extract EPUB file if present (single-file download approach)
+      // Keep EPUB files intact until the reader opens them and can show processing UI.
       let epubFile = bookDir.appendingPathComponent(Self.epubFileName)
-      if FileManager.default.fileExists(atPath: epubFile.path) {
-        let recoveryMessage = "Offline EPUB download is incomplete. Please retry downloading this book."
-
-        func failExtraction(_ message: String) async {
-          logger.error("❌ \(message): \(bookId)")
-          try? FileManager.default.removeItem(at: bookDir)
-          try? await DatabaseOperator.database().updateBookDownloadStatus(
-            bookId: bookId, instanceId: info.instanceId, status: .failed(error: message))
-          await postDownloadProjectionDidChange(bookId: bookId, instanceId: info.instanceId)
-          clearBackgroundDownloadContext(bookId: bookId)
-          removeActiveTask(bookId)
-          await refreshQueueStatus(instanceId: info.instanceId)
-          await syncDownloadQueue(instanceId: info.instanceId)
-        }
-
-        do {
-          try await finalizeExistingEpubFile(
-            instanceId: info.instanceId,
-            info: DownloadInfo(
-              bookId: bookId,
-              seriesTitle: info.seriesTitle,
-              bookInfo: info.bookInfo,
-              kind: info.kind
-            ),
-            bookDir: bookDir
-          )
-          try? FileManager.default.removeItem(at: epubFile)
-        } catch {
-          logger.error(
-            "❌ Background EPUB extraction failed for book \(bookId), file=\(epubFile.lastPathComponent), bookDir=\(bookDir.path), error=\(error.localizedDescription)"
-          )
-          await failExtraction(recoveryMessage)
-          return
-        }
-      } else if !hasCompletedArchiveExtraction(kind: info.kind, bookDir: bookDir) {
+      if !FileManager.default.fileExists(atPath: epubFile.path),
+        !hasCompletedOfflineResources(kind: info.kind, bookDir: bookDir)
+      {
         switch info.kind {
         case .archiveImages, .epubWebPub, .epubDivina:
+          let recoveryMessage: String
+          switch info.kind {
+          case .archiveImages:
+            recoveryMessage = "Offline archive download is incomplete. Please retry downloading this book."
+          default:
+            recoveryMessage = "Offline EPUB download is incomplete. Please retry downloading this book."
+          }
           logger.warning(
             "⚠️ Archive and extracted resources are both missing during background finalization for book \(bookId), bookDir=\(bookDir.path)"
           )
           try? await DatabaseOperator.database().updateBookDownloadStatus(
             bookId: bookId,
             instanceId: info.instanceId,
-            status: .failed(error: "Offline EPUB download is incomplete. Please retry downloading this book.")
+            status: .failed(error: recoveryMessage)
           )
           await postDownloadProjectionDidChange(bookId: bookId, instanceId: info.instanceId)
           clearBackgroundDownloadContext(bookId: bookId)
@@ -2217,17 +2273,6 @@ actor OfflineManager {
     try? await DatabaseOperator.database().updateBookTOC(bookId: bookId, toc: toc)
   }
 
-  private func downloadWebPubEpub(bookId: String, to bookDir: URL) async throws {
-    try await savePageMetadataFromServer(bookId: bookId, bookDir: bookDir)
-
-    let webPubManifest = try await BookService.getBookWebPubManifest(bookId: bookId)
-    try? await DatabaseOperator.database().updateBookWebPubManifest(bookId: bookId, manifest: webPubManifest)
-    try Self.writeWebPubManifestSidecar(webPubManifest, to: bookDir)
-
-    // Download the original EPUB file and extract as ZIP
-    try await downloadAndExtractEpub(bookId: bookId, manifest: webPubManifest, bookDir: bookDir)
-  }
-
   private func downloadImageArchive(
     bookId: String,
     format: DownloadedImageArchiveFormat,
@@ -2255,8 +2300,7 @@ actor OfflineManager {
     #endif
 
     try Task.checkCancellation()
-    try extractImageArchive(archiveFile: archiveFile, format: format, pages: pages, bookDir: bookDir)
-    try? FileManager.default.removeItem(at: archiveFile)
+    try await validateImageArchiveFile(archiveFile: archiveFile, pages: pages)
 
     await MainActor.run {
       DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: 1.0)
@@ -2266,10 +2310,27 @@ actor OfflineManager {
     #endif
   }
 
-  private func downloadDivinaEpub(bookId: String, to bookDir: URL) async throws {
-    let manifest = try await BookService.getBookManifest(id: bookId)
-    await saveDivinaManifestTOC(bookId: bookId, manifest: manifest)
-    let pages = try await savePageMetadataFromServer(bookId: bookId, bookDir: bookDir)
+  private func downloadEpub(
+    bookId: String,
+    kind: DownloadContentKind,
+    to bookDir: URL
+  ) async throws {
+    switch kind {
+    case .epubWebPub:
+      try await savePageMetadataFromServer(bookId: bookId, bookDir: bookDir)
+      let webPubManifest = try await BookService.getBookWebPubManifest(bookId: bookId)
+      try? await DatabaseOperator.database().updateBookWebPubManifest(
+        bookId: bookId,
+        manifest: webPubManifest
+      )
+      try Self.writeWebPubManifestSidecar(webPubManifest, to: bookDir)
+    case .epubDivina:
+      let manifest = try await BookService.getBookManifest(id: bookId)
+      await saveDivinaManifestTOC(bookId: bookId, manifest: manifest)
+      _ = try await savePageMetadataFromServer(bookId: bookId, bookDir: bookDir)
+    default:
+      return
+    }
 
     await MainActor.run {
       DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: 0.0)
@@ -2283,65 +2344,8 @@ actor OfflineManager {
       DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: 1.0)
     }
     #if os(iOS)
-      await updateDownloadLiveActivityProgress(
-        bookId: bookId,
-        progress: 1.0,
-        bookInfoOverride: String(localized: "Processing offline files...")
-      )
-    #endif
-
-    try Task.checkCancellation()
-    try extractEpubDivinaImages(epubFile: epubFile, pages: pages, bookDir: bookDir)
-    try? FileManager.default.removeItem(at: epubFile)
-
-    await MainActor.run {
-      DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: 1.0)
-    }
-    #if os(iOS)
       await updateDownloadLiveActivityProgress(bookId: bookId, progress: 1.0)
     #endif
-  }
-
-  private func finalizeExistingEpubFile(
-    instanceId: String,
-    info: DownloadInfo,
-    bookDir: URL
-  ) async throws {
-    let epubFile = bookDir.appendingPathComponent(Self.epubFileName)
-    switch info.kind {
-    case .epubWebPub:
-      var manifest = try? Self.readWebPubManifestSidecar(from: bookDir)
-      if manifest == nil {
-        manifest = try? await DatabaseOperator.database().fetchWebPubManifest(
-          bookId: info.bookId,
-          instanceId: instanceId
-        )
-      }
-      guard let manifest else {
-        throw AppErrorType.missingRequiredData(
-          message: "Missing WebPub manifest for offline EPUB extraction."
-        )
-      }
-      try extractEpubToWebPub(
-        epubFile: epubFile,
-        bookId: info.bookId,
-        manifest: manifest,
-        bookDir: bookDir
-      )
-    case .epubDivina:
-      var pages = (try? Self.readArchivePagesSidecar(from: bookDir)) ?? []
-      if pages.isEmpty {
-        pages = (try? await DatabaseOperator.database().fetchPages(id: info.bookId)) ?? []
-      }
-      guard !pages.isEmpty else {
-        throw AppErrorType.missingRequiredData(
-          message: "Missing page metadata for offline EPUB image extraction."
-        )
-      }
-      try extractEpubDivinaImages(epubFile: epubFile, pages: pages, bookDir: bookDir)
-    default:
-      break
-    }
   }
 
   private func finalizeExistingImageArchiveFile(
@@ -2356,54 +2360,16 @@ actor OfflineManager {
     }
     guard !pages.isEmpty else {
       throw AppErrorType.missingRequiredData(
-        message: "Missing page metadata for offline image archive extraction."
+        message: "Missing page metadata for offline image archive validation."
       )
     }
-    try extractImageArchive(archiveFile: archiveFile, format: format, pages: pages, bookDir: bookDir)
+    try await validateImageArchiveFile(archiveFile: archiveFile, pages: pages)
   }
 
   private func downloadPdfFile(bookId: String, to bookDir: URL) async throws {
     let fileURL = bookDir.appendingPathComponent(Self.pdfFileName)
     _ = try await BookService.downloadBookFile(bookId: bookId, to: fileURL)
     Self.excludeFromBackupIfNeeded(at: fileURL)
-    await MainActor.run {
-      DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: 1.0)
-    }
-    #if os(iOS)
-      await updateDownloadLiveActivityProgress(bookId: bookId, progress: 1.0)
-    #endif
-  }
-
-  private func downloadAndExtractEpub(
-    bookId: String,
-    manifest: WebPubPublication,
-    bookDir: URL
-  ) async throws {
-    await MainActor.run {
-      DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: 0.0)
-    }
-
-    let epubFile = bookDir.appendingPathComponent(Self.epubFileName)
-    _ = try await BookService.downloadBookFile(bookId: bookId, to: epubFile)
-    Self.excludeFromBackupIfNeeded(at: epubFile)
-
-    await MainActor.run {
-      DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: 1.0)
-    }
-    #if os(iOS)
-      await updateDownloadLiveActivityProgress(
-        bookId: bookId,
-        progress: 1.0,
-        bookInfoOverride: String(localized: "Processing offline files...")
-      )
-    #endif
-
-    try Task.checkCancellation()
-    try extractEpubToWebPub(epubFile: epubFile, bookId: bookId, manifest: manifest, bookDir: bookDir)
-
-    // Clean up the EPUB file after extraction
-    try? FileManager.default.removeItem(at: epubFile)
-
     await MainActor.run {
       DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: 1.0)
     }
@@ -2449,114 +2415,31 @@ actor OfflineManager {
     }
   }
 
-  private func extractEpubDivinaImages(
-    epubFile: URL,
-    pages: [BookPage],
-    bookDir: URL
-  ) throws {
-    let targets = try Self.divinaImageTargets(from: pages, bookDir: bookDir)
-
-    guard !targets.isEmpty else {
-      throw AppErrorType.missingRequiredData(
-        message: "Book page metadata is empty for offline EPUB image extraction."
-      )
-    }
-
-    try removePageImageFiles(in: bookDir)
-
-    var archivePathToDestination: [String: URL] = [:]
-    for target in targets {
-      archivePathToDestination[target.archivePath] = target.destination
-    }
-
-    let extracted = try ArchiveExtractionService.extractFiles(
-      from: epubFile,
-      destinationsByArchivePath: archivePathToDestination,
-      normalizePath: Self.normalizeArchivePath
-    )
-
-    for file in extracted {
-      Self.excludeFromBackupIfNeeded(at: file.destination)
-    }
-
-    guard extracted.count == targets.count else {
-      throw AppErrorType.missingRequiredData(
-        message: "EPUB archive is missing \(targets.count - extracted.count) DIVINA image resources."
-      )
-    }
-  }
-
-  private func extractImageArchive(
+  private func validateImageArchiveFile(
     archiveFile: URL,
-    format: DownloadedImageArchiveFormat,
-    pages: [BookPage],
-    bookDir: URL
-  ) throws {
+    pages: [BookPage]
+  ) async throws {
     guard !pages.isEmpty else {
       throw AppErrorType.missingRequiredData(
-        message: "Book page metadata is empty for offline archive extraction."
+        message: "Book page metadata is empty for offline archive validation."
       )
     }
 
-    try removePageImageFiles(in: bookDir)
-
-    switch format {
-    case .cbz:
-      try extractCBZArchive(archiveFile: archiveFile, pages: pages, bookDir: bookDir)
-    case .cbr:
-      try extractCBRArchive(archiveFile: archiveFile, pages: pages, bookDir: bookDir)
-    }
-  }
-
-  private func extractCBZArchive(
-    archiveFile: URL,
-    pages: [BookPage],
-    bookDir: URL
-  ) throws {
-    try extractCompressedImageArchive(archiveFile: archiveFile, pages: pages, bookDir: bookDir)
-  }
-
-  private func extractCBRArchive(
-    archiveFile: URL,
-    pages: [BookPage],
-    bookDir: URL
-  ) throws {
-    try extractCompressedImageArchive(archiveFile: archiveFile, pages: pages, bookDir: bookDir)
-  }
-
-  private func extractCompressedImageArchive(
-    archiveFile: URL,
-    pages: [BookPage],
-    bookDir: URL
-  ) throws {
-    var destinationsByArchivePath: [String: URL] = [:]
+    var requiredPaths: Set<String> = []
     for page in pages {
       guard let normalizedPath = Self.normalizeArchivePath(page.fileName) else {
         throw AppErrorType.invalidFileURL(url: page.fileName)
       }
-      let destination = imageArchivePageDestination(
-        page: page,
-        fallbackPath: page.fileName,
-        bookDir: bookDir
-      )
-      destinationsByArchivePath[normalizedPath] = destination
+      requiredPaths.insert(normalizedPath)
     }
 
-    let extracted = try ArchiveExtractionService.extractFiles(
-      from: archiveFile,
-      destinationsByArchivePath: destinationsByArchivePath,
-      normalizePath: Self.normalizeArchivePath
-    )
+    let availablePathsByNormalizedPath = try await archivePathIndex(for: archiveFile)
+    let availablePaths = Set(availablePathsByNormalizedPath.keys)
 
-    for file in extracted {
-      Self.excludeFromBackupIfNeeded(at: file.destination)
-    }
-
-    guard extracted.count == pages.count else {
-      let extractedPaths = Set(extracted.map(\.archivePath))
+    guard requiredPaths.isSubset(of: availablePaths) else {
       let missingPage = pages.first { page in
         guard let normalizedPath = Self.normalizeArchivePath(page.fileName) else { return true }
-        return !extractedPaths.contains(normalizedPath)
+        return !availablePaths.contains(normalizedPath)
       }
       let missingPath = missingPage?.fileName ?? "unknown"
       throw AppErrorType.missingRequiredData(
@@ -2565,42 +2448,14 @@ actor OfflineManager {
     }
   }
 
-  private func imageArchivePageDestination(
-    page: BookPage,
-    fallbackPath: String,
-    bookDir: URL
-  ) -> URL {
-    let fallbackExtension = (fallbackPath as NSString).pathExtension.lowercased()
-    let fileExtension =
-      page.detectedUTType?.preferredFilenameExtension?.lowercased()
-      ?? (fallbackExtension.isEmpty ? "jpg" : fallbackExtension)
-    return bookDir.appendingPathComponent("page-\(page.number).\(fileExtension)")
-  }
-
-  private func removePageImageFiles(in bookDir: URL) throws {
-    guard
-      let fileURLs = try? FileManager.default.contentsOfDirectory(
-        at: bookDir,
-        includingPropertiesForKeys: nil,
-        options: [.skipsHiddenFiles]
-      )
-    else {
-      return
-    }
-
-    for fileURL in fileURLs where fileURL.lastPathComponent.hasPrefix("page-") {
-      try FileManager.default.removeItem(at: fileURL)
-    }
-  }
-
-  private func hasCompletedArchiveExtraction(kind: DownloadContentKind, bookDir: URL) -> Bool {
+  private func hasCompletedOfflineResources(kind: DownloadContentKind, bookDir: URL) -> Bool {
     switch kind {
     case .archiveImages:
-      return Self.directoryContainsPageImages(bookDir)
+      return existingImageArchiveFileURL(in: bookDir) != nil || Self.directoryContainsPageImages(bookDir)
     case .epubWebPub:
-      return Self.directoryContainsFiles(webPubRootURL(bookDir: bookDir))
+      return existingEpubFileURL(in: bookDir) != nil || Self.directoryContainsFiles(webPubRootURL(bookDir: bookDir))
     case .epubDivina:
-      return Self.directoryContainsPageImages(bookDir)
+      return existingEpubFileURL(in: bookDir) != nil || Self.directoryContainsPageImages(bookDir)
     default:
       return true
     }
@@ -2611,29 +2466,129 @@ actor OfflineManager {
     return bookDir.appendingPathComponent(format.fileName)
   }
 
-  private struct DivinaImageTarget {
-    let archivePath: String
-    let destination: URL
+  private func existingEpubFileURL(in bookDir: URL) -> URL? {
+    let file = bookDir.appendingPathComponent(Self.epubFileName)
+    return FileManager.default.fileExists(atPath: file.path) ? file : nil
   }
 
-  private static func divinaImageTargets(
-    from pages: [BookPage],
-    bookDir: URL
-  ) throws -> [DivinaImageTarget] {
-    try pages.map { page in
-      guard let normalizedArchivePath = normalizeArchivePath(page.fileName) else {
-        throw AppErrorType.invalidFileURL(url: page.fileName)
+  private func offlinePageImageFileURLs(bookDir: URL, page: BookPage) -> [URL] {
+    let preferredExtension = page.detectedUTType?.preferredFilenameExtension?.lowercased() ?? "jpg"
+    let fallbackExtension = (page.fileName as NSString).pathExtension.lowercased()
+    let extensions =
+      ([preferredExtension, fallbackExtension].filter { !$0.isEmpty } + ["jpg"])
+      .reduce(into: [String]()) { result, fileExtension in
+        if !result.contains(fileExtension) {
+          result.append(fileExtension)
+        }
       }
-      let fallbackExtension = (page.fileName as NSString).pathExtension.lowercased()
-      let fileExtension =
-        page.detectedUTType?.preferredFilenameExtension?.lowercased()
-        ?? (fallbackExtension.isEmpty ? "jpg" : fallbackExtension)
-      let destination = bookDir.appendingPathComponent("page-\(page.number).\(fileExtension)")
-      return DivinaImageTarget(
-        archivePath: normalizedArchivePath,
-        destination: destination
+
+    return extensions.map { fileExtension in
+      bookDir.appendingPathComponent("page-\(page.number).\(fileExtension)")
+    }
+  }
+
+  private func existingImageArchiveFileURL(in bookDir: URL) -> URL? {
+    let formats: [DownloadedImageArchiveFormat] = [.cbz, .cbr]
+    return formats
+      .map { bookDir.appendingPathComponent($0.fileName) }
+      .first { FileManager.default.fileExists(atPath: $0.path) }
+  }
+
+  private func existingArchivedPageSourceURL(in bookDir: URL) -> URL? {
+    existingImageArchiveFileURL(in: bookDir) ?? existingEpubFileURL(in: bookDir)
+  }
+
+  private func pageImageCache(for instanceId: String) -> ImageCache {
+    let key = instanceId.isEmpty ? "default" : instanceId
+    if let cache = pageImageCachesByInstanceId[key] {
+      return cache
+    }
+
+    let cache = ImageCache(instanceId: key)
+    pageImageCachesByInstanceId[key] = cache
+    return cache
+  }
+
+  private func archivePathIndex(
+    for archiveFile: URL,
+    priority: TaskPriority = .utility
+  ) async throws -> [String: String] {
+    let key = Self.archivePathIndexCacheKey(for: archiveFile)
+    if let cachedIndex = archivePathIndexesByCacheKey[key] {
+      return cachedIndex
+    }
+
+    let index = try await Task.detached(priority: priority) {
+      try ArchiveExtractionService.regularArchivePaths(
+        in: archiveFile,
+        normalizePath: Self.normalizeArchivePath
+      )
+    }.value
+
+    archivePathIndexesByCacheKey = archivePathIndexesByCacheKey.filter {
+      $0.key.path != key.path
+    }
+
+    if archivePathIndexesByCacheKey.count >= Self.archivePathIndexCacheLimit,
+      let evictedKey = archivePathIndexesByCacheKey.keys.first
+    {
+      archivePathIndexesByCacheKey.removeValue(forKey: evictedKey)
+    }
+    archivePathIndexesByCacheKey[key] = index
+    return index
+  }
+
+  private func archivedPageData(from archiveFile: URL, page: BookPage) async throws -> Data {
+    do {
+      return try await Self.archiveEntryData(
+        from: archiveFile,
+        entryPath: page.fileName,
+        priority: .userInitiated
+      )
+    } catch {
+      guard let normalizedPath = Self.normalizeArchivePath(page.fileName) else {
+        throw error
+      }
+
+      let archivePathIndex = try await archivePathIndex(for: archiveFile, priority: .userInitiated)
+      guard let fallbackEntryPath = archivePathIndex[normalizedPath],
+        fallbackEntryPath != page.fileName
+      else {
+        throw error
+      }
+
+      return try await Self.archiveEntryData(
+        from: archiveFile,
+        entryPath: fallbackEntryPath,
+        priority: .userInitiated
       )
     }
+  }
+
+  private static func archiveEntryData(
+    from archiveFile: URL,
+    entryPath: String,
+    priority: TaskPriority
+  ) async throws -> Data {
+    try await Task.detached(priority: priority) {
+      try ArchiveExtractionService.fileData(
+        from: archiveFile,
+        entryPath: entryPath
+      )
+    }.value
+  }
+
+  private static func archivePathIndexCacheKey(for fileURL: URL) -> ArchivePathIndexCacheKey {
+    let values = try? fileURL.resourceValues(forKeys: [
+      .fileSizeKey,
+      .contentModificationDateKey,
+    ])
+
+    return ArchivePathIndexCacheKey(
+      path: fileURL.standardizedFileURL.path,
+      fileSize: Int64(values?.fileSize ?? -1),
+      modificationTime: values?.contentModificationDate?.timeIntervalSinceReferenceDate ?? -1
+    )
   }
 
   private static func manifestResourcePath(from href: String) -> String? {
@@ -2702,7 +2657,7 @@ actor OfflineManager {
     }
   }
 
-  private func downloadPages(bookId: String, to bookDir: URL) async throws {
+  private func downloadPages(instanceId: String, bookId: String, to bookDir: URL) async throws {
     let pages = try await savePageMetadataFromServer(bookId: bookId, bookDir: bookDir)
     await saveDivinaManifestTOCFromServerIfAvailable(bookId: bookId)
 
@@ -2717,6 +2672,7 @@ actor OfflineManager {
       }
 
       if await copyCachedPageIfAvailable(
+        instanceId: instanceId,
         bookId: bookId,
         page: page,
         destination: destination
@@ -2790,6 +2746,7 @@ actor OfflineManager {
   }
 
   private func copyCachedPageIfAvailable(
+    instanceId: String,
     bookId: String,
     page: BookPage,
     destination: URL
@@ -2798,11 +2755,12 @@ actor OfflineManager {
       return true
     }
 
-    guard await pageImageCache.hasImage(bookId: bookId, page: page) else {
+    let cache = pageImageCache(for: instanceId)
+    guard await cache.hasImage(bookId: bookId, page: page) else {
       return false
     }
 
-    let cachedURL = pageImageCache.imageFileURL(bookId: bookId, page: page)
+    let cachedURL = cache.imageFileURL(bookId: bookId, page: page)
     do {
       try FileManager.default.copyItem(at: cachedURL, to: destination)
       Self.excludeFromBackupIfNeeded(at: destination)
@@ -2813,8 +2771,8 @@ actor OfflineManager {
     }
   }
 
-  private func clearCachesAfterDownload(bookId: String) async {
-    await ImageCache.clearDiskCache(forBookId: bookId)
+  private func clearCachesAfterDownload(bookId: String, instanceId: String) async {
+    await ImageCache.clearDiskCache(forBookId: bookId, instanceId: instanceId)
   }
 
   private func finalizeDownload(
@@ -2830,7 +2788,7 @@ actor OfflineManager {
     )
     await postDownloadProjectionDidChange(bookId: bookId, instanceId: instanceId)
     await refreshQueueStatus(instanceId: instanceId)
-    await clearCachesAfterDownload(bookId: bookId)
+    await clearCachesAfterDownload(bookId: bookId, instanceId: instanceId)
     completedDownloadsSinceLastNotification += 1
     removeActiveTask(bookId)
     scheduleDownloadedSizeUpdate(instanceId: instanceId, bookId: bookId, bookDir: bookDir)
