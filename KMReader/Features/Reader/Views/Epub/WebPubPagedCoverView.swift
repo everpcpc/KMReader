@@ -12,6 +12,7 @@
     let preferences: EpubThemePreferences
     let colorScheme: ColorScheme
     let animateTapTurns: Bool
+    let overlayPreferences: EpubOverlayPreferences
     let showingControls: Bool
     let bookTitle: String?
     let onCenterTap: () -> Void
@@ -281,6 +282,7 @@
             bookTitle: parent.bookTitle,
             chapterTitle: location.title,
             totalProgression: totalProgression,
+            overlayPreferences: parent.overlayPreferences,
             showingControls: parent.showingControls,
             labelTopOffset: parent.viewModel.labelTopOffset,
             labelBottomOffset: parent.viewModel.labelBottomOffset,
@@ -318,6 +320,7 @@
             bookTitle: parent.bookTitle,
             chapterTitle: location.title,
             totalProgression: totalProgression,
+            overlayPreferences: parent.overlayPreferences,
             showingControls: parent.showingControls,
             labelTopOffset: parent.viewModel.labelTopOffset,
             labelBottomOffset: parent.viewModel.labelBottomOffset,
@@ -352,6 +355,7 @@
           bookTitle: parent.bookTitle,
           chapterTitle: location.title,
           totalProgression: totalProgression,
+          overlayPreferences: parent.overlayPreferences,
           showingControls: parent.showingControls,
           labelTopOffset: parent.viewModel.labelTopOffset,
           labelBottomOffset: parent.viewModel.labelBottomOffset,
@@ -432,6 +436,7 @@
           bookTitle: parent.bookTitle,
           chapterTitle: location.title,
           totalProgression: totalProgression,
+          overlayPreferences: parent.overlayPreferences,
           showingControls: parent.showingControls,
           labelTopOffset: parent.viewModel.labelTopOffset,
           labelBottomOffset: parent.viewModel.labelBottomOffset,

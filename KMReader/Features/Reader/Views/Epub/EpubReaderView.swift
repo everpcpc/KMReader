@@ -26,6 +26,8 @@
     @AppStorage("epubPageTransitionStyle") private var epubPageTransitionStyle: PageTransitionStyle = .scroll
     @AppStorage("epubShowsStatusBarWhileReading") private var epubShowsStatusBarWhileReading: Bool = false
     @AppStorage("animateEpubTapTurns") private var animateEpubTapTurns: Bool = AppConfig.animateEpubTapTurns
+    @AppStorage("epubOverlayPreferences") private var epubOverlayPreferences: EpubOverlayPreferences = AppConfig
+      .epubOverlayPreferences
     @AppStorage("epubShowKeyboardHelpOverlay")
     private var showKeyboardHelpOverlay: Bool = AppConfig.epubShowKeyboardHelpOverlay
 
@@ -512,6 +514,7 @@
               preferences: activeThemePreferences,
               colorScheme: readerColorScheme,
               animateTapTurns: animateEpubTapTurns,
+              overlayPreferences: epubOverlayPreferences,
               showingControls: shouldShowControls,
               bookTitle: currentBook?.metadata.title,
               onCenterTap: {
@@ -530,6 +533,7 @@
               animatePageTransitions: animateEpubTapTurns,
               preferences: activeThemePreferences,
               colorScheme: readerColorScheme,
+              overlayPreferences: epubOverlayPreferences,
               showingControls: shouldShowControls,
               bookTitle: currentBook?.metadata.title,
               onCenterTap: {
@@ -550,6 +554,7 @@
             colorScheme: readerColorScheme,
             tapScrollPercentage: epubTapScrollPercentage,
             animateTapTurns: animateEpubTapTurns,
+            overlayPreferences: epubOverlayPreferences,
             showingControls: shouldShowControls,
             bookTitle: currentBook?.metadata.title,
             onCenterTap: {
@@ -573,6 +578,7 @@
               animatePageTransitions: animateEpubTapTurns,
               preferences: activeThemePreferences,
               colorScheme: readerColorScheme,
+              overlayPreferences: epubOverlayPreferences,
               showingControls: shouldShowControls,
               bookTitle: currentBook?.metadata.title,
               onCenterTap: {
@@ -591,6 +597,7 @@
               preferences: activeThemePreferences,
               colorScheme: readerColorScheme,
               animateTapTurns: animateEpubTapTurns,
+              overlayPreferences: epubOverlayPreferences,
               showingControls: shouldShowControls,
               bookTitle: currentBook?.metadata.title,
               onCenterTap: {
@@ -609,6 +616,7 @@
               preferences: activeThemePreferences,
               colorScheme: readerColorScheme,
               animateTapTurns: animateEpubTapTurns,
+              overlayPreferences: epubOverlayPreferences,
               showingControls: shouldShowControls,
               bookTitle: currentBook?.metadata.title,
               onCenterTap: {
@@ -629,6 +637,7 @@
             colorScheme: readerColorScheme,
             tapScrollPercentage: epubTapScrollPercentage,
             animateTapTurns: animateEpubTapTurns,
+            overlayPreferences: epubOverlayPreferences,
             showingControls: shouldShowControls,
             bookTitle: currentBook?.metadata.title,
             onCenterTap: {

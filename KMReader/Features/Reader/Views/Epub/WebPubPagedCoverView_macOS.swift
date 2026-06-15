@@ -8,6 +8,7 @@
     let preferences: EpubThemePreferences
     let colorScheme: ColorScheme
     let animateTapTurns: Bool
+    let overlayPreferences: EpubOverlayPreferences
     let showingControls: Bool
     let bookTitle: String?
     let onCenterTap: () -> Void
@@ -592,7 +593,7 @@
         currentPageIndex: currentSubPageIndex,
         totalPagesInChapter: totalPagesInChapter,
         showingControls: parent.showingControls,
-        showProgressFooter: AppConfig.epubShowsProgressFooter
+        overlayPreferences: parent.overlayPreferences
       )
       infoOverlay?.update(content: content, animated: true)
     }

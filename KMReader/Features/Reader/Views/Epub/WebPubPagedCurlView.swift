@@ -13,6 +13,7 @@
     let preferences: EpubThemePreferences
     let colorScheme: ColorScheme
     let animateTapTurns: Bool
+    let overlayPreferences: EpubOverlayPreferences
     let showingControls: Bool
     let bookTitle: String?
     let onCenterTap: () -> Void
@@ -287,6 +288,7 @@
           bookTitle: bookTitle,
           chapterTitle: location.title,
           totalProgression: totalProgression,
+          overlayPreferences: overlayPreferences,
           showingControls: showingControls,
           labelTopOffset: viewModel.labelTopOffset,
           labelBottomOffset: viewModel.labelBottomOffset,
@@ -524,6 +526,7 @@
             bookTitle: parent.bookTitle,
             chapterTitle: location.title,
             totalProgression: totalProgression,
+            overlayPreferences: parent.overlayPreferences,
             showingControls: parent.showingControls,
             labelTopOffset: parent.viewModel.labelTopOffset,
             labelBottomOffset: parent.viewModel.labelBottomOffset,
@@ -559,6 +562,7 @@
             bookTitle: parent.bookTitle,
             chapterTitle: location.title,
             totalProgression: totalProgression,
+            overlayPreferences: parent.overlayPreferences,
             showingControls: parent.showingControls,
             labelTopOffset: parent.viewModel.labelTopOffset,
             labelBottomOffset: parent.viewModel.labelBottomOffset,
@@ -593,6 +597,7 @@
           bookTitle: parent.bookTitle,
           chapterTitle: location.title,
           totalProgression: totalProgression,
+          overlayPreferences: parent.overlayPreferences,
           showingControls: parent.showingControls,
           labelTopOffset: parent.viewModel.labelTopOffset,
           labelBottomOffset: parent.viewModel.labelBottomOffset,
@@ -1152,6 +1157,7 @@
     private var bookTitle: String?
     private var chapterTitle: String?
     private var totalProgression: Double?
+    private var overlayPreferences: EpubOverlayPreferences
     private var showingControls: Bool = false
     private var labelTopOffset: CGFloat
     private var labelBottomOffset: CGFloat
@@ -1180,6 +1186,7 @@
       bookTitle: String?,
       chapterTitle: String?,
       totalProgression: Double?,
+      overlayPreferences: EpubOverlayPreferences,
       showingControls: Bool,
       labelTopOffset: CGFloat,
       labelBottomOffset: CGFloat,
@@ -1202,6 +1209,7 @@
       self.bookTitle = bookTitle
       self.chapterTitle = chapterTitle
       self.totalProgression = totalProgression
+      self.overlayPreferences = overlayPreferences
       self.showingControls = showingControls
       self.labelTopOffset = labelTopOffset
       self.labelBottomOffset = labelBottomOffset
@@ -1292,6 +1300,7 @@
       bookTitle: String?,
       chapterTitle: String?,
       totalProgression: Double?,
+      overlayPreferences: EpubOverlayPreferences,
       showingControls: Bool,
       labelTopOffset: CGFloat,
       labelBottomOffset: CGFloat,
@@ -1338,6 +1347,7 @@
       self.bookTitle = bookTitle
       self.chapterTitle = chapterTitle
       self.totalProgression = totalProgression
+      self.overlayPreferences = overlayPreferences
       self.showingControls = showingControls
       self.labelTopOffset = labelTopOffset
       self.labelBottomOffset = labelBottomOffset
@@ -1405,7 +1415,7 @@
         currentPageIndex: currentSubPageIndex,
         totalPagesInChapter: totalPagesInChapter,
         showingControls: showingControls,
-        showProgressFooter: AppConfig.epubShowsProgressFooter
+        overlayPreferences: overlayPreferences
       )
       infoOverlay?.update(content: content, animated: true)
     }
