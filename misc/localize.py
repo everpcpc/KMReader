@@ -72,9 +72,44 @@ def saved_simulator_udid(project_root: Path, platform: str) -> str | None:
     return udid if isinstance(udid, str) and udid else None
 
 
+def simulator_udid_available(platform: str, udid: str) -> bool:
+    runtime_prefixes = {
+        "ios": "com.apple.CoreSimulator.SimRuntime.iOS",
+        "tvos": "com.apple.CoreSimulator.SimRuntime.tvOS",
+    }
+    runtime_prefix = runtime_prefixes.get(platform)
+    if runtime_prefix is None:
+        return False
+
+    try:
+        result = subprocess.run(
+            ["xcrun", "simctl", "list", "devices", "--json"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        data = json.loads(result.stdout)
+    except (subprocess.CalledProcessError, json.JSONDecodeError) as exc:
+        eprint(f"Warning: could not list simulators for {platform}: {exc}")
+        return False
+
+    for runtime, devices in (data.get("devices") or {}).items():
+        if not runtime.startswith(runtime_prefix):
+            continue
+        for device in devices:
+            if device.get("udid") == udid and device.get("isAvailable", False):
+                return True
+
+    return False
+
+
 def build_destination_for_platform(project_root: Path, platform: str) -> str:
     if udid := saved_simulator_udid(project_root, platform):
-        return f"id={udid}"
+        if simulator_udid_available(platform, udid):
+            return f"id={udid}"
+        eprint(
+            f"Warning: saved {platform} simulator is no longer available; using generic destination"
+        )
     return DEFAULT_BUILD_DESTINATIONS[platform]
 
 

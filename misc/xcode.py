@@ -469,6 +469,15 @@ class BuildRunner:
         mapping = {"ios": "ios", "macos": "macos", "tvos": "appletvos"}
         return mapping.get(platform, "ios")
 
+    @staticmethod
+    def _generic_simulator_destination(platform: str) -> str:
+        """Return a generic simulator destination for build-only actions."""
+        mapping = {
+            "ios": "generic/platform=iOS Simulator",
+            "tvos": "generic/platform=tvOS Simulator",
+        }
+        return mapping[platform]
+
     def _archive_internal(
         self,
         platform: str,
@@ -889,19 +898,27 @@ class BuildRunner:
 
     def build(self, platform: str, ci_mode: bool = False) -> bool:
         """Build for the specified platform."""
+        normalized = platform.lower()
+        if normalized not in ("ios", "macos", "tvos"):
+            print(f"{Color.RED}Unknown platform: {platform}{Color.NC}")
+            return False
+
         # For iOS and tvOS, select simulator for building
         device_udid = None
-        if platform.lower() in ("ios", "tvos"):
+        destination = None
+        if normalized in ("ios", "tvos"):
             # Always use simulator for builds
             is_simulator = True
             device_udid = self.device_manager.select_device(platform, is_simulator)
-            if not device_udid:
-                print(f"{Color.RED}No device selected{Color.NC}")
-                return False
-
-        if platform.lower() not in ("ios", "macos", "tvos"):
-            print(f"{Color.RED}Unknown platform: {platform}{Color.NC}")
-            return False
+            if device_udid:
+                destination = f"id={device_udid}"
+            else:
+                destination = self._generic_simulator_destination(normalized)
+                print(
+                    f"{Color.YELLOW}No concrete {platform} simulator selected; using {destination}{Color.NC}"
+                )
+        elif normalized == "macos":
+            destination = "platform=macOS"
 
         print(f"{Color.GREEN}Building for {platform.upper()}...{Color.NC}")
 
@@ -916,16 +933,8 @@ class BuildRunner:
             "-quiet",
         ]
 
-        # Add destination for device-specific builds
-        if device_udid:
-            cmd.extend(["-destination", f"id={device_udid}"])
-        elif platform.lower() in ("ios", "tvos"):
-            # Fallback to generic simulator destination
-            cmd.extend(
-                ["-destination", f"generic/platform={platform.upper()} Simulator"]
-            )
-        elif platform.lower() == "macos":
-            cmd.extend(["-destination", "platform=macOS"])
+        if destination:
+            cmd.extend(["-destination", destination])
 
         if ci_mode:
             cmd.extend(self._validation_args(ci_mode=True))

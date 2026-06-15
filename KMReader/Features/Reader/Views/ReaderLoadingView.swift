@@ -34,12 +34,9 @@ struct ReaderLoadingView: View {
             .rotationEffect(.degrees(-90))
             .animation(.spring(duration: 0.6, bounce: 0.3), value: progress)
 
-          Text("\(Int(progress * 100))")
+          Text(progress, format: .percent.precision(.fractionLength(0)))
             .font(.system(.subheadline, design: .rounded).bold())
             .monospacedDigit()
-            + Text("%")
-            .font(.system(.caption2, design: .rounded).bold())
-            .foregroundStyle(.secondary)
         } else {
           // Indeterminate State
           LoadingIcon()

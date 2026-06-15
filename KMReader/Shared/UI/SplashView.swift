@@ -116,7 +116,7 @@ struct SplashView: View {
                     .font(.caption)
                     .foregroundStyle(stageTextStyle(for: stage))
                   Spacer()
-                  Text("\(Int(stageProgress(for: stage) * 100))%")
+                  Text(stageProgress(for: stage), format: .percent.precision(.fractionLength(0)))
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
                     .monospacedDigit()

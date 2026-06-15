@@ -788,7 +788,7 @@
             showingChapterSheet = true
           } label: {
             HStack {
-              Text("Contents · \(totalProgression * 100, specifier: "%.1f")%")
+              Text("Contents · \(totalProgression, format: .percent.precision(.fractionLength(1)))")
                 .font(.callout)
               Image(systemName: "list.bullet")
             }

@@ -163,14 +163,14 @@ struct SeriesRowView: View {
         Text(series.booksUnreadCount > 0 ? "\(series.booksUnreadCount) unread" : series.readStatusDisplayName)
           .foregroundColor(series.readStatusColor)
         Text("•")
-        Text("\(progress * 100, specifier: "%.0f")%")
+        Text(progress, format: .percent.precision(.fractionLength(0)))
       case .unread:
         Image(systemName: "circle.righthalf.filled")
           .foregroundColor(series.readStatusColor)
         Text("\(series.booksUnreadCount) unread")
           .foregroundColor(series.readStatusColor)
         Text("•")
-        Text("\(progress * 100, specifier: "%.0f")%")
+        Text(progress, format: .percent.precision(.fractionLength(0)))
       }
     }
   }

@@ -103,7 +103,7 @@ struct BookRowView: View {
                   Text("Page \(progressPage + 1)")
                     .foregroundColor(.blue)
                   Text("•")
-                  Text("\(progress * 100, specifier: "%.0f")%")
+                  Text(progress, format: .percent.precision(.fractionLength(0)))
                 }
               }
             }

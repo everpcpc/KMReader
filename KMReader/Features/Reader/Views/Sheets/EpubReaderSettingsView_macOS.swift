@@ -80,7 +80,7 @@
             HStack {
               Text(String(localized: "epub.scrolled.tap_scroll_height"))
               Spacer()
-              Text("\(Int(tapScrollPercentage))%")
+              Text(tapScrollPercentage / 100, format: .percent.precision(.fractionLength(0)))
                 .foregroundStyle(.secondary)
             }
             Slider(value: $tapScrollPercentage, in: 25...100, step: 5)

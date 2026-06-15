@@ -310,14 +310,9 @@ struct OfflineTaskRow: View {
                 .foregroundStyle(.secondary)
             } else {
               ProgressView(value: progress) {
-                Text(
-                  String(
-                    format: String(localized: "Downloading %lld%%"),
-                    Int64(progress * 100)
-                  )
-                )
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                Text("Downloading \(progress.formatted(.percent.precision(.fractionLength(0))))")
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
               }
             }
           } else {

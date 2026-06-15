@@ -243,12 +243,12 @@ nonisolated struct EpubThemePreferences: RawRepresentable, Equatable, Sendable {
 
       properties["--USER__textAlign"] = textAlignment.readiumTextAlign
       properties["--USER__bodyHyphens"] = textAlignment.readiumBodyHyphens
-      properties["--USER__fontSize"] = String(format: "%.2f%%", fontSizePercent)
-      properties["--USER__lineHeight"] = String(format: "%.2f", lineHeight)
-      properties["--USER__paraSpacing"] = String(format: "%.2frem", paragraphSpacingRem)
-      properties["--USER__paraIndent"] = String(format: "%.2frem", paragraphIndentRem)
-      properties["--USER__wordSpacing"] = String(format: "%.2frem", wordSpacingRem)
-      properties["--USER__letterSpacing"] = String(format: "%.2frem", letterSpacingRem)
+      properties["--USER__fontSize"] = cssPercentage(fontSizePercent)
+      properties["--USER__lineHeight"] = cssNumber(lineHeight)
+      properties["--USER__paraSpacing"] = cssRem(paragraphSpacingRem)
+      properties["--USER__paraIndent"] = cssRem(paragraphIndentRem)
+      properties["--USER__wordSpacing"] = cssRem(wordSpacingRem)
+      properties["--USER__letterSpacing"] = cssRem(letterSpacingRem)
     } else {
       properties["--USER__fontSize"] = nil
       properties["--USER__lineHeight"] = nil
@@ -347,7 +347,19 @@ nonisolated struct EpubThemePreferences: RawRepresentable, Equatable, Sendable {
     let normalizedMargins = max(0, pageMargins)
     let horizontalPadding = normalizedMargins * 20.0
     let totalInset = max(0, horizontalPadding * 2.0)
-    return "calc(100% - \(String(format: "%.2f", totalInset))px)"
+    return "calc(100% - \(cssNumber(totalInset))px)"
+  }
+
+  private func cssNumber(_ value: Double) -> String {
+    String(format: "%.2f", locale: Locale(identifier: "en_US_POSIX"), value)
+  }
+
+  private func cssPercentage(_ value: Double) -> String {
+    "\(cssNumber(value))%"
+  }
+
+  private func cssRem(_ value: Double) -> String {
+    "\(cssNumber(value))rem"
   }
 
   private func makeDarkTextColorOverrideCSS(theme: ReaderTheme) -> String {

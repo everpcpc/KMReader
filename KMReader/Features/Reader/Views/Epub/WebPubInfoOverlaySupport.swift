@@ -51,7 +51,7 @@
         : visibleEntry(bookTitle)
       let topProgress: Entry
       if showingControls, let totalProgression {
-        let percentage = String(format: "%.2f%%", totalProgression * 100)
+        let percentage = totalProgression.formatted(.percent.precision(.fractionLength(2)))
         topProgress = Entry(
           text: String(localized: "Book Progress \(percentage)"),
           isVisible: true
@@ -129,7 +129,7 @@
           currentPageIndex: currentPageIndex,
           totalPagesInChapter: totalPagesInChapter
         )
-        let percentage = String(format: "%.1f%%", progress * 100)
+        let percentage = progress.formatted(.percent.precision(.fractionLength(1)))
         return Entry(
           text: String(localized: "Chapter Progress \(percentage)"),
           isVisible: true
@@ -155,7 +155,7 @@
           currentPageIndex: currentPageIndex,
           totalPagesInChapter: totalPagesInChapter
         )
-        let remaining = String(format: "%.1f%%", (1.0 - progress) * 100)
+        let remaining = (1.0 - progress).formatted(.percent.precision(.fractionLength(1)))
         return Entry(text: String(localized: "\(remaining) left"), isVisible: true)
       }
     }

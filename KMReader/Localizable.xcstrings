@@ -153,44 +153,6 @@
       },
       "shouldTranslate" : false
     },
-    "%" : {
-      "shouldTranslate" : false
-    },
-    "%.0f%%" : {
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%.0f%%"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%.0f%%"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%.0f%%"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%.0f%%"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%.0f%%"
-          }
-        }
-      },
-      "shouldTranslate" : false
-    },
     "%@ " : {
       "localizations" : {
         "fr" : {
@@ -1543,70 +1505,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld."
-          }
-        }
-      }
-    },
-    "%lld%%" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld%%"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld%%"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld%%"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld%%"
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld%%"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld%%"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld%%"
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld%%"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld%%"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld%%"
           }
         }
       }
@@ -13728,66 +13626,66 @@
         }
       }
     },
-    "Contents · %.1f%%" : {
+    "Contents · %@" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Inhalt · %.1f%%"
+            "value" : "Inhalt · %@"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Contents · %.1f%%"
+            "value" : "Contents · %@"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Contenido · %.1f%%"
+            "value" : "Contenido · %@"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Contenu · %.1f%%"
+            "value" : "Contenu · %@"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Contenuti · %.1f%%"
+            "value" : "Contenuti · %@"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "目次 · %.1f%%"
+            "value" : "目次 · %@"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "목차 · %.1f%%"
+            "value" : "목차 · %@"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Содержание · %.1f%%"
+            "value" : "Содержание · %@"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "目录 · %.1f%%"
+            "value" : "目录 · %@"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "目錄 · %.1f%%"
+            "value" : "目錄 · %@"
           }
         }
       }
@@ -19104,66 +19002,66 @@
         }
       }
     },
-    "Downloading %lld%%" : {
+    "Downloading %@" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld %% heruntergeladen"
+            "value" : "%@ heruntergeladen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Downloading %lld%%"
+            "value" : "Downloading %@"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Descargando %lld %%"
+            "value" : "Descargando %@"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Téléchargement %lld %%"
+            "value" : "Téléchargement %@"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Download %lld %%"
+            "value" : "Download %@"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ダウンロード中 %lld%%"
+            "value" : "ダウンロード中 %@"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "다운로드 중 %lld%%"
+            "value" : "다운로드 중 %@"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Загрузка %lld %%"
+            "value" : "Загрузка %@"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "正在下载 %lld%%"
+            "value" : "正在下载 %@"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "正在下載 %lld%%"
+            "value" : "正在下載 %@"
           }
         }
       }

@@ -187,7 +187,7 @@ struct DivinaPreferencesView: View {
               HStack {
                 Text("Webtoon Page Width")
                 Spacer()
-                Text("\(Int(webtoonPageWidthPercentage))%")
+                Text(webtoonPageWidthPercentage / 100, format: .percent.precision(.fractionLength(0)))
                   .foregroundColor(.secondary)
               }
               Slider(
@@ -291,7 +291,7 @@ struct DivinaPreferencesView: View {
                 HStack {
                   Text("Webtoon Tap Scroll Height")
                   Spacer()
-                  Text("\(Int(webtoonTapScrollPercentage))%")
+                  Text(webtoonTapScrollPercentage / 100, format: .percent.precision(.fractionLength(0)))
                     .foregroundColor(.secondary)
                 }
                 Slider(

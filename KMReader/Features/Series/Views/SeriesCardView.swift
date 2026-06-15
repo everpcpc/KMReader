@@ -97,7 +97,7 @@ struct SeriesCardView: View {
                 .foregroundColor(.red)
             } else {
               if progress > 0 && progress < 1 {
-                Text("\(progress * 100, specifier: "%.0f")%")
+                Text(progress, format: .percent.precision(.fractionLength(0)))
                 Text("•")
               }
               if progress == 1 {
@@ -154,7 +154,7 @@ struct SeriesCardView: View {
             .foregroundColor(.red)
         } else {
           if progress > 0 && progress < 1 {
-            Text("\(progress * 100, specifier: "%.0f")%")
+            Text(progress, format: .percent.precision(.fractionLength(0)))
             Text("•")
           }
           if progress == 1 {
