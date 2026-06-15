@@ -64,7 +64,11 @@
     }
 
     private var readerTheme: ReaderTheme {
-      draft.theme.resolvedTheme(for: colorScheme)
+      draft.resolvedTheme(fallbackColorScheme: colorScheme)
+    }
+
+    private var resolvedColorScheme: ColorScheme {
+      draft.resolvedColorScheme(fallbackColorScheme: colorScheme)
     }
 
     private var backgroundColor: Color {
@@ -123,7 +127,7 @@
 
     @ViewBuilder
     private func themePreviewButton(for choice: ThemeChoice) -> some View {
-      let previewTheme = choice.resolvedTheme(for: colorScheme)
+      let previewTheme = choice.resolvedTheme(for: resolvedColorScheme)
       let isSelected = draft.theme == choice
 
       Button {
@@ -167,6 +171,15 @@
         }
 
         Section(String(localized: "Theme")) {
+          Picker(
+            String(localized: "settings.appearance.colorScheme.title"),
+            selection: $draft.colorScheme
+          ) {
+            ForEach(AppColorScheme.allCases) { scheme in
+              Text(scheme.label).tag(scheme)
+            }
+          }
+
           themePicker
         }
 

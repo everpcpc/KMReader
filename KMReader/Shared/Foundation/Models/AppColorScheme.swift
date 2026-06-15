@@ -5,7 +5,7 @@
 
 import SwiftUI
 
-enum AppColorScheme: String, CaseIterable, Identifiable {
+enum AppColorScheme: String, CaseIterable, Identifiable, Sendable {
   case system
   case light
   case dark
@@ -23,7 +23,7 @@ enum AppColorScheme: String, CaseIterable, Identifiable {
     }
   }
 
-  var colorScheme: ColorScheme? {
+  nonisolated var colorScheme: ColorScheme? {
     switch self {
     case .system:
       return nil

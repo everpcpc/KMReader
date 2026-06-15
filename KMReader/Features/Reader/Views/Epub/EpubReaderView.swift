@@ -199,7 +199,11 @@
     }
 
     private var readerTheme: ReaderTheme {
-      activeThemePreferences.resolvedTheme(for: colorScheme)
+      activeThemePreferences.resolvedTheme(fallbackColorScheme: colorScheme)
+    }
+
+    private var readerColorScheme: ColorScheme {
+      activeThemePreferences.resolvedColorScheme(fallbackColorScheme: colorScheme)
     }
 
     #if os(macOS)
@@ -250,7 +254,7 @@
         }
         .onAppear {
           updateHandoff()
-          viewModel.applyPreferences(activeThemePreferences, colorScheme: colorScheme)
+          viewModel.applyPreferences(activeThemePreferences, colorScheme: readerColorScheme)
           #if os(macOS)
             configureReaderCommands()
           #endif
@@ -286,14 +290,20 @@
           #endif
         }
         .onChange(of: activeThemePreferences) { _, newPrefs in
-          viewModel.applyPreferences(newPrefs, colorScheme: colorScheme)
+          viewModel.applyPreferences(
+            newPrefs,
+            colorScheme: newPrefs.resolvedColorScheme(fallbackColorScheme: colorScheme)
+          )
         }
         .onChange(of: globalThemePreferences) { _, newPrefs in
           guard !isUsingBookPreferences else { return }
           activeThemePreferences = newPrefs
         }
         .onChange(of: colorScheme) { _, newScheme in
-          viewModel.applyPreferences(activeThemePreferences, colorScheme: newScheme)
+          let newReaderColorScheme = activeThemePreferences.resolvedColorScheme(
+            fallbackColorScheme: newScheme
+          )
+          viewModel.applyPreferences(activeThemePreferences, colorScheme: newReaderColorScheme)
         }
         .onReceive(
           NotificationCenter.default.publisher(for: .fileDownloadProgress)
@@ -408,7 +418,7 @@
         EpubEndPageView(
           bookTitle: currentBook?.metadata.title,
           preferences: activeThemePreferences,
-          colorScheme: colorScheme,
+          colorScheme: readerColorScheme,
           onReturn: {
             // Hide end page first, then navigate to last page
             showingEndPage = false
@@ -500,7 +510,7 @@
             WebPubPagedCoverView(
               viewModel: viewModel,
               preferences: activeThemePreferences,
-              colorScheme: colorScheme,
+              colorScheme: readerColorScheme,
               animateTapTurns: animateEpubTapTurns,
               showingControls: shouldShowControls,
               bookTitle: currentBook?.metadata.title,
@@ -519,7 +529,7 @@
               viewModel: viewModel,
               animatePageTransitions: animateEpubTapTurns,
               preferences: activeThemePreferences,
-              colorScheme: colorScheme,
+              colorScheme: readerColorScheme,
               showingControls: shouldShowControls,
               bookTitle: currentBook?.metadata.title,
               onCenterTap: {
@@ -537,7 +547,7 @@
           WebPubScrolledView(
             viewModel: viewModel,
             preferences: activeThemePreferences,
-            colorScheme: colorScheme,
+            colorScheme: readerColorScheme,
             tapScrollPercentage: epubTapScrollPercentage,
             animateTapTurns: animateEpubTapTurns,
             showingControls: shouldShowControls,
@@ -562,7 +572,7 @@
               viewModel: viewModel,
               animatePageTransitions: animateEpubTapTurns,
               preferences: activeThemePreferences,
-              colorScheme: colorScheme,
+              colorScheme: readerColorScheme,
               showingControls: shouldShowControls,
               bookTitle: currentBook?.metadata.title,
               onCenterTap: {
@@ -579,7 +589,7 @@
             WebPubPagedCoverView(
               viewModel: viewModel,
               preferences: activeThemePreferences,
-              colorScheme: colorScheme,
+              colorScheme: readerColorScheme,
               animateTapTurns: animateEpubTapTurns,
               showingControls: shouldShowControls,
               bookTitle: currentBook?.metadata.title,
@@ -597,7 +607,7 @@
             WebPubPagedCurlView(
               viewModel: viewModel,
               preferences: activeThemePreferences,
-              colorScheme: colorScheme,
+              colorScheme: readerColorScheme,
               animateTapTurns: animateEpubTapTurns,
               showingControls: shouldShowControls,
               bookTitle: currentBook?.metadata.title,
@@ -616,7 +626,7 @@
           WebPubScrolledView(
             viewModel: viewModel,
             preferences: activeThemePreferences,
-            colorScheme: colorScheme,
+            colorScheme: readerColorScheme,
             tapScrollPercentage: epubTapScrollPercentage,
             animateTapTurns: animateEpubTapTurns,
             showingControls: shouldShowControls,

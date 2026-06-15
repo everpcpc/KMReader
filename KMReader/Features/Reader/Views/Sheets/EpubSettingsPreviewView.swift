@@ -16,7 +16,7 @@
     var body: some View {
       PlatformPreviewWebView(
         preferences: preferences,
-        colorScheme: colorScheme,
+        colorScheme: resolvedColorScheme,
         customFontPath: customFontPath
       )
       .task(id: customFontName ?? "") {
@@ -44,6 +44,10 @@
           customFontPath = nil
         }
       }
+    }
+
+    private var resolvedColorScheme: ColorScheme {
+      preferences.resolvedColorScheme(fallbackColorScheme: colorScheme)
     }
   }
 

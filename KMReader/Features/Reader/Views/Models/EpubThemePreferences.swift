@@ -57,6 +57,7 @@ nonisolated struct EpubThemePreferences: RawRepresentable, Equatable, Sendable {
   ]
 
   var theme: ThemeChoice
+  var colorScheme: AppColorScheme
   var fontFamily: FontFamilyChoice
   var fontWeight: Double?
   var advancedLayout: Bool
@@ -72,6 +73,7 @@ nonisolated struct EpubThemePreferences: RawRepresentable, Equatable, Sendable {
 
   init(
     theme: ThemeChoice = .system,
+    colorScheme: AppColorScheme = .system,
     fontFamily: FontFamilyChoice = .publisher,
     fontWeight: Double? = nil,
     advancedLayout: Bool = false,
@@ -86,6 +88,7 @@ nonisolated struct EpubThemePreferences: RawRepresentable, Equatable, Sendable {
     pageMargins: Double = EpubConstants.defaultPageMargins,
   ) {
     self.theme = theme
+    self.colorScheme = colorScheme
     self.fontFamily = fontFamily
     self.fontSize = fontSize
     self.wordSpacing = wordSpacing
@@ -114,6 +117,7 @@ nonisolated struct EpubThemePreferences: RawRepresentable, Equatable, Sendable {
     }
 
     let theme = (dict["theme"] as? String).flatMap(ThemeChoice.init) ?? .system
+    let colorScheme = (dict["colorScheme"] as? String).flatMap(AppColorScheme.init) ?? .system
     let fontString = dict["fontFamily"] as? String ?? FontFamilyChoice.publisher.rawValue
     let font = FontFamilyChoice(rawValue: fontString)
     let rawFontWeight = dict["fontWeight"] as? Double
@@ -135,6 +139,7 @@ nonisolated struct EpubThemePreferences: RawRepresentable, Equatable, Sendable {
 
     self.init(
       theme: theme,
+      colorScheme: colorScheme,
       fontFamily: font,
       fontWeight: fontWeight,
       advancedLayout: advancedLayout,
@@ -153,6 +158,7 @@ nonisolated struct EpubThemePreferences: RawRepresentable, Equatable, Sendable {
   var rawValue: String {
     var dict: [String: Any] = [
       "theme": theme.rawValue,
+      "colorScheme": colorScheme.rawValue,
       "fontFamily": fontFamily.rawValue,
       "advancedLayout": advancedLayout,
       "fontSize": fontSize,
@@ -178,6 +184,16 @@ nonisolated struct EpubThemePreferences: RawRepresentable, Equatable, Sendable {
 
   func resolvedTheme(for colorScheme: ColorScheme? = nil) -> ReaderTheme {
     theme.resolvedTheme(for: colorScheme)
+  }
+
+  func resolvedColorScheme(fallbackColorScheme: ColorScheme) -> ColorScheme {
+    colorScheme.colorScheme ?? fallbackColorScheme
+  }
+
+  func resolvedTheme(fallbackColorScheme: ColorScheme) -> ReaderTheme {
+    theme.resolvedTheme(
+      for: resolvedColorScheme(fallbackColorScheme: fallbackColorScheme)
+    )
   }
 
   func makeReadiumPayload(
