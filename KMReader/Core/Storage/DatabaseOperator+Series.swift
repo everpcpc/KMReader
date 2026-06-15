@@ -25,18 +25,19 @@ extension DatabaseOperator {
   ) -> [String] {
     guard !instanceId.isEmpty else { return [] }
     guard limit > 0 else { return [] }
-    return (try? read { db in
-      try fetchBrowseSeriesRecords(
-        db: db,
-        instanceId: instanceId,
-        libraryIds: libraryIds ?? [],
-        searchText: searchText,
-        browseOpts: browseOpts,
-        offset: offset,
-        limit: limit,
-        offlineOnly: offlineOnly
-      ).map(\.seriesId)
-    }) ?? []
+    return
+      (try? read { db in
+        try fetchBrowseSeriesRecords(
+          db: db,
+          instanceId: instanceId,
+          libraryIds: libraryIds ?? [],
+          searchText: searchText,
+          browseOpts: browseOpts,
+          offset: offset,
+          limit: limit,
+          offlineOnly: offlineOnly
+        ).map(\.seriesId)
+      }) ?? []
   }
 
   func fetchCollectionSeriesIds(
@@ -46,14 +47,15 @@ extension DatabaseOperator {
     size: Int
   ) -> [String] {
     let instanceId = AppConfig.current.instanceId
-    return (try? read { db in
-      guard let collection = try fetchCollectionRecord(db: db, id: collectionId, instanceId: instanceId) else {
-        return []
-      }
-      let series = try fetchSeriesByIds(db: db, ids: collection.seriesIds, instanceId: instanceId)
-        .filter { Self.matchesSeries($0, collectionBrowseOpts: browseOpts) }
-      return Self.paginate(series, offset: page * size, limit: size).map(\.seriesId)
-    }) ?? []
+    return
+      (try? read { db in
+        guard let collection = try fetchCollectionRecord(db: db, id: collectionId, instanceId: instanceId) else {
+          return []
+        }
+        let series = try fetchSeriesByIds(db: db, ids: collection.seriesIds, instanceId: instanceId)
+          .filter { Self.matchesSeries($0, collectionBrowseOpts: browseOpts) }
+        return Self.paginate(series, offset: page * size, limit: size).map(\.seriesId)
+      }) ?? []
   }
 
   func fetchDashboardOfflineSeriesIds(
@@ -64,34 +66,35 @@ extension DatabaseOperator {
   ) -> [String] {
     guard limit > 0 else { return [] }
     let instanceId = AppConfig.current.instanceId
-    return (try? read { db in
-      var sql = """
-        SELECT series_id
-        FROM \(KomgaSeries.databaseTableName)
-        WHERE instance_id = ?
-        """
-      var arguments: StatementArguments = [instanceId]
+    return
+      (try? read { db in
+        var sql = """
+          SELECT series_id
+          FROM \(KomgaSeries.databaseTableName)
+          WHERE instance_id = ?
+          """
+        var arguments: StatementArguments = [instanceId]
 
-      if !libraryIds.isEmpty {
-        let placeholders = Array(repeating: "?", count: libraryIds.count).joined(separator: ", ")
-        sql += "\nAND library_id IN (\(placeholders))"
-        arguments += StatementArguments(libraryIds)
-      }
+        if !libraryIds.isEmpty {
+          let placeholders = Array(repeating: "?", count: libraryIds.count).joined(separator: ", ")
+          sql += "\nAND library_id IN (\(placeholders))"
+          arguments += StatementArguments(libraryIds)
+        }
 
-      switch section {
-      case .recentlyAddedSeries:
-        sql += "\nORDER BY created DESC, id ASC"
-      case .recentlyUpdatedSeries:
-        sql += "\nORDER BY last_modified DESC, id ASC"
-      default:
-        return []
-      }
+        switch section {
+        case .recentlyAddedSeries:
+          sql += "\nORDER BY created DESC, id ASC"
+        case .recentlyUpdatedSeries:
+          sql += "\nORDER BY last_modified DESC, id ASC"
+        default:
+          return []
+        }
 
-      sql += "\nLIMIT ? OFFSET ?"
-      arguments += StatementArguments([limit, max(0, offset)])
+        sql += "\nLIMIT ? OFFSET ?"
+        arguments += StatementArguments([limit, max(0, offset)])
 
-      return try String.fetchAll(db, sql: sql, arguments: arguments)
-    }) ?? []
+        return try String.fetchAll(db, sql: sql, arguments: arguments)
+      }) ?? []
   }
 
   func upsertSeries(dto: Series, instanceId: String) {
@@ -145,24 +148,26 @@ extension DatabaseOperator {
         let existingById = Dictionary(uniqueKeysWithValues: existingSeries.map { ($0.seriesId, $0) })
 
         for series in seriesList {
-          var record = existingById[series.id] ?? KomgaSeries(
-            id: CompositeID.generate(instanceId: instanceId, id: series.id),
-            seriesId: series.id,
-            libraryId: series.libraryId,
-            instanceId: instanceId,
-            name: series.name,
-            url: series.url,
-            created: series.created,
-            lastModified: series.lastModified,
-            booksCount: series.booksCount,
-            booksReadCount: series.booksReadCount,
-            booksUnreadCount: series.booksUnreadCount,
-            booksInProgressCount: series.booksInProgressCount,
-            metadata: series.metadata,
-            booksMetadata: series.booksMetadata,
-            isUnavailable: series.deleted,
-            oneshot: series.oneshot
-          )
+          var record =
+            existingById[series.id]
+            ?? KomgaSeries(
+              id: CompositeID.generate(instanceId: instanceId, id: series.id),
+              seriesId: series.id,
+              libraryId: series.libraryId,
+              instanceId: instanceId,
+              name: series.name,
+              url: series.url,
+              created: series.created,
+              lastModified: series.lastModified,
+              booksCount: series.booksCount,
+              booksReadCount: series.booksReadCount,
+              booksUnreadCount: series.booksUnreadCount,
+              booksInProgressCount: series.booksInProgressCount,
+              metadata: series.metadata,
+              booksMetadata: series.booksMetadata,
+              isUnavailable: series.deleted,
+              oneshot: series.oneshot
+            )
           applySeries(dto: series, to: &record)
           try save(record, db: db)
         }
@@ -178,7 +183,8 @@ extension DatabaseOperator {
       var lastScannedId: String?
 
       while true {
-        var request = KomgaSeries
+        var request =
+          KomgaSeries
           .filter(KomgaSeries.Columns.instanceId == instanceId)
           .order(KomgaSeries.Columns.id)
           .limit(Self.recordFetchChunkSize)
@@ -415,10 +421,14 @@ extension DatabaseOperator {
     }
     if !collectionBrowseOpts.includeSeriesStatuses.isEmpty || !collectionBrowseOpts.excludeSeriesStatuses.isEmpty {
       if let seriesStatus = SeriesStatus.fromAPIValue(series.metadata?.status) {
-        if !collectionBrowseOpts.includeSeriesStatuses.isEmpty && !collectionBrowseOpts.includeSeriesStatuses.contains(seriesStatus) {
+        if !collectionBrowseOpts.includeSeriesStatuses.isEmpty
+          && !collectionBrowseOpts.includeSeriesStatuses.contains(seriesStatus)
+        {
           return false
         }
-        if !collectionBrowseOpts.excludeSeriesStatuses.isEmpty && collectionBrowseOpts.excludeSeriesStatuses.contains(seriesStatus) {
+        if !collectionBrowseOpts.excludeSeriesStatuses.isEmpty
+          && collectionBrowseOpts.excludeSeriesStatuses.contains(seriesStatus)
+        {
           return false
         }
       }
@@ -605,7 +615,8 @@ extension DatabaseOperator {
     case .read:
       return "(books_count > 0 AND books_read_count = books_count)"
     case .inProgress:
-      return "(NOT (books_count > 0 AND books_read_count = books_count) AND (books_read_count > 0 OR books_in_progress_count > 0))"
+      return
+        "(NOT (books_count > 0 AND books_read_count = books_count) AND (books_read_count > 0 OR books_in_progress_count > 0))"
     case .unread:
       return "(books_read_count <= 0 AND books_in_progress_count <= 0)"
     }
@@ -693,7 +704,11 @@ extension DatabaseOperator {
       return series.sorted { isAsc ? $0.lastModified < $1.lastModified : $0.lastModified > $1.lastModified }
     }
     if sort.contains("downloadAt") {
-      return series.sorted { isAsc ? ($0.downloadAt ?? .distantPast) < ($1.downloadAt ?? .distantPast) : ($0.downloadAt ?? .distantPast) > ($1.downloadAt ?? .distantPast) }
+      return series.sorted {
+        isAsc
+          ? ($0.downloadAt ?? .distantPast) < ($1.downloadAt ?? .distantPast)
+          : ($0.downloadAt ?? .distantPast) > ($1.downloadAt ?? .distantPast)
+      }
     }
     if sort.contains("booksCount") {
       return series.sorted { isAsc ? $0.booksCount < $1.booksCount : $0.booksCount > $1.booksCount }

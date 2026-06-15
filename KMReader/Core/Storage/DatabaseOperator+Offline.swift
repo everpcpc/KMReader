@@ -11,10 +11,14 @@ extension DatabaseOperator {
     do {
       try write { db in
         try db.execute(sql: "DELETE FROM \(KomgaBook.databaseTableName) WHERE instance_id = ?", arguments: [instanceId])
-        try db.execute(sql: "DELETE FROM \(KomgaSeries.databaseTableName) WHERE instance_id = ?", arguments: [instanceId])
-        try db.execute(sql: "DELETE FROM \(KomgaCollection.databaseTableName) WHERE instance_id = ?", arguments: [instanceId])
-        try db.execute(sql: "DELETE FROM \(KomgaReadList.databaseTableName) WHERE instance_id = ?", arguments: [instanceId])
-        try db.execute(sql: "DELETE FROM \(PendingProgress.databaseTableName) WHERE instance_id = ?", arguments: [instanceId])
+        try db.execute(
+          sql: "DELETE FROM \(KomgaSeries.databaseTableName) WHERE instance_id = ?", arguments: [instanceId])
+        try db.execute(
+          sql: "DELETE FROM \(KomgaCollection.databaseTableName) WHERE instance_id = ?", arguments: [instanceId])
+        try db.execute(
+          sql: "DELETE FROM \(KomgaReadList.databaseTableName) WHERE instance_id = ?", arguments: [instanceId])
+        try db.execute(
+          sql: "DELETE FROM \(PendingProgress.databaseTableName) WHERE instance_id = ?", arguments: [instanceId])
       }
       logger.info("Cleared GRDB entities for instance: \(instanceId)")
     } catch {
@@ -404,7 +408,8 @@ extension DatabaseOperator {
     var booksToDelete: [KomgaBook] = []
     let policyLimit = max(0, series.offlinePolicyLimit)
     let policySupportsLimit = policy == .unreadOnly || policy == .unreadOnlyAndCleanupRead
-    let sortedBooks = books
+    let sortedBooks =
+      books
       .filter { !$0.isUnavailable }
       .sorted { $0.metaNumberSort < $1.metaNumberSort }
     var allowedUnreadIds = Set<String>()

@@ -24,16 +24,18 @@ final class CustomFontStore {
 
   func fetchCustomFonts() -> [String] {
     guard let dbQueue else { return [] }
-    return (try? dbQueue.read { db in
-      try CustomFont.fetchAll(db).sorted { $0.name < $1.name }.map(\.name)
-    }) ?? []
+    return
+      (try? dbQueue.read { db in
+        try CustomFont.fetchAll(db).sorted { $0.name < $1.name }.map(\.name)
+      }) ?? []
   }
 
   func customFontCount() -> Int {
     guard let dbQueue else { return 0 }
-    return (try? dbQueue.read { db in
-      try CustomFont.fetchCount(db)
-    }) ?? 0
+    return
+      (try? dbQueue.read { db in
+        try CustomFont.fetchCount(db)
+      }) ?? 0
   }
 
   func getFontPath(for fontName: String) -> String? {

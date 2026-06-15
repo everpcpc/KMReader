@@ -319,15 +319,24 @@ nonisolated enum LocalDatabase {
 
   private static nonisolated func createIndexes(_ db: Database) throws {
     try db.create(index: "idx_libraries_instance", on: KomgaLibrary.databaseTableName, columns: ["instance_id"])
-    try db.create(index: "idx_series_instance_library", on: KomgaSeries.databaseTableName, columns: ["instance_id", "library_id"])
-    try db.create(index: "idx_series_sort", on: KomgaSeries.databaseTableName, columns: ["instance_id", "meta_title_sort"])
-    try db.create(index: "idx_books_instance_library", on: KomgaBook.databaseTableName, columns: ["instance_id", "library_id"])
+    try db.create(
+      index: "idx_series_instance_library", on: KomgaSeries.databaseTableName, columns: ["instance_id", "library_id"])
+    try db.create(
+      index: "idx_series_sort", on: KomgaSeries.databaseTableName, columns: ["instance_id", "meta_title_sort"])
+    try db.create(
+      index: "idx_books_instance_library", on: KomgaBook.databaseTableName, columns: ["instance_id", "library_id"])
     try db.create(index: "idx_books_series", on: KomgaBook.databaseTableName, columns: ["instance_id", "series_id"])
-    try db.create(index: "idx_books_progress", on: KomgaBook.databaseTableName, columns: ["instance_id", "progress_read_date"])
-    try db.create(index: "idx_books_download", on: KomgaBook.databaseTableName, columns: ["instance_id", "download_status_raw", "download_at"])
+    try db.create(
+      index: "idx_books_progress", on: KomgaBook.databaseTableName, columns: ["instance_id", "progress_read_date"])
+    try db.create(
+      index: "idx_books_download", on: KomgaBook.databaseTableName,
+      columns: ["instance_id", "download_status_raw", "download_at"])
     try db.create(index: "idx_collections_instance", on: KomgaCollection.databaseTableName, columns: ["instance_id"])
     try db.create(index: "idx_read_lists_instance", on: KomgaReadList.databaseTableName, columns: ["instance_id"])
-    try db.create(index: "idx_pending_progress_instance", on: PendingProgress.databaseTableName, columns: ["instance_id", "created_at"])
-    try db.create(index: "idx_saved_filters_type", on: SavedFilter.databaseTableName, columns: ["filter_type_raw", "updated_at"])
+    try db.create(
+      index: "idx_pending_progress_instance", on: PendingProgress.databaseTableName,
+      columns: ["instance_id", "created_at"])
+    try db.create(
+      index: "idx_saved_filters_type", on: SavedFilter.databaseTableName, columns: ["filter_type_raw", "updated_at"])
   }
 }

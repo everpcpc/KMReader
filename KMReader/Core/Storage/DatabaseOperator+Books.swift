@@ -36,33 +36,34 @@ extension DatabaseOperator {
   ) -> [String] {
     guard !instanceId.isEmpty else { return [] }
     guard limit > 0 else { return [] }
-    return (try? read { db in
-      var sql = """
-        SELECT book_id
-        FROM \(KomgaBook.databaseTableName)
-        WHERE instance_id = ?
-        """
-      var arguments: StatementArguments = [instanceId]
+    return
+      (try? read { db in
+        var sql = """
+          SELECT book_id
+          FROM \(KomgaBook.databaseTableName)
+          WHERE instance_id = ?
+          """
+        var arguments: StatementArguments = [instanceId]
 
-      Self.appendSQLInFilter(
-        column: "library_id",
-        values: libraryIds ?? [],
-        sql: &sql,
-        arguments: &arguments
-      )
-      Self.appendBookBrowseSQLFilters(
-        searchText: searchText,
-        browseOpts: browseOpts,
-        offlineOnly: offlineOnly,
-        sql: &sql,
-        arguments: &arguments
-      )
-      sql += "\nORDER BY \(Self.bookBrowseOrderSQL(sort: browseOpts.sortString))"
-      sql += "\nLIMIT ? OFFSET ?"
-      arguments += StatementArguments([limit, max(0, offset)])
+        Self.appendSQLInFilter(
+          column: "library_id",
+          values: libraryIds ?? [],
+          sql: &sql,
+          arguments: &arguments
+        )
+        Self.appendBookBrowseSQLFilters(
+          searchText: searchText,
+          browseOpts: browseOpts,
+          offlineOnly: offlineOnly,
+          sql: &sql,
+          arguments: &arguments
+        )
+        sql += "\nORDER BY \(Self.bookBrowseOrderSQL(sort: browseOpts.sortString))"
+        sql += "\nLIMIT ? OFFSET ?"
+        arguments += StatementArguments([limit, max(0, offset)])
 
-      return try String.fetchAll(db, sql: sql, arguments: arguments)
-    }) ?? []
+        return try String.fetchAll(db, sql: sql, arguments: arguments)
+      }) ?? []
   }
 
   func fetchSeriesBookIds(
@@ -72,19 +73,20 @@ extension DatabaseOperator {
     size: Int
   ) -> [String] {
     let instanceId = AppConfig.current.instanceId
-    return (try? read { db in
-      let books = try fetchBooks(db: db, instanceId: instanceId, seriesId: seriesId)
-      return Self.paginate(
-        Self.filteredBrowseBooks(
-          books,
-          libraryIds: nil,
-          searchText: "",
-          browseOpts: browseOpts
-        ),
-        offset: page * size,
-        limit: size
-      ).map(\.bookId)
-    }) ?? []
+    return
+      (try? read { db in
+        let books = try fetchBooks(db: db, instanceId: instanceId, seriesId: seriesId)
+        return Self.paginate(
+          Self.filteredBrowseBooks(
+            books,
+            libraryIds: nil,
+            searchText: "",
+            browseOpts: browseOpts
+          ),
+          offset: page * size,
+          limit: size
+        ).map(\.bookId)
+      }) ?? []
   }
 
   func fetchReadListBookIds(
@@ -94,14 +96,15 @@ extension DatabaseOperator {
     size: Int
   ) -> [String] {
     let instanceId = AppConfig.current.instanceId
-    return (try? read { db in
-      guard let readList = try fetchReadListRecord(db: db, id: readListId, instanceId: instanceId) else {
-        return []
-      }
-      let books = try fetchBooksByIds(db: db, ids: readList.bookIds, instanceId: instanceId)
-      let filtered = books.filter { Self.matchesBook($0, readListBrowseOpts: browseOpts) }
-      return Self.paginate(filtered, offset: page * size, limit: size).map(\.bookId)
-    }) ?? []
+    return
+      (try? read { db in
+        guard let readList = try fetchReadListRecord(db: db, id: readListId, instanceId: instanceId) else {
+          return []
+        }
+        let books = try fetchBooksByIds(db: db, ids: readList.bookIds, instanceId: instanceId)
+        let filtered = books.filter { Self.matchesBook($0, readListBrowseOpts: browseOpts) }
+        return Self.paginate(filtered, offset: page * size, limit: size).map(\.bookId)
+      }) ?? []
   }
 
   func fetchDashboardOfflineBookIds(
@@ -112,40 +115,41 @@ extension DatabaseOperator {
   ) -> [String] {
     guard limit > 0 else { return [] }
     let instanceId = AppConfig.current.instanceId
-    return (try? read { db in
-      var sql = """
-        SELECT book_id
-        FROM \(KomgaBook.databaseTableName)
-        WHERE instance_id = ?
-        """
-      var arguments: StatementArguments = [instanceId]
+    return
+      (try? read { db in
+        var sql = """
+          SELECT book_id
+          FROM \(KomgaBook.databaseTableName)
+          WHERE instance_id = ?
+          """
+        var arguments: StatementArguments = [instanceId]
 
-      if !libraryIds.isEmpty {
-        let placeholders = Array(repeating: "?", count: libraryIds.count).joined(separator: ", ")
-        sql += "\nAND library_id IN (\(placeholders))"
-        arguments += StatementArguments(libraryIds)
-      }
+        if !libraryIds.isEmpty {
+          let placeholders = Array(repeating: "?", count: libraryIds.count).joined(separator: ", ")
+          sql += "\nAND library_id IN (\(placeholders))"
+          arguments += StatementArguments(libraryIds)
+        }
 
-      switch section {
-      case .keepReading:
-        sql += "\nAND progress_read_date IS NOT NULL AND progress_completed = 0"
-        sql += "\nORDER BY progress_read_date DESC, id ASC"
-      case .recentlyReadBooks:
-        sql += "\nAND progress_read_date IS NOT NULL AND progress_completed = 1"
-        sql += "\nORDER BY progress_read_date DESC, id ASC"
-      case .recentlyReleasedBooks:
-        sql += "\nORDER BY COALESCE(meta_release_date, '') DESC, id ASC"
-      case .recentlyAddedBooks:
-        sql += "\nORDER BY created DESC, id ASC"
-      default:
-        return []
-      }
+        switch section {
+        case .keepReading:
+          sql += "\nAND progress_read_date IS NOT NULL AND progress_completed = 0"
+          sql += "\nORDER BY progress_read_date DESC, id ASC"
+        case .recentlyReadBooks:
+          sql += "\nAND progress_read_date IS NOT NULL AND progress_completed = 1"
+          sql += "\nORDER BY progress_read_date DESC, id ASC"
+        case .recentlyReleasedBooks:
+          sql += "\nORDER BY COALESCE(meta_release_date, '') DESC, id ASC"
+        case .recentlyAddedBooks:
+          sql += "\nORDER BY created DESC, id ASC"
+        default:
+          return []
+        }
 
-      sql += "\nLIMIT ? OFFSET ?"
-      arguments += StatementArguments([limit, max(0, offset)])
+        sql += "\nLIMIT ? OFFSET ?"
+        arguments += StatementArguments([limit, max(0, offset)])
 
-      return try String.fetchAll(db, sql: sql, arguments: arguments)
-    }) ?? []
+        return try String.fetchAll(db, sql: sql, arguments: arguments)
+      }) ?? []
   }
 
   func fetchOfflineContinueReadingBook(seriesId: String, instanceId: String) -> Book? {
@@ -237,26 +241,28 @@ extension DatabaseOperator {
         let existingById = Dictionary(uniqueKeysWithValues: existingBooks.map { ($0.bookId, $0) })
 
         for book in books {
-          var record = existingById[book.id] ?? KomgaBook(
-            id: CompositeID.generate(instanceId: instanceId, id: book.id),
-            bookId: book.id,
-            seriesId: book.seriesId,
-            libraryId: book.libraryId,
-            instanceId: instanceId,
-            name: book.name,
-            url: book.url,
-            number: book.number,
-            created: book.created,
-            lastModified: book.lastModified,
-            sizeBytes: book.sizeBytes,
-            size: book.size,
-            media: book.media,
-            metadata: book.metadata,
-            readProgress: book.readProgress,
-            isUnavailable: book.deleted,
-            oneshot: book.oneshot,
-            seriesTitle: book.seriesTitle
-          )
+          var record =
+            existingById[book.id]
+            ?? KomgaBook(
+              id: CompositeID.generate(instanceId: instanceId, id: book.id),
+              bookId: book.id,
+              seriesId: book.seriesId,
+              libraryId: book.libraryId,
+              instanceId: instanceId,
+              name: book.name,
+              url: book.url,
+              number: book.number,
+              created: book.created,
+              lastModified: book.lastModified,
+              sizeBytes: book.sizeBytes,
+              size: book.size,
+              media: book.media,
+              metadata: book.metadata,
+              readProgress: book.readProgress,
+              isUnavailable: book.deleted,
+              oneshot: book.oneshot,
+              seriesTitle: book.seriesTitle
+            )
           applyBook(dto: book, to: &record)
           try save(record, db: db)
         }
@@ -350,7 +356,8 @@ extension DatabaseOperator {
       var lastScannedId: String?
 
       while true {
-        var request = KomgaBook
+        var request =
+          KomgaBook
           .filter(KomgaBook.Columns.instanceId == instanceId)
           .order(KomgaBook.Columns.id)
           .limit(Self.recordFetchChunkSize)
@@ -388,7 +395,8 @@ extension DatabaseOperator {
       if let readListId {
         books = try fetchReadListBooks(db: db, readListId: readListId, instanceId: instanceId, page: 0, size: 1000)
       } else {
-        books = try fetchSeriesBooks(db: db, seriesId: currentBook.seriesId, instanceId: instanceId, page: 0, size: 1000)
+        books = try fetchSeriesBooks(
+          db: db, seriesId: currentBook.seriesId, instanceId: instanceId, page: 0, size: 1000)
       }
       guard let currentIndex = books.firstIndex(where: { $0.id == bookId }),
         currentIndex < books.count - 1
@@ -408,7 +416,8 @@ extension DatabaseOperator {
       if let readListId {
         books = try fetchReadListBooks(db: db, readListId: readListId, instanceId: instanceId, page: 0, size: 1000)
       } else {
-        books = try fetchSeriesBooks(db: db, seriesId: currentBook.seriesId, instanceId: instanceId, page: 0, size: 1000)
+        books = try fetchSeriesBooks(
+          db: db, seriesId: currentBook.seriesId, instanceId: instanceId, page: 0, size: 1000)
       }
       guard let currentIndex = books.firstIndex(where: { $0.id == bookId }), currentIndex > 0 else {
         return nil
@@ -843,7 +852,8 @@ extension DatabaseOperator {
   nonisolated static func bookBrowseOrderSQL(sort: String) -> String {
     let direction = sort.contains("desc") ? "DESC" : "ASC"
     if sort.contains("series") && sort.contains("metadata.numberSort") {
-      return "COALESCE(NULLIF(series_title, ''), series_id) \(direction), meta_number_sort \(direction), name \(direction), id ASC"
+      return
+        "COALESCE(NULLIF(series_title, ''), series_id) \(direction), meta_number_sort \(direction), name \(direction), id ASC"
     }
     if sort.contains("createdDate") {
       return "created \(direction), id ASC"
@@ -878,13 +888,25 @@ extension DatabaseOperator {
       return books.sorted { isAsc ? $0.created < $1.created : $0.created > $1.created }
     }
     if sort.contains("metadata.releaseDate") {
-      return books.sorted { isAsc ? ($0.metaReleaseDate ?? "") < ($1.metaReleaseDate ?? "") : ($0.metaReleaseDate ?? "") > ($1.metaReleaseDate ?? "") }
+      return books.sorted {
+        isAsc
+          ? ($0.metaReleaseDate ?? "") < ($1.metaReleaseDate ?? "")
+          : ($0.metaReleaseDate ?? "") > ($1.metaReleaseDate ?? "")
+      }
     }
     if sort.contains("readProgress.readDate") {
-      return books.sorted { isAsc ? ($0.progressReadDate ?? .distantPast) < ($1.progressReadDate ?? .distantPast) : ($0.progressReadDate ?? .distantPast) > ($1.progressReadDate ?? .distantPast) }
+      return books.sorted {
+        isAsc
+          ? ($0.progressReadDate ?? .distantPast) < ($1.progressReadDate ?? .distantPast)
+          : ($0.progressReadDate ?? .distantPast) > ($1.progressReadDate ?? .distantPast)
+      }
     }
     if sort.contains("downloadAt") {
-      return books.sorted { isAsc ? ($0.downloadAt ?? .distantPast) < ($1.downloadAt ?? .distantPast) : ($0.downloadAt ?? .distantPast) > ($1.downloadAt ?? .distantPast) }
+      return books.sorted {
+        isAsc
+          ? ($0.downloadAt ?? .distantPast) < ($1.downloadAt ?? .distantPast)
+          : ($0.downloadAt ?? .distantPast) > ($1.downloadAt ?? .distantPast)
+      }
     }
     if sort.contains("series") && sort.contains("metadata.numberSort") {
       return books.sorted {

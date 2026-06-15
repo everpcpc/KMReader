@@ -112,7 +112,8 @@ extension DatabaseOperator {
   ) throws {
     try write { db in
       let allLibrariesId = KomgaLibrary.allLibrariesId
-      var library = try fetchLibraryRecords(db: db, instanceId: instanceId)
+      var library =
+        try fetchLibraryRecords(db: db, instanceId: instanceId)
         .first { $0.libraryId == allLibrariesId }
         ?? KomgaLibrary(
           instanceId: instanceId,
@@ -131,7 +132,8 @@ extension DatabaseOperator {
 
   func retryFailedBooks(instanceId: String) {
     try? write { db in
-      var books = try KomgaBook
+      var books =
+        try KomgaBook
         .filter(KomgaBook.Columns.instanceId == instanceId && KomgaBook.Columns.downloadStatusRaw == "failed")
         .fetchAll(db)
       for index in books.indices {
@@ -145,7 +147,8 @@ extension DatabaseOperator {
 
   func cancelFailedBooks(instanceId: String) {
     try? write { db in
-      var books = try KomgaBook
+      var books =
+        try KomgaBook
         .filter(KomgaBook.Columns.instanceId == instanceId && KomgaBook.Columns.downloadStatusRaw == "failed")
         .fetchAll(db)
       for index in books.indices {
@@ -426,9 +429,10 @@ extension DatabaseOperator {
 extension DatabaseOperator {
   func getDownloadStatus(bookId: String) -> DownloadStatus {
     let instanceId = AppConfig.current.instanceId
-    return (try? read { db in
-      try fetchBookRecord(db: db, id: bookId, instanceId: instanceId)?.downloadStatus
-    }) ?? .notDownloaded
+    return
+      (try? read { db in
+        try fetchBookRecord(db: db, id: bookId, instanceId: instanceId)?.downloadStatus
+      }) ?? .notDownloaded
   }
 
   func isBookReadCompleted(bookId: String, instanceId: String) -> Bool {
@@ -439,7 +443,8 @@ extension DatabaseOperator {
 
   func fetchPendingBooks(instanceId: String, limit: Int? = nil) -> [Book] {
     (try? read { db in
-      var request = KomgaBook
+      var request =
+        KomgaBook
         .filter(KomgaBook.Columns.instanceId == instanceId && KomgaBook.Columns.downloadStatusRaw == "pending")
         .order(KomgaBook.Columns.downloadAt, KomgaBook.Columns.id)
       if let limit {
@@ -510,7 +515,8 @@ extension DatabaseOperator {
   func fetchOfflineDownloadedBooksSnapshot(instanceId: String) throws -> OfflineDownloadedBooksSnapshot {
     guard !instanceId.isEmpty else { return .empty }
     return try read { db in
-      let downloadedBooks = try KomgaBook
+      let downloadedBooks =
+        try KomgaBook
         .filter(KomgaBook.Columns.instanceId == instanceId && KomgaBook.Columns.downloadStatusRaw == "downloaded")
         .fetchAll(db)
       guard !downloadedBooks.isEmpty else { return .empty }
@@ -544,7 +550,8 @@ extension DatabaseOperator {
         let seriesBooksMap = Dictionary(grouping: libraryBooks.filter { !$0.oneshot }) { $0.seriesId }
         var seriesGroups: [OfflineDownloadedSeriesGroup] = []
         for (seriesId, seriesBooks) in seriesBooksMap {
-          let bookItems = seriesBooks
+          let bookItems =
+            seriesBooks
             .map(Self.makeOfflineDownloadedBookItem)
             .sorted { $0.metaNumberSort < $1.metaNumberSort }
           seriesGroups.append(
@@ -577,20 +584,22 @@ extension DatabaseOperator {
   }
 
   func fetchOfflineEpubBookIdsMissingProgression(instanceId: String) async -> [String] {
-    guard let results = try? read({ db in
-      try KomgaBook.fetchAll(
-        db,
-        sql: """
-          SELECT *
-          FROM \(KomgaBook.databaseTableName)
-          WHERE instance_id = ?
-          AND download_status_raw = 'downloaded'
-          AND media_profile = 'EPUB'
-          AND COALESCE(progress_page, 0) > 0
-          """,
-        arguments: [instanceId]
-      )
-    }) else {
+    guard
+      let results = try? read({ db in
+        try KomgaBook.fetchAll(
+          db,
+          sql: """
+            SELECT *
+            FROM \(KomgaBook.databaseTableName)
+            WHERE instance_id = ?
+            AND download_status_raw = 'downloaded'
+            AND media_profile = 'EPUB'
+            AND COALESCE(progress_page, 0) > 0
+            """,
+          arguments: [instanceId]
+        )
+      })
+    else {
       return []
     }
     var bookIds: [String] = []
@@ -617,11 +626,11 @@ extension DatabaseOperator {
         arguments: [instanceId]
       )
       return books.compactMap { book in
-          if let downloadAt = book.downloadAt, now.timeIntervalSince(downloadAt) < 300 {
-            return nil
-          }
-          return (id: book.bookId, seriesId: book.seriesId)
+        if let downloadAt = book.downloadAt, now.timeIntervalSince(downloadAt) < 300 {
+          return nil
         }
+        return (id: book.bookId, seriesId: book.seriesId)
+      }
     }) ?? []
   }
 }
@@ -780,7 +789,8 @@ extension DatabaseOperator {
 
   func fetchPendingProgress(instanceId: String, limit: Int? = nil) -> [PendingProgressSummary] {
     (try? read { db in
-      var request = PendingProgress
+      var request =
+        PendingProgress
         .filter(Column("instance_id") == instanceId)
         .order(Column("created_at"), Column("id"))
       if let limit {

@@ -56,27 +56,28 @@ extension DatabaseOperator {
     limit: Int
   ) -> [String] {
     guard limit > 0 else { return [] }
-    return (try? read { db in
-      var sql = """
-        SELECT collection_id
-        FROM \(KomgaCollection.databaseTableName)
-        WHERE instance_id = ?
-        """
-      var arguments: StatementArguments = [instanceId]
-      let trimmedSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-      if !trimmedSearch.isEmpty {
-        sql += "\nAND name LIKE ? ESCAPE char(92)"
-        arguments += StatementArguments([Self.sqlContainsPattern(trimmedSearch)])
-      }
-      sql += "\nORDER BY is_pinned DESC, \(Self.collectionOrderSQL(sort: sort))"
-      sql += "\nLIMIT ? OFFSET ?"
-      arguments += StatementArguments([limit, max(0, offset)])
-      return try String.fetchAll(
-        db,
-        sql: sql,
-        arguments: arguments
-      )
-    }) ?? []
+    return
+      (try? read { db in
+        var sql = """
+          SELECT collection_id
+          FROM \(KomgaCollection.databaseTableName)
+          WHERE instance_id = ?
+          """
+        var arguments: StatementArguments = [instanceId]
+        let trimmedSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedSearch.isEmpty {
+          sql += "\nAND name LIKE ? ESCAPE char(92)"
+          arguments += StatementArguments([Self.sqlContainsPattern(trimmedSearch)])
+        }
+        sql += "\nORDER BY is_pinned DESC, \(Self.collectionOrderSQL(sort: sort))"
+        sql += "\nLIMIT ? OFFSET ?"
+        arguments += StatementArguments([limit, max(0, offset)])
+        return try String.fetchAll(
+          db,
+          sql: sql,
+          arguments: arguments
+        )
+      }) ?? []
   }
 
   func fetchCollectionDisplayItem(collectionId: String, instanceId: String) throws -> CollectionDisplayItem? {
@@ -134,17 +135,19 @@ extension DatabaseOperator {
         let existingCollections = try fetchCollections(db: db, instanceId: instanceId)
         let existingById = Dictionary(uniqueKeysWithValues: existingCollections.map { ($0.collectionId, $0) })
         for collection in collections {
-          var record = existingById[collection.id] ?? KomgaCollection(
-            id: CompositeID.generate(instanceId: instanceId, id: collection.id),
-            collectionId: collection.id,
-            instanceId: instanceId,
-            name: collection.name,
-            ordered: collection.ordered,
-            createdDate: collection.createdDate,
-            lastModifiedDate: collection.lastModifiedDate,
-            filtered: collection.filtered,
-            seriesIds: collection.seriesIds
-          )
+          var record =
+            existingById[collection.id]
+            ?? KomgaCollection(
+              id: CompositeID.generate(instanceId: instanceId, id: collection.id),
+              collectionId: collection.id,
+              instanceId: instanceId,
+              name: collection.name,
+              ordered: collection.ordered,
+              createdDate: collection.createdDate,
+              lastModifiedDate: collection.lastModifiedDate,
+              filtered: collection.filtered,
+              seriesIds: collection.seriesIds
+            )
           applyCollection(dto: collection, to: &record)
           try save(record, db: db)
         }
@@ -217,28 +220,29 @@ extension DatabaseOperator {
     limit: Int
   ) -> [String] {
     guard limit > 0 else { return [] }
-    return (try? read { db in
-      var sql = """
-        SELECT read_list_id
-        FROM \(KomgaReadList.databaseTableName)
-        WHERE instance_id = ?
-        """
-      var arguments: StatementArguments = [instanceId]
-      let trimmedSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-      if !trimmedSearch.isEmpty {
-        let pattern = Self.sqlContainsPattern(trimmedSearch)
-        sql += "\nAND (name LIKE ? ESCAPE char(92) OR summary LIKE ? ESCAPE char(92))"
-        arguments += StatementArguments([pattern, pattern])
-      }
-      sql += "\nORDER BY is_pinned DESC, \(Self.readListOrderSQL(sort: sort))"
-      sql += "\nLIMIT ? OFFSET ?"
-      arguments += StatementArguments([limit, max(0, offset)])
-      return try String.fetchAll(
-        db,
-        sql: sql,
-        arguments: arguments
-      )
-    }) ?? []
+    return
+      (try? read { db in
+        var sql = """
+          SELECT read_list_id
+          FROM \(KomgaReadList.databaseTableName)
+          WHERE instance_id = ?
+          """
+        var arguments: StatementArguments = [instanceId]
+        let trimmedSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedSearch.isEmpty {
+          let pattern = Self.sqlContainsPattern(trimmedSearch)
+          sql += "\nAND (name LIKE ? ESCAPE char(92) OR summary LIKE ? ESCAPE char(92))"
+          arguments += StatementArguments([pattern, pattern])
+        }
+        sql += "\nORDER BY is_pinned DESC, \(Self.readListOrderSQL(sort: sort))"
+        sql += "\nLIMIT ? OFFSET ?"
+        arguments += StatementArguments([limit, max(0, offset)])
+        return try String.fetchAll(
+          db,
+          sql: sql,
+          arguments: arguments
+        )
+      }) ?? []
   }
 
   func fetchReadListDisplayItem(readListId: String, instanceId: String) throws -> ReadListDisplayItem? {
@@ -297,18 +301,20 @@ extension DatabaseOperator {
         let existingReadLists = try fetchReadLists(db: db, instanceId: instanceId)
         let existingById = Dictionary(uniqueKeysWithValues: existingReadLists.map { ($0.readListId, $0) })
         for readList in readLists {
-          var record = existingById[readList.id] ?? KomgaReadList(
-            id: CompositeID.generate(instanceId: instanceId, id: readList.id),
-            readListId: readList.id,
-            instanceId: instanceId,
-            name: readList.name,
-            summary: readList.summary,
-            ordered: readList.ordered,
-            createdDate: readList.createdDate,
-            lastModifiedDate: readList.lastModifiedDate,
-            filtered: readList.filtered,
-            bookIds: readList.bookIds
-          )
+          var record =
+            existingById[readList.id]
+            ?? KomgaReadList(
+              id: CompositeID.generate(instanceId: instanceId, id: readList.id),
+              readListId: readList.id,
+              instanceId: instanceId,
+              name: readList.name,
+              summary: readList.summary,
+              ordered: readList.ordered,
+              createdDate: readList.createdDate,
+              lastModifiedDate: readList.lastModifiedDate,
+              filtered: readList.filtered,
+              bookIds: readList.bookIds
+            )
           applyReadList(dto: readList, to: &record)
           try save(record, db: db)
         }
@@ -423,7 +429,9 @@ extension DatabaseOperator {
       return collections.sorted { isAscending ? $0.createdDate < $1.createdDate : $0.createdDate > $1.createdDate }
     }
     if sort?.contains("lastModifiedDate") == true {
-      return collections.sorted { isAscending ? $0.lastModifiedDate < $1.lastModifiedDate : $0.lastModifiedDate > $1.lastModifiedDate }
+      return collections.sorted {
+        isAscending ? $0.lastModifiedDate < $1.lastModifiedDate : $0.lastModifiedDate > $1.lastModifiedDate
+      }
     }
     return collections.sorted { isAscending ? $0.name < $1.name : $0.name > $1.name }
   }
@@ -434,7 +442,9 @@ extension DatabaseOperator {
       return readLists.sorted { isAscending ? $0.createdDate < $1.createdDate : $0.createdDate > $1.createdDate }
     }
     if sort?.contains("lastModifiedDate") == true {
-      return readLists.sorted { isAscending ? $0.lastModifiedDate < $1.lastModifiedDate : $0.lastModifiedDate > $1.lastModifiedDate }
+      return readLists.sorted {
+        isAscending ? $0.lastModifiedDate < $1.lastModifiedDate : $0.lastModifiedDate > $1.lastModifiedDate
+      }
     }
     return readLists.sorted { isAscending ? $0.name < $1.name : $0.name > $1.name }
   }
