@@ -823,7 +823,7 @@ class ReaderViewModel {
     let status = await OfflineManager.shared.getDownloadStatus(bookId: book.id)
     if case .downloaded = status {
       if updatesLoadingState {
-        loadingProgress = 1.0
+        updateLoadingProgress(1.0)
       }
       return
     }
@@ -833,9 +833,9 @@ class ReaderViewModel {
     }
 
     if updatesLoadingState {
-      loadingTitle = String(localized: "Downloading book...")
-      loadingDetail = nil
-      loadingProgress = 0.0
+      updateLoadingTitle(String(localized: "Downloading book..."))
+      updateLoadingDetail(nil)
+      updateLoadingProgress(0.0)
     }
 
     switch status {
@@ -845,7 +845,7 @@ class ReaderViewModel {
         info: downloadInfo
       )
     case .downloaded:
-      loadingProgress = 1.0
+      updateLoadingProgress(1.0)
       return
     }
 
@@ -858,8 +858,8 @@ class ReaderViewModel {
       switch currentStatus {
       case .downloaded:
         if updatesLoadingState {
-          loadingProgress = 1.0
-          loadingDetail = nil
+          updateLoadingProgress(1.0)
+          updateLoadingDetail(nil)
         }
         return
       case .failed(let error):
@@ -872,12 +872,12 @@ class ReaderViewModel {
         if updatesLoadingState,
           let progress = DownloadProgressTracker.shared.progress[book.id]
         {
-          loadingProgress = progress
+          updateLoadingProgress(progress)
           if progress >= 1 {
-            loadingTitle = String(localized: "Processing offline files...")
-            loadingDetail = nil
+            updateLoadingTitle(String(localized: "Processing offline files..."))
+            updateLoadingDetail(nil)
           } else {
-            loadingTitle = String(localized: "Downloading book...")
+            updateLoadingTitle(String(localized: "Downloading book..."))
           }
         }
       }
@@ -915,12 +915,12 @@ class ReaderViewModel {
       )
     }
 
-    loadingTitle = String(localized: "Offline DIVINA Rendering")
-    loadingDetail = nil
-    loadingProgress = 0
+    updateLoadingTitle(String(localized: "Offline DIVINA Rendering"))
+    updateLoadingDetail(nil)
+    updateLoadingProgress(0)
     defer {
-      loadingTitle = String(localized: "Loading book...")
-      loadingDetail = nil
+      updateLoadingTitle(String(localized: "Loading book..."))
+      updateLoadingDetail(nil)
       loadingProgress = nil
     }
 
@@ -932,9 +932,9 @@ class ReaderViewModel {
         forceRebuildMetadata: forceRebuildMetadata,
         onProgress: { [weak self] progress in
           guard let self else { return }
-          self.loadingTitle = String(localized: "Offline DIVINA Rendering")
-          self.loadingProgress = progress.fractionCompleted
-          self.loadingDetail = "\(progress.completedPages) / \(progress.totalPages)"
+          self.updateLoadingTitle(String(localized: "Offline DIVINA Rendering"))
+          self.updateLoadingProgress(progress.fractionCompleted)
+          self.updateLoadingDetail("\(progress.completedPages) / \(progress.totalPages)")
         }
       )
     else {
@@ -943,6 +943,22 @@ class ReaderViewModel {
     }
 
     await applyPreparedPDFMetadata(bookId: book.id, result: result)
+  }
+
+  private func updateLoadingTitle(_ title: String) {
+    guard loadingTitle != title else { return }
+    loadingTitle = title
+  }
+
+  private func updateLoadingDetail(_ detail: String?) {
+    guard loadingDetail != detail else { return }
+    loadingDetail = detail
+  }
+
+  private func updateLoadingProgress(_ progress: Double) {
+    let displayProgress = ReaderLoadingProgress.displayValue(for: progress)
+    guard loadingProgress != displayProgress else { return }
+    loadingProgress = displayProgress
   }
 
   private func applyPreparedPDFMetadata(

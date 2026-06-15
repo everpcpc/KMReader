@@ -63,10 +63,14 @@
       let expected = notification.userInfo?[DownloadProgressUserInfo.expectedKey] as? Int64
       let received = notification.userInfo?[DownloadProgressUserInfo.receivedKey] as? Int64 ?? 0
 
-      downloadBytesReceived = received
-      downloadBytesExpected = expected
       if let expected, expected > 0 {
-        downloadProgress = min(1.0, Double(received) / Double(expected))
+        updateDownloadProgress(
+          Double(received) / Double(expected),
+          receivedBytes: received,
+          expectedBytes: expected
+        )
+      } else {
+        updateDownloadProgress(0.0, receivedBytes: received, expectedBytes: expected)
       }
     }
 
@@ -292,7 +296,7 @@
     private func ensureOfflineReady(downloadInfo: DownloadInfo, instanceId: String) async throws {
       let status = await OfflineManager.shared.getDownloadStatus(bookId: downloadInfo.bookId)
       if case .downloaded = status {
-        downloadProgress = 1.0
+        updateDownloadProgress(1.0)
         return
       }
 
@@ -301,15 +305,13 @@
       }
 
       loadingStage = .downloading
-      downloadProgress = 0.0
-      downloadBytesReceived = 0
-      downloadBytesExpected = nil
+      updateDownloadProgress(0.0, receivedBytes: 0, expectedBytes: nil)
 
       switch status {
       case .notDownloaded, .failed, .pending:
         await OfflineManager.shared.downloadForReading(instanceId: instanceId, info: downloadInfo)
       case .downloaded:
-        downloadProgress = 1.0
+        updateDownloadProgress(1.0)
         return
       }
 
@@ -321,7 +323,7 @@
         let currentStatus = await OfflineManager.shared.getDownloadStatus(bookId: bookId)
         switch currentStatus {
         case .downloaded:
-          downloadProgress = 1.0
+          updateDownloadProgress(1.0)
           return
         case .failed(let error):
           throw AppErrorType.operationFailed(message: error)
@@ -331,15 +333,49 @@
           )
         case .pending:
           if let progress = DownloadProgressTracker.shared.progress[bookId] {
-            downloadProgress = progress
+            updateDownloadProgress(progress)
             if progress >= 1 {
-              loadingStage = .processingOfflineFiles
+              updateLoadingStage(.processingOfflineFiles)
             }
           }
         }
 
         try await Task.sleep(for: .milliseconds(200))
       }
+    }
+
+    private func updateDownloadProgress(
+      _ progress: Double,
+      receivedBytes: Int64? = nil,
+      expectedBytes: Int64? = nil
+    ) {
+      let displayProgress = ReaderLoadingProgress.displayValue(for: progress)
+      let progressChanged = downloadProgress != displayProgress
+      if progressChanged {
+        downloadProgress = displayProgress
+      }
+      if receivedBytes != nil || expectedBytes != nil {
+        updateDownloadBytesIfNeeded(
+          received: receivedBytes ?? downloadBytesReceived,
+          expected: expectedBytes,
+          progressChanged: progressChanged
+        )
+      }
+    }
+
+    private func updateLoadingStage(_ stage: PdfLoadingStage) {
+      guard loadingStage != stage else { return }
+      loadingStage = stage
+    }
+
+    private func updateDownloadBytesIfNeeded(
+      received: Int64,
+      expected: Int64?,
+      progressChanged: Bool
+    ) {
+      guard progressChanged || downloadBytesReceived == 0 || downloadBytesExpected != expected else { return }
+      downloadBytesReceived = received
+      downloadBytesExpected = expected
     }
 
     private func buildSnippet(from text: String, matchRange: Range<String.Index>) -> String {

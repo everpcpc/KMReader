@@ -15,12 +15,15 @@ struct ReaderLoadingView: View {
   }
 
   private var showsProgress: Bool {
-    guard let normalizedProgress else { return false }
-    return normalizedProgress > 0
+    normalizedProgress != nil
   }
 
   private var progressText: String {
     (normalizedProgress ?? 0).formatted(.percent.precision(.fractionLength(0)))
+  }
+
+  private var numericProgress: Double {
+    normalizedProgress ?? 0
   }
 
   var body: some View {
@@ -45,11 +48,13 @@ struct ReaderLoadingView: View {
           .frame(width: 64, height: 64)
           .rotationEffect(.degrees(-90))
           .opacity(showsProgress ? 1 : 0)
-          .animation(.spring(duration: 0.6, bounce: 0.3), value: normalizedProgress)
+          .animation(.easeOut(duration: 0.16), value: normalizedProgress)
 
         Text(progressText)
           .font(.system(.subheadline, design: .rounded).bold())
           .monospacedDigit()
+          .contentTransition(.numericText(value: numericProgress))
+          .animation(.easeOut(duration: 0.16), value: numericProgress)
           .opacity(showsProgress ? 1 : 0)
           .accessibilityHidden(!showsProgress)
 
@@ -84,7 +89,6 @@ struct ReaderLoadingView: View {
         }
     }
     .shadow(color: Color.black.opacity(0.12), radius: 30, x: 0, y: 15)
-    .transition(.opacity.combined(with: .scale(scale: 0.95)))
   }
 }
 
