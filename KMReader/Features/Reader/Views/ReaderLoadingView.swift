@@ -10,6 +10,19 @@ struct ReaderLoadingView: View {
   let detail: String?
   let progress: Double?
 
+  private var normalizedProgress: Double? {
+    progress.map { min(max($0, 0), 1) }
+  }
+
+  private var showsProgress: Bool {
+    guard let normalizedProgress else { return false }
+    return normalizedProgress > 0
+  }
+
+  private var progressText: String {
+    (normalizedProgress ?? 0).formatted(.percent.precision(.fractionLength(0)))
+  }
+
   var body: some View {
     VStack(spacing: 24) {
       ZStack {
@@ -18,29 +31,31 @@ struct ReaderLoadingView: View {
           .stroke(Color.primary.opacity(0.05), lineWidth: 4)
           .frame(width: 64, height: 64)
 
-        if let progress = progress, progress > 0 {
-          // Determinate Progress Ring
-          Circle()
-            .trim(from: 0, to: progress)
-            .stroke(
-              LinearGradient(
-                colors: [.accentColor, .accentColor.opacity(0.7)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-              ),
-              style: StrokeStyle(lineWidth: 4, lineCap: .round)
-            )
-            .frame(width: 64, height: 64)
-            .rotationEffect(.degrees(-90))
-            .animation(.spring(duration: 0.6, bounce: 0.3), value: progress)
+        // Determinate Progress Ring
+        Circle()
+          .trim(from: 0, to: normalizedProgress ?? 0)
+          .stroke(
+            LinearGradient(
+              colors: [.accentColor, .accentColor.opacity(0.7)],
+              startPoint: .topLeading,
+              endPoint: .bottomTrailing
+            ),
+            style: StrokeStyle(lineWidth: 4, lineCap: .round)
+          )
+          .frame(width: 64, height: 64)
+          .rotationEffect(.degrees(-90))
+          .opacity(showsProgress ? 1 : 0)
+          .animation(.spring(duration: 0.6, bounce: 0.3), value: normalizedProgress)
 
-          Text(progress, format: .percent.precision(.fractionLength(0)))
-            .font(.system(.subheadline, design: .rounded).bold())
-            .monospacedDigit()
-        } else {
-          // Indeterminate State
-          LoadingIcon()
-        }
+        Text(progressText)
+          .font(.system(.subheadline, design: .rounded).bold())
+          .monospacedDigit()
+          .opacity(showsProgress ? 1 : 0)
+          .accessibilityHidden(!showsProgress)
+
+        LoadingIcon()
+          .opacity(showsProgress ? 0 : 1)
+          .accessibilityHidden(showsProgress)
       }
       .padding(.top, 8)
 
@@ -49,13 +64,13 @@ struct ReaderLoadingView: View {
           .font(.headline)
           .foregroundStyle(.primary)
 
-        if let detail = detail {
-          Text(detail)
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
-            .multilineTextAlignment(.center)
-            .frame(maxWidth: 280)
-        }
+        Text(detail ?? " ")
+          .font(.subheadline)
+          .foregroundStyle(.secondary)
+          .multilineTextAlignment(.center)
+          .frame(maxWidth: 280)
+          .opacity(detail == nil ? 0 : 1)
+          .accessibilityHidden(detail == nil)
       }
     }
     .padding(.vertical, 32)
