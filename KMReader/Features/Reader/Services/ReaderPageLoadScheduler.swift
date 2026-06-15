@@ -436,12 +436,10 @@ final class ReaderPageLoadScheduler {
     let loadTask = Task<URL?, Never> {
       guard !Task.isCancelled else { return nil }
 
-      let ext = page.detectedUTType?.preferredFilenameExtension ?? "jpg"
       if let offlineURL = await OfflineManager.shared.getOfflinePageImageURL(
         instanceId: AppConfig.current.instanceId,
         bookId: currentBookId,
-        pageNumber: page.number,
-        fileExtension: ext
+        page: page
       ) {
         self.logger.debug("✅ Using offline downloaded image for page \(page.number) for book \(currentBookId)")
         return offlineURL

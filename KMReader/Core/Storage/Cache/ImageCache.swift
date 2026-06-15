@@ -28,9 +28,13 @@ actor ImageCache {
   // Cached disk cache size (static for shared access)
   private static let cacheSizeActor = CacheSizeActor()
 
-  init() {
+  init(instanceId: String? = nil) {
     // Setup disk cache directory scoped to the active server namespace
-    diskCacheURL = CacheNamespace.directory(for: "KomgaImageCache")
+    if let instanceId {
+      diskCacheURL = CacheNamespace.directory(for: "KomgaImageCache", instanceId: instanceId)
+    } else {
+      diskCacheURL = CacheNamespace.directory(for: "KomgaImageCache")
+    }
 
     // Clean up old disk cache on init
     Task {
@@ -136,8 +140,13 @@ actor ImageCache {
 
   /// Clear disk cache for a specific book (static method for use from anywhere)
   static func clearDiskCache(forBookId bookId: String) async {
+    await clearDiskCache(forBookId: bookId, instanceId: CacheNamespace.identifier())
+  }
+
+  /// Clear disk cache for a specific book and instance.
+  static func clearDiskCache(forBookId bookId: String, instanceId: String) async {
     let fileManager = FileManager.default
-    let diskCacheURL = await namespacedDiskCacheURL()
+    let diskCacheURL = CacheNamespace.directory(for: "KomgaImageCache", instanceId: instanceId)
     let bookCacheDir = diskCacheURL.appendingPathComponent(bookId, isDirectory: true)
 
     await Task.detached(priority: .userInitiated) {
