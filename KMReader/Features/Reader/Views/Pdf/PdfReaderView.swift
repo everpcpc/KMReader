@@ -328,8 +328,7 @@
         ReaderLoadingView(
           title: loadingTitle,
           detail: loadingDetail,
-          progress: (viewModel.downloadBytesReceived > 0 || viewModel.downloadProgress > 0)
-            ? viewModel.downloadProgress : nil
+          progress: loadingProgress
         )
       } else if let errorMessage = viewModel.errorMessage {
         VStack(spacing: 16) {
@@ -424,6 +423,17 @@
       case .idle:
         return String(localized: "Loading book...")
       }
+    }
+
+    private var loadingProgress: Double? {
+      if viewModel.loadingStage == .processingOfflineFiles {
+        return 1.0
+      }
+
+      guard viewModel.downloadBytesReceived > 0 || viewModel.downloadProgress > 0 else {
+        return nil
+      }
+      return viewModel.downloadProgress
     }
 
     private var loadingDetail: String? {
