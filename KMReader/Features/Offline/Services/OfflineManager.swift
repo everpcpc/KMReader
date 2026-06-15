@@ -2489,7 +2489,8 @@ actor OfflineManager {
 
   private func existingImageArchiveFileURL(in bookDir: URL) -> URL? {
     let formats: [DownloadedImageArchiveFormat] = [.cbz, .cbr]
-    return formats
+    return
+      formats
       .map { bookDir.appendingPathComponent($0.fileName) }
       .first { FileManager.default.fileExists(atPath: $0.path) }
   }
