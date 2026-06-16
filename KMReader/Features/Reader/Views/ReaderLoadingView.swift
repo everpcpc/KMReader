@@ -11,7 +11,7 @@ struct ReaderLoadingView: View {
   let progress: Double?
 
   private let contentWidth: CGFloat = 260
-  private let textBlockHeight: CGFloat = 64
+  private let textBlockMinHeight: CGFloat = 64
 
   private var normalizedProgress: Double? {
     progress.map { min(max($0, 0), 1) }
@@ -90,7 +90,7 @@ struct ReaderLoadingView: View {
       detailTextView
     }
     .frame(width: contentWidth)
-    .frame(height: textBlockHeight)
+    .frame(minHeight: textBlockMinHeight)
   }
 
   private var titleText: some View {
@@ -99,6 +99,7 @@ struct ReaderLoadingView: View {
       .foregroundStyle(.primary)
       .multilineTextAlignment(.center)
       .lineLimit(2)
+      .fixedSize(horizontal: false, vertical: true)
       .frame(width: contentWidth)
   }
 
@@ -109,6 +110,7 @@ struct ReaderLoadingView: View {
       .multilineTextAlignment(.center)
       .lineLimit(2)
       .minimumScaleFactor(0.9)
+      .fixedSize(horizontal: false, vertical: true)
       .frame(width: contentWidth)
   }
 }
