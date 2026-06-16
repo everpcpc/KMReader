@@ -434,9 +434,23 @@
       return viewModel.downloadProgress > 0 ? viewModel.downloadProgress : nil
     }
 
-    private var loadingDetail: String? {
-      guard viewModel.loadingStage == .downloading else { return nil }
-      guard viewModel.downloadBytesReceived > 0 else { return nil }
+    private var loadingDetail: String {
+      switch viewModel.loadingStage {
+      case .fetchingMetadata:
+        return String(localized: "Checking PDF download information")
+      case .processingOfflineFiles:
+        return String(localized: "Finalizing offline PDF file")
+      case .preparingReader:
+        return String(localized: "Opening downloaded PDF file")
+      case .downloading:
+        break
+      case .idle:
+        return String(localized: "Opening downloaded PDF file")
+      }
+
+      guard viewModel.downloadBytesReceived > 0 else {
+        return String(localized: "Downloading book content")
+      }
 
       let formatter = ByteCountFormatter()
       formatter.countStyle = .file

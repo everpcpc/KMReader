@@ -680,7 +680,7 @@
       return viewModel.downloadProgress > 0 ? viewModel.downloadProgress : nil
     }
 
-    private var loadingDetail: String? {
+    private var loadingDetail: String {
       switch viewModel.loadingStage {
       case .fetchingMetadata:
         return String(localized: "Fetching book metadata")
@@ -697,7 +697,7 @@
         }
         return String(localized: "Downloading book content")
       case .processingOfflineFiles:
-        return nil
+        return String(localized: "Verifying offline files against page metadata")
       case .preparingReader:
         return String(localized: "Preparing reader view")
       case .paginating:

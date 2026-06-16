@@ -7,8 +7,11 @@ import SwiftUI
 
 struct ReaderLoadingView: View {
   let title: String
-  let detail: String?
+  let detail: String
   let progress: Double?
+
+  private let contentWidth: CGFloat = 260
+  private let textBlockHeight: CGFloat = 64
 
   private var normalizedProgress: Double? {
     progress.map { min(max($0, 0), 1) }
@@ -27,59 +30,13 @@ struct ReaderLoadingView: View {
   }
 
   var body: some View {
-    VStack(spacing: 24) {
-      ZStack {
-        // Background Ring
-        Circle()
-          .stroke(Color.primary.opacity(0.05), lineWidth: 4)
-          .frame(width: 64, height: 64)
-
-        // Determinate Progress Ring
-        Circle()
-          .trim(from: 0, to: normalizedProgress ?? 0)
-          .stroke(
-            LinearGradient(
-              colors: [.accentColor, .accentColor.opacity(0.7)],
-              startPoint: .topLeading,
-              endPoint: .bottomTrailing
-            ),
-            style: StrokeStyle(lineWidth: 4, lineCap: .round)
-          )
-          .frame(width: 64, height: 64)
-          .rotationEffect(.degrees(-90))
-          .opacity(showsProgress ? 1 : 0)
-          .animation(.easeOut(duration: 0.16), value: normalizedProgress)
-
-        Text(progressText)
-          .font(.system(.subheadline, design: .rounded).bold())
-          .monospacedDigit()
-          .contentTransition(.numericText(value: numericProgress))
-          .animation(.easeOut(duration: 0.16), value: numericProgress)
-          .opacity(showsProgress ? 1 : 0)
-          .accessibilityHidden(!showsProgress)
-
-        LoadingIcon()
-          .opacity(showsProgress ? 0 : 1)
-          .accessibilityHidden(showsProgress)
-      }
-      .padding(.top, 8)
-
-      VStack(spacing: 8) {
-        Text(title)
-          .font(.headline)
-          .foregroundStyle(.primary)
-
-        Text(detail ?? " ")
-          .font(.subheadline)
-          .foregroundStyle(.secondary)
-          .multilineTextAlignment(.center)
-          .frame(maxWidth: 280)
-          .opacity(detail == nil ? 0 : 1)
-          .accessibilityHidden(detail == nil)
-      }
+    VStack(spacing: 20) {
+      statusIcon
+      textContent
     }
-    .padding(.vertical, 32)
-    .padding(.horizontal, 40)
+    .frame(width: contentWidth)
+    .padding(.vertical, 24)
+    .padding(.horizontal, 28)
     .background {
       RoundedRectangle(cornerRadius: 28, style: .continuous)
         .fill(.ultraThinMaterial)
@@ -89,6 +46,70 @@ struct ReaderLoadingView: View {
         }
     }
     .shadow(color: Color.black.opacity(0.12), radius: 30, x: 0, y: 15)
+  }
+
+  private var statusIcon: some View {
+    ZStack {
+      Circle()
+        .stroke(Color.primary.opacity(0.05), lineWidth: 4)
+        .frame(width: 64, height: 64)
+
+      Circle()
+        .trim(from: 0, to: normalizedProgress ?? 0)
+        .stroke(
+          LinearGradient(
+            colors: [.accentColor, .accentColor.opacity(0.7)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+          ),
+          style: StrokeStyle(lineWidth: 4, lineCap: .round)
+        )
+        .frame(width: 64, height: 64)
+        .rotationEffect(.degrees(-90))
+        .opacity(showsProgress ? 1 : 0)
+        .animation(.easeOut(duration: 0.16), value: normalizedProgress)
+
+      Text(progressText)
+        .font(.system(.subheadline, design: .rounded).bold())
+        .monospacedDigit()
+        .contentTransition(.numericText(value: numericProgress))
+        .animation(.easeOut(duration: 0.16), value: numericProgress)
+        .opacity(showsProgress ? 1 : 0)
+        .accessibilityHidden(!showsProgress)
+
+      LoadingIcon()
+        .opacity(showsProgress ? 0 : 1)
+        .accessibilityHidden(showsProgress)
+    }
+    .frame(width: 64, height: 64)
+  }
+
+  private var textContent: some View {
+    VStack(spacing: 8) {
+      titleText
+      detailTextView
+    }
+    .frame(width: contentWidth)
+    .frame(height: textBlockHeight)
+  }
+
+  private var titleText: some View {
+    Text(title)
+      .font(.headline)
+      .foregroundStyle(.primary)
+      .multilineTextAlignment(.center)
+      .lineLimit(2)
+      .frame(width: contentWidth)
+  }
+
+  private var detailTextView: some View {
+    Text(detail)
+      .font(.subheadline)
+      .foregroundStyle(.secondary)
+      .multilineTextAlignment(.center)
+      .lineLimit(2)
+      .minimumScaleFactor(0.9)
+      .frame(width: contentWidth)
   }
 }
 

@@ -19,7 +19,7 @@ class ReaderViewModel {
   var navigationTarget: ReaderViewItem?
   var isLoading = true
   var loadingTitle = String(localized: "Loading book...")
-  var loadingDetail: String?
+  var loadingDetail = String(localized: "Resolving page metadata")
   var loadingProgress: Double?
   var isDismissing = false
   var incognitoMode: Bool = false
@@ -766,7 +766,7 @@ class ReaderViewModel {
     self.bookMediaProfile = book.media.mediaProfileValue ?? .unknown
     isLoading = true
     loadingTitle = String(localized: "Loading book...")
-    loadingDetail = nil
+    loadingDetail = String(localized: "Resolving page metadata")
     loadingProgress = nil
 
     resetStateForBookLoad()
@@ -824,6 +824,7 @@ class ReaderViewModel {
     if case .downloaded = status {
       if updatesLoadingState {
         clearLoadingProgress()
+        updateLoadingDetail(String(localized: "Using downloaded book files"))
       }
       return
     }
@@ -834,7 +835,7 @@ class ReaderViewModel {
 
     if updatesLoadingState {
       updateLoadingTitle(String(localized: "Downloading book..."))
-      updateLoadingDetail(nil)
+      updateLoadingDetail(String(localized: "Preparing offline download"))
       clearLoadingProgress()
     }
 
@@ -846,6 +847,7 @@ class ReaderViewModel {
       )
     case .downloaded:
       clearLoadingProgress()
+      updateLoadingDetail(String(localized: "Using downloaded book files"))
       return
     }
 
@@ -859,7 +861,7 @@ class ReaderViewModel {
       case .downloaded:
         if updatesLoadingState {
           clearLoadingProgress()
-          updateLoadingDetail(nil)
+          updateLoadingDetail(String(localized: "Using downloaded book files"))
         }
         return
       case .failed(let error):
@@ -875,13 +877,15 @@ class ReaderViewModel {
           if progress >= 1 {
             clearLoadingProgress()
             updateLoadingTitle(String(localized: "Processing offline files..."))
-            updateLoadingDetail(nil)
+            updateLoadingDetail(offlineProcessingDetail)
           } else if progress > 0 {
             updateLoadingProgress(progress)
             updateLoadingTitle(String(localized: "Downloading book..."))
+            updateLoadingDetail(String(localized: "Downloading book content"))
           } else {
             clearLoadingProgress()
             updateLoadingTitle(String(localized: "Downloading book..."))
+            updateLoadingDetail(String(localized: "Waiting for offline download to start"))
           }
         }
       }
@@ -920,11 +924,11 @@ class ReaderViewModel {
     }
 
     updateLoadingTitle(String(localized: "Offline DIVINA Rendering"))
-    updateLoadingDetail(nil)
+    updateLoadingDetail(String(localized: "Rendering PDF pages for DIVINA reader"))
     clearLoadingProgress()
     defer {
       updateLoadingTitle(String(localized: "Loading book..."))
-      updateLoadingDetail(nil)
+      updateLoadingDetail(String(localized: "Resolving page metadata"))
       clearLoadingProgress()
     }
 
@@ -954,7 +958,16 @@ class ReaderViewModel {
     loadingTitle = title
   }
 
-  private func updateLoadingDetail(_ detail: String?) {
+  private var offlineProcessingDetail: String {
+    switch bookMediaProfile {
+    case .pdf:
+      return String(localized: "Finalizing offline PDF file")
+    case .divina, .epub, .unknown:
+      return String(localized: "Verifying offline files against page metadata")
+    }
+  }
+
+  private func updateLoadingDetail(_ detail: String) {
     guard loadingDetail != detail else { return }
     loadingDetail = detail
   }
