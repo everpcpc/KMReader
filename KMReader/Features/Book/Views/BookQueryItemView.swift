@@ -66,7 +66,11 @@ struct BookQueryItemView: View {
           )
         }
       } else {
-        CardPlaceholder(layout: layout, kind: .book)
+        CardPlaceholder(
+          layout: layout,
+          kind: .book,
+          showBookSeriesTitle: showSeriesTitle
+        )
       }
     }
     .task(id: "\(current.instanceId)|\(bookId)") {
