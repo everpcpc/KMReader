@@ -6,6 +6,8 @@
 import SwiftUI
 
 struct ReaderLoadingView: View {
+  @Environment(\.readerBackgroundPreference) private var readerBackground
+
   let title: String
   let detail: String
   let progress: Double?
@@ -38,19 +40,70 @@ struct ReaderLoadingView: View {
     .padding(.horizontal, 28)
     .background {
       RoundedRectangle(cornerRadius: 28, style: .continuous)
-        .fill(.ultraThinMaterial)
+        .fill(cardFill)
         .overlay {
           RoundedRectangle(cornerRadius: 28, style: .continuous)
-            .stroke(Color.primary.opacity(0.08), lineWidth: 0.5)
+            .stroke(cardStroke, lineWidth: 0.5)
         }
     }
     .shadow(color: Color.black.opacity(0.12), radius: 30, x: 0, y: 15)
   }
 
+  private var cardFill: Color {
+    switch readerBackground {
+    case .black:
+      return Color(.sRGB, white: 0.12, opacity: 1)
+    case .white:
+      return Color(.sRGB, white: 0.96, opacity: 1)
+    case .gray:
+      return Color(.sRGB, white: 0.42, opacity: 1)
+    case .sepia:
+      return Color(red: 250.0 / 255.0, green: 244.0 / 255.0, blue: 228.0 / 255.0)
+    case .system:
+      return PlatformHelper.secondarySystemBackgroundColor
+    }
+  }
+
+  private var cardStroke: Color {
+    switch readerBackground {
+    case .system:
+      return Color.primary.opacity(0.08)
+    case .black, .white, .gray, .sepia:
+      return readerBackground.contentColor.opacity(0.12)
+    }
+  }
+
+  private var primaryContentColor: Color {
+    switch readerBackground {
+    case .system:
+      return .primary
+    case .black, .white, .gray, .sepia:
+      return readerBackground.contentColor
+    }
+  }
+
+  private var secondaryContentColor: Color {
+    switch readerBackground {
+    case .system:
+      return .secondary
+    case .black, .white, .gray, .sepia:
+      return readerBackground.contentColor.opacity(0.72)
+    }
+  }
+
+  private var progressTrackColor: Color {
+    switch readerBackground {
+    case .system:
+      return Color.primary.opacity(0.05)
+    case .black, .white, .gray, .sepia:
+      return readerBackground.contentColor.opacity(0.14)
+    }
+  }
+
   private var statusIcon: some View {
     ZStack {
       Circle()
-        .stroke(Color.primary.opacity(0.05), lineWidth: 4)
+        .stroke(progressTrackColor, lineWidth: 4)
         .frame(width: 64, height: 64)
 
       Circle()
@@ -66,10 +119,11 @@ struct ReaderLoadingView: View {
         .frame(width: 64, height: 64)
         .rotationEffect(.degrees(-90))
         .opacity(showsProgress ? 1 : 0)
-        .animation(.easeOut(duration: 0.16), value: normalizedProgress)
+        .animation(.easeOut(duration: 0.16), value: numericProgress)
 
       Text(progressText)
         .font(.system(.subheadline, design: .rounded).bold())
+        .foregroundStyle(primaryContentColor)
         .monospacedDigit()
         .contentTransition(.numericText(value: numericProgress))
         .animation(.easeOut(duration: 0.16), value: numericProgress)
@@ -94,7 +148,7 @@ struct ReaderLoadingView: View {
   private var titleText: some View {
     Text(title)
       .font(.headline)
-      .foregroundStyle(.primary)
+      .foregroundStyle(primaryContentColor)
       .multilineTextAlignment(.center)
       .lineLimit(1)
       .truncationMode(.tail)
@@ -105,7 +159,7 @@ struct ReaderLoadingView: View {
   private var detailTextView: some View {
     Text(detail)
       .font(.subheadline)
-      .foregroundStyle(.secondary)
+      .foregroundStyle(secondaryContentColor)
       .multilineTextAlignment(.center)
       .lineLimit(1)
       .truncationMode(.tail)

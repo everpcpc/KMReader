@@ -100,6 +100,7 @@
       #if os(iOS)
         .statusBarHidden(!shouldShowControls)
       #endif
+      .environment(\.readerBackgroundPreference, readerBackground)
       .sheet(isPresented: $showingPageJumpSheet) {
         if let documentURL = viewModel.documentURL {
           PdfPageJumpSheetView(
