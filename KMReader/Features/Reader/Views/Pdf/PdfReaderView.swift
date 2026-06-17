@@ -328,7 +328,9 @@
         ReaderLoadingView(
           title: loadingTitle,
           detail: loadingDetail,
-          progress: loadingProgress
+          progress: loadingProgress,
+          cardFill: readerBackground.loadingCardFill,
+          contentColor: readerBackground.loadingContentColor
         )
       } else if let errorMessage = viewModel.errorMessage {
         VStack(spacing: 16) {

@@ -739,7 +739,6 @@ struct DivinaReaderView: View {
     #if os(iOS)
       .readerDismissGesture(readingDirection: readingDirection)
     #endif
-    .environment(\.readerBackgroundPreference, readerBackground)
   }
 
   @ViewBuilder
@@ -753,7 +752,9 @@ struct DivinaReaderView: View {
         ReaderLoadingView(
           title: viewModel.loadingTitle,
           detail: viewModel.loadingDetail,
-          progress: viewModel.loadingProgress
+          progress: viewModel.loadingProgress,
+          cardFill: readerBackground.loadingCardFill,
+          contentColor: readerBackground.loadingContentColor
         )
       } else if viewModel.hasPages {
         Group {

@@ -9,8 +9,24 @@ struct ReaderLoadingView: View {
   let title: String
   let detail: String
   let progress: Double?
+  let cardFill: Color
+  let contentColor: Color
 
   private let contentWidth: CGFloat = 260
+
+  init(
+    title: String,
+    detail: String,
+    progress: Double?,
+    cardFill: Color,
+    contentColor: Color
+  ) {
+    self.title = title
+    self.detail = detail
+    self.progress = progress
+    self.cardFill = cardFill
+    self.contentColor = contentColor
+  }
 
   private var normalizedProgress: Double? {
     progress.map { min(max($0, 0), 1) }
@@ -38,19 +54,35 @@ struct ReaderLoadingView: View {
     .padding(.horizontal, 28)
     .background {
       RoundedRectangle(cornerRadius: 28, style: .continuous)
-        .fill(.ultraThinMaterial)
+        .fill(cardFill)
         .overlay {
           RoundedRectangle(cornerRadius: 28, style: .continuous)
-            .stroke(Color.primary.opacity(0.08), lineWidth: 0.5)
+            .stroke(cardStroke, lineWidth: 0.5)
         }
     }
     .shadow(color: Color.black.opacity(0.12), radius: 30, x: 0, y: 15)
   }
 
+  private var cardStroke: Color {
+    contentColor.opacity(0.12)
+  }
+
+  private var primaryContentColor: Color {
+    contentColor
+  }
+
+  private var secondaryContentColor: Color {
+    contentColor.opacity(0.72)
+  }
+
+  private var progressTrackColor: Color {
+    contentColor.opacity(0.14)
+  }
+
   private var statusIcon: some View {
     ZStack {
       Circle()
-        .stroke(Color.primary.opacity(0.05), lineWidth: 4)
+        .stroke(progressTrackColor, lineWidth: 4)
         .frame(width: 64, height: 64)
 
       Circle()
@@ -66,10 +98,11 @@ struct ReaderLoadingView: View {
         .frame(width: 64, height: 64)
         .rotationEffect(.degrees(-90))
         .opacity(showsProgress ? 1 : 0)
-        .animation(.easeOut(duration: 0.16), value: normalizedProgress)
+        .animation(.easeOut(duration: 0.16), value: numericProgress)
 
       Text(progressText)
         .font(.system(.subheadline, design: .rounded).bold())
+        .foregroundStyle(primaryContentColor)
         .monospacedDigit()
         .contentTransition(.numericText(value: numericProgress))
         .animation(.easeOut(duration: 0.16), value: numericProgress)
@@ -94,7 +127,7 @@ struct ReaderLoadingView: View {
   private var titleText: some View {
     Text(title)
       .font(.headline)
-      .foregroundStyle(.primary)
+      .foregroundStyle(primaryContentColor)
       .multilineTextAlignment(.center)
       .lineLimit(1)
       .truncationMode(.tail)
@@ -105,7 +138,7 @@ struct ReaderLoadingView: View {
   private var detailTextView: some View {
     Text(detail)
       .font(.subheadline)
-      .foregroundStyle(.secondary)
+      .foregroundStyle(secondaryContentColor)
       .multilineTextAlignment(.center)
       .lineLimit(1)
       .truncationMode(.tail)
@@ -120,7 +153,9 @@ struct ReaderLoadingView: View {
     ReaderLoadingView(
       title: "Downloading book...",
       detail: "45% · 12.4 MB / 28.5 MB",
-      progress: 0.45
+      progress: 0.45,
+      cardFill: ReaderBackground.gray.loadingCardFill,
+      contentColor: ReaderBackground.gray.loadingContentColor
     )
   }
 }
