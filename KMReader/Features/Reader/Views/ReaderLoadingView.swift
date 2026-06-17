@@ -12,7 +12,23 @@ struct ReaderLoadingView: View {
   let detail: String
   let progress: Double?
 
+  private let customCardFill: Color?
+  private let customContentColor: Color?
   private let contentWidth: CGFloat = 260
+
+  init(
+    title: String,
+    detail: String,
+    progress: Double?,
+    cardFill: Color? = nil,
+    contentColor: Color? = nil
+  ) {
+    self.title = title
+    self.detail = detail
+    self.progress = progress
+    self.customCardFill = cardFill
+    self.customContentColor = contentColor
+  }
 
   private var normalizedProgress: Double? {
     progress.map { min(max($0, 0), 1) }
@@ -50,6 +66,10 @@ struct ReaderLoadingView: View {
   }
 
   private var cardFill: Color {
+    if let customCardFill {
+      return customCardFill
+    }
+
     switch readerBackground {
     case .black:
       return Color(.sRGB, white: 0.12, opacity: 1)
@@ -65,6 +85,10 @@ struct ReaderLoadingView: View {
   }
 
   private var cardStroke: Color {
+    if let customContentColor {
+      return customContentColor.opacity(0.12)
+    }
+
     switch readerBackground {
     case .system:
       return Color.primary.opacity(0.08)
@@ -74,6 +98,10 @@ struct ReaderLoadingView: View {
   }
 
   private var primaryContentColor: Color {
+    if let customContentColor {
+      return customContentColor
+    }
+
     switch readerBackground {
     case .system:
       return .primary
@@ -83,6 +111,10 @@ struct ReaderLoadingView: View {
   }
 
   private var secondaryContentColor: Color {
+    if let customContentColor {
+      return customContentColor.opacity(0.72)
+    }
+
     switch readerBackground {
     case .system:
       return .secondary
@@ -92,6 +124,10 @@ struct ReaderLoadingView: View {
   }
 
   private var progressTrackColor: Color {
+    if let customContentColor {
+      return customContentColor.opacity(0.14)
+    }
+
     switch readerBackground {
     case .system:
       return Color.primary.opacity(0.05)

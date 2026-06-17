@@ -208,6 +208,31 @@
       activeThemePreferences.resolvedColorScheme(fallbackColorScheme: colorScheme)
     }
 
+    private var loadingCardFill: Color {
+      switch readerTheme {
+      case .white:
+        return Color(.sRGB, white: 0.96, opacity: 1)
+      case .black:
+        return Color(.sRGB, white: 0.12, opacity: 1)
+      case .lightQuiet:
+        return Color(hex: "#F0F0F0") ?? readerTheme.backgroundColor
+      case .darkQuiet:
+        return Color(hex: "#2A2A2A") ?? readerTheme.backgroundColor
+      case .lightSepia:
+        return Color(hex: "#FAF4E4") ?? readerTheme.backgroundColor
+      case .darkSepia:
+        return Color(hex: "#44382D") ?? readerTheme.backgroundColor
+      case .lightGreen:
+        return Color(hex: "#D8F5DC") ?? readerTheme.backgroundColor
+      case .darkGreen:
+        return Color(hex: "#243324") ?? readerTheme.backgroundColor
+      }
+    }
+
+    private var loadingContentColor: Color {
+      readerTheme.textColor
+    }
+
     #if os(macOS)
       private var supportsOverlayControls: Bool {
         false
@@ -452,7 +477,9 @@
                 ReaderLoadingView(
                   title: loadingTitle,
                   detail: loadingDetail,
-                  progress: loadingProgress
+                  progress: loadingProgress,
+                  cardFill: loadingCardFill,
+                  contentColor: loadingContentColor
                 )
               } else if let error = viewModel.errorMessage {
                 VStack(spacing: 12) {
@@ -477,7 +504,9 @@
             ReaderLoadingView(
               title: loadingTitle,
               detail: loadingDetail,
-              progress: loadingProgress
+              progress: loadingProgress,
+              cardFill: loadingCardFill,
+              contentColor: loadingContentColor
             )
           } else if let error = viewModel.errorMessage {
             VStack(spacing: 12) {
