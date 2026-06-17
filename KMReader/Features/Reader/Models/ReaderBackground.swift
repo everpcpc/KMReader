@@ -49,18 +49,26 @@ enum ReaderBackground: String, CaseIterable, Hashable, Sendable {
     }
   }
 
+  var loadingCardFill: Color {
+    switch self {
+    case .black:
+      return Color(.sRGB, white: 0.12, opacity: 1)
+    case .white:
+      return Color(.sRGB, white: 0.96, opacity: 1)
+    case .gray:
+      return Color(.sRGB, white: 0.42, opacity: 1)
+    case .sepia:
+      return Color(red: 250.0 / 255.0, green: 244.0 / 255.0, blue: 228.0 / 255.0)
+    case .system:
+      return PlatformHelper.secondarySystemBackgroundColor
+    }
+  }
+
+  var loadingContentColor: Color {
+    contentColor
+  }
+
   var appliesImageMultiplyBlend: Bool {
     self == .sepia
-  }
-}
-
-private struct ReaderBackgroundPreferenceKey: EnvironmentKey {
-  static let defaultValue: ReaderBackground = .system
-}
-
-extension EnvironmentValues {
-  var readerBackgroundPreference: ReaderBackground {
-    get { self[ReaderBackgroundPreferenceKey.self] }
-    set { self[ReaderBackgroundPreferenceKey.self] = newValue }
   }
 }

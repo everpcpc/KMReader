@@ -6,28 +6,26 @@
 import SwiftUI
 
 struct ReaderLoadingView: View {
-  @Environment(\.readerBackgroundPreference) private var readerBackground
-
   let title: String
   let detail: String
   let progress: Double?
+  let cardFill: Color
+  let contentColor: Color
 
-  private let customCardFill: Color?
-  private let customContentColor: Color?
   private let contentWidth: CGFloat = 260
 
   init(
     title: String,
     detail: String,
     progress: Double?,
-    cardFill: Color? = nil,
-    contentColor: Color? = nil
+    cardFill: Color,
+    contentColor: Color
   ) {
     self.title = title
     self.detail = detail
     self.progress = progress
-    self.customCardFill = cardFill
-    self.customContentColor = contentColor
+    self.cardFill = cardFill
+    self.contentColor = contentColor
   }
 
   private var normalizedProgress: Double? {
@@ -65,75 +63,20 @@ struct ReaderLoadingView: View {
     .shadow(color: Color.black.opacity(0.12), radius: 30, x: 0, y: 15)
   }
 
-  private var cardFill: Color {
-    if let customCardFill {
-      return customCardFill
-    }
-
-    switch readerBackground {
-    case .black:
-      return Color(.sRGB, white: 0.12, opacity: 1)
-    case .white:
-      return Color(.sRGB, white: 0.96, opacity: 1)
-    case .gray:
-      return Color(.sRGB, white: 0.42, opacity: 1)
-    case .sepia:
-      return Color(red: 250.0 / 255.0, green: 244.0 / 255.0, blue: 228.0 / 255.0)
-    case .system:
-      return PlatformHelper.secondarySystemBackgroundColor
-    }
-  }
-
   private var cardStroke: Color {
-    if let customContentColor {
-      return customContentColor.opacity(0.12)
-    }
-
-    switch readerBackground {
-    case .system:
-      return Color.primary.opacity(0.08)
-    case .black, .white, .gray, .sepia:
-      return readerBackground.contentColor.opacity(0.12)
-    }
+    contentColor.opacity(0.12)
   }
 
   private var primaryContentColor: Color {
-    if let customContentColor {
-      return customContentColor
-    }
-
-    switch readerBackground {
-    case .system:
-      return .primary
-    case .black, .white, .gray, .sepia:
-      return readerBackground.contentColor
-    }
+    contentColor
   }
 
   private var secondaryContentColor: Color {
-    if let customContentColor {
-      return customContentColor.opacity(0.72)
-    }
-
-    switch readerBackground {
-    case .system:
-      return .secondary
-    case .black, .white, .gray, .sepia:
-      return readerBackground.contentColor.opacity(0.72)
-    }
+    contentColor.opacity(0.72)
   }
 
   private var progressTrackColor: Color {
-    if let customContentColor {
-      return customContentColor.opacity(0.14)
-    }
-
-    switch readerBackground {
-    case .system:
-      return Color.primary.opacity(0.05)
-    case .black, .white, .gray, .sepia:
-      return readerBackground.contentColor.opacity(0.14)
-    }
+    contentColor.opacity(0.14)
   }
 
   private var statusIcon: some View {
@@ -210,7 +153,9 @@ struct ReaderLoadingView: View {
     ReaderLoadingView(
       title: "Downloading book...",
       detail: "45% · 12.4 MB / 28.5 MB",
-      progress: 0.45
+      progress: 0.45,
+      cardFill: ReaderBackground.gray.loadingCardFill,
+      contentColor: ReaderBackground.gray.loadingContentColor
     )
   }
 }
