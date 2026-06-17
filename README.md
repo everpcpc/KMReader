@@ -31,13 +31,14 @@
 
 - Dashboard sections for Keep Reading, On Deck, Recently Added, Recently Updated, and pinned collections/read lists, with quick offline actions for current or full book sections where supported.
 - Browse Series, Books, Collections, and Read Lists with metadata filters, all/any matching, saved filters, reading history, and optional unread-cover blur.
+- Local database storage keeps large libraries, dashboards, logs, downloaded content, and offline browsing responsive.
 - Spotlight indexing for downloaded content, plus iOS widgets and Home Screen quick actions for Keep Reading, Search, and Downloads.
 
 ### Offline and Sync
 
 - Download books for offline reading across DIVINA, EPUB, and PDF workflows, with optional offline-first reading that prepares local content before opening the reader.
 - Per-series policies support manual, unread-only, unread + cleanup, and all-books downloads.
-- Large downloads stream to disk, and CBZ, CBR, PDF, and supported EPUB offline flows use local extraction or storage.
+- Large downloads stream to disk, while CBZ, CBR, PDF, and supported EPUB offline flows keep source files available and prepare pages on demand.
 - Progress and offline changes sync when reconnecting, with stale progress protection and automatic recovery from server outages when offline mode was entered automatically. Cache controls cover pages and thumbnails.
 - iOS background downloads and Live Activities show reader progress, incognito status, download progress, and processing state.
 
@@ -45,7 +46,7 @@
 
 - Save multiple Komga servers and switch instantly.
 - Sign in with username/password or API key, and manage Komga API keys inside the app.
-- Admin tools cover metadata editing, library management, media analysis, missing posters, duplicate files/pages, task monitoring, and log viewing/export.
+- Admin tools cover metadata editing, library management, media analysis, missing posters, duplicate files/pages, task monitoring, and paginated log viewing/export.
 
 ### Platform Highlights
 

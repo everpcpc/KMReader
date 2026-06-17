@@ -1,19 +1,16 @@
 New
-- Added optional border cropping for DIVINA pages, helping comics with large empty margins use more of the screen.
-- Added DIVINA image preloading profiles so you can choose between lower memory use and smoother page turns.
-- Added dedicated EPUB settings and EPUB theme controls, separating reading behavior from per-book theme and typography choices.
+- KMReader 5.0 rebuilds local library storage around a dedicated database, improving reliability for large libraries, browsing, dashboards, and offline data.
+- Added EPUB overlay customization for reading progress, controls, headers, and footers.
+- Added smarter offline archive handling so downloaded books stay compact and pages are prepared on demand when reading.
 
 Improvements
-- EPUB books with custom fonts, images, and mixed HTML/XHTML chapters now load publication resources more reliably.
-- EPUB tap zones now have their own settings instead of sharing DIVINA tap zone preferences.
-- DIVINA scroll and page-curl navigation is more stable, especially around rapid taps, animations, and book boundaries.
-- Reader memory handling is improved on iOS, with decoded pages pruned more gracefully under memory pressure.
-- Browse views avoid unnecessary refreshes when returning from detail pages.
-- The Browse tab is now positioned as the trailing search-style entry point on iPhone and Apple TV.
-- macOS Settings keeps its sidebar stable while using EPUB settings and log search.
+- Reader loading states are clearer and more stable, with smoother progress updates and less visual flicker while downloads or page preparation are running.
+- The in-app logs viewer now uses paginated storage, making settings logs easier to browse on long-running installs.
+- Offline download status, read progress lists, and one-shot read summaries refresh more reliably across browsing and detail screens.
+- EPUB theme color scheme choices now persist per book.
 
 Fixes
-- Fixed cases where continuing from one volume into the next could jump back or regress progress for the previous volume.
-- Fixed UTF-8 archive path handling for offline CBZ/ZIP extraction.
-- Fixed EPUB chapters that could appear blank when their manifest media type did not match the file extension.
-- Reduced unnecessary offline downloads for previous-book preloads while keeping forward offline-first preparation.
+- Fixed several reader loading edge cases around unknown download sizes, render progress, and background color transitions.
+- Fixed stale read progress or download indicators after reading, syncing, or returning from detail pages.
+- Fixed one-shot read status and summary placement in series views.
+- Fixed assorted reader control, keyboard, zoom, and tap-zone regressions.

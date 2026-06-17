@@ -1,0 +1,4 @@
+interface:
+  display_name: "KMReader App Store Release"
+  short_description: "Coordinate KMReader App Store release workflow"
+  default_prompt: "Use $appstore-release to refresh KMReader release docs, prepare App Store Connect versions, submit builds, and start the next version cycle."

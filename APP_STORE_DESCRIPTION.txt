@@ -1,6 +1,6 @@
 KMReader - Native Komga Client for iPhone, iPad, Mac, and Apple TV
 
-KMReader helps you read, browse, download, and manage your Komga library with native Apple-platform readers and practical offline workflows.
+KMReader helps you read, browse, download, and manage your Komga library with native Apple-platform readers, reliable local library storage, and practical offline workflows.
 
 IMPORTANT FEATURES
 
@@ -10,14 +10,15 @@ Rotate individual pages, crop empty page borders in DIVINA, tune preloading for 
 
 - Browse and discover
 Use Keep Reading, On Deck, Recently Added, Recently Updated, pinned collections/read lists, reading history, saved filters, advanced metadata filters with all/any matching, optional unread-cover blur, Spotlight indexing, widgets, and Home Screen quick actions.
+KMReader keeps a local database for responsive browsing, dashboards, logs, and downloaded-library workflows, including large libraries.
 
 - Offline and sync
-Download books for offline reading, set per-series download policies, browse downloaded items, queue dashboard sections, keep reading with iOS background downloads and Live Activities, prepare books before opening with offline-first reading, and sync progress when you reconnect.
+Download books for offline reading, set per-series download policies, browse downloaded items, queue dashboard sections, keep reading with iOS background downloads and Live Activities, prepare local pages on demand with offline-first reading, and sync progress when you reconnect.
 
 - Multi-server and admin tools
 Save multiple Komga servers and switch instantly.
 Sign in with password or API key, and manage API keys in the app.
-Edit metadata, manage libraries and media, find missing posters or duplicates, monitor tasks, and view logs.
+Edit metadata, manage libraries and media, find missing posters or duplicates, monitor tasks, and browse paginated logs.
 
 KMReader targets Komga 1.19.0+ and supports API v1/v2.
 KMReader UI is localized in English, German, French, Japanese, Korean, Simplified Chinese, Traditional Chinese, Italian, Russian, and Spanish.
