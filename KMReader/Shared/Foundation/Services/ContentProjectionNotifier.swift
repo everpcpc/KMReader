@@ -379,7 +379,7 @@ nonisolated enum ContentProjectionNotifier {
     let readListIds = takeDueIds(from: &pendingReadListDeadlines, now: now)
 
     if !bookIds.isEmpty {
-      let libraryIds = takeLibraryIds(for: bookIds, from: &pendingBookLibraryIds)
+      let libraryIds = takeCompleteLibraryIds(for: bookIds, from: &pendingBookLibraryIds)
       postBooksNow(bookIds, libraryIds: libraryIds)
     }
     if allSeriesDue {
@@ -387,7 +387,7 @@ nonisolated enum ContentProjectionNotifier {
       pendingSeriesLibraryIds.removeAll()
       postAllSeriesNow()
     } else if !seriesIds.isEmpty {
-      let libraryIds = takeLibraryIds(for: seriesIds, from: &pendingSeriesLibraryIds)
+      let libraryIds = takeCompleteLibraryIds(for: seriesIds, from: &pendingSeriesLibraryIds)
       postSeriesNow(seriesIds, libraryIds: libraryIds)
     }
     for collectionId in collectionIds {
@@ -452,20 +452,24 @@ nonisolated enum ContentProjectionNotifier {
     return true
   }
 
-  private static func takeLibraryIds(for ids: Set<String>, from libraryIds: inout [String: String])
-    -> Set<String>
+  private static func takeCompleteLibraryIds(for ids: Set<String>, from libraryIds: inout [String: String])
+    -> Set<String>?
   {
     var result = Set<String>()
+    var hasUnscopedId = false
     for id in ids {
       if let libraryId = libraryIds.removeValue(forKey: id) {
         result.insert(libraryId)
+      } else {
+        hasUnscopedId = true
       }
     }
+    guard !hasUnscopedId else { return nil }
     return result
   }
 
   @MainActor
-  private static func postBooksNow(_ ids: Set<String>, libraryIds: Set<String>) {
+  private static func postBooksNow(_ ids: Set<String>, libraryIds: Set<String>?) {
     var userInfo: [AnyHashable: Any] = ["bookIds": ids]
     if ids.count == 1, let bookId = ids.first {
       userInfo["bookId"] = bookId
@@ -479,7 +483,7 @@ nonisolated enum ContentProjectionNotifier {
   }
 
   @MainActor
-  private static func postSeriesNow(_ ids: Set<String>, libraryIds: Set<String>) {
+  private static func postSeriesNow(_ ids: Set<String>, libraryIds: Set<String>?) {
     var userInfo: [AnyHashable: Any] = ["seriesIds": ids]
     if ids.count == 1, let seriesId = ids.first {
       userInfo["seriesId"] = seriesId
@@ -519,7 +523,8 @@ nonisolated enum ContentProjectionNotifier {
     )
   }
 
-  private static func addLibraryScope(_ libraryIds: Set<String>, to userInfo: inout [AnyHashable: Any]) {
+  private static func addLibraryScope(_ libraryIds: Set<String>?, to userInfo: inout [AnyHashable: Any]) {
+    guard let libraryIds else { return }
     guard !libraryIds.isEmpty else { return }
     userInfo["libraryIds"] = libraryIds
     if libraryIds.count == 1, let libraryId = libraryIds.first {
