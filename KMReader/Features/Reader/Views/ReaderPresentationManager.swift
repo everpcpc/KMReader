@@ -51,12 +51,21 @@ final class ReaderPresentationManager {
   ) {
     #if os(macOS)
       if let currentSession {
-        finishSession(currentSession, syncVisited: true)
+        finishSession(
+          currentSession,
+          syncVisited: true,
+          postsContentProjectionChange: true,
+          endsReaderActivity: false
+        )
         clearReaderCommands()
       }
     #else
       if currentSession != nil {
-        closeReader(syncVisited: false)
+        closeReader(
+          syncVisited: false,
+          postsContentProjectionChange: false,
+          endsReaderActivity: false
+        )
       }
     #endif
 
@@ -67,17 +76,21 @@ final class ReaderPresentationManager {
     )
     currentSession = session
 
-    #if os(iOS)
-      ReaderLiveActivityManager.shared.readerDidOpen(book: book, incognito: incognito)
-    #endif
-
     #if os(macOS)
       guard let openWindowHandler else {
         logger.error("Reader window opener not configured")
         currentSession = nil
         return
       }
+    #endif
 
+    ContentProjectionNotifier.readerDidOpen(sessionID: session.id)
+
+    #if os(iOS)
+      ReaderLiveActivityManager.shared.readerDidOpen(book: book, incognito: incognito)
+    #endif
+
+    #if os(macOS)
       if !isReaderWindowVisible {
         openWindowHandler()
       }
@@ -184,10 +197,19 @@ final class ReaderPresentationManager {
     #endif
   }
 
-  func closeReader(syncVisited: Bool = true) {
+  func closeReader(
+    syncVisited: Bool = true,
+    postsContentProjectionChange: Bool = true,
+    endsReaderActivity: Bool = true
+  ) {
     guard let currentSession else { return }
 
-    finishSession(currentSession, syncVisited: syncVisited)
+    finishSession(
+      currentSession,
+      syncVisited: syncVisited,
+      postsContentProjectionChange: postsContentProjectionChange,
+      endsReaderActivity: endsReaderActivity
+    )
 
     #if os(iOS)
       ReaderLiveActivityManager.shared.readerDidClose()
@@ -293,18 +315,30 @@ final class ReaderPresentationManager {
     }
   #endif
 
-  private func finishSession(_ session: ReaderSession, syncVisited: Bool) {
+  private func finishSession(
+    _ session: ReaderSession,
+    syncVisited: Bool,
+    postsContentProjectionChange: Bool,
+    endsReaderActivity: Bool
+  ) {
     flushHandlers[session.id]?()
     flushHandlers.removeValue(forKey: session.id)
 
-    guard syncVisited else { return }
-
-    if session.incognito {
-      logger.debug("⏭️ [Progress/Checkpoint] Skip visited sync: incognito mode enabled")
+    guard syncVisited else {
+      finishReaderActivityIfNeeded(endsReaderActivity, sessionID: session.id)
       return
     }
 
-    guard !session.visitedBookIds.isEmpty else { return }
+    if session.incognito {
+      logger.debug("⏭️ [Progress/Checkpoint] Skip visited sync: incognito mode enabled")
+      finishReaderActivityIfNeeded(endsReaderActivity, sessionID: session.id)
+      return
+    }
+
+    guard !session.visitedBookIds.isEmpty else {
+      finishReaderActivityIfNeeded(endsReaderActivity, sessionID: session.id)
+      return
+    }
 
     let bookIds = session.visitedBookIds
     let seriesIds = session.visitedSeriesIds
@@ -332,8 +366,24 @@ final class ReaderPresentationManager {
           "⚠️ [Progress/Checkpoint] Wait timed out before visited sync, continuing: books=\(bookIds.count), entries=\(checkpoint.count)"
         )
       }
+      if postsContentProjectionChange {
+        await ContentProjectionNotifier.postBooksAndSeriesDidChange(
+          bookIds: Array(bookIds),
+          instanceId: session.instanceId
+        )
+      }
       await SyncService.syncVisitedItems(bookIds: bookIds, seriesIds: seriesIds)
       WidgetDataService.refreshWidgetData()
+      if endsReaderActivity {
+        await MainActor.run {
+          ContentProjectionNotifier.readerDidClose(sessionID: session.id)
+        }
+      }
     }
+  }
+
+  private func finishReaderActivityIfNeeded(_ endsReaderActivity: Bool, sessionID: UUID) {
+    guard endsReaderActivity else { return }
+    ContentProjectionNotifier.readerDidClose(sessionID: sessionID)
   }
 }

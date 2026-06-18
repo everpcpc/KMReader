@@ -13,7 +13,6 @@ struct DashboardView: View {
   @State private var refreshTrigger = DashboardRefreshTrigger(id: UUID(), source: .manual)
   @State private var isRefreshing = false
   @State private var pendingRefreshTask: Task<Void, Never>?
-  @State private var readerCloseRefreshTask: Task<Void, Never>?
   @State private var showLibraryPicker = false
   @State private var shouldRefreshAfterReading = false
   @State private var isCheckingConnection = false
@@ -190,40 +189,35 @@ struct DashboardView: View {
   }
 
   private func handleSSEEvent(_ info: SSEEventInfo) {
-    let jsonData = info.data.data(using: .utf8) ?? Data()
-    let decoder = JSONDecoder()
-
     switch info.type {
-    case .seriesAdded, .seriesChanged, .seriesDeleted:
-      if let event = try? decoder.decode(SeriesSSEDto.self, from: jsonData) {
-        if shouldRefreshForLibrary(event.libraryId) {
-          scheduleRefresh(reason: "SSE \(info.type.rawValue) \(event.seriesId)")
-        }
-      }
-    case .bookAdded, .bookChanged, .bookDeleted:
-      if let event = try? decoder.decode(BookSSEDto.self, from: jsonData) {
-        if shouldRefreshForLibrary(event.libraryId) {
-          scheduleRefresh(reason: "SSE \(info.type.rawValue) \(event.bookId)")
-        }
-      }
-    case .readProgressChanged, .readProgressDeleted, .readProgressSeriesChanged,
-      .readProgressSeriesDeleted:
-      scheduleRefresh(reason: "SSE \(info.type.rawValue)")
     case .libraryAdded, .libraryChanged, .libraryDeleted:
-      scheduleRefresh(reason: "SSE \(info.type.rawValue)")
-    case .collectionAdded, .collectionChanged, .collectionDeleted:
-      scheduleRefresh(reason: "SSE \(info.type.rawValue)")
-    case .readListAdded, .readListChanged, .readListDeleted:
       scheduleRefresh(reason: "SSE \(info.type.rawValue)")
     default:
       break
     }
   }
 
-  private func shouldRefreshForLibrary(_ libraryId: String) -> Bool {
-    // If dashboard shows all libraries (empty array), refresh for any library
-    // Otherwise, only refresh if the library matches
-    return dashboard.libraryIds.isEmpty || dashboard.libraryIds.contains(libraryId)
+  private func shouldRefreshForProjection(_ notification: Notification) -> Bool {
+    let selectedLibraryIds = Set(dashboard.libraryIds)
+    guard !selectedLibraryIds.isEmpty else { return true }
+
+    let changedLibraryIds = libraryIds(from: notification)
+    guard !changedLibraryIds.isEmpty else { return true }
+
+    return !changedLibraryIds.isDisjoint(with: selectedLibraryIds)
+  }
+
+  private func libraryIds(from notification: Notification) -> Set<String> {
+    if let ids = notification.userInfo?["libraryIds"] as? Set<String> {
+      return ids
+    }
+    if let ids = notification.userInfo?["libraryIds"] as? [String] {
+      return Set(ids)
+    }
+    if let id = notification.userInfo?["libraryId"] as? String {
+      return [id]
+    }
+    return []
   }
 
   var body: some View {
@@ -273,12 +267,25 @@ struct DashboardView: View {
       // Cancel any pending refresh when view disappears
       pendingRefreshTask?.cancel()
       pendingRefreshTask = nil
-      readerCloseRefreshTask?.cancel()
-      readerCloseRefreshTask = nil
+      shouldRefreshAfterReading = false
     }
     .onReceive(NotificationCenter.default.publisher(for: .sseEventReceived)) { notification in
       guard let info = notification.userInfo?["info"] as? SSEEventInfo else { return }
       handleSSEEvent(info)
+    }
+    .onReceive(NotificationCenter.default.publisher(for: .bookProjectionDidChange)) { notification in
+      guard shouldRefreshForProjection(notification) else { return }
+      scheduleRefresh(reason: "Local book projection")
+    }
+    .onReceive(NotificationCenter.default.publisher(for: .seriesProjectionDidChange)) { notification in
+      guard shouldRefreshForProjection(notification) else { return }
+      scheduleRefresh(reason: "Local series projection")
+    }
+    .onReceive(NotificationCenter.default.publisher(for: .collectionProjectionDidChange)) { _ in
+      scheduleRefresh(reason: "Local collection projection")
+    }
+    .onReceive(NotificationCenter.default.publisher(for: .readListProjectionDidChange)) { _ in
+      scheduleRefresh(reason: "Local read list projection")
     }
     .onChange(of: enableSSEAutoRefresh) { _, newValue in
       // Cancel any pending refresh when auto-refresh is disabled
@@ -287,56 +294,18 @@ struct DashboardView: View {
         pendingRefreshTask = nil
       }
     }
-    .onChange(of: readerPresentation.currentSession) { oldSession, newSession in
+    .onChange(of: readerPresentation.currentSession) { _, newSession in
       if newSession != nil {
+        if pendingRefreshTask != nil {
+          shouldRefreshAfterReading = true
+          AppConfig.serverLastUpdate = Date()
+        }
         // Reader opened - cancel any pending dashboard refresh
         pendingRefreshTask?.cancel()
         pendingRefreshTask = nil
-        readerCloseRefreshTask?.cancel()
-        readerCloseRefreshTask = nil
-      } else {
-        let needsFullRefresh = shouldRefreshAfterReading
+      } else if shouldRefreshAfterReading {
         shouldRefreshAfterReading = false
-        let visitedBookIds = oldSession?.visitedBookIds ?? []
-
-        readerCloseRefreshTask?.cancel()
-        readerCloseRefreshTask = Task {
-          logger.debug(
-            "⏳ [Progress/Checkpoint] Dashboard wait before refresh: visitedBooks=\(visitedBookIds.count), fullRefresh=\(needsFullRefresh)"
-          )
-
-          if !visitedBookIds.isEmpty {
-            let checkpoint = await ReaderProgressDispatchService.shared.captureProgressCheckpoint(
-              bookIds: visitedBookIds,
-              waitForRecentFlush: true
-            )
-            logger.debug(
-              "📍 [Progress/Checkpoint] Dashboard captured checkpoint: entries=\(checkpoint.count)"
-            )
-            let idle = await ReaderProgressDispatchService.shared.waitUntilCheckpointReached(
-              checkpoint,
-              timeout: .seconds(5)
-            )
-            if idle {
-              logger.debug(
-                "✅ [Progress/Checkpoint] Dashboard wait completed: entries=\(checkpoint.count)"
-              )
-            } else {
-              logger.warning(
-                "⚠️ [Progress/Checkpoint] Dashboard wait timed out, continuing refresh: entries=\(checkpoint.count)"
-              )
-            }
-          }
-
-          guard !Task.isCancelled else { return }
-
-          if needsFullRefresh {
-            refreshDashboard(reason: "Deferred after reader closed")
-          } else {
-            refreshSections([.keepReading, .onDeck, .recentlyReadBooks], reason: "Reader closed")
-          }
-          readerCloseRefreshTask = nil
-        }
+        scheduleRefresh(reason: "Reader closed after deferred dashboard refresh")
       }
     }
     #if os(iOS) || os(macOS)
@@ -549,8 +518,6 @@ struct DashboardView: View {
 
     pendingRefreshTask?.cancel()
     pendingRefreshTask = nil
-    readerCloseRefreshTask?.cancel()
-    readerCloseRefreshTask = nil
     shouldRefreshAfterReading = false
     AppConfig.enterManualOfflineMode()
 

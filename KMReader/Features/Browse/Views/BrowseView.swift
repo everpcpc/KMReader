@@ -7,7 +7,6 @@ import SwiftUI
 
 struct BrowseView: View {
   let authViewModel: AuthViewModel
-  let readerPresentation: ReaderPresentationManager
   let fixedContent: BrowseContentType?
   let metadataFilter: MetadataFilterConfig?
 
@@ -31,12 +30,6 @@ struct BrowseView: View {
   @State private var showLibraryPicker = false
   @State private var showFilterSheet = false
   @State private var showSavedFilters = false
-  @State private var projectionRefreshTask: Task<Void, Never>?
-  @State private var readerCloseRefreshTask: Task<Void, Never>?
-  @State private var shouldRefreshAfterReading = false
-
-  private static let localProjectionRefreshDelay: UInt64 = 750_000_000
-  private static let remoteProjectionRefreshDelay: UInt64 = 5_000_000_000
 
   private var effectiveContent: BrowseContentType {
     fixedContent ?? browseContent
@@ -56,18 +49,12 @@ struct BrowseView: View {
     }
   }
 
-  private var isReaderActive: Bool {
-    readerPresentation.currentSession != nil
-  }
-
   init(
     authViewModel: AuthViewModel,
-    readerPresentation: ReaderPresentationManager,
     fixedContent: BrowseContentType? = nil,
     metadataFilter: MetadataFilterConfig? = nil
   ) {
     self.authViewModel = authViewModel
-    self.readerPresentation = readerPresentation
     self.fixedContent = fixedContent
     self.metadataFilter = metadataFilter
   }
@@ -239,26 +226,27 @@ struct BrowseView: View {
       initializedLibraryIdsKey = resolvedLibraryIdsKey
       refreshBrowse()
     }
-    .onReceive(NotificationCenter.default.publisher(for: .bookProjectionDidChange)) { _ in
+    .onReceive(NotificationCenter.default.publisher(for: .bookProjectionDidChange)) { notification in
       guard effectiveContent == .books else { return }
-      scheduleProjectionRefresh()
+      guard !authViewModel.isSwitching else { return }
+      refreshBrowse()
     }
-    .onReceive(NotificationCenter.default.publisher(for: .seriesProjectionDidChange)) { _ in
+    .onReceive(NotificationCenter.default.publisher(for: .seriesProjectionDidChange)) { notification in
       guard effectiveContent == .series else { return }
-      scheduleProjectionRefresh()
+      guard !authViewModel.isSwitching else { return }
+      refreshBrowse()
     }
-    .onReceive(NotificationCenter.default.publisher(for: .sseEventReceived)) { notification in
-      guard let info = notification.userInfo?["info"] as? SSEEventInfo else { return }
-      handleSSEEvent(info)
+    .onReceive(NotificationCenter.default.publisher(for: .collectionProjectionDidChange)) {
+      notification in
+      guard effectiveContent == .collections else { return }
+      guard !authViewModel.isSwitching else { return }
+      refreshBrowse()
     }
-    .onChange(of: readerPresentation.currentSession) { oldSession, newSession in
-      handleReaderSessionChange(oldSession: oldSession, newSession: newSession)
-    }
-    .onDisappear {
-      projectionRefreshTask?.cancel()
-      projectionRefreshTask = nil
-      readerCloseRefreshTask?.cancel()
-      readerCloseRefreshTask = nil
+    .onReceive(NotificationCenter.default.publisher(for: .readListProjectionDidChange)) {
+      notification in
+      guard effectiveContent == .readlists else { return }
+      guard !authViewModel.isSwitching else { return }
+      refreshBrowse()
     }
   }
 
@@ -268,92 +256,6 @@ struct BrowseView: View {
     Task {
       try? await Task.sleep(nanoseconds: 2_000_000_000)  // 2 seconds
       isRefreshDisabled = false
-    }
-  }
-
-  private func scheduleProjectionRefresh(after delay: UInt64 = Self.localProjectionRefreshDelay) {
-    guard !authViewModel.isSwitching else { return }
-
-    projectionRefreshTask?.cancel()
-    projectionRefreshTask = nil
-
-    if isReaderActive {
-      shouldRefreshAfterReading = true
-      return
-    }
-
-    projectionRefreshTask = Task { @MainActor in
-      do {
-        try await Task.sleep(nanoseconds: delay)
-      } catch {
-        return
-      }
-
-      guard !Task.isCancelled else { return }
-      if isReaderActive {
-        shouldRefreshAfterReading = true
-      } else {
-        refreshBrowse()
-      }
-      projectionRefreshTask = nil
-    }
-  }
-
-  private func handleSSEEvent(_ info: SSEEventInfo) {
-    guard AppConfig.enableSSEAutoRefresh else { return }
-
-    switch info.type {
-    case .readProgressChanged, .readProgressDeleted, .readProgressSeriesChanged,
-      .readProgressSeriesDeleted:
-      guard effectiveContent == .books || effectiveContent == .series else { return }
-      scheduleProjectionRefresh(after: Self.remoteProjectionRefreshDelay)
-    case .bookAdded, .bookChanged, .bookDeleted, .bookImported:
-      guard effectiveContent == .books else { return }
-      scheduleProjectionRefresh(after: Self.remoteProjectionRefreshDelay)
-    case .seriesAdded, .seriesChanged, .seriesDeleted:
-      guard effectiveContent == .series else { return }
-      scheduleProjectionRefresh(after: Self.remoteProjectionRefreshDelay)
-    case .collectionAdded, .collectionChanged, .collectionDeleted:
-      guard effectiveContent == .collections else { return }
-      scheduleProjectionRefresh(after: Self.remoteProjectionRefreshDelay)
-    case .readListAdded, .readListChanged, .readListDeleted:
-      guard effectiveContent == .readlists else { return }
-      scheduleProjectionRefresh(after: Self.remoteProjectionRefreshDelay)
-    default:
-      break
-    }
-  }
-
-  private func handleReaderSessionChange(oldSession: ReaderSession?, newSession: ReaderSession?) {
-    if newSession != nil {
-      if projectionRefreshTask != nil {
-        shouldRefreshAfterReading = true
-      }
-      projectionRefreshTask?.cancel()
-      projectionRefreshTask = nil
-      readerCloseRefreshTask?.cancel()
-      readerCloseRefreshTask = nil
-      return
-    }
-
-    guard oldSession != nil else { return }
-    let needsRefresh = shouldRefreshAfterReading
-    shouldRefreshAfterReading = false
-    guard needsRefresh else { return }
-
-    let visitedBookIds = oldSession?.visitedBookIds ?? []
-    readerCloseRefreshTask?.cancel()
-    readerCloseRefreshTask = Task { @MainActor in
-      if !visitedBookIds.isEmpty {
-        _ = await ReaderProgressDispatchService.shared.waitUntilSettled(
-          bookIds: visitedBookIds,
-          timeout: .seconds(5)
-        )
-      }
-
-      guard !Task.isCancelled else { return }
-      refreshBrowse()
-      readerCloseRefreshTask = nil
     }
   }
 
