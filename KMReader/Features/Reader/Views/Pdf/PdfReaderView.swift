@@ -324,68 +324,84 @@
 
     @ViewBuilder
     private var contentView: some View {
-      if viewModel.isLoading {
-        ReaderLoadingView(
-          title: loadingTitle,
-          detail: loadingDetail,
-          progress: loadingProgress,
-          cardFill: readerBackground.loadingCardFill,
-          contentColor: readerBackground.loadingContentColor
-        )
-      } else if let errorMessage = viewModel.errorMessage {
-        VStack(spacing: 16) {
-          Image(systemName: "exclamationmark.triangle")
-            .font(.largeTitle)
+      let showsDocument =
+        viewModel.documentURL != nil && !viewModel.isLoading && viewModel.errorMessage == nil
 
-          Text(errorMessage)
-            .multilineTextAlignment(.center)
-
-          HStack(spacing: 12) {
-            Button("Retry") {
-              Task {
-                await loadBook()
+      ZStack {
+        if let documentURL = viewModel.documentURL {
+          GeometryReader { proxy in
+            let resolvedPresentation = pagePresentation.resolved(for: proxy.size)
+            PdfDocumentView(
+              documentURL: documentURL,
+              pagePresentation: resolvedPresentation,
+              isolateCoverPage: isolateCoverPage,
+              readingDirection: readingDirection,
+              initialPageNumber: documentInitialPage,
+              targetPageNumber: targetPageNumber,
+              navigationToken: navigationToken,
+              onPageChange: { pageNumber, totalPages in
+                viewModel.updateCurrentPage(pageNumber: pageNumber, totalPages: totalPages)
+              },
+              onSingleTap: { normalizedPoint in
+                handleSingleTap(normalizedPoint: normalizedPoint)
               }
-            }
-            .adaptiveButtonStyle(.borderedProminent)
-
-            Button("Close") {
-              closeReader()
-            }
-            .adaptiveButtonStyle(.bordered)
+            )
+            // Rebuild PDFView when the source document or resolved presentation changes.
+            .id(documentViewIdentity(documentURL: documentURL, resolvedPresentation: resolvedPresentation))
+            .readerIgnoresSafeArea()
           }
-        }
-        .padding()
-      } else if let documentURL = viewModel.documentURL {
-        GeometryReader { proxy in
-          let resolvedPresentation = pagePresentation.resolved(for: proxy.size)
-          PdfDocumentView(
-            documentURL: documentURL,
-            pagePresentation: resolvedPresentation,
-            isolateCoverPage: isolateCoverPage,
-            readingDirection: readingDirection,
-            initialPageNumber: documentInitialPage,
-            targetPageNumber: targetPageNumber,
-            navigationToken: navigationToken,
-            onPageChange: { pageNumber, totalPages in
-              viewModel.updateCurrentPage(pageNumber: pageNumber, totalPages: totalPages)
-            },
-            onSingleTap: { normalizedPoint in
-              handleSingleTap(normalizedPoint: normalizedPoint)
-            }
-          )
-          // Rebuild PDFView when the source document or resolved presentation changes.
-          .id(documentViewIdentity(documentURL: documentURL, resolvedPresentation: resolvedPresentation))
           .readerIgnoresSafeArea()
+          .readerLoadingContent(isVisible: showsDocument)
+        } else if !viewModel.isLoading && viewModel.errorMessage == nil {
+          ReaderUnavailableView(
+            icon: "doc.richtext",
+            title: "PDF file unavailable",
+            message: String(localized: "Offline PDF file is missing. Please try downloading again."),
+            onClose: closeReader
+          )
+          .transition(ReaderLoadingTransition.content)
         }
-        .readerIgnoresSafeArea()
-      } else {
-        ReaderUnavailableView(
-          icon: "doc.richtext",
-          title: "PDF file unavailable",
-          message: String(localized: "Offline PDF file is missing. Please try downloading again."),
-          onClose: closeReader
-        )
+
+        if let errorMessage = viewModel.errorMessage, !viewModel.isLoading {
+          VStack(spacing: 16) {
+            Image(systemName: "exclamationmark.triangle")
+              .font(.largeTitle)
+
+            Text(errorMessage)
+              .multilineTextAlignment(.center)
+
+            HStack(spacing: 12) {
+              Button("Retry") {
+                Task {
+                  await loadBook()
+                }
+              }
+              .adaptiveButtonStyle(.borderedProminent)
+
+              Button("Close") {
+                closeReader()
+              }
+              .adaptiveButtonStyle(.bordered)
+            }
+          }
+          .padding()
+          .transition(ReaderLoadingTransition.content)
+        }
+
+        if viewModel.isLoading {
+          ReaderLoadingView(
+            title: loadingTitle,
+            detail: loadingDetail,
+            progress: loadingProgress,
+            cardFill: readerBackground.loadingCardFill,
+            contentColor: readerBackground.loadingContentColor
+          )
+          .readerLoadingOverlay()
+        }
       }
+      .animation(ReaderLoadingTransition.animation, value: viewModel.isLoading)
+      .animation(ReaderLoadingTransition.animation, value: viewModel.documentURL)
+      .animation(ReaderLoadingTransition.animation, value: viewModel.errorMessage)
     }
 
     private var controlsOverlay: some View {
