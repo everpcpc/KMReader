@@ -16,7 +16,7 @@ nonisolated enum ContentProjectionNotifier {
   static let localRefreshDelay: UInt64 = 750_000_000
   static let remoteRefreshDelay: UInt64 = 5_000_000_000
 
-  @MainActor private static var isDeferringForReader = false
+  @MainActor private static var activeReaderSessionID: UUID?
   @MainActor private static var pendingFlushTask: Task<Void, Never>?
   @MainActor private static var pendingBookDeadlines: [String: Date] = [:]
   @MainActor private static var pendingSeriesDeadlines: [String: Date] = [:]
@@ -27,15 +27,16 @@ nonisolated enum ContentProjectionNotifier {
   @MainActor private static var pendingAllSeriesDeadline: Date?
 
   @MainActor
-  static func readerDidOpen() {
-    isDeferringForReader = true
+  static func readerDidOpen(sessionID: UUID) {
+    activeReaderSessionID = sessionID
     pendingFlushTask?.cancel()
     pendingFlushTask = nil
   }
 
   @MainActor
-  static func readerDidClose() {
-    isDeferringForReader = false
+  static func readerDidClose(sessionID: UUID) {
+    guard activeReaderSessionID == sessionID else { return }
+    activeReaderSessionID = nil
     schedulePendingFlush()
   }
 
@@ -349,7 +350,7 @@ nonisolated enum ContentProjectionNotifier {
     pendingFlushTask?.cancel()
     pendingFlushTask = nil
 
-    guard !isDeferringForReader, let deadline = nextPendingDeadline() else { return }
+    guard activeReaderSessionID == nil, let deadline = nextPendingDeadline() else { return }
 
     let sleepNanoseconds = sleepNanoseconds(until: deadline)
     pendingFlushTask = Task { @MainActor in
@@ -368,7 +369,7 @@ nonisolated enum ContentProjectionNotifier {
   private static func flushDueChanges() {
     pendingFlushTask = nil
 
-    guard !isDeferringForReader else { return }
+    guard activeReaderSessionID == nil else { return }
 
     let now = Date()
     let bookIds = takeDueIds(from: &pendingBookDeadlines, now: now)

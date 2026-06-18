@@ -84,7 +84,7 @@ final class ReaderPresentationManager {
       }
     #endif
 
-    ContentProjectionNotifier.readerDidOpen()
+    ContentProjectionNotifier.readerDidOpen(sessionID: session.id)
 
     #if os(iOS)
       ReaderLiveActivityManager.shared.readerDidOpen(book: book, incognito: incognito)
@@ -325,18 +325,18 @@ final class ReaderPresentationManager {
     flushHandlers.removeValue(forKey: session.id)
 
     guard syncVisited else {
-      finishReaderActivityIfNeeded(endsReaderActivity)
+      finishReaderActivityIfNeeded(endsReaderActivity, sessionID: session.id)
       return
     }
 
     if session.incognito {
       logger.debug("⏭️ [Progress/Checkpoint] Skip visited sync: incognito mode enabled")
-      finishReaderActivityIfNeeded(endsReaderActivity)
+      finishReaderActivityIfNeeded(endsReaderActivity, sessionID: session.id)
       return
     }
 
     guard !session.visitedBookIds.isEmpty else {
-      finishReaderActivityIfNeeded(endsReaderActivity)
+      finishReaderActivityIfNeeded(endsReaderActivity, sessionID: session.id)
       return
     }
 
@@ -376,14 +376,14 @@ final class ReaderPresentationManager {
       WidgetDataService.refreshWidgetData()
       if endsReaderActivity {
         await MainActor.run {
-          ContentProjectionNotifier.readerDidClose()
+          ContentProjectionNotifier.readerDidClose(sessionID: session.id)
         }
       }
     }
   }
 
-  private func finishReaderActivityIfNeeded(_ endsReaderActivity: Bool) {
+  private func finishReaderActivityIfNeeded(_ endsReaderActivity: Bool, sessionID: UUID) {
     guard endsReaderActivity else { return }
-    ContentProjectionNotifier.readerDidClose()
+    ContentProjectionNotifier.readerDidClose(sessionID: sessionID)
   }
 }
