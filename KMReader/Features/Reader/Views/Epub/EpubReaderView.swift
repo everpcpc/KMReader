@@ -474,9 +474,9 @@
               readerContent
                 .readerLoadingContent(isVisible: showsReaderContent)
             #else
-              if viewModel.hasContent {
+              if showsReaderContent {
                 readerContent
-                  .readerLoadingContent(isVisible: showsReaderContent)
+                  .transition(ReaderLoadingTransition.content)
               }
             #endif
 

@@ -770,6 +770,9 @@ struct DivinaReaderView: View {
     }
     .animation(ReaderLoadingTransition.animation, value: viewModel.isLoading)
     .animation(ReaderLoadingTransition.animation, value: viewModel.hasPages)
+    .onChange(of: viewModel.currentReaderPage?.id) { _, _ in
+      handleReaderPageChange()
+    }
   }
 
   @ViewBuilder
@@ -856,22 +859,6 @@ struct DivinaReaderView: View {
     }
     .readerIgnoresSafeArea()
     .id(contentKey)
-    .onChange(of: viewModel.currentReaderPage?.id) { _, _ in
-      updateHandoff()
-      #if os(iOS)
-        updateReaderLiveActivityProgress()
-      #endif
-      // Keep progress sync responsive.
-      Task(priority: .userInitiated) {
-        await viewModel.updateProgress()
-      }
-      schedulePageMaintenanceAfterPageChange()
-      // Treat page changes as user activity: if we're inside the post-
-      // resume auto-hide window, restart the timer so the overlay stays
-      // visible while the user is actively flipping pages and only fades
-      // after a real pause.
-      resetAutoHideAfterResumeIfPending()
-    }
     #if os(tvOS)
       .onChange(of: isShowingEndPage) { oldValue, newValue in
         if oldValue && !newValue {
@@ -880,6 +867,23 @@ struct DivinaReaderView: View {
         }
       }
     #endif
+  }
+
+  private func handleReaderPageChange() {
+    updateHandoff()
+    #if os(iOS)
+      updateReaderLiveActivityProgress()
+    #endif
+    // Keep progress sync responsive.
+    Task(priority: .userInitiated) {
+      await viewModel.updateProgress()
+    }
+    schedulePageMaintenanceAfterPageChange()
+    // Treat page changes as user activity: if we're inside the post-
+    // resume auto-hide window, restart the timer so the overlay stays
+    // visible while the user is actively flipping pages and only fades
+    // after a real pause.
+    resetAutoHideAfterResumeIfPending()
   }
 
   @ViewBuilder
