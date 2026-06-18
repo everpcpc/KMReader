@@ -197,6 +197,29 @@ struct DashboardView: View {
     }
   }
 
+  private func shouldRefreshForProjection(_ notification: Notification) -> Bool {
+    let selectedLibraryIds = Set(dashboard.libraryIds)
+    guard !selectedLibraryIds.isEmpty else { return true }
+
+    let changedLibraryIds = libraryIds(from: notification)
+    guard !changedLibraryIds.isEmpty else { return true }
+
+    return !changedLibraryIds.isDisjoint(with: selectedLibraryIds)
+  }
+
+  private func libraryIds(from notification: Notification) -> Set<String> {
+    if let ids = notification.userInfo?["libraryIds"] as? Set<String> {
+      return ids
+    }
+    if let ids = notification.userInfo?["libraryIds"] as? [String] {
+      return Set(ids)
+    }
+    if let id = notification.userInfo?["libraryId"] as? String {
+      return [id]
+    }
+    return []
+  }
+
   var body: some View {
     ScrollView {
       VStack(alignment: .leading, spacing: 0) {
@@ -250,10 +273,12 @@ struct DashboardView: View {
       guard let info = notification.userInfo?["info"] as? SSEEventInfo else { return }
       handleSSEEvent(info)
     }
-    .onReceive(NotificationCenter.default.publisher(for: .bookProjectionDidChange)) { _ in
+    .onReceive(NotificationCenter.default.publisher(for: .bookProjectionDidChange)) { notification in
+      guard shouldRefreshForProjection(notification) else { return }
       scheduleRefresh(reason: "Local book projection")
     }
-    .onReceive(NotificationCenter.default.publisher(for: .seriesProjectionDidChange)) { _ in
+    .onReceive(NotificationCenter.default.publisher(for: .seriesProjectionDidChange)) { notification in
+      guard shouldRefreshForProjection(notification) else { return }
       scheduleRefresh(reason: "Local series projection")
     }
     .onReceive(NotificationCenter.default.publisher(for: .collectionProjectionDidChange)) { _ in
@@ -270,10 +295,18 @@ struct DashboardView: View {
       }
     }
     .onChange(of: readerPresentation.currentSession) { _, newSession in
-      guard newSession != nil else { return }
-      // Reader opened - cancel any pending dashboard refresh
-      pendingRefreshTask?.cancel()
-      pendingRefreshTask = nil
+      if newSession != nil {
+        if pendingRefreshTask != nil {
+          shouldRefreshAfterReading = true
+          AppConfig.serverLastUpdate = Date()
+        }
+        // Reader opened - cancel any pending dashboard refresh
+        pendingRefreshTask?.cancel()
+        pendingRefreshTask = nil
+      } else if shouldRefreshAfterReading {
+        shouldRefreshAfterReading = false
+        scheduleRefresh(reason: "Reader closed after deferred dashboard refresh")
+      }
     }
     #if os(iOS) || os(macOS)
       .toolbar {

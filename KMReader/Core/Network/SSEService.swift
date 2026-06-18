@@ -272,6 +272,7 @@ actor SSEService {
     guard let seriesId = stringValue("seriesId", from: data) else { return false }
     await ContentProjectionNotifier.postSeriesDidChange(
       seriesId: seriesId,
+      libraryId: stringValue("libraryId", from: data),
       refreshDelay: ContentProjectionNotifier.remoteRefreshDelay
     )
     return true
@@ -287,6 +288,7 @@ actor SSEService {
       bookId: bookId,
       instanceId: AppConfig.current.instanceId,
       seriesId: seriesId,
+      libraryId: stringValue("libraryId", from: data),
       refreshDelay: ContentProjectionNotifier.remoteRefreshDelay
     )
     return true
@@ -323,6 +325,7 @@ actor SSEService {
     guard let seriesId = stringValue("seriesId", from: data) else { return false }
     await ContentProjectionNotifier.postSeriesDidChange(
       seriesId: seriesId,
+      libraryId: stringValue("libraryId", from: data),
       refreshDelay: ContentProjectionNotifier.remoteRefreshDelay
     )
     return true

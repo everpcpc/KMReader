@@ -46,9 +46,28 @@ struct SeriesQueryItemView: View {
     }
     .onReceive(NotificationCenter.default.publisher(for: .seriesProjectionDidChange)) {
       notification in
-      guard notification.userInfo?["seriesId"] as? String == seriesId else { return }
+      guard shouldReload(for: notification) else { return }
       reloadItem()
     }
+  }
+
+  private func shouldReload(for notification: Notification) -> Bool {
+    let changedIds = changedSeriesIds(from: notification)
+    guard !changedIds.isEmpty else { return true }
+    return changedIds.contains(seriesId)
+  }
+
+  private func changedSeriesIds(from notification: Notification) -> Set<String> {
+    if let ids = notification.userInfo?["seriesIds"] as? Set<String> {
+      return ids
+    }
+    if let ids = notification.userInfo?["seriesIds"] as? [String] {
+      return Set(ids)
+    }
+    if let id = notification.userInfo?["seriesId"] as? String {
+      return [id]
+    }
+    return []
   }
 
   private func reloadItem() {
