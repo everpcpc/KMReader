@@ -16,27 +16,24 @@ nonisolated enum ContentProjectionNotifier {
   static let localRefreshDelay: UInt64 = 750_000_000
   static let remoteRefreshDelay: UInt64 = 5_000_000_000
 
-  private static let refreshDelayKey = "refreshDelayNanoseconds"
-
   @MainActor private static var isDeferringForReader = false
-  @MainActor private static var deferredBookDelays: [String: UInt64] = [:]
-  @MainActor private static var deferredSeriesDelays: [String: UInt64] = [:]
-  @MainActor private static var deferredCollectionDelays: [String: UInt64] = [:]
-  @MainActor private static var deferredReadListDelays: [String: UInt64] = [:]
+  @MainActor private static var pendingFlushTask: Task<Void, Never>?
+  @MainActor private static var pendingBookDeadlines: [String: Date] = [:]
+  @MainActor private static var pendingSeriesDeadlines: [String: Date] = [:]
+  @MainActor private static var pendingCollectionDeadlines: [String: Date] = [:]
+  @MainActor private static var pendingReadListDeadlines: [String: Date] = [:]
 
   @MainActor
   static func readerDidOpen() {
     isDeferringForReader = true
+    pendingFlushTask?.cancel()
+    pendingFlushTask = nil
   }
 
   @MainActor
   static func readerDidClose() {
     isDeferringForReader = false
-    flushDeferredChanges()
-  }
-
-  static func refreshDelay(from notification: Notification) -> UInt64 {
-    notification.userInfo?[refreshDelayKey] as? UInt64 ?? localRefreshDelay
+    schedulePendingFlush()
   }
 
   static func postBookDidChange(
@@ -46,11 +43,7 @@ nonisolated enum ContentProjectionNotifier {
     guard !bookId.isEmpty else { return }
 
     await MainActor.run {
-      if isDeferringForReader {
-        deferBookIds([bookId], refreshDelay: refreshDelay)
-      } else {
-        postBooksNow([bookId], refreshDelay: refreshDelay)
-      }
+      enqueueBookIds([bookId], refreshDelay: refreshDelay)
     }
   }
 
@@ -62,11 +55,7 @@ nonisolated enum ContentProjectionNotifier {
     guard !ids.isEmpty else { return }
 
     await MainActor.run {
-      if isDeferringForReader {
-        deferBookIds(ids, refreshDelay: refreshDelay)
-      } else {
-        postBooksNow(ids, refreshDelay: refreshDelay)
-      }
+      enqueueBookIds(ids, refreshDelay: refreshDelay)
     }
   }
 
@@ -77,11 +66,7 @@ nonisolated enum ContentProjectionNotifier {
     guard !seriesId.isEmpty else { return }
 
     await MainActor.run {
-      if isDeferringForReader {
-        deferSeriesIds([seriesId], refreshDelay: refreshDelay)
-      } else {
-        postSeriesNow(seriesId, refreshDelay: refreshDelay)
-      }
+      enqueueSeriesIds([seriesId], refreshDelay: refreshDelay)
     }
   }
 
@@ -92,11 +77,7 @@ nonisolated enum ContentProjectionNotifier {
     guard !collectionId.isEmpty else { return }
 
     await MainActor.run {
-      if isDeferringForReader {
-        deferCollectionIds([collectionId], refreshDelay: refreshDelay)
-      } else {
-        postCollectionNow(collectionId, refreshDelay: refreshDelay)
-      }
+      enqueueCollectionIds([collectionId], refreshDelay: refreshDelay)
     }
   }
 
@@ -107,11 +88,7 @@ nonisolated enum ContentProjectionNotifier {
     guard !readListId.isEmpty else { return }
 
     await MainActor.run {
-      if isDeferringForReader {
-        deferReadListIds([readListId], refreshDelay: refreshDelay)
-      } else {
-        postReadListNow(readListId, refreshDelay: refreshDelay)
-      }
+      enqueueReadListIds([readListId], refreshDelay: refreshDelay)
     }
   }
 
@@ -234,69 +211,135 @@ nonisolated enum ContentProjectionNotifier {
   }
 
   @MainActor
-  private static func flushDeferredChanges() {
-    let bookDelays = deferredBookDelays
-    let seriesDelays = deferredSeriesDelays
-    let collectionDelays = deferredCollectionDelays
-    let readListDelays = deferredReadListDelays
-
-    deferredBookDelays.removeAll()
-    deferredSeriesDelays.removeAll()
-    deferredCollectionDelays.removeAll()
-    deferredReadListDelays.removeAll()
-
-    if !bookDelays.isEmpty {
-      postBooksNow(Set(bookDelays.keys), refreshDelay: bookDelays.values.max() ?? localRefreshDelay)
-    }
-    for (seriesId, delay) in seriesDelays {
-      postSeriesNow(seriesId, refreshDelay: delay)
-    }
-    for (collectionId, delay) in collectionDelays {
-      postCollectionNow(collectionId, refreshDelay: delay)
-    }
-    for (readListId, delay) in readListDelays {
-      postReadListNow(readListId, refreshDelay: delay)
-    }
-  }
-
-  @MainActor
-  private static func deferBookIds<S: Sequence>(_ ids: S, refreshDelay: UInt64)
+  private static func enqueueBookIds<S: Sequence>(_ ids: S, refreshDelay: UInt64)
   where S.Element == String {
+    let deadline = deadline(after: refreshDelay)
     for id in ids where !id.isEmpty {
-      deferredBookDelays[id] = max(deferredBookDelays[id] ?? 0, refreshDelay)
+      mergeDeadline(deadline, for: id, into: &pendingBookDeadlines)
     }
+    schedulePendingFlush()
   }
 
   @MainActor
-  private static func deferSeriesIds<S: Sequence>(_ ids: S, refreshDelay: UInt64)
+  private static func enqueueSeriesIds<S: Sequence>(_ ids: S, refreshDelay: UInt64)
   where S.Element == String {
+    let deadline = deadline(after: refreshDelay)
     for id in ids where !id.isEmpty {
-      deferredSeriesDelays[id] = max(deferredSeriesDelays[id] ?? 0, refreshDelay)
+      mergeDeadline(deadline, for: id, into: &pendingSeriesDeadlines)
     }
+    schedulePendingFlush()
   }
 
   @MainActor
-  private static func deferCollectionIds<S: Sequence>(_ ids: S, refreshDelay: UInt64)
+  private static func enqueueCollectionIds<S: Sequence>(_ ids: S, refreshDelay: UInt64)
   where S.Element == String {
+    let deadline = deadline(after: refreshDelay)
     for id in ids where !id.isEmpty {
-      deferredCollectionDelays[id] = max(deferredCollectionDelays[id] ?? 0, refreshDelay)
+      mergeDeadline(deadline, for: id, into: &pendingCollectionDeadlines)
     }
+    schedulePendingFlush()
   }
 
   @MainActor
-  private static func deferReadListIds<S: Sequence>(_ ids: S, refreshDelay: UInt64)
+  private static func enqueueReadListIds<S: Sequence>(_ ids: S, refreshDelay: UInt64)
   where S.Element == String {
+    let deadline = deadline(after: refreshDelay)
     for id in ids where !id.isEmpty {
-      deferredReadListDelays[id] = max(deferredReadListDelays[id] ?? 0, refreshDelay)
+      mergeDeadline(deadline, for: id, into: &pendingReadListDeadlines)
+    }
+    schedulePendingFlush()
+  }
+
+  @MainActor
+  private static func schedulePendingFlush() {
+    pendingFlushTask?.cancel()
+    pendingFlushTask = nil
+
+    guard !isDeferringForReader, let deadline = nextPendingDeadline() else { return }
+
+    let sleepNanoseconds = sleepNanoseconds(until: deadline)
+    pendingFlushTask = Task { @MainActor in
+      do {
+        try await Task.sleep(nanoseconds: sleepNanoseconds)
+      } catch {
+        return
+      }
+
+      guard !Task.isCancelled else { return }
+      flushDueChanges()
     }
   }
 
   @MainActor
-  private static func postBooksNow(_ ids: Set<String>, refreshDelay: UInt64) {
-    var userInfo: [AnyHashable: Any] = [
-      "bookIds": ids,
-      refreshDelayKey: refreshDelay,
+  private static func flushDueChanges() {
+    pendingFlushTask = nil
+
+    guard !isDeferringForReader else { return }
+
+    let now = Date()
+    let bookIds = takeDueIds(from: &pendingBookDeadlines, now: now)
+    let seriesIds = takeDueIds(from: &pendingSeriesDeadlines, now: now)
+    let collectionIds = takeDueIds(from: &pendingCollectionDeadlines, now: now)
+    let readListIds = takeDueIds(from: &pendingReadListDeadlines, now: now)
+
+    if !bookIds.isEmpty {
+      postBooksNow(bookIds)
+    }
+    for seriesId in seriesIds {
+      postSeriesNow(seriesId)
+    }
+    for collectionId in collectionIds {
+      postCollectionNow(collectionId)
+    }
+    for readListId in readListIds {
+      postReadListNow(readListId)
+    }
+
+    schedulePendingFlush()
+  }
+
+  @MainActor
+  private static func nextPendingDeadline() -> Date? {
+    [
+      pendingBookDeadlines.values.min(),
+      pendingSeriesDeadlines.values.min(),
+      pendingCollectionDeadlines.values.min(),
+      pendingReadListDeadlines.values.min(),
     ]
+    .compactMap { $0 }
+    .min()
+  }
+
+  private static func deadline(after refreshDelay: UInt64) -> Date {
+    Date().addingTimeInterval(Double(refreshDelay) / 1_000_000_000)
+  }
+
+  private static func sleepNanoseconds(until deadline: Date) -> UInt64 {
+    let seconds = max(0, deadline.timeIntervalSinceNow)
+    return UInt64(seconds * 1_000_000_000)
+  }
+
+  private static func mergeDeadline(_ deadline: Date, for id: String, into deadlines: inout [String: Date]) {
+    if let existing = deadlines[id] {
+      deadlines[id] = max(existing, deadline)
+    } else {
+      deadlines[id] = deadline
+    }
+  }
+
+  private static func takeDueIds(from deadlines: inout [String: Date], now: Date) -> Set<String> {
+    let ids = deadlines.compactMap { id, deadline in
+      deadline <= now ? id : nil
+    }
+    for id in ids {
+      deadlines.removeValue(forKey: id)
+    }
+    return Set(ids)
+  }
+
+  @MainActor
+  private static func postBooksNow(_ ids: Set<String>) {
+    var userInfo: [AnyHashable: Any] = ["bookIds": ids]
     if ids.count == 1, let bookId = ids.first {
       userInfo["bookId"] = bookId
     }
@@ -308,38 +351,29 @@ nonisolated enum ContentProjectionNotifier {
   }
 
   @MainActor
-  private static func postSeriesNow(_ seriesId: String, refreshDelay: UInt64) {
+  private static func postSeriesNow(_ seriesId: String) {
     NotificationCenter.default.post(
       name: .seriesProjectionDidChange,
       object: nil,
-      userInfo: [
-        "seriesId": seriesId,
-        refreshDelayKey: refreshDelay,
-      ]
+      userInfo: ["seriesId": seriesId]
     )
   }
 
   @MainActor
-  private static func postCollectionNow(_ collectionId: String, refreshDelay: UInt64) {
+  private static func postCollectionNow(_ collectionId: String) {
     NotificationCenter.default.post(
       name: .collectionProjectionDidChange,
       object: nil,
-      userInfo: [
-        "collectionId": collectionId,
-        refreshDelayKey: refreshDelay,
-      ]
+      userInfo: ["collectionId": collectionId]
     )
   }
 
   @MainActor
-  private static func postReadListNow(_ readListId: String, refreshDelay: UInt64) {
+  private static func postReadListNow(_ readListId: String) {
     NotificationCenter.default.post(
       name: .readListProjectionDidChange,
       object: nil,
-      userInfo: [
-        "readListId": readListId,
-        refreshDelayKey: refreshDelay,
-      ]
+      userInfo: ["readListId": readListId]
     )
   }
 }

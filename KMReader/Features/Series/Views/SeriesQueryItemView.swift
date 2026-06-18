@@ -12,7 +12,6 @@ struct SeriesQueryItemView: View {
 
   @AppStorage("currentAccount") private var current: Current = .init()
   @State private var item: SeriesDisplayItem?
-  @State private var projectionReloadTask: Task<Void, Never>?
 
   init(
     seriesId: String,
@@ -48,10 +47,7 @@ struct SeriesQueryItemView: View {
     .onReceive(NotificationCenter.default.publisher(for: .seriesProjectionDidChange)) {
       notification in
       guard notification.userInfo?["seriesId"] as? String == seriesId else { return }
-      scheduleProjectionReload(after: ContentProjectionNotifier.refreshDelay(from: notification))
-    }
-    .onDisappear {
-      cancelProjectionReload()
+      reloadItem()
     }
   }
 
@@ -59,29 +55,6 @@ struct SeriesQueryItemView: View {
     Task {
       await loadItem()
     }
-  }
-
-  private func scheduleProjectionReload(
-    after delay: UInt64 = ContentProjectionNotifier.localRefreshDelay
-  ) {
-    cancelProjectionReload()
-
-    projectionReloadTask = Task { @MainActor in
-      do {
-        try await Task.sleep(nanoseconds: delay)
-      } catch {
-        return
-      }
-
-      guard !Task.isCancelled else { return }
-      await loadItem()
-      projectionReloadTask = nil
-    }
-  }
-
-  private func cancelProjectionReload() {
-    projectionReloadTask?.cancel()
-    projectionReloadTask = nil
   }
 
   private func loadItem() async {

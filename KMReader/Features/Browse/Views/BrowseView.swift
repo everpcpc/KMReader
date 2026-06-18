@@ -30,7 +30,6 @@ struct BrowseView: View {
   @State private var showLibraryPicker = false
   @State private var showFilterSheet = false
   @State private var showSavedFilters = false
-  @State private var projectionRefreshTask: Task<Void, Never>?
 
   private var effectiveContent: BrowseContentType {
     fixedContent ?? browseContent
@@ -229,24 +228,25 @@ struct BrowseView: View {
     }
     .onReceive(NotificationCenter.default.publisher(for: .bookProjectionDidChange)) { notification in
       guard effectiveContent == .books else { return }
-      scheduleProjectionRefresh(after: ContentProjectionNotifier.refreshDelay(from: notification))
+      guard !authViewModel.isSwitching else { return }
+      refreshBrowse()
     }
     .onReceive(NotificationCenter.default.publisher(for: .seriesProjectionDidChange)) { notification in
       guard effectiveContent == .series else { return }
-      scheduleProjectionRefresh(after: ContentProjectionNotifier.refreshDelay(from: notification))
+      guard !authViewModel.isSwitching else { return }
+      refreshBrowse()
     }
     .onReceive(NotificationCenter.default.publisher(for: .collectionProjectionDidChange)) {
       notification in
       guard effectiveContent == .collections else { return }
-      scheduleProjectionRefresh(after: ContentProjectionNotifier.refreshDelay(from: notification))
+      guard !authViewModel.isSwitching else { return }
+      refreshBrowse()
     }
     .onReceive(NotificationCenter.default.publisher(for: .readListProjectionDidChange)) {
       notification in
       guard effectiveContent == .readlists else { return }
-      scheduleProjectionRefresh(after: ContentProjectionNotifier.refreshDelay(from: notification))
-    }
-    .onDisappear {
-      cancelProjectionRefresh()
+      guard !authViewModel.isSwitching else { return }
+      refreshBrowse()
     }
   }
 
@@ -257,31 +257,6 @@ struct BrowseView: View {
       try? await Task.sleep(nanoseconds: 2_000_000_000)  // 2 seconds
       isRefreshDisabled = false
     }
-  }
-
-  private func scheduleProjectionRefresh(
-    after delay: UInt64 = ContentProjectionNotifier.localRefreshDelay
-  ) {
-    guard !authViewModel.isSwitching else { return }
-
-    cancelProjectionRefresh()
-
-    projectionRefreshTask = Task { @MainActor in
-      do {
-        try await Task.sleep(nanoseconds: delay)
-      } catch {
-        return
-      }
-
-      guard !Task.isCancelled else { return }
-      refreshBrowse()
-      projectionRefreshTask = nil
-    }
-  }
-
-  private func cancelProjectionRefresh() {
-    projectionRefreshTask?.cancel()
-    projectionRefreshTask = nil
   }
 
   @ViewBuilder

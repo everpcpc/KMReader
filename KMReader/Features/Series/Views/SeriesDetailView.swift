@@ -28,7 +28,6 @@ struct SeriesDetailView: View {
   @State private var readingTargetIsOffline: Bool?
   @State private var isResolvingReadingTarget = false
   @State private var readingTargetResolutionID = 0
-  @State private var projectionRefreshTask: Task<Void, Never>?
 
   init(seriesId: String) {
     self.seriesId = seriesId
@@ -210,15 +209,16 @@ struct SeriesDetailView: View {
     .onReceive(NotificationCenter.default.publisher(for: .seriesProjectionDidChange)) {
       notification in
       guard notification.userInfo?["seriesId"] as? String == seriesId else { return }
-      scheduleProjectionRefresh(after: ContentProjectionNotifier.refreshDelay(from: notification))
+      Task {
+        await refreshLocalSeriesData()
+      }
     }
     .onReceive(NotificationCenter.default.publisher(for: .bookProjectionDidChange)) {
       notification in
       guard shouldRefreshForBookProjection(notification) else { return }
-      scheduleProjectionRefresh(after: ContentProjectionNotifier.refreshDelay(from: notification))
-    }
-    .onDisappear {
-      cancelProjectionRefresh()
+      Task {
+        await refreshLocalSeriesData()
+      }
     }
   }
 }
@@ -509,29 +509,6 @@ extension SeriesDetailView {
     guard !changedIds.isEmpty else { return true }
     guard let readingTargetBook = readingTargetBookForCurrentContext else { return true }
     return changedIds.contains(readingTargetBook.id)
-  }
-
-  private func scheduleProjectionRefresh(
-    after delay: UInt64 = ContentProjectionNotifier.localRefreshDelay
-  ) {
-    cancelProjectionRefresh()
-
-    projectionRefreshTask = Task { @MainActor in
-      do {
-        try await Task.sleep(nanoseconds: delay)
-      } catch {
-        return
-      }
-
-      guard !Task.isCancelled else { return }
-      await refreshLocalSeriesData()
-      projectionRefreshTask = nil
-    }
-  }
-
-  private func cancelProjectionRefresh() {
-    projectionRefreshTask?.cancel()
-    projectionRefreshTask = nil
   }
 
   private func changedBookIds(from notification: Notification) -> Set<String> {

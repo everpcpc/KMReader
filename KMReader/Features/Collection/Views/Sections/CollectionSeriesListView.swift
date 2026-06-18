@@ -21,7 +21,6 @@ struct CollectionSeriesListView: View {
   @State private var isSelectionMode = false
   @State private var isDeleting = false
   @State private var collectionItem: CollectionDisplayItem?
-  @State private var projectionRefreshTask: Task<Void, Never>?
 
   init(
     collectionId: String,
@@ -127,15 +126,12 @@ struct CollectionSeriesListView: View {
     .onReceive(NotificationCenter.default.publisher(for: .seriesProjectionDidChange)) {
       notification in
       guard shouldRefreshForSeriesProjection(notification) else { return }
-      scheduleProjectionRefresh(after: ContentProjectionNotifier.refreshDelay(from: notification))
+      Task { await refreshSeries() }
     }
     .onReceive(NotificationCenter.default.publisher(for: .collectionProjectionDidChange)) {
       notification in
       guard notification.userInfo?["collectionId"] as? String == collectionId else { return }
-      scheduleProjectionRefresh(after: ContentProjectionNotifier.refreshDelay(from: notification))
-    }
-    .onDisappear {
-      cancelProjectionRefresh()
+      Task { await refreshSeries() }
     }
   }
 
@@ -209,29 +205,6 @@ struct CollectionSeriesListView: View {
       return [id]
     }
     return []
-  }
-
-  private func scheduleProjectionRefresh(
-    after delay: UInt64 = ContentProjectionNotifier.localRefreshDelay
-  ) {
-    cancelProjectionRefresh()
-
-    projectionRefreshTask = Task { @MainActor in
-      do {
-        try await Task.sleep(nanoseconds: delay)
-      } catch {
-        return
-      }
-
-      guard !Task.isCancelled else { return }
-      await refreshSeries()
-      projectionRefreshTask = nil
-    }
-  }
-
-  private func cancelProjectionRefresh() {
-    projectionRefreshTask?.cancel()
-    projectionRefreshTask = nil
   }
 
 }

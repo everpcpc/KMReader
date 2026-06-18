@@ -18,7 +18,6 @@ struct DashboardSectionDetailView: View {
   @State private var isLoading = false
   @State private var isQueueingAllOffline = false
   @State private var hasLoadedInitial = false
-  @State private var projectionRefreshTask: Task<Void, Never>?
   @State private var needsRefreshAfterCurrentLoad = false
 
   private var columns: [GridItem] {
@@ -72,14 +71,11 @@ struct DashboardSectionDetailView: View {
     }
     .onReceive(NotificationCenter.default.publisher(for: .bookProjectionDidChange)) { notification in
       guard section.contentKind == .books else { return }
-      scheduleProjectionRefresh(after: ContentProjectionNotifier.refreshDelay(from: notification))
+      Task { await loadItems(refresh: true) }
     }
     .onReceive(NotificationCenter.default.publisher(for: .seriesProjectionDidChange)) { notification in
       guard section.contentKind == .series else { return }
-      scheduleProjectionRefresh(after: ContentProjectionNotifier.refreshDelay(from: notification))
-    }
-    .onDisappear {
-      cancelProjectionRefresh()
+      Task { await loadItems(refresh: true) }
     }
     #if os(iOS) || os(macOS)
       .toolbar {
@@ -282,29 +278,6 @@ struct DashboardSectionDetailView: View {
     Task {
       await loadItems(refresh: true)
     }
-  }
-
-  private func scheduleProjectionRefresh(
-    after delay: UInt64 = ContentProjectionNotifier.localRefreshDelay
-  ) {
-    cancelProjectionRefresh()
-
-    projectionRefreshTask = Task { @MainActor in
-      do {
-        try await Task.sleep(nanoseconds: delay)
-      } catch {
-        return
-      }
-
-      guard !Task.isCancelled else { return }
-      await loadItems(refresh: true)
-      projectionRefreshTask = nil
-    }
-  }
-
-  private func cancelProjectionRefresh() {
-    projectionRefreshTask?.cancel()
-    projectionRefreshTask = nil
   }
 
   private func queueAllBooksOffline() {

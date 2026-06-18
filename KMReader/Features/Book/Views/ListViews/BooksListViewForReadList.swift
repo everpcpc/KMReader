@@ -21,7 +21,6 @@ struct BooksListViewForReadList: View {
   @State private var isSelectionMode = false
   @State private var isDeleting = false
   @State private var readListItem: ReadListDisplayItem?
-  @State private var projectionRefreshTask: Task<Void, Never>?
 
   private var readListContext: ReaderReadListContext? {
     guard let readListItem else { return nil }
@@ -149,15 +148,12 @@ struct BooksListViewForReadList: View {
     .onReceive(NotificationCenter.default.publisher(for: .bookProjectionDidChange)) {
       notification in
       guard shouldRefreshForBookProjection(notification) else { return }
-      scheduleProjectionRefresh(after: ContentProjectionNotifier.refreshDelay(from: notification))
+      Task { await refreshBooks() }
     }
     .onReceive(NotificationCenter.default.publisher(for: .readListProjectionDidChange)) {
       notification in
       guard notification.userInfo?["readListId"] as? String == readListId else { return }
-      scheduleProjectionRefresh(after: ContentProjectionNotifier.refreshDelay(from: notification))
-    }
-    .onDisappear {
-      cancelProjectionRefresh()
+      Task { await refreshBooks() }
     }
   }
 
@@ -230,29 +226,6 @@ struct BooksListViewForReadList: View {
       return [id]
     }
     return []
-  }
-
-  private func scheduleProjectionRefresh(
-    after delay: UInt64 = ContentProjectionNotifier.localRefreshDelay
-  ) {
-    cancelProjectionRefresh()
-
-    projectionRefreshTask = Task { @MainActor in
-      do {
-        try await Task.sleep(nanoseconds: delay)
-      } catch {
-        return
-      }
-
-      guard !Task.isCancelled else { return }
-      await refreshBooks()
-      projectionRefreshTask = nil
-    }
-  }
-
-  private func cancelProjectionRefresh() {
-    projectionRefreshTask?.cancel()
-    projectionRefreshTask = nil
   }
 
 }
