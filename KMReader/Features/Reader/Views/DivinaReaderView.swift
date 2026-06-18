@@ -746,8 +746,17 @@ struct DivinaReaderView: View {
     useDualPage: Bool,
     screenSize: CGSize
   ) -> some View {
-    let contentKey = readerContentKey(useDualPage: useDualPage)
-    Group {
+    let showsLoadedContent = viewModel.hasPages && !viewModel.isLoading
+
+    ZStack {
+      if viewModel.hasPages {
+        loadedReaderContent(useDualPage: useDualPage, screenSize: screenSize)
+          .readerLoadingContent(isVisible: showsLoadedContent)
+      } else if !viewModel.isLoading {
+        NoPagesView(onDismiss: { closeReader() })
+          .transition(ReaderLoadingTransition.content)
+      }
+
       if viewModel.isLoading {
         ReaderLoadingView(
           title: viewModel.loadingTitle,
@@ -756,112 +765,121 @@ struct DivinaReaderView: View {
           cardFill: readerBackground.loadingCardFill,
           contentColor: readerBackground.loadingContentColor
         )
-      } else if viewModel.hasPages {
-        Group {
-          if readingDirection == .webtoon {
-            #if os(iOS) || os(macOS)
-              WebtoonPageView(
+        .readerLoadingOverlay()
+      }
+    }
+    .animation(ReaderLoadingTransition.animation, value: viewModel.isLoading)
+    .animation(ReaderLoadingTransition.animation, value: viewModel.hasPages)
+  }
+
+  @ViewBuilder
+  private func loadedReaderContent(
+    useDualPage: Bool,
+    screenSize: CGSize
+  ) -> some View {
+    let contentKey = readerContentKey(useDualPage: useDualPage)
+
+    Group {
+      if readingDirection == .webtoon {
+        #if os(iOS) || os(macOS)
+          WebtoonPageView(
+            viewModel: viewModel,
+            readListContext: readListContext,
+            onDismiss: { closeReader() },
+            onTapZoneTap: handleTapZoneTap,
+            scrollController: webtoonScrollController,
+            pageWidthPercentage: webtoonPageWidthPercentage,
+            renderConfig: renderConfig
+          )
+        #else
+          ScrollPageView(
+            mode: .vertical,
+            viewportSize: screenSize,
+            readingDirection: readingDirection,
+            splitWidePageMode: splitWidePageMode,
+            navigationAnimationDuration: pageTurnAnimationDuration,
+            renderConfig: renderConfig,
+            viewModel: viewModel,
+            readListContext: readListContext,
+            onDismiss: { closeReader() },
+            onTapZoneTap: handleTapZoneTap
+          )
+        #endif
+      } else {
+        switch pageTransitionStyle {
+        case .pageCurl:
+          #if os(iOS)
+            if useDualPage {
+              CurlDualPageView(
                 viewModel: viewModel,
-                readListContext: readListContext,
-                onDismiss: { closeReader() },
-                onTapZoneTap: handleTapZoneTap,
-                scrollController: webtoonScrollController,
-                pageWidthPercentage: webtoonPageWidthPercentage,
-                renderConfig: renderConfig
-              )
-            #else
-              ScrollPageView(
-                mode: .vertical,
-                viewportSize: screenSize,
-                readingDirection: readingDirection,
-                splitWidePageMode: splitWidePageMode,
-                navigationAnimationDuration: pageTurnAnimationDuration,
-                renderConfig: renderConfig,
-                viewModel: viewModel,
-                readListContext: readListContext,
-                onDismiss: { closeReader() },
-                onTapZoneTap: handleTapZoneTap
-              )
-            #endif
-          } else {
-            switch pageTransitionStyle {
-            case .pageCurl:
-              #if os(iOS)
-                if useDualPage {
-                  CurlDualPageView(
-                    viewModel: viewModel,
-                    mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
-                    readingDirection: readingDirection,
-                    splitWidePageMode: splitWidePageMode,
-                    animateTapTurns: animateTapTurns,
-                    renderConfig: renderConfig,
-                    readListContext: readListContext,
-                    onDismiss: { closeReader() },
-                    onTapZoneTap: handleTapZoneTap
-                  )
-                } else {
-                  CurlPageView(
-                    viewModel: viewModel,
-                    mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
-                    readingDirection: readingDirection,
-                    splitWidePageMode: splitWidePageMode,
-                    animateTapTurns: animateTapTurns,
-                    renderConfig: renderConfig,
-                    readListContext: readListContext,
-                    onDismiss: { closeReader() },
-                    onTapZoneTap: handleTapZoneTap
-                  )
-                }
-              #else
-                standardScrollPageView(useDualPage: useDualPage, screenSize: screenSize)
-              #endif
-            case .scroll:
-              standardScrollPageView(useDualPage: useDualPage, screenSize: screenSize)
-            case .cover:
-              NativeCoverPageView(
                 mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
                 readingDirection: readingDirection,
                 splitWidePageMode: splitWidePageMode,
-                tapNavigationAnimationDuration: pageTurnAnimationDuration,
+                animateTapTurns: animateTapTurns,
                 renderConfig: renderConfig,
+                readListContext: readListContext,
+                onDismiss: { closeReader() },
+                onTapZoneTap: handleTapZoneTap
+              )
+            } else {
+              CurlPageView(
                 viewModel: viewModel,
+                mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
+                readingDirection: readingDirection,
+                splitWidePageMode: splitWidePageMode,
+                animateTapTurns: animateTapTurns,
+                renderConfig: renderConfig,
                 readListContext: readListContext,
                 onDismiss: { closeReader() },
                 onTapZoneTap: handleTapZoneTap
               )
             }
-          }
-        }
-        .readerIgnoresSafeArea()
-        .id(contentKey)
-        .onChange(of: viewModel.currentReaderPage?.id) { _, _ in
-          updateHandoff()
-          #if os(iOS)
-            updateReaderLiveActivityProgress()
+          #else
+            standardScrollPageView(useDualPage: useDualPage, screenSize: screenSize)
           #endif
-          // Keep progress sync responsive.
-          Task(priority: .userInitiated) {
-            await viewModel.updateProgress()
-          }
-          schedulePageMaintenanceAfterPageChange()
-          // Treat page changes as user activity: if we're inside the post-
-          // resume auto-hide window, restart the timer so the overlay stays
-          // visible while the user is actively flipping pages and only fades
-          // after a real pause.
-          resetAutoHideAfterResumeIfPending()
+        case .scroll:
+          standardScrollPageView(useDualPage: useDualPage, screenSize: screenSize)
+        case .cover:
+          NativeCoverPageView(
+            mode: PageViewMode(direction: readingDirection, useDualPage: useDualPage),
+            readingDirection: readingDirection,
+            splitWidePageMode: splitWidePageMode,
+            tapNavigationAnimationDuration: pageTurnAnimationDuration,
+            renderConfig: renderConfig,
+            viewModel: viewModel,
+            readListContext: readListContext,
+            onDismiss: { closeReader() },
+            onTapZoneTap: handleTapZoneTap
+          )
         }
-        #if os(tvOS)
-          .onChange(of: isShowingEndPage) { oldValue, newValue in
-            if oldValue && !newValue {
-              tvRemoteCaptureGeneration += 1
-              logger.debug("📺 left end page, restart UIKit capture generation=\(tvRemoteCaptureGeneration)")
-            }
-          }
-        #endif
-      } else {
-        NoPagesView(onDismiss: { closeReader() })
       }
     }
+    .readerIgnoresSafeArea()
+    .id(contentKey)
+    .onChange(of: viewModel.currentReaderPage?.id) { _, _ in
+      updateHandoff()
+      #if os(iOS)
+        updateReaderLiveActivityProgress()
+      #endif
+      // Keep progress sync responsive.
+      Task(priority: .userInitiated) {
+        await viewModel.updateProgress()
+      }
+      schedulePageMaintenanceAfterPageChange()
+      // Treat page changes as user activity: if we're inside the post-
+      // resume auto-hide window, restart the timer so the overlay stays
+      // visible while the user is actively flipping pages and only fades
+      // after a real pause.
+      resetAutoHideAfterResumeIfPending()
+    }
+    #if os(tvOS)
+      .onChange(of: isShowingEndPage) { oldValue, newValue in
+        if oldValue && !newValue {
+          tvRemoteCaptureGeneration += 1
+          logger.debug("📺 left end page, restart UIKit capture generation=\(tvRemoteCaptureGeneration)")
+        }
+      }
+    #endif
   }
 
   @ViewBuilder
@@ -991,29 +1009,23 @@ struct DivinaReaderView: View {
     #endif
   }
 
-  @ViewBuilder
   private var keyboardHelpOverlay: some View {
-    if showKeyboardHelp {
-      KeyboardHelpOverlay(
-        readingDirection: readingDirection,
-        hasTOC: !viewModel.tableOfContents.isEmpty,
-        supportsFullscreenToggle: supportsFullscreenToggle,
-        supportsLiveText: supportsLiveTextKeyboardShortcut,
-        supportsJumpToPage: true,
-        supportsToggleControls: true,
-        hasNextBook: currentSegmentNextBook != nil,
-        isInteractive: keyboardHelpOverlayIsInteractive,
-        onDismiss: {
-          hideKeyboardHelp()
-        }
-      )
-      #if os(tvOS)
-        .allowsHitTesting(false)
-      #else
-        .allowsHitTesting(true)
-      #endif
-      .transition(.opacity)
-    }
+    KeyboardHelpOverlay(
+      readingDirection: readingDirection,
+      hasTOC: !viewModel.tableOfContents.isEmpty,
+      supportsFullscreenToggle: supportsFullscreenToggle,
+      supportsLiveText: supportsLiveTextKeyboardShortcut,
+      supportsJumpToPage: true,
+      supportsToggleControls: true,
+      hasNextBook: currentSegmentNextBook != nil,
+      isInteractive: keyboardHelpOverlayIsInteractive,
+      onDismiss: {
+        hideKeyboardHelp()
+      }
+    )
+    .opacity(showKeyboardHelp ? 1.0 : 0.0)
+    .allowsHitTesting(showKeyboardHelp && keyboardHelpOverlayIsInteractive)
+    .animation(.default, value: showKeyboardHelp)
   }
 
   private var keyboardHelpOverlayIsInteractive: Bool {

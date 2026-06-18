@@ -441,93 +441,80 @@
 
     @ViewBuilder
     private func contentView(for size: CGSize, viewModel: EpubReaderViewModel) -> some View {
-      if showingEndPage {
-        EpubEndPageView(
-          bookTitle: currentBook?.metadata.title,
-          preferences: activeThemePreferences,
-          colorScheme: readerColorScheme,
-          onReturn: {
-            // Hide end page first, then navigate to last page
-            showingEndPage = false
+      Group {
+        if showingEndPage {
+          EpubEndPageView(
+            bookTitle: currentBook?.metadata.title,
+            preferences: activeThemePreferences,
+            colorScheme: readerColorScheme,
+            onReturn: {
+              // Hide end page first, then navigate to last page
+              showingEndPage = false
 
-            // Navigate back to the last page of the last chapter
-            Task { @MainActor in
-              // Small delay to ensure view hierarchy is updated
-              try? await Task.sleep(nanoseconds: 100_000_000)  // 0.1 seconds
-              if let lastPosition = viewModel.lastPagePosition() {
-                viewModel.targetChapterIndex = lastPosition.chapterIndex
-                viewModel.targetPageIndex = lastPosition.pageIndex
+              // Navigate back to the last page of the last chapter
+              Task { @MainActor in
+                // Small delay to ensure view hierarchy is updated
+                try? await Task.sleep(nanoseconds: 100_000_000)  // 0.1 seconds
+                if let lastPosition = viewModel.lastPagePosition() {
+                  viewModel.targetChapterIndex = lastPosition.chapterIndex
+                  viewModel.targetPageIndex = lastPosition.pageIndex
+                }
               }
+            },
+            onClose: {
+              closeReader()
             }
-          },
-          onClose: {
-            closeReader()
-          }
-        )
-      } else {
-        #if os(iOS)
-          readerContent
-            .opacity(viewModel.hasContent && !viewModel.isLoading && viewModel.errorMessage == nil ? 1 : 0)
-            .animation(nil, value: viewModel.isLoading)
-            .animation(nil, value: viewModel.hasContent)
-            .animation(nil, value: viewModel.errorMessage)
-            .allowsHitTesting(viewModel.hasContent && !viewModel.isLoading && viewModel.errorMessage == nil)
-            .overlay {
-              if viewModel.isLoading {
-                ReaderLoadingView(
-                  title: loadingTitle,
-                  detail: loadingDetail,
-                  progress: loadingProgress,
-                  cardFill: loadingCardFill,
-                  contentColor: loadingContentColor
-                )
-              } else if let error = viewModel.errorMessage {
-                VStack(spacing: 12) {
-                  Image(systemName: "exclamationmark.triangle")
-                    .font(.largeTitle)
-                  Text(error)
-                    .multilineTextAlignment(.center)
-                  Button("Retry") {
-                    Task {
-                      await loadBook()
-                    }
+          )
+        } else {
+          let showsReaderContent =
+            viewModel.hasContent && !viewModel.isLoading && viewModel.errorMessage == nil
+
+          ZStack {
+            #if os(iOS)
+              readerContent
+                .readerLoadingContent(isVisible: showsReaderContent)
+            #else
+              if viewModel.hasContent {
+                readerContent
+                  .readerLoadingContent(isVisible: showsReaderContent)
+              }
+            #endif
+
+            if let error = viewModel.errorMessage, !viewModel.isLoading {
+              VStack(spacing: 12) {
+                Image(systemName: "exclamationmark.triangle")
+                  .font(.largeTitle)
+                Text(error)
+                  .multilineTextAlignment(.center)
+                Button("Retry") {
+                  Task {
+                    await loadBook()
                   }
                 }
-                .padding()
-              } else if !viewModel.hasContent {
-                Text("No content available.")
-                  .foregroundStyle(.secondary)
               }
+              .padding()
+              .transition(ReaderLoadingTransition.content)
+            } else if !viewModel.isLoading && !viewModel.hasContent {
+              Text("No content available.")
+                .foregroundStyle(.secondary)
+                .transition(ReaderLoadingTransition.content)
             }
-        #else
-          if viewModel.isLoading {
-            ReaderLoadingView(
-              title: loadingTitle,
-              detail: loadingDetail,
-              progress: loadingProgress,
-              cardFill: loadingCardFill,
-              contentColor: loadingContentColor
-            )
-          } else if let error = viewModel.errorMessage {
-            VStack(spacing: 12) {
-              Image(systemName: "exclamationmark.triangle")
-                .font(.largeTitle)
-              Text(error)
-                .multilineTextAlignment(.center)
-              Button("Retry") {
-                Task {
-                  await loadBook()
-                }
-              }
+
+            if viewModel.isLoading {
+              ReaderLoadingView(
+                title: loadingTitle,
+                detail: loadingDetail,
+                progress: loadingProgress,
+                cardFill: loadingCardFill,
+                contentColor: loadingContentColor
+              )
+              .readerLoadingOverlay()
             }
-            .padding()
-          } else if viewModel.hasContent {
-            readerContent
-          } else {
-            Text("No content available.")
-              .foregroundStyle(.secondary)
           }
-        #endif
+          .animation(ReaderLoadingTransition.animation, value: viewModel.isLoading)
+          .animation(ReaderLoadingTransition.animation, value: viewModel.errorMessage)
+          .animation(ReaderLoadingTransition.animation, value: viewModel.hasContent)
+        }
       }
     }
 

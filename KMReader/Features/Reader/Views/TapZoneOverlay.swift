@@ -13,14 +13,19 @@ struct TapZoneOverlay: View {
   @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .defaultLayout
   @AppStorage("tapZoneInversionMode") private var tapZoneInversionMode: TapZoneInversionMode = .auto
 
+  private var showsOverlay: Bool {
+    isVisible && showTapZoneHints && !tapZoneMode.isDisabled
+  }
+
   var body: some View {
     TapZoneGridOverlayContent(
       tapZoneMode: tapZoneMode,
       tapZoneInversionMode: tapZoneInversionMode,
       readingDirection: readingDirection
     )
-    .opacity(isVisible && showTapZoneHints && !tapZoneMode.isDisabled ? 1.0 : 0.0)
+    .opacity(showsOverlay ? 1.0 : 0.0)
     .allowsHitTesting(false)
+    .animation(.default, value: showsOverlay)
   }
 }
 
