@@ -7,14 +7,18 @@ import SwiftUI
 
 struct SeriesReadingActionBar: View {
   let actionTitle: String
-  let book: Book
+  let book: Book?
+  let fallbackTitle: String
   let isResuming: Bool
   let isResolving: Bool
   let action: () -> Void
 
   @ScaledMetric(relativeTo: .callout) private var iconSize = 36.0
 
-  private var bookTitle: String {
+  private var displayTitle: String {
+    guard let book else {
+      return isResolving ? String(localized: "Loading...") : fallbackTitle
+    }
     if book.oneshot || book.metadata.number.isEmpty {
       return book.metadata.title
     }
@@ -31,8 +35,8 @@ struct SeriesReadingActionBar: View {
   }
 
   private var progressSummary: String? {
-    guard let progress = book.readProgress, !progress.completed else { return nil }
-    let page = progress.page + 1
+    guard let book, let progress = book.readProgress, !progress.completed else { return nil }
+    let page = progress.page
     guard book.media.pagesCount > 0 else { return "Page \(page)" }
     let value = min(max(Double(page) / Double(book.media.pagesCount), 0), 1)
     return "Page \(page) · \(value.formatted(.percent.precision(.fractionLength(0))))"
@@ -74,7 +78,7 @@ struct SeriesReadingActionBar: View {
           .foregroundStyle(.secondary)
           .lineLimit(1)
 
-        Text(bookTitle)
+        Text(displayTitle)
           .font(.callout.weight(.semibold))
           .foregroundStyle(.primary)
           .lineLimit(1)

@@ -24,6 +24,8 @@ struct SeriesDetailView: View {
   @State private var showFilterSheet = false
   @State private var showSavedFilters = false
   @State private var readingTargetBook: Book?
+  @State private var readingTargetInstanceId: String?
+  @State private var readingTargetIsOffline: Bool?
   @State private var isResolvingReadingTarget = false
   @State private var readingTargetResolutionID = 0
 
@@ -71,7 +73,14 @@ struct SeriesDetailView: View {
   }
 
   private var shouldShowReadingBar: Bool {
-    canRead && readingTargetBook != nil
+    canRead
+  }
+
+  private var readingTargetBookForCurrentContext: Book? {
+    guard readingTargetInstanceId == current.instanceId, readingTargetIsOffline == isOffline else {
+      return nil
+    }
+    return readingTargetBook
   }
 
   var body: some View {
@@ -136,10 +145,11 @@ struct SeriesDetailView: View {
       }
     #endif
     .safeAreaInset(edge: .bottom, spacing: 0) {
-      if shouldShowReadingBar, let readingTargetBook {
+      if shouldShowReadingBar {
         SeriesReadingActionBar(
           actionTitle: readLabel,
-          book: readingTargetBook,
+          book: readingTargetBookForCurrentContext,
+          fallbackTitle: navigationTitle,
           isResuming: isResumingReading,
           isResolving: isResolvingReadingTarget,
           action: {
@@ -185,11 +195,13 @@ struct SeriesDetailView: View {
       await refreshSeriesData()
     }
     .onChange(of: current) {
+      clearReadingTargetForContextChange()
       Task {
         await refreshSeriesData()
       }
     }
     .onChange(of: isOffline) {
+      clearReadingTargetForContextChange()
       Task {
         await refreshReadingTargetBook()
       }
@@ -314,10 +326,13 @@ extension SeriesDetailView {
 
   private func continueReading() {
     Task {
-      let resolvedBook = await resolveReadingTargetBook()
-      let book = resolvedBook ?? readingTargetBook
-      if let book {
-        readingTargetBook = book
+      let instanceId = current.instanceId
+      let offline = isOffline
+      let resolvedBook = await resolveReadingTargetBook(instanceId: instanceId, isOffline: offline)
+      guard instanceId == current.instanceId, offline == isOffline else { return }
+      updateReadingTarget(resolvedBook, instanceId: instanceId, isOffline: offline)
+
+      if let book = resolvedBook {
         readerActions.open(book: book, incognito: false)
       }
     }
@@ -435,6 +450,14 @@ extension SeriesDetailView {
   private func refreshReadingTargetBook() async {
     readingTargetResolutionID += 1
     let resolutionID = readingTargetResolutionID
+    let instanceId = current.instanceId
+    let offline = isOffline
+
+    if !isReadingTargetScoped(to: instanceId, isOffline: offline) {
+      readingTargetBook = nil
+    }
+    readingTargetInstanceId = instanceId
+    readingTargetIsOffline = offline
 
     guard canRead else {
       readingTargetBook = nil
@@ -443,29 +466,48 @@ extension SeriesDetailView {
     }
 
     isResolvingReadingTarget = true
-    let book = await resolveReadingTargetBook()
+    let book = await resolveReadingTargetBook(instanceId: instanceId, isOffline: offline)
     guard readingTargetResolutionID == resolutionID else { return }
+    guard instanceId == current.instanceId, offline == isOffline else { return }
     guard !Task.isCancelled else {
       isResolvingReadingTarget = false
       return
     }
-    readingTargetBook = book
+    updateReadingTarget(book, instanceId: instanceId, isOffline: offline)
     isResolvingReadingTarget = false
   }
 
-  private func resolveReadingTargetBook() async -> Book? {
+  private func resolveReadingTargetBook(instanceId: String, isOffline: Bool) async -> Book? {
     guard canRead else { return nil }
     return await SeriesContinueReadingResolver.resolve(
       seriesId: seriesId,
-      instanceId: current.instanceId,
+      instanceId: instanceId,
       isOffline: isOffline
     )
+  }
+
+  private func updateReadingTarget(_ book: Book?, instanceId: String, isOffline: Bool) {
+    readingTargetBook = book
+    readingTargetInstanceId = instanceId
+    readingTargetIsOffline = isOffline
+  }
+
+  private func clearReadingTargetForContextChange() {
+    readingTargetResolutionID += 1
+    readingTargetBook = nil
+    readingTargetInstanceId = current.instanceId
+    readingTargetIsOffline = isOffline
+    isResolvingReadingTarget = false
+  }
+
+  private func isReadingTargetScoped(to instanceId: String, isOffline: Bool) -> Bool {
+    readingTargetInstanceId == instanceId && readingTargetIsOffline == isOffline
   }
 
   private func shouldRefreshForBookProjection(_ notification: Notification) -> Bool {
     let changedIds = changedBookIds(from: notification)
     guard !changedIds.isEmpty else { return true }
-    guard let readingTargetBook else { return false }
+    guard let readingTargetBook = readingTargetBookForCurrentContext else { return true }
     return changedIds.contains(readingTargetBook.id)
   }
 
