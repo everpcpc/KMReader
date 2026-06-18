@@ -80,10 +80,10 @@ struct SeriesDownloadActionsSection: View {
             offlinePolicyLabel(.all)
           }
         } label: {
-          Label {
-            policyLabel.lineLimit(1)
-          } icon: {
+          HStack(spacing: 4) {
             Image(systemName: policy.icon)
+            policyLabel.lineLimit(1)
+            Image(systemName: "chevron.down")
           }
         }
         .font(.caption)
@@ -198,10 +198,15 @@ struct SeriesDownloadActionsSection: View {
   @ViewBuilder
   private func offlinePolicyLabel(_ value: SeriesOfflinePolicy) -> some View {
     let title = value.title(limit: offlinePolicyLimit)
-    if value == policy {
-      Label(title, systemImage: "checkmark")
-    } else {
-      Label(value.label, systemImage: value.icon)
+    Label {
+      HStack(spacing: 4) {
+        Text(value == policy ? title : value.label)
+        if value == policy {
+          Image(systemName: "checkmark")
+        }
+      }
+    } icon: {
+      Image(systemName: value.icon)
     }
   }
 

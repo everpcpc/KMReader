@@ -345,10 +345,15 @@ struct SeriesContextMenu: View {
   @ViewBuilder
   private func offlinePolicyLabel(_ policy: SeriesOfflinePolicy) -> some View {
     let title = policy.title(limit: offlinePolicyLimit)
-    if policy == offlinePolicy {
-      Label(title, systemImage: "checkmark")
-    } else {
-      Label(policy.label, systemImage: policy.icon)
+    Label {
+      HStack(spacing: 4) {
+        Text(policy == offlinePolicy ? title : policy.label)
+        if policy == offlinePolicy {
+          Image(systemName: "checkmark")
+        }
+      }
+    } icon: {
+      Image(systemName: policy.icon)
     }
   }
 

@@ -23,6 +23,9 @@ struct SeriesDetailView: View {
   @State private var showEditSheet = false
   @State private var showFilterSheet = false
   @State private var showSavedFilters = false
+  @State private var readingTargetBook: Book?
+  @State private var isResolvingReadingTarget = false
+  @State private var readingTargetResolutionID = 0
 
   init(seriesId: String) {
     self.seriesId = seriesId
@@ -48,11 +51,15 @@ struct SeriesDetailView: View {
   }
 
   private var readLabel: String {
-    if let readCount = series?.booksReadCount, readCount > 0 {
+    if isResumingReading {
       return String(localized: "Resume Reading")
     } else {
       return String(localized: "Start Reading")
     }
+  }
+
+  private var isResumingReading: Bool {
+    series?.hasStartedReading == true
   }
 
   private var navigationTitle: String {
@@ -61,6 +68,10 @@ struct SeriesDetailView: View {
 
   private var shareURL: URL? {
     KomgaWebLinkBuilder.series(serverURL: current.serverURL, seriesId: seriesId)
+  }
+
+  private var shouldShowReadingBar: Bool {
+    canRead && readingTargetBook != nil
   }
 
   var body: some View {
@@ -74,21 +85,6 @@ struct SeriesDetailView: View {
             #endif
 
             SeriesDetailContentView(series: series)
-
-            if canRead {
-              HStack {
-                Button {
-                  continueReading()
-                } label: {
-                  Label(readLabel, systemImage: "play")
-                }
-                .adaptiveButtonStyle(.borderedProminent)
-                .optimizedControlSize()
-
-                Spacer()
-              }
-              .padding(.vertical, 8)
-            }
 
             if let item {
               SeriesCollectionsSection(collectionIds: item.collectionIds)
@@ -139,6 +135,23 @@ struct SeriesDetailView: View {
         }
       }
     #endif
+    .safeAreaInset(edge: .bottom, spacing: 0) {
+      if shouldShowReadingBar, let readingTargetBook {
+        SeriesReadingActionBar(
+          actionTitle: readLabel,
+          book: readingTargetBook,
+          isResuming: isResumingReading,
+          isResolving: isResolvingReadingTarget,
+          action: {
+            continueReading()
+          }
+        )
+        .frame(maxWidth: 720)
+        .padding(.horizontal, 16)
+        .padding(.top, 6)
+        .padding(.bottom, 8)
+      }
+    }
     .alert("Delete Series?", isPresented: $showDeleteConfirmation) {
       Button("Delete", role: .destructive) {
         deleteSeries()
@@ -171,6 +184,30 @@ struct SeriesDetailView: View {
     .task {
       await refreshSeriesData()
     }
+    .onChange(of: current) {
+      Task {
+        await refreshSeriesData()
+      }
+    }
+    .onChange(of: isOffline) {
+      Task {
+        await refreshReadingTargetBook()
+      }
+    }
+    .onReceive(NotificationCenter.default.publisher(for: .seriesProjectionDidChange)) {
+      notification in
+      guard notification.userInfo?["seriesId"] as? String == seriesId else { return }
+      Task {
+        await refreshLocalSeriesData()
+      }
+    }
+    .onReceive(NotificationCenter.default.publisher(for: .bookProjectionDidChange)) {
+      notification in
+      guard shouldRefreshForBookProjection(notification) else { return }
+      Task {
+        await refreshLocalSeriesData()
+      }
+    }
   }
 }
 
@@ -188,6 +225,12 @@ extension SeriesDetailView {
       }
     }
     await loadLocalSeries()
+    await refreshReadingTargetBook()
+  }
+
+  private func refreshLocalSeriesData() async {
+    await loadLocalSeries()
+    await refreshReadingTargetBook()
   }
 
   private func loadLocalSeries() async {
@@ -271,12 +314,10 @@ extension SeriesDetailView {
 
   private func continueReading() {
     Task {
-      let book = await SeriesContinueReadingResolver.resolve(
-        seriesId: seriesId,
-        instanceId: current.instanceId,
-        isOffline: isOffline
-      )
+      let resolvedBook = await resolveReadingTargetBook()
+      let book = resolvedBook ?? readingTargetBook
       if let book {
+        readingTargetBook = book
         readerActions.open(book: book, incognito: false)
       }
     }
@@ -389,5 +430,55 @@ extension SeriesDetailView {
         Image(systemName: "ellipsis")
       }
     }.toolbarButtonStyle()
+  }
+
+  private func refreshReadingTargetBook() async {
+    readingTargetResolutionID += 1
+    let resolutionID = readingTargetResolutionID
+
+    guard canRead else {
+      readingTargetBook = nil
+      isResolvingReadingTarget = false
+      return
+    }
+
+    isResolvingReadingTarget = true
+    let book = await resolveReadingTargetBook()
+    guard readingTargetResolutionID == resolutionID else { return }
+    guard !Task.isCancelled else {
+      isResolvingReadingTarget = false
+      return
+    }
+    readingTargetBook = book
+    isResolvingReadingTarget = false
+  }
+
+  private func resolveReadingTargetBook() async -> Book? {
+    guard canRead else { return nil }
+    return await SeriesContinueReadingResolver.resolve(
+      seriesId: seriesId,
+      instanceId: current.instanceId,
+      isOffline: isOffline
+    )
+  }
+
+  private func shouldRefreshForBookProjection(_ notification: Notification) -> Bool {
+    let changedIds = changedBookIds(from: notification)
+    guard !changedIds.isEmpty else { return true }
+    guard let readingTargetBook else { return false }
+    return changedIds.contains(readingTargetBook.id)
+  }
+
+  private func changedBookIds(from notification: Notification) -> Set<String> {
+    if let ids = notification.userInfo?["bookIds"] as? Set<String> {
+      return ids
+    }
+    if let ids = notification.userInfo?["bookIds"] as? [String] {
+      return Set(ids)
+    }
+    if let id = notification.userInfo?["bookId"] as? String {
+      return [id]
+    }
+    return []
   }
 }
