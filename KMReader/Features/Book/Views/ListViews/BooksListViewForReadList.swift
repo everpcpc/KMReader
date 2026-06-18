@@ -23,9 +23,6 @@ struct BooksListViewForReadList: View {
   @State private var readListItem: ReadListDisplayItem?
   @State private var projectionRefreshTask: Task<Void, Never>?
 
-  private static let localProjectionRefreshDelay: UInt64 = 750_000_000
-  private static let remoteProjectionRefreshDelay: UInt64 = 5_000_000_000
-
   private var readListContext: ReaderReadListContext? {
     guard let readListItem else { return nil }
     return ReaderReadListContext(id: readListItem.readListId, name: readListItem.name)
@@ -152,11 +149,12 @@ struct BooksListViewForReadList: View {
     .onReceive(NotificationCenter.default.publisher(for: .bookProjectionDidChange)) {
       notification in
       guard shouldRefreshForBookProjection(notification) else { return }
-      scheduleProjectionRefresh()
+      scheduleProjectionRefresh(after: ContentProjectionNotifier.refreshDelay(from: notification))
     }
-    .onReceive(NotificationCenter.default.publisher(for: .sseEventReceived)) { notification in
-      guard let info = notification.userInfo?["info"] as? SSEEventInfo else { return }
-      handleSSEEvent(info)
+    .onReceive(NotificationCenter.default.publisher(for: .readListProjectionDidChange)) {
+      notification in
+      guard notification.userInfo?["readListId"] as? String == readListId else { return }
+      scheduleProjectionRefresh(after: ContentProjectionNotifier.refreshDelay(from: notification))
     }
     .onDisappear {
       cancelProjectionRefresh()
@@ -235,7 +233,7 @@ struct BooksListViewForReadList: View {
   }
 
   private func scheduleProjectionRefresh(
-    after delay: UInt64 = Self.localProjectionRefreshDelay
+    after delay: UInt64 = ContentProjectionNotifier.localRefreshDelay
   ) {
     cancelProjectionRefresh()
 
@@ -255,19 +253,6 @@ struct BooksListViewForReadList: View {
   private func cancelProjectionRefresh() {
     projectionRefreshTask?.cancel()
     projectionRefreshTask = nil
-  }
-
-  private func handleSSEEvent(_ info: SSEEventInfo) {
-    guard AppConfig.enableSSEAutoRefresh else { return }
-
-    switch info.type {
-    case .readProgressChanged, .readProgressDeleted, .readProgressSeriesChanged,
-      .readProgressSeriesDeleted, .bookChanged, .bookDeleted, .readListChanged,
-      .readListDeleted:
-      scheduleProjectionRefresh(after: Self.remoteProjectionRefreshDelay)
-    default:
-      break
-    }
   }
 
 }

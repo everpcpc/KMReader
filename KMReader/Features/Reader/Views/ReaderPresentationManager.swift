@@ -54,13 +54,18 @@ final class ReaderPresentationManager {
         finishSession(
           currentSession,
           syncVisited: true,
-          postsContentProjectionChange: false
+          postsContentProjectionChange: true,
+          endsReaderActivity: false
         )
         clearReaderCommands()
       }
     #else
       if currentSession != nil {
-        closeReader(syncVisited: false, postsContentProjectionChange: false)
+        closeReader(
+          syncVisited: false,
+          postsContentProjectionChange: false,
+          endsReaderActivity: false
+        )
       }
     #endif
 
@@ -71,17 +76,21 @@ final class ReaderPresentationManager {
     )
     currentSession = session
 
-    #if os(iOS)
-      ReaderLiveActivityManager.shared.readerDidOpen(book: book, incognito: incognito)
-    #endif
-
     #if os(macOS)
       guard let openWindowHandler else {
         logger.error("Reader window opener not configured")
         currentSession = nil
         return
       }
+    #endif
 
+    ContentProjectionNotifier.readerDidOpen()
+
+    #if os(iOS)
+      ReaderLiveActivityManager.shared.readerDidOpen(book: book, incognito: incognito)
+    #endif
+
+    #if os(macOS)
       if !isReaderWindowVisible {
         openWindowHandler()
       }
@@ -190,14 +199,16 @@ final class ReaderPresentationManager {
 
   func closeReader(
     syncVisited: Bool = true,
-    postsContentProjectionChange: Bool = true
+    postsContentProjectionChange: Bool = true,
+    endsReaderActivity: Bool = true
   ) {
     guard let currentSession else { return }
 
     finishSession(
       currentSession,
       syncVisited: syncVisited,
-      postsContentProjectionChange: postsContentProjectionChange
+      postsContentProjectionChange: postsContentProjectionChange,
+      endsReaderActivity: endsReaderActivity
     )
 
     #if os(iOS)
@@ -307,19 +318,27 @@ final class ReaderPresentationManager {
   private func finishSession(
     _ session: ReaderSession,
     syncVisited: Bool,
-    postsContentProjectionChange: Bool
+    postsContentProjectionChange: Bool,
+    endsReaderActivity: Bool
   ) {
     flushHandlers[session.id]?()
     flushHandlers.removeValue(forKey: session.id)
 
-    guard syncVisited else { return }
-
-    if session.incognito {
-      logger.debug("⏭️ [Progress/Checkpoint] Skip visited sync: incognito mode enabled")
+    guard syncVisited else {
+      finishReaderActivityIfNeeded(endsReaderActivity)
       return
     }
 
-    guard !session.visitedBookIds.isEmpty else { return }
+    if session.incognito {
+      logger.debug("⏭️ [Progress/Checkpoint] Skip visited sync: incognito mode enabled")
+      finishReaderActivityIfNeeded(endsReaderActivity)
+      return
+    }
+
+    guard !session.visitedBookIds.isEmpty else {
+      finishReaderActivityIfNeeded(endsReaderActivity)
+      return
+    }
 
     let bookIds = session.visitedBookIds
     let seriesIds = session.visitedSeriesIds
@@ -355,6 +374,16 @@ final class ReaderPresentationManager {
       }
       await SyncService.syncVisitedItems(bookIds: bookIds, seriesIds: seriesIds)
       WidgetDataService.refreshWidgetData()
+      if endsReaderActivity {
+        await MainActor.run {
+          ContentProjectionNotifier.readerDidClose()
+        }
+      }
     }
+  }
+
+  private func finishReaderActivityIfNeeded(_ endsReaderActivity: Bool) {
+    guard endsReaderActivity else { return }
+    ContentProjectionNotifier.readerDidClose()
   }
 }

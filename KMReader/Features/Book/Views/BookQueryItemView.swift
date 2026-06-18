@@ -16,6 +16,7 @@ struct BookQueryItemView: View {
   @AppStorage("currentAccount") private var current: Current = .init()
   @Environment(\.readerActions) private var readerActions
   @State private var item: BookDisplayItem?
+  @State private var projectionReloadTask: Task<Void, Never>?
 
   init(
     bookId: String,
@@ -79,7 +80,10 @@ struct BookQueryItemView: View {
     .onReceive(NotificationCenter.default.publisher(for: .bookProjectionDidChange)) {
       notification in
       guard shouldReload(for: notification) else { return }
-      reloadItem()
+      scheduleProjectionReload(after: ContentProjectionNotifier.refreshDelay(from: notification))
+    }
+    .onDisappear {
+      cancelProjectionReload()
     }
   }
 
@@ -100,6 +104,29 @@ struct BookQueryItemView: View {
     Task {
       await loadItem()
     }
+  }
+
+  private func scheduleProjectionReload(
+    after delay: UInt64 = ContentProjectionNotifier.localRefreshDelay
+  ) {
+    cancelProjectionReload()
+
+    projectionReloadTask = Task { @MainActor in
+      do {
+        try await Task.sleep(nanoseconds: delay)
+      } catch {
+        return
+      }
+
+      guard !Task.isCancelled else { return }
+      await loadItem()
+      projectionReloadTask = nil
+    }
+  }
+
+  private func cancelProjectionReload() {
+    projectionReloadTask?.cancel()
+    projectionReloadTask = nil
   }
 
   private func loadItem() async {

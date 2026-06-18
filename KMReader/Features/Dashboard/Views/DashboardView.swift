@@ -189,40 +189,12 @@ struct DashboardView: View {
   }
 
   private func handleSSEEvent(_ info: SSEEventInfo) {
-    let jsonData = info.data.data(using: .utf8) ?? Data()
-    let decoder = JSONDecoder()
-
     switch info.type {
-    case .seriesAdded, .seriesChanged, .seriesDeleted:
-      if let event = try? decoder.decode(SeriesSSEDto.self, from: jsonData) {
-        if shouldRefreshForLibrary(event.libraryId) {
-          scheduleRefresh(reason: "SSE \(info.type.rawValue) \(event.seriesId)")
-        }
-      }
-    case .bookAdded, .bookChanged, .bookDeleted:
-      if let event = try? decoder.decode(BookSSEDto.self, from: jsonData) {
-        if shouldRefreshForLibrary(event.libraryId) {
-          scheduleRefresh(reason: "SSE \(info.type.rawValue) \(event.bookId)")
-        }
-      }
-    case .readProgressChanged, .readProgressDeleted, .readProgressSeriesChanged,
-      .readProgressSeriesDeleted:
-      scheduleRefresh(reason: "SSE \(info.type.rawValue)")
     case .libraryAdded, .libraryChanged, .libraryDeleted:
-      scheduleRefresh(reason: "SSE \(info.type.rawValue)")
-    case .collectionAdded, .collectionChanged, .collectionDeleted:
-      scheduleRefresh(reason: "SSE \(info.type.rawValue)")
-    case .readListAdded, .readListChanged, .readListDeleted:
       scheduleRefresh(reason: "SSE \(info.type.rawValue)")
     default:
       break
     }
-  }
-
-  private func shouldRefreshForLibrary(_ libraryId: String) -> Bool {
-    // If dashboard shows all libraries (empty array), refresh for any library
-    // Otherwise, only refresh if the library matches
-    return dashboard.libraryIds.isEmpty || dashboard.libraryIds.contains(libraryId)
   }
 
   var body: some View {
@@ -283,6 +255,12 @@ struct DashboardView: View {
     }
     .onReceive(NotificationCenter.default.publisher(for: .seriesProjectionDidChange)) { _ in
       scheduleRefresh(reason: "Local series projection")
+    }
+    .onReceive(NotificationCenter.default.publisher(for: .collectionProjectionDidChange)) { _ in
+      scheduleRefresh(reason: "Local collection projection")
+    }
+    .onReceive(NotificationCenter.default.publisher(for: .readListProjectionDidChange)) { _ in
+      scheduleRefresh(reason: "Local read list projection")
     }
     .onChange(of: enableSSEAutoRefresh) { _, newValue in
       // Cancel any pending refresh when auto-refresh is disabled

@@ -23,9 +23,6 @@ struct CollectionSeriesListView: View {
   @State private var collectionItem: CollectionDisplayItem?
   @State private var projectionRefreshTask: Task<Void, Never>?
 
-  private static let localProjectionRefreshDelay: UInt64 = 750_000_000
-  private static let remoteProjectionRefreshDelay: UInt64 = 5_000_000_000
-
   init(
     collectionId: String,
     showFilterSheet: Binding<Bool>,
@@ -130,11 +127,12 @@ struct CollectionSeriesListView: View {
     .onReceive(NotificationCenter.default.publisher(for: .seriesProjectionDidChange)) {
       notification in
       guard shouldRefreshForSeriesProjection(notification) else { return }
-      scheduleProjectionRefresh()
+      scheduleProjectionRefresh(after: ContentProjectionNotifier.refreshDelay(from: notification))
     }
-    .onReceive(NotificationCenter.default.publisher(for: .sseEventReceived)) { notification in
-      guard let info = notification.userInfo?["info"] as? SSEEventInfo else { return }
-      handleSSEEvent(info)
+    .onReceive(NotificationCenter.default.publisher(for: .collectionProjectionDidChange)) {
+      notification in
+      guard notification.userInfo?["collectionId"] as? String == collectionId else { return }
+      scheduleProjectionRefresh(after: ContentProjectionNotifier.refreshDelay(from: notification))
     }
     .onDisappear {
       cancelProjectionRefresh()
@@ -213,7 +211,9 @@ struct CollectionSeriesListView: View {
     return []
   }
 
-  private func scheduleProjectionRefresh(after delay: UInt64 = Self.localProjectionRefreshDelay) {
+  private func scheduleProjectionRefresh(
+    after delay: UInt64 = ContentProjectionNotifier.localRefreshDelay
+  ) {
     cancelProjectionRefresh()
 
     projectionRefreshTask = Task { @MainActor in
@@ -232,19 +232,6 @@ struct CollectionSeriesListView: View {
   private func cancelProjectionRefresh() {
     projectionRefreshTask?.cancel()
     projectionRefreshTask = nil
-  }
-
-  private func handleSSEEvent(_ info: SSEEventInfo) {
-    guard AppConfig.enableSSEAutoRefresh else { return }
-
-    switch info.type {
-    case .readProgressChanged, .readProgressDeleted, .readProgressSeriesChanged,
-      .readProgressSeriesDeleted, .seriesAdded, .seriesChanged, .seriesDeleted,
-      .collectionChanged, .collectionDeleted:
-      scheduleProjectionRefresh(after: Self.remoteProjectionRefreshDelay)
-    default:
-      break
-    }
   }
 
 }

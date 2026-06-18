@@ -196,6 +196,46 @@ actor SSEService {
     switch eventType {
     case .taskQueueStatus:
       handleTaskQueueStatus(data: data)
+    case .sessionExpired:
+      broadcastNotification(type: eventType, data: data)
+    default:
+      guard AppConfig.enableSSEAutoRefresh else { return }
+      await handleSSEAutoRefreshEvent(eventType, data: data)
+    }
+  }
+
+  private func handleSSEAutoRefreshEvent(_ eventType: SSEEventType, data: String) async {
+    switch eventType {
+    case .seriesAdded, .seriesChanged, .seriesDeleted:
+      guard await postSeriesProjectionChange(data: data) else {
+        broadcastNotification(type: eventType, data: data)
+        return
+      }
+    case .bookAdded, .bookChanged, .bookDeleted, .bookImported:
+      guard await postBookProjectionChange(data: data) else {
+        broadcastNotification(type: eventType, data: data)
+        return
+      }
+    case .collectionAdded, .collectionChanged, .collectionDeleted:
+      guard await postCollectionProjectionChange(data: data) else {
+        broadcastNotification(type: eventType, data: data)
+        return
+      }
+    case .readListAdded, .readListChanged, .readListDeleted:
+      guard await postReadListProjectionChange(data: data) else {
+        broadcastNotification(type: eventType, data: data)
+        return
+      }
+    case .readProgressChanged, .readProgressDeleted:
+      guard await postReadProgressProjectionChange(data: data) else {
+        broadcastNotification(type: eventType, data: data)
+        return
+      }
+    case .readProgressSeriesChanged, .readProgressSeriesDeleted:
+      guard await postReadProgressSeriesProjectionChange(data: data) else {
+        broadcastNotification(type: eventType, data: data)
+        return
+      }
     default:
       broadcastNotification(type: eventType, data: data)
     }
@@ -226,6 +266,85 @@ actor SSEService {
         userInfo: ["info": SSEEventInfo(type: type, data: data)]
       )
     }
+  }
+
+  private func postSeriesProjectionChange(data: String) async -> Bool {
+    guard let seriesId = stringValue("seriesId", from: data) else { return false }
+    await ContentProjectionNotifier.postSeriesDidChange(
+      seriesId: seriesId,
+      refreshDelay: ContentProjectionNotifier.remoteRefreshDelay
+    )
+    return true
+  }
+
+  private func postBookProjectionChange(data: String) async -> Bool {
+    guard
+      let bookId = stringValue("bookId", from: data),
+      let seriesId = stringValue("seriesId", from: data)
+    else { return false }
+
+    await ContentProjectionNotifier.postBookAndSeriesDidChange(
+      bookId: bookId,
+      instanceId: AppConfig.current.instanceId,
+      seriesId: seriesId,
+      refreshDelay: ContentProjectionNotifier.remoteRefreshDelay
+    )
+    return true
+  }
+
+  private func postCollectionProjectionChange(data: String) async -> Bool {
+    guard let collectionId = stringValue("collectionId", from: data) else { return false }
+    await ContentProjectionNotifier.postCollectionDidChange(
+      collectionId: collectionId,
+      refreshDelay: ContentProjectionNotifier.remoteRefreshDelay
+    )
+    return true
+  }
+
+  private func postReadListProjectionChange(data: String) async -> Bool {
+    guard let readListId = stringValue("readListId", from: data) else { return false }
+    await ContentProjectionNotifier.postReadListDidChange(
+      readListId: readListId,
+      refreshDelay: ContentProjectionNotifier.remoteRefreshDelay
+    )
+    return true
+  }
+
+  private func postReadProgressProjectionChange(data: String) async -> Bool {
+    guard let bookId = stringValue("bookId", from: data) else { return false }
+    await ContentProjectionNotifier.postBookAndSeriesDidChange(
+      bookId: bookId,
+      refreshDelay: ContentProjectionNotifier.remoteRefreshDelay
+    )
+    return true
+  }
+
+  private func postReadProgressSeriesProjectionChange(data: String) async -> Bool {
+    guard let seriesId = stringValue("seriesId", from: data) else { return false }
+    await ContentProjectionNotifier.postSeriesDidChange(
+      seriesId: seriesId,
+      refreshDelay: ContentProjectionNotifier.remoteRefreshDelay
+    )
+    return true
+  }
+
+  private func stringValue(_ key: String, from data: String) -> String? {
+    guard
+      let object = jsonObject(from: data),
+      let value = object[key] as? String,
+      !value.isEmpty
+    else { return nil }
+
+    return value
+  }
+
+  private func jsonObject(from data: String) -> [String: Any]? {
+    guard
+      let payload = data.data(using: .utf8),
+      let object = try? JSONSerialization.jsonObject(with: payload) as? [String: Any]
+    else { return nil }
+
+    return object
   }
 
   private func recordServerUpdate() {

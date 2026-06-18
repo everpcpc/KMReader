@@ -32,9 +32,6 @@ struct BrowseView: View {
   @State private var showSavedFilters = false
   @State private var projectionRefreshTask: Task<Void, Never>?
 
-  private static let localProjectionRefreshDelay: UInt64 = 750_000_000
-  private static let remoteProjectionRefreshDelay: UInt64 = 5_000_000_000
-
   private var effectiveContent: BrowseContentType {
     fixedContent ?? browseContent
   }
@@ -230,17 +227,23 @@ struct BrowseView: View {
       initializedLibraryIdsKey = resolvedLibraryIdsKey
       refreshBrowse()
     }
-    .onReceive(NotificationCenter.default.publisher(for: .bookProjectionDidChange)) { _ in
+    .onReceive(NotificationCenter.default.publisher(for: .bookProjectionDidChange)) { notification in
       guard effectiveContent == .books else { return }
-      scheduleProjectionRefresh()
+      scheduleProjectionRefresh(after: ContentProjectionNotifier.refreshDelay(from: notification))
     }
-    .onReceive(NotificationCenter.default.publisher(for: .seriesProjectionDidChange)) { _ in
+    .onReceive(NotificationCenter.default.publisher(for: .seriesProjectionDidChange)) { notification in
       guard effectiveContent == .series else { return }
-      scheduleProjectionRefresh()
+      scheduleProjectionRefresh(after: ContentProjectionNotifier.refreshDelay(from: notification))
     }
-    .onReceive(NotificationCenter.default.publisher(for: .sseEventReceived)) { notification in
-      guard let info = notification.userInfo?["info"] as? SSEEventInfo else { return }
-      handleSSEEvent(info)
+    .onReceive(NotificationCenter.default.publisher(for: .collectionProjectionDidChange)) {
+      notification in
+      guard effectiveContent == .collections else { return }
+      scheduleProjectionRefresh(after: ContentProjectionNotifier.refreshDelay(from: notification))
+    }
+    .onReceive(NotificationCenter.default.publisher(for: .readListProjectionDidChange)) {
+      notification in
+      guard effectiveContent == .readlists else { return }
+      scheduleProjectionRefresh(after: ContentProjectionNotifier.refreshDelay(from: notification))
     }
     .onDisappear {
       cancelProjectionRefresh()
@@ -257,7 +260,7 @@ struct BrowseView: View {
   }
 
   private func scheduleProjectionRefresh(
-    after delay: UInt64 = Self.localProjectionRefreshDelay
+    after delay: UInt64 = ContentProjectionNotifier.localRefreshDelay
   ) {
     guard !authViewModel.isSwitching else { return }
 
@@ -279,31 +282,6 @@ struct BrowseView: View {
   private func cancelProjectionRefresh() {
     projectionRefreshTask?.cancel()
     projectionRefreshTask = nil
-  }
-
-  private func handleSSEEvent(_ info: SSEEventInfo) {
-    guard AppConfig.enableSSEAutoRefresh else { return }
-
-    switch info.type {
-    case .readProgressChanged, .readProgressDeleted, .readProgressSeriesChanged,
-      .readProgressSeriesDeleted:
-      guard effectiveContent == .books || effectiveContent == .series else { return }
-      scheduleProjectionRefresh(after: Self.remoteProjectionRefreshDelay)
-    case .bookAdded, .bookChanged, .bookDeleted, .bookImported:
-      guard effectiveContent == .books else { return }
-      scheduleProjectionRefresh(after: Self.remoteProjectionRefreshDelay)
-    case .seriesAdded, .seriesChanged, .seriesDeleted:
-      guard effectiveContent == .series else { return }
-      scheduleProjectionRefresh(after: Self.remoteProjectionRefreshDelay)
-    case .collectionAdded, .collectionChanged, .collectionDeleted:
-      guard effectiveContent == .collections else { return }
-      scheduleProjectionRefresh(after: Self.remoteProjectionRefreshDelay)
-    case .readListAdded, .readListChanged, .readListDeleted:
-      guard effectiveContent == .readlists else { return }
-      scheduleProjectionRefresh(after: Self.remoteProjectionRefreshDelay)
-    default:
-      break
-    }
   }
 
   @ViewBuilder

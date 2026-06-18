@@ -21,9 +21,6 @@ struct DashboardSectionDetailView: View {
   @State private var projectionRefreshTask: Task<Void, Never>?
   @State private var needsRefreshAfterCurrentLoad = false
 
-  private static let localProjectionRefreshDelay: UInt64 = 750_000_000
-  private static let remoteProjectionRefreshDelay: UInt64 = 5_000_000_000
-
   private var columns: [GridItem] {
     LayoutConfig.adaptiveColumns(for: gridDensity)
   }
@@ -73,17 +70,13 @@ struct DashboardSectionDetailView: View {
     .refreshable {
       await loadItems(refresh: true)
     }
-    .onReceive(NotificationCenter.default.publisher(for: .bookProjectionDidChange)) { _ in
+    .onReceive(NotificationCenter.default.publisher(for: .bookProjectionDidChange)) { notification in
       guard section.contentKind == .books else { return }
-      scheduleProjectionRefresh()
+      scheduleProjectionRefresh(after: ContentProjectionNotifier.refreshDelay(from: notification))
     }
-    .onReceive(NotificationCenter.default.publisher(for: .seriesProjectionDidChange)) { _ in
+    .onReceive(NotificationCenter.default.publisher(for: .seriesProjectionDidChange)) { notification in
       guard section.contentKind == .series else { return }
-      scheduleProjectionRefresh()
-    }
-    .onReceive(NotificationCenter.default.publisher(for: .sseEventReceived)) { notification in
-      guard let info = notification.userInfo?["info"] as? SSEEventInfo else { return }
-      handleSSEEvent(info)
+      scheduleProjectionRefresh(after: ContentProjectionNotifier.refreshDelay(from: notification))
     }
     .onDisappear {
       cancelProjectionRefresh()
@@ -292,7 +285,7 @@ struct DashboardSectionDetailView: View {
   }
 
   private func scheduleProjectionRefresh(
-    after delay: UInt64 = Self.localProjectionRefreshDelay
+    after delay: UInt64 = ContentProjectionNotifier.localRefreshDelay
   ) {
     cancelProjectionRefresh()
 
@@ -312,24 +305,6 @@ struct DashboardSectionDetailView: View {
   private func cancelProjectionRefresh() {
     projectionRefreshTask?.cancel()
     projectionRefreshTask = nil
-  }
-
-  private func handleSSEEvent(_ info: SSEEventInfo) {
-    guard AppConfig.enableSSEAutoRefresh else { return }
-
-    switch info.type {
-    case .readProgressChanged, .readProgressDeleted, .readProgressSeriesChanged,
-      .readProgressSeriesDeleted:
-      scheduleProjectionRefresh(after: Self.remoteProjectionRefreshDelay)
-    case .bookAdded, .bookChanged, .bookDeleted, .bookImported:
-      guard section.contentKind == .books else { return }
-      scheduleProjectionRefresh(after: Self.remoteProjectionRefreshDelay)
-    case .seriesAdded, .seriesChanged, .seriesDeleted:
-      guard section.contentKind == .series else { return }
-      scheduleProjectionRefresh(after: Self.remoteProjectionRefreshDelay)
-    default:
-      break
-    }
   }
 
   private func queueAllBooksOffline() {
