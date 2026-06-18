@@ -8,7 +8,6 @@ import SwiftUI
 // Books list view for read list
 struct BooksListViewForReadList: View {
   let readListId: String
-  let readerPresentation: ReaderPresentationManager
   @Binding var showFilterSheet: Bool
   @Binding var showSavedFilters: Bool
 
@@ -23,10 +22,9 @@ struct BooksListViewForReadList: View {
   @State private var isDeleting = false
   @State private var readListItem: ReadListDisplayItem?
   @State private var projectionRefreshTask: Task<Void, Never>?
-  @State private var shouldRefreshAfterReading = false
 
-  private static let remoteProjectionRefreshDelay =
-    ReaderProgressSettlementNotification.remoteProjectionRefreshDelay
+  private static let localProjectionRefreshDelay: UInt64 = 750_000_000
+  private static let remoteProjectionRefreshDelay: UInt64 = 5_000_000_000
 
   private var readListContext: ReaderReadListContext? {
     guard let readListItem else { return nil }
@@ -35,12 +33,10 @@ struct BooksListViewForReadList: View {
 
   init(
     readListId: String,
-    readerPresentation: ReaderPresentationManager,
     showFilterSheet: Binding<Bool>,
     showSavedFilters: Binding<Bool>
   ) {
     self.readListId = readListId
-    self.readerPresentation = readerPresentation
     self._showFilterSheet = showFilterSheet
     self._showSavedFilters = showSavedFilters
   }
@@ -162,16 +158,8 @@ struct BooksListViewForReadList: View {
       guard let info = notification.userInfo?["info"] as? SSEEventInfo else { return }
       handleSSEEvent(info)
     }
-    .onReceive(NotificationCenter.default.publisher(for: .readerProgressDidSettle)) { _ in
-      completeDeferredProjectionRefresh()
-    }
-    .onChange(of: readerPresentation.currentSession) { _, newSession in
-      guard newSession != nil else { return }
-      pauseScheduledProjectionRefreshForReader()
-    }
     .onDisappear {
       cancelProjectionRefresh()
-      shouldRefreshAfterReading = false
     }
   }
 
@@ -247,14 +235,9 @@ struct BooksListViewForReadList: View {
   }
 
   private func scheduleProjectionRefresh(
-    after delay: UInt64 = ReaderProgressSettlementNotification.localProjectionRefreshDelay
+    after delay: UInt64 = Self.localProjectionRefreshDelay
   ) {
     cancelProjectionRefresh()
-
-    guard readerPresentation.currentSession == nil else {
-      shouldRefreshAfterReading = true
-      return
-    }
 
     projectionRefreshTask = Task { @MainActor in
       do {
@@ -264,27 +247,8 @@ struct BooksListViewForReadList: View {
       }
 
       guard !Task.isCancelled else { return }
-      if readerPresentation.currentSession != nil {
-        shouldRefreshAfterReading = true
-      } else {
-        await refreshBooks()
-      }
-      projectionRefreshTask = nil
-    }
-  }
-
-  private func pauseScheduledProjectionRefreshForReader() {
-    guard projectionRefreshTask != nil else { return }
-    shouldRefreshAfterReading = true
-    cancelProjectionRefresh()
-  }
-
-  private func completeDeferredProjectionRefresh() {
-    guard shouldRefreshAfterReading else { return }
-    shouldRefreshAfterReading = false
-    cancelProjectionRefresh()
-    Task {
       await refreshBooks()
+      projectionRefreshTask = nil
     }
   }
 

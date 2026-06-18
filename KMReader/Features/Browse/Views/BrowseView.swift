@@ -7,7 +7,6 @@ import SwiftUI
 
 struct BrowseView: View {
   let authViewModel: AuthViewModel
-  let readerPresentation: ReaderPresentationManager
   let fixedContent: BrowseContentType?
   let metadataFilter: MetadataFilterConfig?
 
@@ -32,10 +31,9 @@ struct BrowseView: View {
   @State private var showFilterSheet = false
   @State private var showSavedFilters = false
   @State private var projectionRefreshTask: Task<Void, Never>?
-  @State private var shouldRefreshAfterReading = false
 
-  private static let remoteProjectionRefreshDelay =
-    ReaderProgressSettlementNotification.remoteProjectionRefreshDelay
+  private static let localProjectionRefreshDelay: UInt64 = 750_000_000
+  private static let remoteProjectionRefreshDelay: UInt64 = 5_000_000_000
 
   private var effectiveContent: BrowseContentType {
     fixedContent ?? browseContent
@@ -57,12 +55,10 @@ struct BrowseView: View {
 
   init(
     authViewModel: AuthViewModel,
-    readerPresentation: ReaderPresentationManager,
     fixedContent: BrowseContentType? = nil,
     metadataFilter: MetadataFilterConfig? = nil
   ) {
     self.authViewModel = authViewModel
-    self.readerPresentation = readerPresentation
     self.fixedContent = fixedContent
     self.metadataFilter = metadataFilter
   }
@@ -246,16 +242,8 @@ struct BrowseView: View {
       guard let info = notification.userInfo?["info"] as? SSEEventInfo else { return }
       handleSSEEvent(info)
     }
-    .onReceive(NotificationCenter.default.publisher(for: .readerProgressDidSettle)) { _ in
-      completeDeferredProjectionRefresh()
-    }
-    .onChange(of: readerPresentation.currentSession) { _, newSession in
-      guard newSession != nil else { return }
-      pauseScheduledProjectionRefreshForReader()
-    }
     .onDisappear {
       cancelProjectionRefresh()
-      shouldRefreshAfterReading = false
     }
   }
 
@@ -269,16 +257,11 @@ struct BrowseView: View {
   }
 
   private func scheduleProjectionRefresh(
-    after delay: UInt64 = ReaderProgressSettlementNotification.localProjectionRefreshDelay
+    after delay: UInt64 = Self.localProjectionRefreshDelay
   ) {
     guard !authViewModel.isSwitching else { return }
 
     cancelProjectionRefresh()
-
-    guard readerPresentation.currentSession == nil else {
-      shouldRefreshAfterReading = true
-      return
-    }
 
     projectionRefreshTask = Task { @MainActor in
       do {
@@ -288,26 +271,9 @@ struct BrowseView: View {
       }
 
       guard !Task.isCancelled else { return }
-      if readerPresentation.currentSession != nil {
-        shouldRefreshAfterReading = true
-      } else {
-        refreshBrowse()
-      }
+      refreshBrowse()
       projectionRefreshTask = nil
     }
-  }
-
-  private func pauseScheduledProjectionRefreshForReader() {
-    guard projectionRefreshTask != nil else { return }
-    shouldRefreshAfterReading = true
-    cancelProjectionRefresh()
-  }
-
-  private func completeDeferredProjectionRefresh() {
-    guard shouldRefreshAfterReading else { return }
-    shouldRefreshAfterReading = false
-    cancelProjectionRefresh()
-    refreshBrowse()
   }
 
   private func cancelProjectionRefresh() {

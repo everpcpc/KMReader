@@ -54,13 +54,13 @@ final class ReaderPresentationManager {
         finishSession(
           currentSession,
           syncVisited: true,
-          postsProgressSettledNotification: false
+          postsContentProjectionChange: false
         )
         clearReaderCommands()
       }
     #else
       if currentSession != nil {
-        closeReader(syncVisited: false, postsProgressSettledNotification: false)
+        closeReader(syncVisited: false, postsContentProjectionChange: false)
       }
     #endif
 
@@ -190,14 +190,14 @@ final class ReaderPresentationManager {
 
   func closeReader(
     syncVisited: Bool = true,
-    postsProgressSettledNotification: Bool = true
+    postsContentProjectionChange: Bool = true
   ) {
     guard let currentSession else { return }
 
     finishSession(
       currentSession,
       syncVisited: syncVisited,
-      postsProgressSettledNotification: postsProgressSettledNotification
+      postsContentProjectionChange: postsContentProjectionChange
     )
 
     #if os(iOS)
@@ -307,7 +307,7 @@ final class ReaderPresentationManager {
   private func finishSession(
     _ session: ReaderSession,
     syncVisited: Bool,
-    postsProgressSettledNotification: Bool
+    postsContentProjectionChange: Bool
   ) {
     flushHandlers[session.id]?()
     flushHandlers.removeValue(forKey: session.id)
@@ -347,8 +347,11 @@ final class ReaderPresentationManager {
           "⚠️ [Progress/Checkpoint] Wait timed out before visited sync, continuing: books=\(bookIds.count), entries=\(checkpoint.count)"
         )
       }
-      if postsProgressSettledNotification {
-        await ReaderProgressSettlementNotification.post(bookIds: bookIds, seriesIds: seriesIds)
+      if postsContentProjectionChange {
+        await ContentProjectionNotifier.postBooksAndSeriesDidChange(
+          bookIds: Array(bookIds),
+          instanceId: session.instanceId
+        )
       }
       await SyncService.syncVisitedItems(bookIds: bookIds, seriesIds: seriesIds)
       WidgetDataService.refreshWidgetData()

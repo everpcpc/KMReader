@@ -401,10 +401,11 @@ actor ReaderProgressDispatchService {
 
     guard localPageCacheTokens[update.bookId] == token else { return }
     localPageCacheTokens.removeValue(forKey: update.bookId)
+    markProgressSettled(bookId: update.bookId, version: update.version, serverSynced: true)
+    notifyCheckpointWaiters()
     logger.debug(
       "💾 [Progress/Page] Updated local cache: book=\(update.bookId), version=\(update.version), page=\(update.page), completed=\(update.completed)"
     )
-    await ContentProjectionNotifier.postBookAndSeriesDidChange(bookId: update.bookId)
   }
 
   private func executePageSend(bookId: String, trigger: String, isFlush: Bool) async {
@@ -421,7 +422,6 @@ actor ReaderProgressDispatchService {
     let result = await performPageProgressUpdateWithTimeoutHandling(update, isFlush: isFlush)
     switch result {
     case .serverUpdated:
-      markProgressSettled(bookId: update.bookId, version: update.version, serverSynced: true)
       scheduleLocalPageProgressCacheUpdate(update)
     case .conflict:
       let refreshed = await refreshBookAfterPageProgressConflict(update)
@@ -540,10 +540,6 @@ actor ReaderProgressDispatchService {
     do {
       let book = try await SyncService.syncBook(bookId: update.bookId)
       _ = try? await SyncService.syncSeriesDetail(seriesId: book.seriesId)
-      await ContentProjectionNotifier.postBookAndSeriesDidChange(
-        bookId: update.bookId,
-        seriesId: book.seriesId
-      )
       logger.debug(
         "🔄 [Progress/Page] Refreshed server state after conflict: book=\(update.bookId), version=\(update.version)"
       )
@@ -628,7 +624,6 @@ actor ReaderProgressDispatchService {
       page: update.page,
       completed: update.completed
     )
-    await ContentProjectionNotifier.postBookAndSeriesDidChange(bookId: update.bookId)
     logger.debug(
       "💾 [Progress/Page] Queued offline sync item: book=\(update.bookId), version=\(update.version), page=\(update.page), completed=\(update.completed)"
     )
@@ -716,7 +711,6 @@ actor ReaderProgressDispatchService {
       if AppConfig.isOffline {
       } else {
       }
-      await ContentProjectionNotifier.postBookAndSeriesDidChange(bookId: update.bookId)
     } catch let apiError as APIError {
       if case .badRequest(let message, _, _, _) = apiError,
         message.lowercased().contains("epub extension not found")

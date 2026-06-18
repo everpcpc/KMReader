@@ -7,7 +7,6 @@ import SwiftUI
 
 struct ReadListDetailView: View {
   let readListId: String
-  let readerPresentation: ReaderPresentationManager
 
   @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("readListDetailLayout") private var readListDetailLayout: BrowseLayoutMode = .list
@@ -20,12 +19,8 @@ struct ReadListDetailView: View {
   @State private var showFilterSheet = false
   @State private var showSavedFilters = false
 
-  init(
-    readListId: String,
-    readerPresentation: ReaderPresentationManager
-  ) {
+  init(readListId: String) {
     self.readListId = readListId
-    self.readerPresentation = readerPresentation
   }
 
   private var readList: ReadList? {
@@ -74,7 +69,6 @@ struct ReadListDetailView: View {
           if item != nil {
             BooksListViewForReadList(
               readListId: readListId,
-              readerPresentation: readerPresentation,
               showFilterSheet: $showFilterSheet,
               showSavedFilters: $showSavedFilters
             )

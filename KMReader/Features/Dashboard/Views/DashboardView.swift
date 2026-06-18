@@ -188,19 +188,6 @@ struct DashboardView: View {
     }
   }
 
-  private func completeDeferredReaderRefresh() {
-    let needsFullRefresh = shouldRefreshAfterReading
-    shouldRefreshAfterReading = false
-    pendingRefreshTask?.cancel()
-    pendingRefreshTask = nil
-
-    if needsFullRefresh {
-      refreshDashboard(reason: "Deferred after reader closed")
-    } else {
-      refreshSections([.keepReading, .onDeck, .recentlyReadBooks], reason: "Reader closed")
-    }
-  }
-
   private func handleSSEEvent(_ info: SSEEventInfo) {
     let jsonData = info.data.data(using: .utf8) ?? Data()
     let decoder = JSONDecoder()
@@ -291,8 +278,11 @@ struct DashboardView: View {
       guard let info = notification.userInfo?["info"] as? SSEEventInfo else { return }
       handleSSEEvent(info)
     }
-    .onReceive(NotificationCenter.default.publisher(for: .readerProgressDidSettle)) { _ in
-      completeDeferredReaderRefresh()
+    .onReceive(NotificationCenter.default.publisher(for: .bookProjectionDidChange)) { _ in
+      scheduleRefresh(reason: "Local book projection")
+    }
+    .onReceive(NotificationCenter.default.publisher(for: .seriesProjectionDidChange)) { _ in
+      scheduleRefresh(reason: "Local series projection")
     }
     .onChange(of: enableSSEAutoRefresh) { _, newValue in
       // Cancel any pending refresh when auto-refresh is disabled

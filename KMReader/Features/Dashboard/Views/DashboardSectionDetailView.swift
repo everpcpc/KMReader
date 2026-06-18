@@ -8,7 +8,6 @@ import SwiftUI
 @MainActor
 struct DashboardSectionDetailView: View {
   let section: DashboardSection
-  let readerPresentation: ReaderPresentationManager
 
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("dashboardSectionDetailLayout") private var browseLayout: BrowseLayoutMode = .grid
@@ -20,11 +19,10 @@ struct DashboardSectionDetailView: View {
   @State private var isQueueingAllOffline = false
   @State private var hasLoadedInitial = false
   @State private var projectionRefreshTask: Task<Void, Never>?
-  @State private var shouldRefreshAfterReading = false
   @State private var needsRefreshAfterCurrentLoad = false
 
-  private static let remoteProjectionRefreshDelay =
-    ReaderProgressSettlementNotification.remoteProjectionRefreshDelay
+  private static let localProjectionRefreshDelay: UInt64 = 750_000_000
+  private static let remoteProjectionRefreshDelay: UInt64 = 5_000_000_000
 
   private var columns: [GridItem] {
     LayoutConfig.adaptiveColumns(for: gridDensity)
@@ -87,16 +85,8 @@ struct DashboardSectionDetailView: View {
       guard let info = notification.userInfo?["info"] as? SSEEventInfo else { return }
       handleSSEEvent(info)
     }
-    .onReceive(NotificationCenter.default.publisher(for: .readerProgressDidSettle)) { _ in
-      completeDeferredProjectionRefresh()
-    }
-    .onChange(of: readerPresentation.currentSession) { _, newSession in
-      guard newSession != nil else { return }
-      pauseScheduledProjectionRefreshForReader()
-    }
     .onDisappear {
       cancelProjectionRefresh()
-      shouldRefreshAfterReading = false
     }
     #if os(iOS) || os(macOS)
       .toolbar {
@@ -302,14 +292,9 @@ struct DashboardSectionDetailView: View {
   }
 
   private func scheduleProjectionRefresh(
-    after delay: UInt64 = ReaderProgressSettlementNotification.localProjectionRefreshDelay
+    after delay: UInt64 = Self.localProjectionRefreshDelay
   ) {
     cancelProjectionRefresh()
-
-    guard readerPresentation.currentSession == nil else {
-      shouldRefreshAfterReading = true
-      return
-    }
 
     projectionRefreshTask = Task { @MainActor in
       do {
@@ -319,27 +304,8 @@ struct DashboardSectionDetailView: View {
       }
 
       guard !Task.isCancelled else { return }
-      if readerPresentation.currentSession != nil {
-        shouldRefreshAfterReading = true
-      } else {
-        await loadItems(refresh: true)
-      }
-      projectionRefreshTask = nil
-    }
-  }
-
-  private func pauseScheduledProjectionRefreshForReader() {
-    guard projectionRefreshTask != nil else { return }
-    shouldRefreshAfterReading = true
-    cancelProjectionRefresh()
-  }
-
-  private func completeDeferredProjectionRefresh() {
-    guard shouldRefreshAfterReading else { return }
-    shouldRefreshAfterReading = false
-    cancelProjectionRefresh()
-    Task {
       await loadItems(refresh: true)
+      projectionRefreshTask = nil
     }
   }
 

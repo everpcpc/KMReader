@@ -65,10 +65,7 @@ enum TabItem: Hashable, Identifiable {
         readerPresentation: context.readerPresentation
       )
     case .browse:
-      BrowseView(
-        authViewModel: context.authViewModel,
-        readerPresentation: context.readerPresentation
-      )
+      BrowseView(authViewModel: context.authViewModel)
     case .offline:
       OfflineView(authViewModel: context.authViewModel)
     case .server:

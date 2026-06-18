@@ -8,7 +8,6 @@ import SwiftUI
 // Series list view for collection
 struct CollectionSeriesListView: View {
   let collectionId: String
-  let readerPresentation: ReaderPresentationManager
   @Binding var showFilterSheet: Bool
   @Binding var showSavedFilters: Bool
 
@@ -23,27 +22,18 @@ struct CollectionSeriesListView: View {
   @State private var isDeleting = false
   @State private var collectionItem: CollectionDisplayItem?
   @State private var projectionRefreshTask: Task<Void, Never>?
-  @State private var shouldRefreshAfterReading = false
 
-  private static let localProjectionRefreshDelay =
-    ReaderProgressSettlementNotification.localProjectionRefreshDelay
-  private static let remoteProjectionRefreshDelay =
-    ReaderProgressSettlementNotification.remoteProjectionRefreshDelay
+  private static let localProjectionRefreshDelay: UInt64 = 750_000_000
+  private static let remoteProjectionRefreshDelay: UInt64 = 5_000_000_000
 
   init(
     collectionId: String,
-    readerPresentation: ReaderPresentationManager,
     showFilterSheet: Binding<Bool>,
     showSavedFilters: Binding<Bool>
   ) {
     self.collectionId = collectionId
-    self.readerPresentation = readerPresentation
     self._showFilterSheet = showFilterSheet
     self._showSavedFilters = showSavedFilters
-  }
-
-  private var isReaderActive: Bool {
-    readerPresentation.currentSession != nil
   }
 
   private var supportsSelectionMode: Bool {
@@ -146,16 +136,8 @@ struct CollectionSeriesListView: View {
       guard let info = notification.userInfo?["info"] as? SSEEventInfo else { return }
       handleSSEEvent(info)
     }
-    .onReceive(NotificationCenter.default.publisher(for: .readerProgressDidSettle)) { _ in
-      completeDeferredProjectionRefresh()
-    }
-    .onChange(of: readerPresentation.currentSession) { _, newSession in
-      guard newSession != nil else { return }
-      pauseScheduledProjectionRefreshForReader()
-    }
     .onDisappear {
       cancelProjectionRefresh()
-      shouldRefreshAfterReading = false
     }
   }
 
@@ -234,11 +216,6 @@ struct CollectionSeriesListView: View {
   private func scheduleProjectionRefresh(after delay: UInt64 = Self.localProjectionRefreshDelay) {
     cancelProjectionRefresh()
 
-    if isReaderActive {
-      shouldRefreshAfterReading = true
-      return
-    }
-
     projectionRefreshTask = Task { @MainActor in
       do {
         try await Task.sleep(nanoseconds: delay)
@@ -247,27 +224,8 @@ struct CollectionSeriesListView: View {
       }
 
       guard !Task.isCancelled else { return }
-      if isReaderActive {
-        shouldRefreshAfterReading = true
-      } else {
-        await refreshSeries()
-      }
-      projectionRefreshTask = nil
-    }
-  }
-
-  private func pauseScheduledProjectionRefreshForReader() {
-    guard projectionRefreshTask != nil else { return }
-    shouldRefreshAfterReading = true
-    cancelProjectionRefresh()
-  }
-
-  private func completeDeferredProjectionRefresh() {
-    guard shouldRefreshAfterReading else { return }
-    shouldRefreshAfterReading = false
-    cancelProjectionRefresh()
-    Task {
       await refreshSeries()
+      projectionRefreshTask = nil
     }
   }
 
