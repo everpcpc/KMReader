@@ -13,7 +13,6 @@ struct DashboardView: View {
   @State private var refreshTrigger = DashboardRefreshTrigger(id: UUID(), source: .manual)
   @State private var isRefreshing = false
   @State private var pendingRefreshTask: Task<Void, Never>?
-  @State private var readerCloseRefreshTask: Task<Void, Never>?
   @State private var showLibraryPicker = false
   @State private var shouldRefreshAfterReading = false
   @State private var isCheckingConnection = false
@@ -189,6 +188,19 @@ struct DashboardView: View {
     }
   }
 
+  private func completeDeferredReaderRefresh() {
+    let needsFullRefresh = shouldRefreshAfterReading
+    shouldRefreshAfterReading = false
+    pendingRefreshTask?.cancel()
+    pendingRefreshTask = nil
+
+    if needsFullRefresh {
+      refreshDashboard(reason: "Deferred after reader closed")
+    } else {
+      refreshSections([.keepReading, .onDeck, .recentlyReadBooks], reason: "Reader closed")
+    }
+  }
+
   private func handleSSEEvent(_ info: SSEEventInfo) {
     let jsonData = info.data.data(using: .utf8) ?? Data()
     let decoder = JSONDecoder()
@@ -273,12 +285,14 @@ struct DashboardView: View {
       // Cancel any pending refresh when view disappears
       pendingRefreshTask?.cancel()
       pendingRefreshTask = nil
-      readerCloseRefreshTask?.cancel()
-      readerCloseRefreshTask = nil
+      shouldRefreshAfterReading = false
     }
     .onReceive(NotificationCenter.default.publisher(for: .sseEventReceived)) { notification in
       guard let info = notification.userInfo?["info"] as? SSEEventInfo else { return }
       handleSSEEvent(info)
+    }
+    .onReceive(NotificationCenter.default.publisher(for: .readerProgressDidSettle)) { _ in
+      completeDeferredReaderRefresh()
     }
     .onChange(of: enableSSEAutoRefresh) { _, newValue in
       // Cancel any pending refresh when auto-refresh is disabled
@@ -287,57 +301,11 @@ struct DashboardView: View {
         pendingRefreshTask = nil
       }
     }
-    .onChange(of: readerPresentation.currentSession) { oldSession, newSession in
-      if newSession != nil {
-        // Reader opened - cancel any pending dashboard refresh
-        pendingRefreshTask?.cancel()
-        pendingRefreshTask = nil
-        readerCloseRefreshTask?.cancel()
-        readerCloseRefreshTask = nil
-      } else {
-        let needsFullRefresh = shouldRefreshAfterReading
-        shouldRefreshAfterReading = false
-        let visitedBookIds = oldSession?.visitedBookIds ?? []
-
-        readerCloseRefreshTask?.cancel()
-        readerCloseRefreshTask = Task {
-          logger.debug(
-            "⏳ [Progress/Checkpoint] Dashboard wait before refresh: visitedBooks=\(visitedBookIds.count), fullRefresh=\(needsFullRefresh)"
-          )
-
-          if !visitedBookIds.isEmpty {
-            let checkpoint = await ReaderProgressDispatchService.shared.captureProgressCheckpoint(
-              bookIds: visitedBookIds,
-              waitForRecentFlush: true
-            )
-            logger.debug(
-              "📍 [Progress/Checkpoint] Dashboard captured checkpoint: entries=\(checkpoint.count)"
-            )
-            let idle = await ReaderProgressDispatchService.shared.waitUntilCheckpointReached(
-              checkpoint,
-              timeout: .seconds(5)
-            )
-            if idle {
-              logger.debug(
-                "✅ [Progress/Checkpoint] Dashboard wait completed: entries=\(checkpoint.count)"
-              )
-            } else {
-              logger.warning(
-                "⚠️ [Progress/Checkpoint] Dashboard wait timed out, continuing refresh: entries=\(checkpoint.count)"
-              )
-            }
-          }
-
-          guard !Task.isCancelled else { return }
-
-          if needsFullRefresh {
-            refreshDashboard(reason: "Deferred after reader closed")
-          } else {
-            refreshSections([.keepReading, .onDeck, .recentlyReadBooks], reason: "Reader closed")
-          }
-          readerCloseRefreshTask = nil
-        }
-      }
+    .onChange(of: readerPresentation.currentSession) { _, newSession in
+      guard newSession != nil else { return }
+      // Reader opened - cancel any pending dashboard refresh
+      pendingRefreshTask?.cancel()
+      pendingRefreshTask = nil
     }
     #if os(iOS) || os(macOS)
       .toolbar {
@@ -549,8 +517,6 @@ struct DashboardView: View {
 
     pendingRefreshTask?.cancel()
     pendingRefreshTask = nil
-    readerCloseRefreshTask?.cancel()
-    readerCloseRefreshTask = nil
     shouldRefreshAfterReading = false
     AppConfig.enterManualOfflineMode()
 

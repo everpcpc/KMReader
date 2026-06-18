@@ -23,11 +23,12 @@ struct CollectionSeriesListView: View {
   @State private var isDeleting = false
   @State private var collectionItem: CollectionDisplayItem?
   @State private var projectionRefreshTask: Task<Void, Never>?
-  @State private var readerCloseRefreshTask: Task<Void, Never>?
   @State private var shouldRefreshAfterReading = false
 
-  private static let localProjectionRefreshDelay: UInt64 = 750_000_000
-  private static let remoteProjectionRefreshDelay: UInt64 = 5_000_000_000
+  private static let localProjectionRefreshDelay =
+    ReaderProgressSettlementNotification.localProjectionRefreshDelay
+  private static let remoteProjectionRefreshDelay =
+    ReaderProgressSettlementNotification.remoteProjectionRefreshDelay
 
   init(
     collectionId: String,
@@ -145,14 +146,16 @@ struct CollectionSeriesListView: View {
       guard let info = notification.userInfo?["info"] as? SSEEventInfo else { return }
       handleSSEEvent(info)
     }
-    .onChange(of: readerPresentation.currentSession) { oldSession, newSession in
-      handleReaderSessionChange(oldSession: oldSession, newSession: newSession)
+    .onReceive(NotificationCenter.default.publisher(for: .readerProgressDidSettle)) { _ in
+      completeDeferredProjectionRefresh()
+    }
+    .onChange(of: readerPresentation.currentSession) { _, newSession in
+      guard newSession != nil else { return }
+      pauseScheduledProjectionRefreshForReader()
     }
     .onDisappear {
-      projectionRefreshTask?.cancel()
-      projectionRefreshTask = nil
-      readerCloseRefreshTask?.cancel()
-      readerCloseRefreshTask = nil
+      cancelProjectionRefresh()
+      shouldRefreshAfterReading = false
     }
   }
 
@@ -229,8 +232,7 @@ struct CollectionSeriesListView: View {
   }
 
   private func scheduleProjectionRefresh(after delay: UInt64 = Self.localProjectionRefreshDelay) {
-    projectionRefreshTask?.cancel()
-    projectionRefreshTask = nil
+    cancelProjectionRefresh()
 
     if isReaderActive {
       shouldRefreshAfterReading = true
@@ -254,6 +256,26 @@ struct CollectionSeriesListView: View {
     }
   }
 
+  private func pauseScheduledProjectionRefreshForReader() {
+    guard projectionRefreshTask != nil else { return }
+    shouldRefreshAfterReading = true
+    cancelProjectionRefresh()
+  }
+
+  private func completeDeferredProjectionRefresh() {
+    guard shouldRefreshAfterReading else { return }
+    shouldRefreshAfterReading = false
+    cancelProjectionRefresh()
+    Task {
+      await refreshSeries()
+    }
+  }
+
+  private func cancelProjectionRefresh() {
+    projectionRefreshTask?.cancel()
+    projectionRefreshTask = nil
+  }
+
   private func handleSSEEvent(_ info: SSEEventInfo) {
     guard AppConfig.enableSSEAutoRefresh else { return }
 
@@ -267,36 +289,4 @@ struct CollectionSeriesListView: View {
     }
   }
 
-  private func handleReaderSessionChange(oldSession: ReaderSession?, newSession: ReaderSession?) {
-    if newSession != nil {
-      if projectionRefreshTask != nil {
-        shouldRefreshAfterReading = true
-      }
-      projectionRefreshTask?.cancel()
-      projectionRefreshTask = nil
-      readerCloseRefreshTask?.cancel()
-      readerCloseRefreshTask = nil
-      return
-    }
-
-    guard oldSession != nil else { return }
-    let needsRefresh = shouldRefreshAfterReading
-    shouldRefreshAfterReading = false
-    guard needsRefresh else { return }
-
-    let visitedBookIds = oldSession?.visitedBookIds ?? []
-    readerCloseRefreshTask?.cancel()
-    readerCloseRefreshTask = Task { @MainActor in
-      if !visitedBookIds.isEmpty {
-        _ = await ReaderProgressDispatchService.shared.waitUntilSettled(
-          bookIds: visitedBookIds,
-          timeout: .seconds(5)
-        )
-      }
-
-      guard !Task.isCancelled else { return }
-      await refreshSeries()
-      readerCloseRefreshTask = nil
-    }
-  }
 }

@@ -162,7 +162,10 @@ enum NavDestination: Hashable {
       )
 
     case .seriesDetail(let seriesId):
-      SeriesDetailView(seriesId: seriesId)
+      SeriesDetailView(
+        seriesId: seriesId,
+        readerPresentation: context.readerPresentation
+      )
     case .bookDetail(let bookId):
       BookDetailView(bookId: bookId)
     case .oneshotDetail(let seriesId):

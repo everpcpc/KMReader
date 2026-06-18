@@ -8,6 +8,7 @@ import SwiftUI
 
 struct SeriesDetailView: View {
   let seriesId: String
+  let readerPresentation: ReaderPresentationManager
 
   @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("isOffline") private var isOffline: Bool = false
@@ -28,9 +29,12 @@ struct SeriesDetailView: View {
   @State private var readingTargetIsOffline: Bool?
   @State private var isResolvingReadingTarget = false
   @State private var readingTargetResolutionID = 0
+  @State private var projectionRefreshTask: Task<Void, Never>?
+  @State private var shouldRefreshAfterReading = false
 
-  init(seriesId: String) {
+  init(seriesId: String, readerPresentation: ReaderPresentationManager) {
     self.seriesId = seriesId
+    self.readerPresentation = readerPresentation
   }
 
   private var series: Series? {
@@ -209,16 +213,23 @@ struct SeriesDetailView: View {
     .onReceive(NotificationCenter.default.publisher(for: .seriesProjectionDidChange)) {
       notification in
       guard notification.userInfo?["seriesId"] as? String == seriesId else { return }
-      Task {
-        await refreshLocalSeriesData()
-      }
+      scheduleProjectionRefresh()
     }
     .onReceive(NotificationCenter.default.publisher(for: .bookProjectionDidChange)) {
       notification in
       guard shouldRefreshForBookProjection(notification) else { return }
-      Task {
-        await refreshLocalSeriesData()
-      }
+      scheduleProjectionRefresh()
+    }
+    .onReceive(NotificationCenter.default.publisher(for: .readerProgressDidSettle)) { _ in
+      completeDeferredProjectionRefresh()
+    }
+    .onChange(of: readerPresentation.currentSession) { _, newSession in
+      guard newSession != nil else { return }
+      pauseScheduledProjectionRefreshForReader()
+    }
+    .onDisappear {
+      cancelProjectionRefresh()
+      shouldRefreshAfterReading = false
     }
   }
 }
@@ -509,6 +520,53 @@ extension SeriesDetailView {
     guard !changedIds.isEmpty else { return true }
     guard let readingTargetBook = readingTargetBookForCurrentContext else { return true }
     return changedIds.contains(readingTargetBook.id)
+  }
+
+  private func scheduleProjectionRefresh(
+    after delay: UInt64 = ReaderProgressSettlementNotification.localProjectionRefreshDelay
+  ) {
+    cancelProjectionRefresh()
+
+    guard readerPresentation.currentSession == nil else {
+      shouldRefreshAfterReading = true
+      return
+    }
+
+    projectionRefreshTask = Task { @MainActor in
+      do {
+        try await Task.sleep(nanoseconds: delay)
+      } catch {
+        return
+      }
+
+      guard !Task.isCancelled else { return }
+      if readerPresentation.currentSession != nil {
+        shouldRefreshAfterReading = true
+      } else {
+        await refreshLocalSeriesData()
+      }
+      projectionRefreshTask = nil
+    }
+  }
+
+  private func pauseScheduledProjectionRefreshForReader() {
+    guard projectionRefreshTask != nil else { return }
+    shouldRefreshAfterReading = true
+    cancelProjectionRefresh()
+  }
+
+  private func completeDeferredProjectionRefresh() {
+    guard shouldRefreshAfterReading else { return }
+    shouldRefreshAfterReading = false
+    cancelProjectionRefresh()
+    Task {
+      await refreshLocalSeriesData()
+    }
+  }
+
+  private func cancelProjectionRefresh() {
+    projectionRefreshTask?.cancel()
+    projectionRefreshTask = nil
   }
 
   private func changedBookIds(from notification: Notification) -> Set<String> {

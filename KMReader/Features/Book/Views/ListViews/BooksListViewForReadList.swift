@@ -23,19 +23,14 @@ struct BooksListViewForReadList: View {
   @State private var isDeleting = false
   @State private var readListItem: ReadListDisplayItem?
   @State private var projectionRefreshTask: Task<Void, Never>?
-  @State private var readerCloseRefreshTask: Task<Void, Never>?
   @State private var shouldRefreshAfterReading = false
 
-  private static let localProjectionRefreshDelay: UInt64 = 750_000_000
-  private static let remoteProjectionRefreshDelay: UInt64 = 5_000_000_000
+  private static let remoteProjectionRefreshDelay =
+    ReaderProgressSettlementNotification.remoteProjectionRefreshDelay
 
   private var readListContext: ReaderReadListContext? {
     guard let readListItem else { return nil }
     return ReaderReadListContext(id: readListItem.readListId, name: readListItem.name)
-  }
-
-  private var isReaderActive: Bool {
-    readerPresentation.currentSession != nil
   }
 
   init(
@@ -167,14 +162,16 @@ struct BooksListViewForReadList: View {
       guard let info = notification.userInfo?["info"] as? SSEEventInfo else { return }
       handleSSEEvent(info)
     }
-    .onChange(of: readerPresentation.currentSession) { oldSession, newSession in
-      handleReaderSessionChange(oldSession: oldSession, newSession: newSession)
+    .onReceive(NotificationCenter.default.publisher(for: .readerProgressDidSettle)) { _ in
+      completeDeferredProjectionRefresh()
+    }
+    .onChange(of: readerPresentation.currentSession) { _, newSession in
+      guard newSession != nil else { return }
+      pauseScheduledProjectionRefreshForReader()
     }
     .onDisappear {
-      projectionRefreshTask?.cancel()
-      projectionRefreshTask = nil
-      readerCloseRefreshTask?.cancel()
-      readerCloseRefreshTask = nil
+      cancelProjectionRefresh()
+      shouldRefreshAfterReading = false
     }
   }
 
@@ -249,11 +246,12 @@ struct BooksListViewForReadList: View {
     return []
   }
 
-  private func scheduleProjectionRefresh(after delay: UInt64 = Self.localProjectionRefreshDelay) {
-    projectionRefreshTask?.cancel()
-    projectionRefreshTask = nil
+  private func scheduleProjectionRefresh(
+    after delay: UInt64 = ReaderProgressSettlementNotification.localProjectionRefreshDelay
+  ) {
+    cancelProjectionRefresh()
 
-    if isReaderActive {
+    guard readerPresentation.currentSession == nil else {
       shouldRefreshAfterReading = true
       return
     }
@@ -266,13 +264,33 @@ struct BooksListViewForReadList: View {
       }
 
       guard !Task.isCancelled else { return }
-      if isReaderActive {
+      if readerPresentation.currentSession != nil {
         shouldRefreshAfterReading = true
       } else {
         await refreshBooks()
       }
       projectionRefreshTask = nil
     }
+  }
+
+  private func pauseScheduledProjectionRefreshForReader() {
+    guard projectionRefreshTask != nil else { return }
+    shouldRefreshAfterReading = true
+    cancelProjectionRefresh()
+  }
+
+  private func completeDeferredProjectionRefresh() {
+    guard shouldRefreshAfterReading else { return }
+    shouldRefreshAfterReading = false
+    cancelProjectionRefresh()
+    Task {
+      await refreshBooks()
+    }
+  }
+
+  private func cancelProjectionRefresh() {
+    projectionRefreshTask?.cancel()
+    projectionRefreshTask = nil
   }
 
   private func handleSSEEvent(_ info: SSEEventInfo) {
@@ -288,36 +306,4 @@ struct BooksListViewForReadList: View {
     }
   }
 
-  private func handleReaderSessionChange(oldSession: ReaderSession?, newSession: ReaderSession?) {
-    if newSession != nil {
-      if projectionRefreshTask != nil {
-        shouldRefreshAfterReading = true
-      }
-      projectionRefreshTask?.cancel()
-      projectionRefreshTask = nil
-      readerCloseRefreshTask?.cancel()
-      readerCloseRefreshTask = nil
-      return
-    }
-
-    guard oldSession != nil else { return }
-    let needsRefresh = shouldRefreshAfterReading
-    shouldRefreshAfterReading = false
-    guard needsRefresh else { return }
-
-    let visitedBookIds = oldSession?.visitedBookIds ?? []
-    readerCloseRefreshTask?.cancel()
-    readerCloseRefreshTask = Task { @MainActor in
-      if !visitedBookIds.isEmpty {
-        _ = await ReaderProgressDispatchService.shared.waitUntilSettled(
-          bookIds: visitedBookIds,
-          timeout: .seconds(5)
-        )
-      }
-
-      guard !Task.isCancelled else { return }
-      await refreshBooks()
-      readerCloseRefreshTask = nil
-    }
-  }
 }
