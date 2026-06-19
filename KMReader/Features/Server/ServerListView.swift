@@ -101,7 +101,6 @@ struct ServerListView: View {
         }
       }
       .listRowBackground(Color.clear)
-      .animation(.default, value: visibleInstances)
 
       if !visibleInstances.isEmpty {
         Section {
