@@ -493,9 +493,11 @@ nonisolated enum BookService {
     size: Int = 20
   ) async throws -> Page<Book> {
     // Get books sorted by release date (most recent first)
-    // Only include books that have a release date
     let condition = BookSearch.buildCondition(
-      filters: BookSearchFilters(libraryIds: libraryIds)
+      filters: BookSearchFilters(
+        libraryIds: libraryIds,
+        releaseDateAfter: recentlyReleasedCutoffDate()
+      )
     )
 
     let search = BookSearch(condition: condition)
@@ -515,5 +517,9 @@ nonisolated enum BookService {
       method: "PATCH",
       body: jsonData
     )
+  }
+
+  private static func recentlyReleasedCutoffDate(referenceDate: Date = Date()) -> Date {
+    Calendar.current.date(byAdding: .month, value: -1, to: referenceDate) ?? referenceDate
   }
 }

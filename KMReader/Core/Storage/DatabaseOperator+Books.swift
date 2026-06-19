@@ -117,6 +117,16 @@ extension DatabaseOperator {
     let instanceId = AppConfig.current.instanceId
     return
       (try? read { db in
+        if section == .onDeck {
+          return try fetchDashboardOfflineOnDeckBookIds(
+            db: db,
+            instanceId: instanceId,
+            libraryIds: libraryIds,
+            offset: offset,
+            limit: limit
+          )
+        }
+
         var sql = """
           SELECT book_id
           FROM \(KomgaBook.databaseTableName)
@@ -124,11 +134,7 @@ extension DatabaseOperator {
           """
         var arguments: StatementArguments = [instanceId]
 
-        if !libraryIds.isEmpty {
-          let placeholders = Array(repeating: "?", count: libraryIds.count).joined(separator: ", ")
-          sql += "\nAND library_id IN (\(placeholders))"
-          arguments += StatementArguments(libraryIds)
-        }
+        Self.appendSQLInFilter(column: "library_id", values: libraryIds, sql: &sql, arguments: &arguments)
 
         switch section {
         case .keepReading:
@@ -138,6 +144,8 @@ extension DatabaseOperator {
           sql += "\nAND progress_read_date IS NOT NULL AND progress_completed = 1"
           sql += "\nORDER BY progress_read_date DESC, id ASC"
         case .recentlyReleasedBooks:
+          sql += "\nAND meta_release_date > ?"
+          arguments += StatementArguments([recentlyReleasedCutoffDateString()])
           sql += "\nORDER BY COALESCE(meta_release_date, '') DESC, id ASC"
         case .recentlyAddedBooks:
           sql += "\nORDER BY created DESC, id ASC"
@@ -150,6 +158,77 @@ extension DatabaseOperator {
 
         return try String.fetchAll(db, sql: sql, arguments: arguments)
       }) ?? []
+  }
+
+  private func fetchDashboardOfflineOnDeckBookIds(
+    db: Database,
+    instanceId: String,
+    libraryIds: [String],
+    offset: Int,
+    limit: Int
+  ) throws -> [String] {
+    var sql = """
+      WITH on_deck_series AS (
+        SELECT
+          series_id,
+          MAX(progress_read_date) AS most_recent_read_date
+        FROM \(KomgaBook.databaseTableName)
+        WHERE instance_id = ?
+      """
+    var arguments: StatementArguments = [instanceId]
+
+    Self.appendSQLInFilter(column: "library_id", values: libraryIds, sql: &sql, arguments: &arguments)
+
+    sql += """
+
+        GROUP BY series_id
+        HAVING
+          SUM(CASE WHEN progress_completed = 1 THEN 1 ELSE 0 END) > 0
+          AND SUM(CASE WHEN progress_completed = 0 THEN 1 ELSE 0 END) = 0
+      ),
+      candidate_books AS (
+        SELECT
+          book_id,
+          series_id,
+          meta_number_sort,
+          id
+        FROM \(KomgaBook.databaseTableName)
+        WHERE instance_id = ?
+          AND progress_completed IS NULL
+          AND series_id IN (SELECT series_id FROM on_deck_series)
+      )
+      SELECT candidate.book_id
+      FROM candidate_books candidate
+      JOIN on_deck_series series ON series.series_id = candidate.series_id
+      WHERE NOT EXISTS (
+        SELECT 1
+        FROM candidate_books earlier
+        WHERE earlier.series_id = candidate.series_id
+          AND (
+            earlier.meta_number_sort < candidate.meta_number_sort
+            OR (
+              earlier.meta_number_sort = candidate.meta_number_sort
+              AND earlier.id < candidate.id
+            )
+          )
+      )
+      ORDER BY series.most_recent_read_date DESC, candidate.id ASC
+      LIMIT ? OFFSET ?
+      """
+    arguments += StatementArguments([instanceId])
+    arguments += StatementArguments([limit, max(0, offset)])
+
+    return try String.fetchAll(db, sql: sql, arguments: arguments)
+  }
+
+  private func recentlyReleasedCutoffDateString(referenceDate: Date = Date()) -> String {
+    let cutoffDate = Calendar.current.date(byAdding: .month, value: -1, to: referenceDate) ?? referenceDate
+    let formatter = DateFormatter()
+    formatter.calendar = Calendar(identifier: .gregorian)
+    formatter.locale = Locale(identifier: "en_US_POSIX")
+    formatter.timeZone = TimeZone(secondsFromGMT: 0)
+    formatter.dateFormat = "yyyy-MM-dd"
+    return formatter.string(from: cutoffDate)
   }
 
   func fetchOfflineContinueReadingBook(seriesId: String, instanceId: String) -> Book? {

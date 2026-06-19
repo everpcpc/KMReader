@@ -46,6 +46,7 @@ nonisolated struct BookSearchFilters {
   var deleted: Bool? = nil
   var seriesId: String? = nil
   var readListId: String? = nil
+  var releaseDateAfter: Date? = nil
 
   // Metadata filters
   var authors: [String]? = nil
@@ -101,6 +102,15 @@ extension BookSearch {
       ])
     }
 
+    if let releaseDateAfter = filters.releaseDateAfter {
+      conditions.append([
+        "releaseDate": [
+          "operator": "after",
+          "dateTime": iso8601UTCString(from: releaseDateAfter),
+        ]
+      ])
+    }
+
     if let oneshot = filters.oneshot {
       conditions.append([
         "oneshot": [
@@ -141,5 +151,12 @@ extension BookSearch {
     } else {
       return ["allOf": conditions]
     }
+  }
+
+  private nonisolated static func iso8601UTCString(from date: Date) -> String {
+    let formatter = ISO8601DateFormatter()
+    formatter.timeZone = TimeZone(secondsFromGMT: 0)
+    formatter.formatOptions = [.withInternetDateTime]
+    return formatter.string(from: date)
   }
 }
