@@ -55,6 +55,27 @@ struct ServerListView: View {
       }
 
       Section(header: introHeader, footer: footerText) {
+        ForEach(visibleInstances) { instance in
+          ServerRowView(
+            instance: instance,
+            isGlobalSwitching: authViewModel.isSwitching,
+            isSwitching: isSwitching(instance),
+            isActive: isActive(instance),
+            onSelect: {
+              withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) {
+                switchTo(instance)
+              }
+            },
+            onEdit: {
+              editingInstance = instance
+            },
+            onDelete: {
+              instancePendingDeletion = instance
+            }
+          )
+          // .tvFocusableHighlight()
+        }
+
         if visibleInstances.isEmpty {
           VStack(spacing: 12) {
             Image(systemName: "list.bullet.rectangle")
@@ -77,32 +98,12 @@ struct ServerListView: View {
           .frame(maxWidth: .infinity)
           .padding(.vertical)
           .listRowBackground(Color.clear)
-        } else {
-          ForEach(visibleInstances) { instance in
-            ServerRowView(
-              instance: instance,
-              isGlobalSwitching: authViewModel.isSwitching,
-              isSwitching: isSwitching(instance),
-              isActive: isActive(instance),
-              onSelect: {
-                withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) {
-                  switchTo(instance)
-                }
-              },
-              onEdit: {
-                editingInstance = instance
-              },
-              onDelete: {
-                instancePendingDeletion = instance
-              }
-            )
-            // .tvFocusableHighlight()
-          }
+          .transition(.opacity)
         }
       }
       .listRowBackground(Color.clear)
 
-      if !visibleInstances.isEmpty {
+      if !allInstances.isEmpty {
         Section {
           Button {
             showLogin = true
