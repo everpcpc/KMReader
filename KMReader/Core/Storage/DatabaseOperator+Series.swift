@@ -83,8 +83,11 @@ extension DatabaseOperator {
 
         switch section {
         case .recentlyAddedSeries:
+          sql += "\nAND oneshot = 0"
           sql += "\nORDER BY created DESC, id ASC"
         case .recentlyUpdatedSeries:
+          sql += "\nAND oneshot = 0"
+          sql += "\nAND created != last_modified"
           sql += "\nORDER BY last_modified DESC, id ASC"
         default:
           return []
