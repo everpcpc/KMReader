@@ -59,7 +59,8 @@ struct ServerRowView: View {
             infoDetailRow(
               icon: "lock.fill",
               text: String(localized: "Protected"),
-              textColor: .secondary
+              textColor: .orange,
+              iconColor: .orange
             )
           }
           infoDetailRow(
@@ -149,11 +150,16 @@ struct ServerRowView: View {
     )
   }
 
-  private func infoDetailRow(icon: String, text: String, textColor: Color = .primary) -> some View {
+  private func infoDetailRow(
+    icon: String,
+    text: String,
+    textColor: Color = .primary,
+    iconColor: Color = .secondary
+  ) -> some View {
     HStack(alignment: .top, spacing: 8) {
       Image(systemName: icon)
         .font(.footnote.weight(.semibold))
-        .foregroundStyle(.secondary)
+        .foregroundStyle(iconColor)
         .frame(width: 16)
       Text(text)
         .font(.footnote)

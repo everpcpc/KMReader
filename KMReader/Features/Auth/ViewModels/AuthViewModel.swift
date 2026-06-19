@@ -76,6 +76,7 @@ class AuthViewModel {
   }
 
   func logout(clearCurrent: Bool = false) {
+    LocalDeviceAuthenticationService.shared.clearProtectedAccess()
     Task {
       // Disconnect SSE before logout
       await SSEService.shared.disconnect()
@@ -144,9 +145,9 @@ class AuthViewModel {
     }
   }
 
-  func switchTo(instance: ServerDisplayItem, requiresLocalAuthentication: Bool = true) async -> Bool {
-    if requiresLocalAuthentication && instance.protected {
-      let authenticated = await LocalDeviceAuthenticationService.authenticate(
+  func switchTo(instance: ServerDisplayItem) async -> Bool {
+    if instance.protected {
+      let authenticated = await LocalDeviceAuthenticationService.shared.authenticateProtectedAccess(
         reason: String(localized: "Authenticate to switch to this protected server.")
       )
       guard authenticated else { return false }

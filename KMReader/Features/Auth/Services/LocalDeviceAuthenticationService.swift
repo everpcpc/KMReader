@@ -9,8 +9,15 @@ import Foundation
 #endif
 
 @MainActor
-enum LocalDeviceAuthenticationService {
-  static var canAuthenticate: Bool {
+final class LocalDeviceAuthenticationService {
+  static let shared = LocalDeviceAuthenticationService()
+
+  private let protectedAccessCacheDuration: TimeInterval = 5 * 60
+  private var protectedAccessExpiresAt: Date?
+
+  private init() {}
+
+  var canAuthenticate: Bool {
     #if os(iOS) || os(macOS)
       let context = LAContext()
       var error: NSError?
@@ -20,7 +27,23 @@ enum LocalDeviceAuthenticationService {
     #endif
   }
 
-  static func authenticate(reason: String) async -> Bool {
+  func authenticateProtectedAccess(reason: String) async -> Bool {
+    if isProtectedAccessUnlocked {
+      return true
+    }
+
+    let authenticated = await authenticate(reason: reason)
+    if authenticated {
+      markProtectedAccessUnlocked()
+    }
+    return authenticated
+  }
+
+  func clearProtectedAccess() {
+    protectedAccessExpiresAt = nil
+  }
+
+  func authenticate(reason: String) async -> Bool {
     #if os(iOS) || os(macOS)
       let context = LAContext()
       do {
@@ -42,8 +65,21 @@ enum LocalDeviceAuthenticationService {
     #endif
   }
 
+  private var isProtectedAccessUnlocked: Bool {
+    guard let expiresAt = protectedAccessExpiresAt else { return false }
+    guard expiresAt > Date() else {
+      protectedAccessExpiresAt = nil
+      return false
+    }
+    return true
+  }
+
+  private func markProtectedAccessUnlocked() {
+    protectedAccessExpiresAt = Date().addingTimeInterval(protectedAccessCacheDuration)
+  }
+
   #if os(iOS) || os(macOS)
-    private static func isCancellation(_ error: Error) -> Bool {
+    private func isCancellation(_ error: Error) -> Bool {
       guard let laError = error as? LAError else { return false }
       switch laError.code {
       case .appCancel, .systemCancel, .userCancel:
@@ -53,7 +89,7 @@ enum LocalDeviceAuthenticationService {
       }
     }
 
-    private static func isUnavailable(_ error: Error) -> Bool {
+    private func isUnavailable(_ error: Error) -> Bool {
       guard let laError = error as? LAError else { return false }
       switch laError.code {
       case .biometryLockout, .biometryNotAvailable, .biometryNotEnrolled, .passcodeNotSet:

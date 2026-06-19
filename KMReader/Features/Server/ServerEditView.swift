@@ -177,7 +177,7 @@ struct ServerEditView: View {
               .foregroundStyle(.secondary)
             }
           }
-          .disabled(!LocalDeviceAuthenticationService.canAuthenticate && !protected)
+          .disabled(!LocalDeviceAuthenticationService.shared.canAuthenticate && !protected)
         }
       }
       #if os(tvOS)
@@ -278,7 +278,7 @@ struct ServerEditView: View {
     guard canSave else {
       return
     }
-    guard !protected || LocalDeviceAuthenticationService.canAuthenticate else {
+    guard !protected || LocalDeviceAuthenticationService.shared.canAuthenticate else {
       ErrorManager.shared.notify(
         message: String(localized: "Device authentication is not available on this device."))
       return
@@ -309,7 +309,7 @@ struct ServerEditView: View {
 
     Task {
       if protected != instance.protected {
-        let authenticated = await LocalDeviceAuthenticationService.authenticate(
+        let authenticated = await LocalDeviceAuthenticationService.shared.authenticateProtectedAccess(
           reason: String(localized: "Authenticate to change protection for this server.")
         )
         guard authenticated else {
@@ -338,10 +338,7 @@ struct ServerEditView: View {
 
         if current.instanceId == updatedInstance.instanceId {
           Task {
-            _ = await authViewModel.switchTo(
-              instance: updatedInstance,
-              requiresLocalAuthentication: false
-            )
+            _ = await authViewModel.switchTo(instance: updatedInstance)
           }
         }
 

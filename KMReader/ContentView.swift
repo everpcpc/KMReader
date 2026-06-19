@@ -292,14 +292,7 @@ struct ContentView: View {
       let protected = try await database.isServerProtected(instanceId: current.instanceId)
       guard protected else { return true }
 
-      guard LocalDeviceAuthenticationService.canAuthenticate else {
-        ErrorManager.shared.notify(
-          message: String(localized: "Device authentication is not available on this device."))
-        authViewModel.logout(clearCurrent: true)
-        return false
-      }
-
-      let authenticated = await LocalDeviceAuthenticationService.authenticate(
+      let authenticated = await LocalDeviceAuthenticationService.shared.authenticateProtectedAccess(
         reason: String(localized: "Authenticate to unlock this protected server.")
       )
       guard authenticated else {
