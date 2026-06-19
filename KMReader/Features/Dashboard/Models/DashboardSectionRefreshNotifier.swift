@@ -16,7 +16,9 @@ nonisolated enum DashboardSectionRefreshNotifier {
   static let commandUserInfoKey = "command"
 
   static let bookContentSections: Set<DashboardSection> = [
+    .keepReading,
     .onDeck,
+    .recentlyReadBooks,
     .recentlyReleasedBooks,
     .recentlyAddedBooks,
   ]
