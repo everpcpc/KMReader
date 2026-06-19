@@ -24,7 +24,7 @@ struct ServerListView: View {
   @AppStorage("isLoggedInV2") private var isLoggedIn: Bool = false
   @AppStorage("showProtectedServers") private var showProtectedServers: Bool = false
 
-  @State private var instances: [ServerDisplayItem] = []
+  @State private var allInstances: [ServerDisplayItem] = []
   @State private var instancePendingDeletion: ServerDisplayItem?
   @State private var editingInstance: ServerDisplayItem?
   @State private var showLogin = false
@@ -34,6 +34,10 @@ struct ServerListView: View {
 
   private var activeInstanceId: String? {
     current.instanceId.isEmpty ? nil : current.instanceId
+  }
+
+  private var visibleInstances: [ServerDisplayItem] {
+    showProtectedServers ? allInstances : allInstances.filter { !$0.protected }
   }
 
   var body: some View {
@@ -51,7 +55,7 @@ struct ServerListView: View {
       }
 
       Section(header: introHeader, footer: footerText) {
-        if instances.isEmpty {
+        if visibleInstances.isEmpty {
           VStack(spacing: 12) {
             Image(systemName: "list.bullet.rectangle")
               .font(.largeTitle)
@@ -74,7 +78,7 @@ struct ServerListView: View {
           .padding(.vertical)
           .listRowBackground(Color.clear)
         } else {
-          ForEach(instances) { instance in
+          ForEach(visibleInstances) { instance in
             ServerRowView(
               instance: instance,
               isGlobalSwitching: authViewModel.isSwitching,
@@ -97,9 +101,9 @@ struct ServerListView: View {
         }
       }
       .listRowBackground(Color.clear)
-      .animation(.default, value: instances)
+      .animation(.default, value: visibleInstances)
 
-      if !instances.isEmpty {
+      if !visibleInstances.isEmpty {
         Section {
           Button {
             showLogin = true
@@ -198,11 +202,6 @@ struct ServerListView: View {
       }
       if loggedIn && mode == .onboarding {
         dismiss()
-      }
-    }
-    .onChange(of: showProtectedServers) { _, _ in
-      Task {
-        await loadInstances()
       }
     }
   }
@@ -307,14 +306,15 @@ struct ServerListView: View {
   private func loadInstances() async {
     do {
       let database = try await DatabaseOperator.database()
-      let loadedProtectedServerCount = try await database.fetchProtectedServerCount()
-      let loadedInstances = try await database.fetchServerDisplayItems(
-        includeProtected: showProtectedServers)
-      if protectedServerCount != loadedProtectedServerCount {
-        protectedServerCount = loadedProtectedServerCount
-      }
-      if instances != loadedInstances {
-        instances = loadedInstances
+      let loadedInstances = try await database.fetchServerDisplayItems(includeProtected: true)
+      let loadedProtectedServerCount = loadedInstances.filter(\.protected).count
+      withAnimation {
+        if protectedServerCount != loadedProtectedServerCount {
+          protectedServerCount = loadedProtectedServerCount
+        }
+        if allInstances != loadedInstances {
+          allInstances = loadedInstances
+        }
       }
     } catch {
       ErrorManager.shared.alert(error: error)
@@ -328,7 +328,9 @@ struct ServerListView: View {
         if newValue {
           authenticateAndShowProtectedServers()
         } else {
-          showProtectedServers = false
+          withAnimation {
+            showProtectedServers = false
+          }
         }
       }
     )
@@ -358,7 +360,9 @@ struct ServerListView: View {
         reason: String(localized: "Authenticate to show protected servers.")
       )
       if authenticated {
-        showProtectedServers = true
+        withAnimation {
+          showProtectedServers = true
+        }
       }
       isAuthenticatingProtectedServers = false
     }
