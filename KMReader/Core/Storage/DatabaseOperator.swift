@@ -10,6 +10,7 @@ import OSLog
 struct InstanceSummary: Sendable {
   let id: UUID
   let displayName: String
+  let protected: Bool
 }
 
 struct PendingProgressSummary: Sendable {

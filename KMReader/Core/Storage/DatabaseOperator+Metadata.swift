@@ -302,7 +302,11 @@ extension DatabaseOperator {
           existing.name = Self.defaultName(serverURL: serverURL, username: username)
         }
         try save(existing, db: db)
-        return InstanceSummary(id: existing.id, displayName: existing.displayName)
+        return InstanceSummary(
+          id: existing.id,
+          displayName: existing.displayName,
+          protected: existing.protected
+        )
       }
 
       let resolvedName = Self.resolvedName(
@@ -320,7 +324,11 @@ extension DatabaseOperator {
         authMethod: authMethod
       )
       try save(instance, db: db)
-      return InstanceSummary(id: instance.id, displayName: instance.displayName)
+      return InstanceSummary(
+        id: instance.id,
+        displayName: instance.displayName,
+        protected: instance.protected
+      )
     }
   }
 

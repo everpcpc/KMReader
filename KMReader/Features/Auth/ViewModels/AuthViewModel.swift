@@ -256,6 +256,7 @@ class AuthViewModel {
 
     let finalInstanceId: String
     let finalDisplayName: String
+    let finalProtected: Bool
 
     // Persist instance if this is a new login
     if shouldPersistInstance {
@@ -269,9 +270,11 @@ class AuthViewModel {
       )
       finalInstanceId = instanceSummary.id.uuidString
       finalDisplayName = instanceSummary.displayName
+      finalProtected = instanceSummary.protected
     } else {
       finalInstanceId = instanceId ?? AppConfig.current.instanceId
       finalDisplayName = displayName ?? ""
+      finalProtected = protected
     }
 
     AppConfig.current = Current(
@@ -313,7 +316,7 @@ class AuthViewModel {
 
     ExternalContentSurfaceService.updateAfterSelectingInstance(
       instanceId: finalInstanceId,
-      protected: protected
+      protected: finalProtected
     )
   }
 
