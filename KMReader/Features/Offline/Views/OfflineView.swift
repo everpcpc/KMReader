@@ -138,6 +138,9 @@ struct OfflineView: View {
     .inlineNavigationBarTitle(title)
     .searchable(text: $searchQuery)
     #if os(iOS) || os(macOS)
+      .refreshable {
+        await refreshOfflinePage()
+      }
       .toolbar {
         if librarySelection == nil {
           #if os(macOS)
@@ -358,6 +361,13 @@ struct OfflineView: View {
 
   private func refreshBrowse() {
     refreshTrigger = UUID()
+  }
+
+  private func refreshOfflinePage() async {
+    guard !authViewModel.isSwitching else { return }
+    latestReadHistoryTime = AppConfig.recentlyReadRecordTime(instanceId: current.instanceId)
+    refreshBrowse()
+    await loadSyncInfo()
   }
 
   private func loadSyncInfo() async {
