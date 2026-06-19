@@ -78,7 +78,6 @@
         target: context.coordinator,
         action: #selector(Coordinator.handleLongPress(_:))
       )
-      longPressGesture.minimumPressDuration = WebtoonConstants.longPressMinimumDuration
       longPressGesture.cancelsTouchesInView = false
       longPressGesture.delegate = context.coordinator
       singleTapGesture.require(toFail: longPressGesture)

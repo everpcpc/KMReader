@@ -263,7 +263,6 @@
         containerView.addGestureRecognizer(doubleTapRecognizer)
 
         let longPressRecognizer = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
-        longPressRecognizer.minimumPressDuration = ReaderGestureConstants.longPressMinimumDuration
         longPressRecognizer.cancelsTouchesInView = false
         longPressRecognizer.delegate = self
         singleTapRecognizer.require(toFail: longPressRecognizer)

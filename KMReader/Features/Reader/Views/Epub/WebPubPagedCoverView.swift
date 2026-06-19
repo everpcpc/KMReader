@@ -200,7 +200,6 @@
         tapRecognizer = tap
 
         let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
-        longPress.minimumPressDuration = 0.5
         longPress.cancelsTouchesInView = false
         longPress.delegate = self
         tap.require(toFail: longPress)

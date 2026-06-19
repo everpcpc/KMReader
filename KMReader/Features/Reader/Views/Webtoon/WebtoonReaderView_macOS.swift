@@ -63,7 +63,6 @@
 
       let pressGesture = NSPressGestureRecognizer(
         target: context.coordinator, action: #selector(Coordinator.handlePress(_:)))
-      pressGesture.minimumPressDuration = WebtoonConstants.longPressMinimumDuration
       pressGesture.delegate = context.coordinator
       collectionView.addGestureRecognizer(pressGesture)
 

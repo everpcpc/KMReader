@@ -92,7 +92,6 @@
         target: context.coordinator,
         action: #selector(Coordinator.handleLongPress(_:))
       )
-      longPressGesture.minimumPressDuration = ReaderGestureConstants.longPressMinimumDuration
       longPressGesture.delegate = context.coordinator
       scrollView.addGestureRecognizer(longPressGesture)
       context.coordinator.longPressGesture = longPressGesture

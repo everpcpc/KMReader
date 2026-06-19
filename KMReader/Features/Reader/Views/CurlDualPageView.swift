@@ -229,7 +229,6 @@
         doubleTapRecognizer = doubleTap
 
         let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
-        longPress.minimumPressDuration = ReaderGestureConstants.longPressMinimumDuration
         longPress.cancelsTouchesInView = false
         longPress.delegate = self
         singleTap.require(toFail: longPress)

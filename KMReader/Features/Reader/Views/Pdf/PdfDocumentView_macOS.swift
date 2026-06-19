@@ -231,7 +231,6 @@
           }
         } else {
           let recognizer = NSPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
-          recognizer.minimumPressDuration = 0.5
           recognizer.delegate = self
           pdfView.addGestureRecognizer(recognizer)
           longPressRecognizer = recognizer

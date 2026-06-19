@@ -60,7 +60,6 @@
         target: context.coordinator,
         action: #selector(Coordinator.handleLongPress(_:))
       )
-      longPressRecognizer.minimumPressDuration = 0.5
       longPressRecognizer.cancelsTouchesInView = false
       longPressRecognizer.delegate = context.coordinator
       tapRecognizer.require(toFail: longPressRecognizer)
