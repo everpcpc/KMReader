@@ -100,18 +100,21 @@
       doubleTapGesture.numberOfTapsRequired = 2
       doubleTapGesture.cancelsTouchesInView = false
       doubleTapGesture.delegate = context.coordinator
+      singleTapGesture.require(toFail: doubleTapGesture)
       collectionView.addGestureRecognizer(doubleTapGesture)
+      context.coordinator.doubleTapGesture = doubleTapGesture
 
       let longPressGesture = UILongPressGestureRecognizer(
         target: context.coordinator,
         action: #selector(Coordinator.handleLongPress(_:))
       )
-      longPressGesture.minimumPressDuration = ReaderGestureConstants.longPressMinimumDuration
       longPressGesture.cancelsTouchesInView = false
       longPressGesture.delegate = context.coordinator
+      singleTapGesture.require(toFail: longPressGesture)
       collectionView.addGestureRecognizer(longPressGesture)
 
       context.coordinator.collectionView = collectionView
+      context.coordinator.applyDoubleTapGestureState()
       collectionView.onDidLayout = { [weak coordinator = context.coordinator] in
         coordinator?.handleCollectionViewLayout()
       }
@@ -165,9 +168,7 @@
       private var visiblePreloadTask: Task<Void, Never>?
       private var visiblePreloadItem: ReaderViewItem?
       private var applicationWillResignActiveObserver: NSObjectProtocol?
-      private var singleTapWorkItem: DispatchWorkItem?
-      private var lastLongPressEndTime: Date = .distantPast
-      private var isLongPressing = false
+      weak var doubleTapGesture: UITapGestureRecognizer?
 
       init(_ parent: ScrollPageView) {
         self.parent = parent
@@ -176,9 +177,6 @@
       }
 
       func teardown() {
-        singleTapWorkItem?.cancel()
-        singleTapWorkItem = nil
-        isLongPressing = false
         deferredViewModelCommitTask?.cancel()
         deferredViewModelCommitTask = nil
         visiblePreloadTask?.cancel()
@@ -207,6 +205,7 @@
       func update(parent: ScrollPageView, collectionView: UICollectionView) {
         self.parent = parent
         self.collectionView = collectionView
+        applyDoubleTapGestureState()
         installApplicationObserverIfNeeded()
         pagePresentationCoordinator.update(viewModel: parent.viewModel)
 
@@ -252,6 +251,10 @@
         }
 
         pagePresentationCoordinator.flushIfPossible()
+      }
+
+      func applyDoubleTapGestureState() {
+        doubleTapGesture?.isEnabled = parent.renderConfig.doubleTapZoomMode.isEnabled
       }
 
       private func updateRenderInputsIfNeeded() -> Bool {
@@ -954,46 +957,17 @@
       }
 
       @objc func handleSingleTap(_ gesture: UITapGestureRecognizer) {
-        singleTapWorkItem?.cancel()
         guard gesture.state == .ended else { return }
         guard let collectionView else { return }
         guard !isTapZoneSuppressed(in: collectionView) else { return }
 
         let location = gesture.location(in: collectionView)
-        let workItem = DispatchWorkItem { [weak self, weak collectionView] in
-          guard let self, let collectionView else { return }
-          self.dispatchTapZoneTap(at: location, in: collectionView)
-        }
-        let delay = max(parent.renderConfig.doubleTapZoomMode.tapDebounceDelay, 0)
-        if delay > 0 {
-          singleTapWorkItem = workItem
-          DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
-        } else {
-          workItem.perform()
-        }
+        dispatchTapZoneTap(at: location, in: collectionView)
       }
 
-      @objc func handleDoubleTap(_ gesture: UITapGestureRecognizer) {
-        singleTapWorkItem?.cancel()
-        singleTapWorkItem = nil
-      }
+      @objc func handleDoubleTap(_: UITapGestureRecognizer) {}
 
-      @objc func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
-        switch gesture.state {
-        case .began:
-          isLongPressing = true
-          singleTapWorkItem?.cancel()
-          singleTapWorkItem = nil
-        case .ended, .cancelled, .failed:
-          lastLongPressEndTime = Date()
-          DispatchQueue.main.asyncAfter(deadline: .now() + ReaderGestureConstants.longPressReleaseDelay) {
-            [weak self] in
-            self?.isLongPressing = false
-          }
-        default:
-          break
-        }
-      }
+      @objc func handleLongPress(_: UILongPressGestureRecognizer) {}
 
       private func isScrollInteractionActive(in collectionView: UICollectionView) -> Bool {
         collectionView.isDragging || collectionView.isDecelerating || collectionView.isTracking
@@ -1001,16 +975,12 @@
 
       private func isTapZoneSuppressed(in collectionView: UICollectionView) -> Bool {
         parent.viewModel.isZoomed
-          || isLongPressing
-          || Date().timeIntervalSince(lastLongPressEndTime)
-            < ReaderGestureConstants.longPressTapSuppressionInterval
           || collectionView.isDragging
           || collectionView.isDecelerating
           || collectionView.isTracking
       }
 
       private func dispatchTapZoneTap(at location: CGPoint, in collectionView: UICollectionView) {
-        singleTapWorkItem = nil
         guard !isTapZoneSuppressed(in: collectionView) else { return }
 
         let visibleBounds = collectionView.bounds

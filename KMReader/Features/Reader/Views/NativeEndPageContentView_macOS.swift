@@ -19,7 +19,7 @@
       enableImageContextMenu: false,
       supportsPageIsolationActions: false,
       doubleTapZoomScale: 3.0,
-      doubleTapZoomMode: .fast
+      doubleTapZoomMode: .enabled
     )
     private var onDismiss: (() -> Void)?
     private var lastIsPortrait: Bool?

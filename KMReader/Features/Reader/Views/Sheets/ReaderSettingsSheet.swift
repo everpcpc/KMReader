@@ -16,7 +16,7 @@ struct ReaderSettingsSheet: View {
   @AppStorage("showPageNumber") private var showPageNumber: Bool = true
   @AppStorage("showPageShadow") private var showPageShadow: Bool = AppConfig.showPageShadow
   @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 3.0
-  @AppStorage("doubleTapZoomMode") private var doubleTapZoomMode: DoubleTapZoomMode = .fast
+  @AppStorage("doubleTapZoomMode") private var doubleTapZoomMode: DoubleTapZoomMode = .enabled
   @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .cover
   @AppStorage("tapZoneMode") private var tapZoneMode: TapZoneMode = .defaultLayout
   @AppStorage("tapZoneInversionMode") private var tapZoneInversionMode: TapZoneInversionMode = .auto
@@ -55,6 +55,13 @@ struct ReaderSettingsSheet: View {
 
   private var shouldShowTapTurnAnimation: Bool {
     isWebtoonDirection || shouldShowPagedTurnSettings
+  }
+
+  private var doubleTapZoomEnabled: Binding<Bool> {
+    Binding(
+      get: { doubleTapZoomMode.isEnabled },
+      set: { doubleTapZoomMode = $0 ? .enabled : .disabled }
+    )
   }
 
   var body: some View {
@@ -187,13 +194,10 @@ struct ReaderSettingsSheet: View {
 
         #if os(iOS)
           Section(header: Text("Zooming")) {
-            Picker("Double Tap to Zoom", selection: $doubleTapZoomMode) {
-              ForEach(DoubleTapZoomMode.allCases, id: \.self) { mode in
-                Text(mode.displayName).tag(mode)
-              }
+            Toggle(isOn: doubleTapZoomEnabled) {
+              Text("Double Tap to Zoom")
             }
-            .pickerStyle(.menu)
-            if doubleTapZoomMode != .disabled {
+            if doubleTapZoomMode.isEnabled {
               VStack(alignment: .leading, spacing: 8) {
                 HStack {
                   Text("Double Tap Zoom Scale")

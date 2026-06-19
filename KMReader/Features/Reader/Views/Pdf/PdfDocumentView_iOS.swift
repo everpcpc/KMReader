@@ -171,11 +171,6 @@
       private weak var singleTapRecognizer: UITapGestureRecognizer?
       private weak var doubleTapRecognizer: UITapGestureRecognizer?
       private weak var longPressRecognizer: UILongPressGestureRecognizer?
-      private var singleTapWorkItem: DispatchWorkItem?
-      private var lastTouchStartTime: Date = .distantPast
-      private var lastLongPressEndTime: Date = .distantPast
-      private var lastDoubleTapTime: Date = .distantPast
-      private var isLongPressing = false
       private var hadSelectionAtTouchStart = false
 
       init(
@@ -236,7 +231,6 @@
           }
         } else {
           let recognizer = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
-          recognizer.minimumPressDuration = 0.5
           recognizer.delegate = self
           pdfView.addGestureRecognizer(recognizer)
           longPressRecognizer = recognizer
@@ -254,6 +248,12 @@
         recognizer.numberOfTapsRequired = 1
         recognizer.cancelsTouchesInView = false
         recognizer.delegate = self
+        if let doubleTapRecognizer {
+          recognizer.require(toFail: doubleTapRecognizer)
+        }
+        if let longPressRecognizer {
+          recognizer.require(toFail: longPressRecognizer)
+        }
         pdfView.addGestureRecognizer(recognizer)
         singleTapRecognizer = recognizer
       }
@@ -265,33 +265,13 @@
       }
 
       @objc
-      private func handleDoubleTap(_ recognizer: UITapGestureRecognizer) {
-        guard recognizer.state == .recognized else { return }
-        singleTapWorkItem?.cancel()
-        lastDoubleTapTime = Date()
-      }
+      private func handleDoubleTap(_: UITapGestureRecognizer) {}
 
       @objc
-      private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
-        if gesture.state == .began {
-          isLongPressing = true
-        } else if gesture.state == .ended || gesture.state == .cancelled {
-          lastLongPressEndTime = Date()
-          DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            self?.isLongPressing = false
-          }
-        }
-      }
+      private func handleLongPress(_: UILongPressGestureRecognizer) {}
 
       @objc
       private func handleSingleTap(_ recognizer: UITapGestureRecognizer) {
-        singleTapWorkItem?.cancel()
-
-        let holdDuration = Date().timeIntervalSince(lastTouchStartTime)
-        guard !isLongPressing && holdDuration < 0.3 else { return }
-        if Date().timeIntervalSince(lastLongPressEndTime) < 0.5 { return }
-        if Date().timeIntervalSince(lastDoubleTapTime) < 0.35 { return }
-
         guard let pdfView = recognizer.view as? PDFView else { return }
         if hadSelectionAtTouchStart || pdfView.currentSelection != nil {
           hadSelectionAtTouchStart = false
@@ -307,11 +287,7 @@
           y: max(0, min(1, location.y / size.height))
         )
 
-        let item = DispatchWorkItem { [weak self] in
-          self?.onSingleTap(normalizedPoint)
-        }
-        singleTapWorkItem = item
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: item)
+        onSingleTap(normalizedPoint)
       }
 
       func notifyCurrentPage(from pdfView: PDFView) {
@@ -336,7 +312,6 @@
       }
 
       func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
-        lastTouchStartTime = Date()
         hadSelectionAtTouchStart = (observedPDFView?.currentSelection != nil)
         return !isInteractiveElement(touch.view)
       }

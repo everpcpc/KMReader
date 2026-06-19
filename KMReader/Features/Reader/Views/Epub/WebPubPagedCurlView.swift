@@ -60,9 +60,9 @@
         target: context.coordinator,
         action: #selector(Coordinator.handleLongPress(_:))
       )
-      longPressRecognizer.minimumPressDuration = 0.5
       longPressRecognizer.cancelsTouchesInView = false
       longPressRecognizer.delegate = context.coordinator
+      tapRecognizer.require(toFail: longPressRecognizer)
       pageVC.view.addGestureRecognizer(longPressRecognizer)
       context.coordinator.longPressGestureRecognizer = longPressRecognizer
 
@@ -366,9 +366,6 @@
       weak var pageViewController: UIPageViewController?
       weak var tapGestureRecognizer: UITapGestureRecognizer?
       weak var longPressGestureRecognizer: UILongPressGestureRecognizer?
-      private var isLongPressing = false
-      private var lastLongPressEndTime: Date = .distantPast
-      private var lastTouchStartTime: Date = .distantPast
       var hasCompletedInitialUpdate = false
       private let maxCachedControllers = 5  // Increased from 3 to 5 to reduce eviction during transitions
       private var cachedControllers: [String: EpubPageViewController] = [:]
@@ -804,10 +801,6 @@
 
       @objc func handleTap(_ recognizer: UITapGestureRecognizer) {
         guard !isAnimating else { return }
-        let holdDuration = Date().timeIntervalSince(lastTouchStartTime)
-        guard !isLongPressing && holdDuration < 0.3 else { return }
-        if Date().timeIntervalSince(lastLongPressEndTime) < 0.5 { return }
-
         let location = recognizer.location(in: recognizer.view)
         let size = recognizer.view?.bounds.size ?? .zero
         guard size.width > 0, size.height > 0 else { return }
@@ -837,16 +830,7 @@
         }
       }
 
-      @objc func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
-        if gesture.state == .began {
-          isLongPressing = true
-        } else if gesture.state == .ended || gesture.state == .cancelled {
-          lastLongPressEndTime = Date()
-          DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            self?.isLongPressing = false
-          }
-        }
-      }
+      @objc func handleLongPress(_: UILongPressGestureRecognizer) {}
 
       private func reserveController(_ controller: UIViewController?) -> UIViewController? {
         guard let controller else { return nil }
@@ -1118,7 +1102,6 @@
       }
 
       func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
-        lastTouchStartTime = Date()
         if let view = touch.view, view is UIControl {
           return false
         }

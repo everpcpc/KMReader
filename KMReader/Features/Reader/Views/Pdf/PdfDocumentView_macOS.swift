@@ -171,9 +171,7 @@
       private weak var doubleClickRecognizer: NSClickGestureRecognizer?
       private weak var longPressRecognizer: NSPressGestureRecognizer?
       private var singleClickWorkItem: DispatchWorkItem?
-      private var lastLongPressEndTime: Date = .distantPast
       private var lastDoubleClickTime: Date = .distantPast
-      private var isLongPressing = false
       private var hadSelectionAtClickStart = false
 
       init(
@@ -233,7 +231,6 @@
           }
         } else {
           let recognizer = NSPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
-          recognizer.minimumPressDuration = 0.5
           recognizer.delegate = self
           pdfView.addGestureRecognizer(recognizer)
           longPressRecognizer = recognizer
@@ -268,22 +265,11 @@
       }
 
       @objc
-      private func handleLongPress(_ gesture: NSPressGestureRecognizer) {
-        if gesture.state == .began {
-          isLongPressing = true
-        } else if gesture.state == .ended || gesture.state == .cancelled {
-          lastLongPressEndTime = Date()
-          DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            self?.isLongPressing = false
-          }
-        }
-      }
+      private func handleLongPress(_: NSPressGestureRecognizer) {}
 
       @objc
       private func handleSingleClick(_ recognizer: NSClickGestureRecognizer) {
         singleClickWorkItem?.cancel()
-        guard !isLongPressing else { return }
-        if Date().timeIntervalSince(lastLongPressEndTime) < 0.5 { return }
         if Date().timeIntervalSince(lastDoubleClickTime) < 0.35 { return }
 
         guard let pdfView = recognizer.view as? PDFView else { return }
@@ -334,6 +320,13 @@
         shouldRecognizeSimultaneouslyWith otherGestureRecognizer: NSGestureRecognizer
       ) -> Bool {
         true
+      }
+
+      func gestureRecognizer(
+        _ gestureRecognizer: NSGestureRecognizer,
+        shouldRequireFailureOf otherGestureRecognizer: NSGestureRecognizer
+      ) -> Bool {
+        gestureRecognizer === singleClickRecognizer && otherGestureRecognizer === longPressRecognizer
       }
 
       func gestureRecognizerShouldBegin(_ gestureRecognizer: NSGestureRecognizer) -> Bool {
