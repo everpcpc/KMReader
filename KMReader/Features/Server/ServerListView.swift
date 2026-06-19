@@ -31,9 +31,14 @@ struct ServerListView: View {
   @State private var showLogoutAlert = false
   @State private var protectedServerCount = 0
   @State private var isAuthenticatingProtectedServers = false
+  @State private var hasLoadedInstances = false
 
   private var activeInstanceId: String? {
     current.instanceId.isEmpty ? nil : current.instanceId
+  }
+
+  private var serverListAnimation: Animation {
+    .spring(response: 0.35, dampingFraction: 0.9)
   }
 
   var body: some View {
@@ -92,11 +97,13 @@ struct ServerListView: View {
                 instancePendingDeletion = instance
               }
             )
+            .transition(.opacity.combined(with: .move(edge: .top)))
             // .tvFocusableHighlight()
           }
         }
       }
       .listRowBackground(Color.clear)
+      .animation(serverListAnimation, value: instances)
 
       if !instances.isEmpty {
         Section {
@@ -309,14 +316,34 @@ struct ServerListView: View {
       let loadedProtectedServerCount = try await database.fetchProtectedServerCount()
       let loadedInstances = try await database.fetchServerDisplayItems(
         includeProtected: showProtectedServers)
+      applyLoadedInstances(
+        loadedInstances,
+        protectedServerCount: loadedProtectedServerCount)
+    } catch {
+      ErrorManager.shared.alert(error: error)
+    }
+  }
+
+  private func applyLoadedInstances(
+    _ loadedInstances: [ServerDisplayItem],
+    protectedServerCount loadedProtectedServerCount: Int
+  ) {
+    let updateState = {
       if protectedServerCount != loadedProtectedServerCount {
         protectedServerCount = loadedProtectedServerCount
       }
       if instances != loadedInstances {
         instances = loadedInstances
       }
-    } catch {
-      ErrorManager.shared.alert(error: error)
+      hasLoadedInstances = true
+    }
+
+    if hasLoadedInstances {
+      withAnimation(serverListAnimation) {
+        updateState()
+      }
+    } else {
+      updateState()
     }
   }
 
