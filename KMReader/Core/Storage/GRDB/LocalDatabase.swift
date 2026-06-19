@@ -76,6 +76,12 @@ nonisolated enum LocalDatabase {
       try createIndexes(db)
     }
 
+    migrator.registerMigration("00002_add_protected_server_flag") { db in
+      try db.alter(table: KomgaInstance.databaseTableName) { table in
+        table.add(column: "protected", .boolean).notNull().defaults(to: false)
+      }
+    }
+
     try migrator.migrate(writer)
   }
 

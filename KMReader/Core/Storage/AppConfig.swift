@@ -85,6 +85,11 @@ enum AppConfig {
     set { UserDefaults.standard.set(newValue, forKey: "isLoggedInV2") }
   }
 
+  static nonisolated var showProtectedServers: Bool {
+    get { UserDefaults.standard.bool(forKey: "showProtectedServers") }
+    set { UserDefaults.standard.set(newValue, forKey: "showProtectedServers") }
+  }
+
   static nonisolated var deviceIdentifier: String {
     get { UserDefaults.standard.string(forKey: "deviceIdentifier") ?? "" }
     set { UserDefaults.standard.set(newValue, forKey: "deviceIdentifier") }
@@ -1303,12 +1308,17 @@ enum AppConfig {
   }
 
   // MARK: - Clear all auth data
-  static func clearAuthData() {
-    var new = current
-    new.reset()
-    current = new
+  static func clearAuthData(clearCurrent: Bool = false) {
+    if clearCurrent {
+      current = Current()
+    } else {
+      var new = current
+      new.reset()
+      current = new
+    }
 
     serverLastUpdate = nil
+    showProtectedServers = false
     dashboard.libraryIds = []
     DashboardSectionCacheStore.shared.reset()
   }

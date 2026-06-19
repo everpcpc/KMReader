@@ -19,6 +19,7 @@ struct ServerEditView: View {
   @State private var password: String = ""
   @State private var apiKey: String = ""
   @State private var authMethod: AuthenticationMethod
+  @State private var protected: Bool
   @State private var isValidating = false
   @State private var isSaving = false
   @State private var validationMessage: String?
@@ -49,6 +50,7 @@ struct ServerEditView: View {
     _serverURL = State(initialValue: instance.serverURL)
     _username = State(initialValue: instance.username)
     _authMethod = State(initialValue: instance.authMethod)
+    _protected = State(initialValue: instance.protected)
     if instance.authMethod == .apiKey {
       _apiKey = State(initialValue: instance.authToken)
     }
@@ -160,6 +162,23 @@ struct ServerEditView: View {
           .adaptiveButtonStyle(.bordered)
           .disabled(isValidating || !canValidate)
         }
+
+        Section(header: Text(String(localized: "Privacy"))) {
+          Toggle(isOn: $protected) {
+            VStack(alignment: .leading, spacing: 4) {
+              Text(String(localized: "Protected Server"))
+              Text(
+                String(
+                  localized:
+                    "Hide this server from the normal server list and require device authentication before switching to it."
+                )
+              )
+              .font(.caption)
+              .foregroundStyle(.secondary)
+            }
+          }
+          .disabled(!LocalDeviceAuthenticationService.canAuthenticate && !protected)
+        }
       }
       #if os(tvOS)
         .focusSection()
@@ -194,7 +213,7 @@ struct ServerEditView: View {
 
   private var hasChanges: Bool {
     if trimmedName != instance.name || trimmedServerURL != instance.serverURL
-      || authMethod != instance.authMethod
+      || authMethod != instance.authMethod || protected != instance.protected
     {
       return true
     }
@@ -259,6 +278,11 @@ struct ServerEditView: View {
     guard canSave else {
       return
     }
+    guard !protected || LocalDeviceAuthenticationService.canAuthenticate else {
+      ErrorManager.shared.notify(
+        message: String(localized: "Device authentication is not available on this device."))
+      return
+    }
 
     let resolvedName =
       trimmedName.isEmpty
@@ -284,6 +308,16 @@ struct ServerEditView: View {
     isSaving = true
 
     Task {
+      if protected != instance.protected {
+        let authenticated = await LocalDeviceAuthenticationService.authenticate(
+          reason: String(localized: "Authenticate to change protection for this server.")
+        )
+        guard authenticated else {
+          isSaving = false
+          return
+        }
+      }
+
       do {
         let database = try await DatabaseOperator.database()
         guard
@@ -293,7 +327,8 @@ struct ServerEditView: View {
             serverURL: trimmedServerURL,
             username: trimmedUsername,
             authToken: resolvedAuthToken,
-            authMethod: authMethod
+            authMethod: authMethod,
+            protected: protected
           )
         else {
           isSaving = false
@@ -303,7 +338,10 @@ struct ServerEditView: View {
 
         if current.instanceId == updatedInstance.instanceId {
           Task {
-            _ = await authViewModel.switchTo(instance: updatedInstance)
+            _ = await authViewModel.switchTo(
+              instance: updatedInstance,
+              requiresLocalAuthentication: false
+            )
           }
         }
 

@@ -333,9 +333,10 @@ extension DatabaseOperator {
     }
   }
 
-  func fetchServerDisplayItems() throws -> [ServerDisplayItem] {
+  func fetchServerDisplayItems(includeProtected: Bool = false) throws -> [ServerDisplayItem] {
     try read { db in
       try KomgaInstance.fetchAll(db)
+        .filter { includeProtected || !$0.protected }
         .sorted {
           if $0.lastUsedAt != $1.lastUsedAt {
             return $0.lastUsedAt > $1.lastUsedAt
@@ -346,13 +347,29 @@ extension DatabaseOperator {
     }
   }
 
+  func fetchProtectedServerCount() throws -> Int {
+    try read { db in
+      try KomgaInstance
+        .filter(Column("protected") == true)
+        .fetchCount(db)
+    }
+  }
+
+  func isServerProtected(instanceId: String) throws -> Bool {
+    guard let uuid = UUID(uuidString: instanceId) else { return false }
+    return try read { db in
+      try KomgaInstance.fetchOne(db, key: uuid)?.protected ?? false
+    }
+  }
+
   func updateServerDisplayItem(
     id: UUID,
     name: String,
     serverURL: String,
     username: String,
     authToken: String,
-    authMethod: AuthenticationMethod
+    authMethod: AuthenticationMethod,
+    protected: Bool
   ) throws -> ServerDisplayItem? {
     try write { db in
       guard var instance = try KomgaInstance.fetchOne(db, key: id) else { return nil }
@@ -361,6 +378,7 @@ extension DatabaseOperator {
       instance.username = username
       instance.authToken = authToken
       instance.authMethod = authMethod
+      instance.protected = protected
       instance.lastUsedAt = Date()
       try save(instance, db: db)
       return Self.makeServerDisplayItem(instance)
@@ -888,6 +906,7 @@ extension DatabaseOperator {
       authToken: instance.authToken,
       isAdmin: instance.isAdmin,
       authMethod: instance.resolvedAuthMethod,
+      protected: instance.protected,
       lastUsedAt: instance.lastUsedAt
     )
   }

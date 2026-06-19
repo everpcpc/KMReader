@@ -22,12 +22,15 @@ struct ServerListView: View {
   @Environment(\.dismiss) private var dismiss
   @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("isLoggedInV2") private var isLoggedIn: Bool = false
+  @AppStorage("showProtectedServers") private var showProtectedServers: Bool = false
 
   @State private var instances: [ServerDisplayItem] = []
   @State private var instancePendingDeletion: ServerDisplayItem?
   @State private var editingInstance: ServerDisplayItem?
   @State private var showLogin = false
   @State private var showLogoutAlert = false
+  @State private var protectedServerCount = 0
+  @State private var isAuthenticatingProtectedServers = false
 
   private var activeInstanceId: String? {
     current.instanceId.isEmpty ? nil : current.instanceId
@@ -35,6 +38,18 @@ struct ServerListView: View {
 
   var body: some View {
     Form {
+      if protectedServerCount > 0 {
+        Section(footer: protectedServersFooter) {
+          Toggle(isOn: showProtectedServersBinding) {
+            Label(
+              String(localized: "Show Protected Servers"),
+              systemImage: showProtectedServers ? "eye" : "eye.slash"
+            )
+          }
+          .disabled(isAuthenticatingProtectedServers)
+        }
+      }
+
       Section(header: introHeader, footer: footerText) {
         if instances.isEmpty {
           VStack(spacing: 12) {
@@ -184,6 +199,11 @@ struct ServerListView: View {
         dismiss()
       }
     }
+    .onChange(of: showProtectedServers) { _, _ in
+      Task {
+        await loadInstances()
+      }
+    }
   }
 
   private var navigationTitle: String {
@@ -286,12 +306,60 @@ struct ServerListView: View {
   private func loadInstances() async {
     do {
       let database = try await DatabaseOperator.database()
-      let loadedInstances = try await database.fetchServerDisplayItems()
+      let loadedProtectedServerCount = try await database.fetchProtectedServerCount()
+      let loadedInstances = try await database.fetchServerDisplayItems(
+        includeProtected: showProtectedServers)
+      if protectedServerCount != loadedProtectedServerCount {
+        protectedServerCount = loadedProtectedServerCount
+      }
       if instances != loadedInstances {
         instances = loadedInstances
       }
     } catch {
       ErrorManager.shared.alert(error: error)
+    }
+  }
+
+  private var showProtectedServersBinding: Binding<Bool> {
+    Binding(
+      get: { showProtectedServers },
+      set: { newValue in
+        if newValue {
+          authenticateAndShowProtectedServers()
+        } else {
+          showProtectedServers = false
+        }
+      }
+    )
+  }
+
+  private var protectedServersFooter: some View {
+    Text(
+      String(
+        localized:
+          "Protected servers are hidden from this list until you authenticate with device passcode, Touch ID, or Face ID."
+      )
+    )
+    .foregroundStyle(.secondary)
+  }
+
+  private func authenticateAndShowProtectedServers() {
+    guard !isAuthenticatingProtectedServers else { return }
+    guard LocalDeviceAuthenticationService.canAuthenticate else {
+      ErrorManager.shared.notify(
+        message: String(localized: "Device authentication is not available on this device."))
+      return
+    }
+
+    isAuthenticatingProtectedServers = true
+    Task {
+      let authenticated = await LocalDeviceAuthenticationService.authenticate(
+        reason: String(localized: "Authenticate to show protected servers.")
+      )
+      if authenticated {
+        showProtectedServers = true
+      }
+      isAuthenticatingProtectedServers = false
     }
   }
 

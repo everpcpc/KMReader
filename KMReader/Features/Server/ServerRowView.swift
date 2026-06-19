@@ -55,6 +55,13 @@ struct ServerRowView: View {
               ? String(localized: "API Key") : String(localized: "Username & Password"),
             textColor: .secondary
           )
+          if instance.protected {
+            infoDetailRow(
+              icon: "lock.fill",
+              text: String(localized: "Protected"),
+              textColor: .secondary
+            )
+          }
           infoDetailRow(
             icon: "clock.arrow.circlepath", text: lastUsedDescription,
             textColor: .secondary)

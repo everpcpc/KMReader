@@ -12,6 +12,7 @@ nonisolated struct KomgaInstance: Codable, Equatable, Sendable {
   var authToken: String
   var isAdmin: Bool
   var authMethod: AuthenticationMethod?
+  var protected: Bool
   var createdAt: Date
   var lastUsedAt: Date
   var seriesLastSyncedAt: Date
@@ -25,6 +26,7 @@ nonisolated struct KomgaInstance: Codable, Equatable, Sendable {
     authToken: String,
     isAdmin: Bool,
     authMethod: AuthenticationMethod = .basicAuth,
+    protected: Bool = false,
     createdAt: Date = Date(),
     lastUsedAt: Date = Date(),
     seriesLastSyncedAt: Date = Date(timeIntervalSince1970: 0),
@@ -37,6 +39,7 @@ nonisolated struct KomgaInstance: Codable, Equatable, Sendable {
     self.authToken = authToken
     self.isAdmin = isAdmin
     self.authMethod = authMethod
+    self.protected = protected
     self.createdAt = createdAt
     self.lastUsedAt = lastUsedAt
     self.seriesLastSyncedAt = seriesLastSyncedAt

@@ -91,7 +91,7 @@ nonisolated enum AuthService {
   }
 
   @concurrent
-  static func logout() async throws {
+  static func logout(clearCurrent: Bool = false) async throws {
     do {
       let _: EmptyResponse = try await apiClient.request(
         path: "/api/logout",
@@ -105,7 +105,7 @@ nonisolated enum AuthService {
     // Clear local data
     apiClient.setAuthToken("")
     await MainActor.run {
-      AppConfig.clearAuthData()
+      AppConfig.clearAuthData(clearCurrent: clearCurrent)
     }
   }
 

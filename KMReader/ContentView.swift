@@ -77,6 +77,7 @@ struct ContentView: View {
         }
         .task(id: isLoggedIn) {
           guard isLoggedIn else { return }
+          guard await authenticateProtectedCurrentInstanceIfNeeded() else { return }
 
           if authViewModel.bootstrapState == .requiresValidation {
             let serverReachable = await authViewModel.loadCurrentUser()
@@ -281,5 +282,36 @@ struct ContentView: View {
     // `triggerSync` for offline downloads once the flag transitions back to
     // online; nothing else to do here.
     return .recovered
+  }
+
+  private func authenticateProtectedCurrentInstanceIfNeeded() async -> Bool {
+    guard isLoggedIn, !current.instanceId.isEmpty else { return true }
+
+    do {
+      let database = try await DatabaseOperator.database()
+      let protected = try await database.isServerProtected(instanceId: current.instanceId)
+      guard protected else { return true }
+
+      guard LocalDeviceAuthenticationService.canAuthenticate else {
+        ErrorManager.shared.notify(
+          message: String(localized: "Device authentication is not available on this device."))
+        authViewModel.logout(clearCurrent: true)
+        return false
+      }
+
+      let authenticated = await LocalDeviceAuthenticationService.authenticate(
+        reason: String(localized: "Authenticate to unlock this protected server.")
+      )
+      guard authenticated else {
+        authViewModel.logout(clearCurrent: true)
+        return false
+      }
+
+      return true
+    } catch {
+      ErrorManager.shared.alert(error: error)
+      authViewModel.logout(clearCurrent: true)
+      return false
+    }
   }
 }

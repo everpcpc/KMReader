@@ -75,17 +75,22 @@ class AuthViewModel {
     )
   }
 
-  func logout() {
+  func logout(clearCurrent: Bool = false) {
     Task {
       // Disconnect SSE before logout
       await SSEService.shared.disconnect()
-      try? await AuthService.logout()
+      try? await AuthService.logout(clearCurrent: clearCurrent)
     }
     // ViewModel-specific cleanup
     AppConfig.isLoggedIn = false
-    var current = AppConfig.current
-    current.clearUserMetadata()
-    AppConfig.current = current
+    AppConfig.showProtectedServers = false
+    if clearCurrent {
+      AppConfig.current = Current()
+    } else {
+      var current = AppConfig.current
+      current.clearUserMetadata()
+      AppConfig.current = current
+    }
     bootstrapState = .requiresValidation
   }
 
@@ -139,7 +144,14 @@ class AuthViewModel {
     }
   }
 
-  func switchTo(instance: ServerDisplayItem) async -> Bool {
+  func switchTo(instance: ServerDisplayItem, requiresLocalAuthentication: Bool = true) async -> Bool {
+    if requiresLocalAuthentication && instance.protected {
+      let authenticated = await LocalDeviceAuthenticationService.authenticate(
+        reason: String(localized: "Authenticate to switch to this protected server.")
+      )
+      guard authenticated else { return false }
+    }
+
     isSwitching = true
     switchingInstanceId = instance.instanceId
     defer {

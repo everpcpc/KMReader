@@ -13,6 +13,7 @@ nonisolated struct ServerDisplayItem: Equatable, Identifiable, Sendable {
   let authToken: String
   let isAdmin: Bool
   let authMethod: AuthenticationMethod
+  let protected: Bool
   let lastUsedAt: Date
 
   var instanceId: String {

@@ -72,6 +72,7 @@ struct MainApp: App {
     PlatformHelper.setup()
     AnimatedImageSupport.configureCoders()
     AppConfig.migrateOfflineProvenanceIfNeeded()
+    AppConfig.showProtectedServers = false
     _authViewModel = State(initialValue: AuthViewModel())
   }
 
