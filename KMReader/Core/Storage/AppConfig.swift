@@ -976,7 +976,7 @@ enum AppConfig {
       {
         return mode
       }
-      return .fast
+      return .enabled
     }
     set {
       UserDefaults.standard.set(newValue.rawValue, forKey: "doubleTapZoomMode")

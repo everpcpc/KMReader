@@ -103,6 +103,7 @@
       }
 
       context.coordinator.parent = self
+      context.coordinator.applyDoubleTapGestureState()
       context.coordinator.applyDisplayModeIfNeeded(in: uiView)
       context.coordinator.updatePages()
 
@@ -129,6 +130,7 @@
       var contentHeightConstraint: NSLayoutConstraint?
       private var pageViews: [NativePageItem] = []
       private var invalidationObserverToken: UUID?
+      private weak var doubleTapGesture: UITapGestureRecognizer?
 
       func registerInvalidationObserver() {
         guard invalidationObserverToken == nil else { return }
@@ -232,12 +234,16 @@
       }
 
       func setupNativeInteractions(on scrollView: UIScrollView) {
-        if parent.renderConfig.doubleTapZoomMode != .disabled {
-          let doubleTap = UITapGestureRecognizer(target: self, action: #selector(handleDoubleTap(_:)))
-          doubleTap.numberOfTapsRequired = 2
-          doubleTap.delegate = self
-          scrollView.addGestureRecognizer(doubleTap)
-        }
+        let doubleTap = UITapGestureRecognizer(target: self, action: #selector(handleDoubleTap(_:)))
+        doubleTap.numberOfTapsRequired = 2
+        doubleTap.delegate = self
+        scrollView.addGestureRecognizer(doubleTap)
+        doubleTapGesture = doubleTap
+        applyDoubleTapGestureState()
+      }
+
+      func applyDoubleTapGestureState() {
+        doubleTapGesture?.isEnabled = parent.renderConfig.doubleTapZoomMode.isEnabled
       }
 
       func applyDisplayModeIfNeeded(in scrollView: UIScrollView) {

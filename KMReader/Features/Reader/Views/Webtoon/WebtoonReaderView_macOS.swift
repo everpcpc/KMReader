@@ -74,6 +74,7 @@
       clickGesture.numberOfClicksRequired = 1
       clickGesture.delegate = context.coordinator
       collectionView.addGestureRecognizer(clickGesture)
+      context.coordinator.pressGesture = pressGesture
 
       let doubleClickGesture = NSClickGestureRecognizer(
         target: context.coordinator,
@@ -157,13 +158,13 @@
       var tapZoneMode: TapZoneMode = .defaultLayout
       var tapZoneInversionMode: TapZoneInversionMode = .auto
       var showPageNumber: Bool = true
-      var isLongPress: Bool = false
       var heightCache = WebtoonPageHeightCache()
       var lastScrollTime: TimeInterval = 0
       var hasTriggeredZoomGesture: Bool = false
       private var singleClickWorkItem: DispatchWorkItem?
       private var deferredReloadWorkItem: DispatchWorkItem?
       private var deferredCleanupWorkItem: DispatchWorkItem?
+      weak var pressGesture: NSPressGestureRecognizer?
       private var sizeProbeTasks: [ReaderPageID: Task<Void, Never>] = [:]
       private var pendingMeasuredPageIDs: Set<ReaderPageID> = []
 
@@ -864,23 +865,12 @@
 
       // MARK: - Click
 
-      @objc func handlePress(_ gesture: NSPressGestureRecognizer) {
-        if gesture.state == .began {
-          isLongPress = true
-          singleClickWorkItem?.cancel()
-          singleClickWorkItem = nil
-        } else if gesture.state == .ended || gesture.state == .cancelled {
-          DispatchQueue.main.asyncAfter(deadline: .now() + WebtoonConstants.longPressReleaseDelay) {
-            [weak self] in
-            self?.isLongPress = false
-          }
-        }
-      }
+      @objc func handlePress(_: NSPressGestureRecognizer) {}
 
       @objc func handleClick(_ gesture: NSClickGestureRecognizer) {
         singleClickWorkItem?.cancel()
         guard gesture.state == .ended else { return }
-        guard !isLongPress, !hasTriggeredZoomGesture else { return }
+        guard !hasTriggeredZoomGesture else { return }
         guard let cv = collectionView, let sv = scrollView else { return }
         guard viewModel?.isZoomed != true else { return }
         guard !isScrollInteractionActive else { return }
@@ -1035,6 +1025,13 @@
         shouldRecognizeSimultaneouslyWith otherGestureRecognizer: NSGestureRecognizer
       ) -> Bool {
         return true
+      }
+
+      func gestureRecognizer(
+        _ gestureRecognizer: NSGestureRecognizer,
+        shouldRequireFailureOf otherGestureRecognizer: NSGestureRecognizer
+      ) -> Bool {
+        gestureRecognizer is NSClickGestureRecognizer && otherGestureRecognizer === pressGesture
       }
 
       private func isInteractiveElement(at location: CGPoint, in collectionView: NSCollectionView) -> Bool {

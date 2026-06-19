@@ -296,9 +296,6 @@
     private var tapGestureRecognizer: UITapGestureRecognizer?
     private var longPressGestureRecognizer: UILongPressGestureRecognizer?
     private var panGestureRecognizer: UIPanGestureRecognizer?
-    private var isLongPressing = false
-    private var lastLongPressEndTime: Date = .distantPast
-    private var lastTouchStartTime: Date = .distantPast
     private var interactivePanStartOffsetX: CGFloat = 0
     private let pageTurnVelocityThreshold: CGFloat = 450
     private let pageTurnProgressThreshold: CGFloat = 0.5
@@ -467,6 +464,7 @@
       longPressRecognizer.minimumPressDuration = 0.5
       longPressRecognizer.delegate = self
       longPressRecognizer.cancelsTouchesInView = false
+      tapRecognizer.require(toFail: longPressRecognizer)
       view.addGestureRecognizer(longPressRecognizer)
       self.longPressGestureRecognizer = longPressRecognizer
 
@@ -474,6 +472,7 @@
       panRecognizer.delegate = self
       panRecognizer.cancelsTouchesInView = false
       panRecognizer.maximumNumberOfTouches = 1
+      panRecognizer.require(toFail: longPressRecognizer)
       view.addGestureRecognizer(panRecognizer)
       self.panGestureRecognizer = panRecognizer
     }
@@ -504,10 +503,6 @@
     }
 
     @objc private func handleTap(_ recognizer: UITapGestureRecognizer) {
-      let holdDuration = Date().timeIntervalSince(lastTouchStartTime)
-      guard !isLongPressing && holdDuration < 0.3 else { return }
-      if Date().timeIntervalSince(lastLongPressEndTime) < 0.5 { return }
-
       let location = recognizer.location(in: view)
       let size = view.bounds.size
       guard size.width > 0, size.height > 0 else { return }
@@ -533,21 +528,10 @@
       }
     }
 
-    @objc private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
-      if gesture.state == .began {
-        isLongPressing = true
-      } else if gesture.state == .ended || gesture.state == .cancelled {
-        lastLongPressEndTime = Date()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-          self?.isLongPressing = false
-        }
-      }
-    }
+    @objc private func handleLongPress(_: UILongPressGestureRecognizer) {}
 
     @objc private func handlePan(_ gesture: UIPanGestureRecognizer) {
       guard isContentLoaded else { return }
-      guard !isLongPressing else { return }
-      guard Date().timeIntervalSince(lastLongPressEndTime) >= 0.5 else { return }
       let pageWidth = webView.bounds.width
       guard pageWidth > 0 else { return }
 
@@ -1064,7 +1048,6 @@
     }
 
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
-      lastTouchStartTime = Date()
       if let view = touch.view, view is UIControl {
         return false
       }

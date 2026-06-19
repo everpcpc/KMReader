@@ -154,9 +154,6 @@
       private var panRecognizer: UIPanGestureRecognizer?
       private var tapRecognizer: UITapGestureRecognizer?
       private var longPressRecognizer: UILongPressGestureRecognizer?
-      private var isLongPressing = false
-      private var lastLongPressEndTime: Date = .distantPast
-      private var lastTouchStartTime: Date = .distantPast
 
       private var transitionDirection: Int?
       private var dragOffset: CGFloat = 0
@@ -206,8 +203,10 @@
         longPress.minimumPressDuration = 0.5
         longPress.cancelsTouchesInView = false
         longPress.delegate = self
+        tap.require(toFail: longPress)
         view.addGestureRecognizer(longPress)
         longPressRecognizer = longPress
+        pan.require(toFail: longPress)
       }
 
       private func cacheKey(chapterIndex: Int, pageIndex: Int) -> String {
@@ -1036,10 +1035,6 @@
 
       @objc func handleTap(_ recognizer: UITapGestureRecognizer) {
         guard !isAnimating else { return }
-        let holdDuration = Date().timeIntervalSince(lastTouchStartTime)
-        guard !isLongPressing && holdDuration < 0.3 else { return }
-        if Date().timeIntervalSince(lastLongPressEndTime) < 0.5 { return }
-
         let location = recognizer.location(in: recognizer.view)
         let size = recognizer.view?.bounds.size ?? .zero
         guard size.width > 0, size.height > 0 else { return }
@@ -1069,16 +1064,7 @@
         }
       }
 
-      @objc func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
-        if gesture.state == .began {
-          isLongPressing = true
-        } else if gesture.state == .ended || gesture.state == .cancelled {
-          lastLongPressEndTime = Date()
-          DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            self?.isLongPressing = false
-          }
-        }
-      }
+      @objc func handleLongPress(_: UILongPressGestureRecognizer) {}
 
       private func tapReadingDirection() -> ReadingDirection {
         switch parent.viewModel.publicationReadingProgression {
@@ -1123,7 +1109,6 @@
       }
 
       func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
-        lastTouchStartTime = Date()
         if let view = touch.view, view is UIControl {
           return false
         }

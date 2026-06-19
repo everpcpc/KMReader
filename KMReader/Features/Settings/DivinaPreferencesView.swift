@@ -24,7 +24,7 @@ struct DivinaPreferencesView: View {
   @AppStorage("animateTapTurns") private var animateTapTurns: Bool = AppConfig.animateTapTurns
   @AppStorage("pageTransitionStyle") private var pageTransitionStyle: PageTransitionStyle = .cover
   @AppStorage("doubleTapZoomScale") private var doubleTapZoomScale: Double = 3.0
-  @AppStorage("doubleTapZoomMode") private var doubleTapZoomMode: DoubleTapZoomMode = .fast
+  @AppStorage("doubleTapZoomMode") private var doubleTapZoomMode: DoubleTapZoomMode = .enabled
   @AppStorage("imageUpscalingMode") private var imageUpscalingMode: ReaderImageUpscalingMode =
     AppConfig.imageUpscalingMode
   @AppStorage("imageUpscaleAutoTriggerScale") private var imageUpscaleAutoTriggerScale: Double =
@@ -66,6 +66,13 @@ struct DivinaPreferencesView: View {
 
   private var shouldShowWebtoonTapNavigationSettings: Bool {
     !tapZoneMode.isDisabled && shouldShowWebtoonSpecificSettings
+  }
+
+  private var doubleTapZoomEnabled: Binding<Bool> {
+    Binding(
+      get: { doubleTapZoomMode.isEnabled },
+      set: { doubleTapZoomMode = $0 ? .enabled : .disabled }
+    )
   }
 
   var body: some View {
@@ -310,13 +317,10 @@ struct DivinaPreferencesView: View {
 
       #if os(iOS)
         Section(header: Text("Zooming")) {
-          Picker("Double Tap to Zoom", selection: $doubleTapZoomMode) {
-            ForEach(DoubleTapZoomMode.allCases, id: \.self) { mode in
-              Text(mode.displayName).tag(mode)
-            }
+          Toggle(isOn: doubleTapZoomEnabled) {
+            Text("Double Tap to Zoom")
           }
-          .pickerStyle(.menu)
-          if doubleTapZoomMode != .disabled {
+          if doubleTapZoomMode.isEnabled {
             VStack(alignment: .leading, spacing: 8) {
               HStack {
                 Text("Double Tap Zoom Scale")

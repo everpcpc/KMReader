@@ -91,9 +91,6 @@
       private var singleTapRecognizer: UITapGestureRecognizer?
       private var doubleTapRecognizer: UITapGestureRecognizer?
       private var longPressRecognizer: UILongPressGestureRecognizer?
-      private var singleTapWorkItem: DispatchWorkItem?
-      private var lastLongPressEndTime: Date = .distantPast
-      private var isLongPressing = false
 
       init(_ parent: NativeCoverPageView) {
         self.parent = parent
@@ -113,6 +110,7 @@
         pagePresentationCoordinator.update(viewModel: parent.viewModel)
         containerView?.backgroundColor = UIColor(parent.renderConfig.readerBackground.color)
         applyPanRecognizerState()
+        applyDoubleTapRecognizerState()
 
         if deckState.currentItem == nil {
           syncCurrentItemFromViewModel(force: true)
@@ -152,9 +150,6 @@
         if let longPressRecognizer {
           longPressRecognizer.view?.removeGestureRecognizer(longPressRecognizer)
         }
-        singleTapWorkItem?.cancel()
-        singleTapWorkItem = nil
-        isLongPressing = false
         panRecognizer = nil
         singleTapRecognizer = nil
         doubleTapRecognizer = nil
@@ -264,17 +259,20 @@
         doubleTapRecognizer.numberOfTapsRequired = 2
         doubleTapRecognizer.cancelsTouchesInView = false
         doubleTapRecognizer.delegate = self
+        singleTapRecognizer.require(toFail: doubleTapRecognizer)
         containerView.addGestureRecognizer(doubleTapRecognizer)
 
         let longPressRecognizer = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
         longPressRecognizer.minimumPressDuration = ReaderGestureConstants.longPressMinimumDuration
         longPressRecognizer.cancelsTouchesInView = false
         longPressRecognizer.delegate = self
+        singleTapRecognizer.require(toFail: longPressRecognizer)
         containerView.addGestureRecognizer(longPressRecognizer)
 
         self.singleTapRecognizer = singleTapRecognizer
         self.doubleTapRecognizer = doubleTapRecognizer
         self.longPressRecognizer = longPressRecognizer
+        applyDoubleTapRecognizerState()
       }
 
       private func applyPanRecognizerState() {
@@ -289,6 +287,10 @@
             resetDragStateImmediately()
           }
         #endif
+      }
+
+      private func applyDoubleTapRecognizerState() {
+        doubleTapRecognizer?.isEnabled = parent.renderConfig.doubleTapZoomMode.isEnabled
       }
 
       private var currentItem: ReaderViewItem? {
@@ -846,58 +848,25 @@
       }
 
       @objc private func handleSingleTap(_ recognizer: UITapGestureRecognizer) {
-        singleTapWorkItem?.cancel()
         guard recognizer.state == .ended else { return }
         guard let containerView else { return }
         guard !isTapZoneSuppressed else { return }
 
         let location = recognizer.location(in: containerView)
-        let workItem = DispatchWorkItem { [weak self, weak containerView] in
-          guard let self, let containerView else { return }
-          self.dispatchTapZoneTap(at: location, in: containerView)
-        }
-        let delay = max(parent.renderConfig.doubleTapZoomMode.tapDebounceDelay, 0)
-        if delay > 0 {
-          singleTapWorkItem = workItem
-          DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
-        } else {
-          workItem.perform()
-        }
+        dispatchTapZoneTap(at: location, in: containerView)
       }
 
-      @objc private func handleDoubleTap(_ recognizer: UITapGestureRecognizer) {
-        singleTapWorkItem?.cancel()
-        singleTapWorkItem = nil
-      }
+      @objc private func handleDoubleTap(_: UITapGestureRecognizer) {}
 
-      @objc private func handleLongPress(_ recognizer: UILongPressGestureRecognizer) {
-        switch recognizer.state {
-        case .began:
-          isLongPressing = true
-          singleTapWorkItem?.cancel()
-          singleTapWorkItem = nil
-        case .ended, .cancelled, .failed:
-          lastLongPressEndTime = Date()
-          DispatchQueue.main.asyncAfter(deadline: .now() + ReaderGestureConstants.longPressReleaseDelay) {
-            [weak self] in
-            self?.isLongPressing = false
-          }
-        default:
-          break
-        }
-      }
+      @objc private func handleLongPress(_: UILongPressGestureRecognizer) {}
 
       private var isTapZoneSuppressed: Bool {
         parent.viewModel.isZoomed
           || isUserPanning
           || isAnimatingTransition
-          || isLongPressing
-          || Date().timeIntervalSince(lastLongPressEndTime)
-            < ReaderGestureConstants.longPressTapSuppressionInterval
       }
 
       private func dispatchTapZoneTap(at location: CGPoint, in containerView: NativeCoverContainerView) {
-        singleTapWorkItem = nil
         guard !isTapZoneSuppressed else { return }
         let bounds = containerView.bounds
         guard bounds.width > 0, bounds.height > 0 else { return }

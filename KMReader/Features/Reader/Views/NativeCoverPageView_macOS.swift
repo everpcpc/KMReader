@@ -92,8 +92,6 @@
       private var doubleClickRecognizer: NSClickGestureRecognizer?
       private var longPressRecognizer: NSPressGestureRecognizer?
       private var singleClickWorkItem: DispatchWorkItem?
-      private var lastLongPressEndTime: Date = .distantPast
-      private var isLongPressing = false
 
       init(_ parent: NativeCoverPageView) {
         self.parent = parent
@@ -155,7 +153,6 @@
         }
         singleClickWorkItem?.cancel()
         singleClickWorkItem = nil
-        isLongPressing = false
         panRecognizer = nil
         clickRecognizer = nil
         doubleClickRecognizer = nil
@@ -879,30 +876,12 @@
         singleClickWorkItem = nil
       }
 
-      @objc private func handleLongPress(_ recognizer: NSPressGestureRecognizer) {
-        switch recognizer.state {
-        case .began:
-          isLongPressing = true
-          singleClickWorkItem?.cancel()
-          singleClickWorkItem = nil
-        case .ended, .cancelled, .failed:
-          lastLongPressEndTime = Date()
-          DispatchQueue.main.asyncAfter(deadline: .now() + ReaderGestureConstants.longPressReleaseDelay) {
-            [weak self] in
-            self?.isLongPressing = false
-          }
-        default:
-          break
-        }
-      }
+      @objc private func handleLongPress(_: NSPressGestureRecognizer) {}
 
       private var isTapZoneSuppressed: Bool {
         parent.viewModel.isZoomed
           || isUserPanning
           || isAnimatingTransition
-          || isLongPressing
-          || Date().timeIntervalSince(lastLongPressEndTime)
-            < ReaderGestureConstants.longPressTapSuppressionInterval
       }
 
       private func dispatchTapZoneTap(at location: CGPoint, in containerView: NativeCoverContainerView) {
@@ -927,6 +906,13 @@
           return false
         }
         return !isTapZoneSuppressed
+      }
+
+      func gestureRecognizer(
+        _ gestureRecognizer: NSGestureRecognizer,
+        shouldRequireFailureOf otherGestureRecognizer: NSGestureRecognizer
+      ) -> Bool {
+        gestureRecognizer === clickRecognizer && otherGestureRecognizer === longPressRecognizer
       }
 
       private func isInteractiveElement(at location: CGPoint, in containerView: NativeCoverContainerView) -> Bool {

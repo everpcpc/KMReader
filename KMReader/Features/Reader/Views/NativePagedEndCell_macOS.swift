@@ -63,7 +63,7 @@
         enableImageContextMenu: false,
         supportsPageIsolationActions: false,
         doubleTapZoomScale: 3.0,
-        doubleTapZoomMode: .fast
+        doubleTapZoomMode: .enabled
       )
     }
   }

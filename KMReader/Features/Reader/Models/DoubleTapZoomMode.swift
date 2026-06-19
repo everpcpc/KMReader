@@ -5,26 +5,35 @@
 
 import Foundation
 
-enum DoubleTapZoomMode: String, CaseIterable, Identifiable, Sendable {
+enum DoubleTapZoomMode: CaseIterable, Identifiable, RawRepresentable, Sendable {
+  typealias RawValue = String
+
+  case enabled
   case disabled
-  case fast
-  case slow
 
-  var id: String { rawValue }
+  nonisolated static let allCases: [DoubleTapZoomMode] = [.enabled, .disabled]
 
-  var displayName: String {
-    switch self {
-    case .disabled: return String(localized: "Disabled")
-    case .fast: return String(localized: "Fast")
-    case .slow: return String(localized: "Slow")
+  nonisolated init?(rawValue: String) {
+    switch rawValue {
+    case "enabled", "fast", "slow":
+      self = .enabled
+    case "disabled":
+      self = .disabled
+    default:
+      return nil
     }
   }
 
-  var tapDebounceDelay: TimeInterval {
+  nonisolated var rawValue: String {
     switch self {
-    case .disabled: return 0
-    case .fast: return 0.18
-    case .slow: return 0.3
+    case .enabled: return "enabled"
+    case .disabled: return "disabled"
     }
+  }
+
+  nonisolated var id: String { rawValue }
+
+  nonisolated var isEnabled: Bool {
+    self == .enabled
   }
 }

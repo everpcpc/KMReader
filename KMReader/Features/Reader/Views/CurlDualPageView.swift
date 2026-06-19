@@ -92,6 +92,7 @@
     func updateUIViewController(_ pageVC: UIPageViewController, context: Context) {
       context.coordinator.parent = self
       context.coordinator.pageViewController = pageVC
+      context.coordinator.applyDoubleTapRecognizerState()
       defer { context.coordinator.hasCompletedInitialUpdate = true }
 
       PageCurlControllerPlanner.configure(
@@ -201,13 +202,11 @@
       weak var pageViewController: UIPageViewController?
       var isTransitioning = false
       var hasCompletedInitialUpdate = false
-      private var singleTapWorkItem: DispatchWorkItem?
+      private weak var doubleTapRecognizer: UITapGestureRecognizer?
       private var transitionTargetItem: ReaderViewItem?
       private var lastViewItemsCount: Int = 0
       private var lastFirstViewItem: ReaderViewItem?
       private var lastLastViewItem: ReaderViewItem?
-      private var lastLongPressEndTime: Date = .distantPast
-      private var isLongPressing = false
 
       init(_ parent: CurlDualPageView) {
         self.parent = parent
@@ -225,13 +224,21 @@
         doubleTap.numberOfTapsRequired = 2
         doubleTap.cancelsTouchesInView = false
         doubleTap.delegate = self
+        singleTap.require(toFail: doubleTap)
         view.addGestureRecognizer(doubleTap)
+        doubleTapRecognizer = doubleTap
 
         let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
         longPress.minimumPressDuration = ReaderGestureConstants.longPressMinimumDuration
         longPress.cancelsTouchesInView = false
         longPress.delegate = self
+        singleTap.require(toFail: longPress)
         view.addGestureRecognizer(longPress)
+        applyDoubleTapRecognizerState()
+      }
+
+      func applyDoubleTapRecognizerState() {
+        doubleTapRecognizer?.isEnabled = parent.renderConfig.doubleTapZoomMode.isEnabled
       }
 
       private var totalSpreads: Int {
@@ -654,57 +661,24 @@
       }
 
       @objc private func handleSingleTap(_ gesture: UITapGestureRecognizer) {
-        singleTapWorkItem?.cancel()
         guard gesture.state == .ended else { return }
         guard let view = gesture.view else { return }
         guard !isTapZoneSuppressed else { return }
 
         let location = gesture.location(in: view)
-        let workItem = DispatchWorkItem { [weak self, weak view] in
-          guard let self, let view else { return }
-          self.dispatchTapZoneTap(at: location, in: view)
-        }
-        let delay = max(parent.renderConfig.doubleTapZoomMode.tapDebounceDelay, 0)
-        if delay > 0 {
-          singleTapWorkItem = workItem
-          DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
-        } else {
-          workItem.perform()
-        }
+        dispatchTapZoneTap(at: location, in: view)
       }
 
-      @objc private func handleDoubleTap(_ gesture: UITapGestureRecognizer) {
-        singleTapWorkItem?.cancel()
-        singleTapWorkItem = nil
-      }
+      @objc private func handleDoubleTap(_: UITapGestureRecognizer) {}
 
-      @objc private func handleLongPress(_ gesture: UILongPressGestureRecognizer) {
-        switch gesture.state {
-        case .began:
-          isLongPressing = true
-          singleTapWorkItem?.cancel()
-          singleTapWorkItem = nil
-        case .ended, .cancelled, .failed:
-          lastLongPressEndTime = Date()
-          DispatchQueue.main.asyncAfter(deadline: .now() + ReaderGestureConstants.longPressReleaseDelay) {
-            [weak self] in
-            self?.isLongPressing = false
-          }
-        default:
-          break
-        }
-      }
+      @objc private func handleLongPress(_: UILongPressGestureRecognizer) {}
 
       private var isTapZoneSuppressed: Bool {
         isTransitioning
           || parent.viewModel.isZoomed
-          || isLongPressing
-          || Date().timeIntervalSince(lastLongPressEndTime)
-            < ReaderGestureConstants.longPressTapSuppressionInterval
       }
 
       private func dispatchTapZoneTap(at location: CGPoint, in view: UIView) {
-        singleTapWorkItem = nil
         guard !isTapZoneSuppressed else { return }
         let bounds = view.bounds
         guard bounds.width > 0, bounds.height > 0 else { return }
