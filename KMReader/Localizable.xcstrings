@@ -70460,66 +70460,66 @@
         }
       }
     },
-    "settings.offline_books.total_size" : {
+    "settings.offline_books.total" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gesamtgröße"
+            "value" : "Gesamt"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Total Size"
+            "value" : "Total"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tamano total"
+            "value" : "Total"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Taille totale"
+            "value" : "Total"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dimensione totale"
+            "value" : "Totale"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "合計サイズ"
+            "value" : "合計"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "총 크기"
+            "value" : "합계"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Общий размер"
+            "value" : "Всего"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "总大小"
+            "value" : "总计"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "總大小"
+            "value" : "總計"
           }
         }
       }

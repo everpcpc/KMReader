@@ -126,8 +126,10 @@ make major              # Increment major version (MARKETING_VERSION)
 Version execution rules:
 - Do not edit `MARKETING_VERSION` or `CURRENT_PROJECT_VERSION` manually in `KMReader.xcodeproj/project.pbxproj`; use `make bump`, `make minor`, or `make major`.
 - `make minor` / `make major` increment `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` together and commit only the version file.
+- Feature or fix PRs may include one generated `make bump` commit when the change should produce a TestFlight or release-candidate build. This is the normal delivery flow and does not require a separate bump-only PR.
+- Keep the bump isolated as its own commit that only changes `KMReader.xcodeproj/project.pbxproj`. Do not fold the version change into a feature commit, and do not request its removal solely because it triggers publishing.
 - Release automation treats build upload and GitHub Release creation separately:
-  - Any `CURRENT_PROJECT_VERSION` change uploads the current HEAD build to App Store Connect.
+  - Any `CURRENT_PROJECT_VERSION` change uploads the current HEAD build to App Store Connect. For feature/fix PRs with an intentional `make bump` commit, this upload is expected: the resulting build may be used for TestFlight or as the release build.
   - A major transition such as `4.14 -> 5.0` uploads the `5.0` build but does not create a GitHub Release.
   - A same-major minor transition such as `5.0 -> 5.1` creates the GitHub Release for the previous marketing version (`v5.0`) at the previous commit, while the HEAD build can continue uploading as `5.1`.
   - GitHub Releases do not upload build artifacts.
