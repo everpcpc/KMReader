@@ -19,6 +19,11 @@ enum WidgetDataService {
     let libraryIds = AppConfig.dashboard.libraryIds
 
     Task.detached(priority: .utility) {
+      guard !(await Self.isProtectedInstance(instanceId)) else {
+        await Self.clearWidgetData()
+        return
+      }
+
       let keepReadingBooks =
         (try? await DatabaseOperator.database().fetchKeepReadingBooksForWidget(
           instanceId: instanceId, libraryIds: libraryIds, limit: 6)) ?? []
@@ -46,6 +51,15 @@ enum WidgetDataService {
         "Widget data refreshed: keepReading=\(keepReadingEntries.count), recentlyAdded=\(recentlyAddedEntries.count), recentlyUpdatedSeries=\(recentlyUpdatedSeriesEntries.count)"
       )
     }
+  }
+
+  @MainActor
+  static func clearWidgetData() {
+    WidgetDataStore.clearAll()
+    #if canImport(WidgetKit)
+      WidgetCenter.shared.reloadAllTimelines()
+    #endif
+    logger.debug("Widget data cleared")
   }
 
   private static nonisolated func bookToEntry(_ book: Book) -> WidgetBookEntry {
@@ -155,5 +169,18 @@ enum WidgetDataService {
 
   private static nonisolated func seriesThumbnailFileName(seriesId: String) -> String {
     "series_\(seriesId).jpg"
+  }
+
+  private static nonisolated func isProtectedInstance(_ instanceId: String) async -> Bool {
+    guard !instanceId.isEmpty else { return false }
+    do {
+      let database = try await DatabaseOperator.database()
+      return try await database.isServerProtected(instanceId: instanceId)
+    } catch {
+      AppLogger(.app).error(
+        "Failed to check protected server state for widget data: \(error.localizedDescription)"
+      )
+      return true
+    }
   }
 }

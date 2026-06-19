@@ -34,29 +34,35 @@ import Foundation
 
     static nonisolated func indexBook(_ book: Book, instanceId: String) {
       guard AppConfig.enableSpotlightIndexing else { return }
-      guard shouldIndex(libraryId: book.libraryId, instanceId: instanceId) else {
-        removeBook(bookId: book.id, instanceId: instanceId)
-        if AppConfig.enableSpotlightSeriesIndexing {
-          indexSeries(
-            seriesId: book.seriesId,
-            seriesTitle: book.seriesTitle,
-            instanceId: instanceId
-          )
+      Task.detached(priority: .utility) {
+        guard !(await isProtectedInstance(instanceId)) else {
+          removeBook(bookId: book.id, instanceId: instanceId)
+          removeSeries(seriesId: book.seriesId, instanceId: instanceId)
+          return
         }
-        return
-      }
 
-      if AppConfig.enableSpotlightBookIndexing {
-        let attributeSet = makeBookAttributeSet(for: book)
-        let bookId = book.id
-        let title = book.metadata.title
-        let item = CSSearchableItem(
-          uniqueIdentifier: bookIdentifier(bookId: bookId, instanceId: instanceId),
-          domainIdentifier: domainIdentifier,
-          attributeSet: attributeSet
-        )
+        guard shouldIndex(libraryId: book.libraryId, instanceId: instanceId) else {
+          removeBook(bookId: book.id, instanceId: instanceId)
+          if AppConfig.enableSpotlightSeriesIndexing {
+            indexSeries(
+              seriesId: book.seriesId,
+              seriesTitle: book.seriesTitle,
+              instanceId: instanceId
+            )
+          }
+          return
+        }
 
-        Task.detached(priority: .utility) {
+        if AppConfig.enableSpotlightBookIndexing {
+          let attributeSet = makeBookAttributeSet(for: book)
+          let bookId = book.id
+          let title = book.metadata.title
+          let item = CSSearchableItem(
+            uniqueIdentifier: bookIdentifier(bookId: bookId, instanceId: instanceId),
+            domainIdentifier: domainIdentifier,
+            attributeSet: attributeSet
+          )
+
           do {
             try await CSSearchableIndex.default().indexSearchableItems([item])
             AppLogger(.app).debug("Indexed book for Spotlight: \(title)")
@@ -64,19 +70,19 @@ import Foundation
             AppLogger(.app).error(
               "Failed to index book \(bookId): \(error.localizedDescription)")
           }
+        } else {
+          removeBook(bookId: book.id, instanceId: instanceId)
         }
-      } else {
-        removeBook(bookId: book.id, instanceId: instanceId)
-      }
 
-      if AppConfig.enableSpotlightSeriesIndexing {
-        indexSeries(
-          seriesId: book.seriesId,
-          seriesTitle: book.seriesTitle,
-          instanceId: instanceId
-        )
-      } else {
-        removeSeries(seriesId: book.seriesId, instanceId: instanceId)
+        if AppConfig.enableSpotlightSeriesIndexing {
+          indexSeries(
+            seriesId: book.seriesId,
+            seriesTitle: book.seriesTitle,
+            instanceId: instanceId
+          )
+        } else {
+          removeSeries(seriesId: book.seriesId, instanceId: instanceId)
+        }
       }
     }
 
@@ -116,6 +122,11 @@ import Foundation
       guard AppConfig.enableSpotlightIndexing else { return }
       let domain = domainIdentifier
       Task.detached(priority: .utility) {
+        guard !(await isProtectedInstance(instanceId)) else {
+          removeAllItems()
+          return
+        }
+
         let books =
           (try? await DatabaseOperator.database().fetchDownloadedBooks(instanceId: instanceId)) ?? []
         let filteredBooks = filterBooksForIndexedLibraries(books, instanceId: instanceId)
@@ -178,6 +189,19 @@ import Foundation
         return true
       }
       return selectedLibraryIds.contains(libraryId)
+    }
+
+    private static nonisolated func isProtectedInstance(_ instanceId: String) async -> Bool {
+      guard !instanceId.isEmpty else { return false }
+      do {
+        let database = try await DatabaseOperator.database()
+        return try await database.isServerProtected(instanceId: instanceId)
+      } catch {
+        AppLogger(.app).error(
+          "Failed to check protected server state for Spotlight: \(error.localizedDescription)"
+        )
+        return true
+      }
     }
 
     private static nonisolated func filterBooksForIndexedLibraries(

@@ -6,6 +6,11 @@
 import SwiftUI
 
 struct ContentView: View {
+  private enum ProtectedAccessGate: Equatable {
+    case checking
+    case unlocked
+  }
+
   let authViewModel: AuthViewModel
   let readerPresentation: ReaderPresentationManager
   @Environment(\.scenePhase) private var scenePhase
@@ -17,6 +22,7 @@ struct ContentView: View {
   @AppStorage("privacyProtection") private var privacyProtection: Bool = false
 
   @State private var showPrivacyBlur = false
+  @State private var protectedAccessGate: ProtectedAccessGate = .checking
 
   #if os(iOS) || os(tvOS)
     @Namespace private var zoomNamespace
@@ -34,7 +40,14 @@ struct ContentView: View {
   }
 
   private var isReady: Bool {
-    (authViewModel.bootstrapState == .ready || isOffline) && !syncViewModel.isSyncing
+    protectedAccessGate == .unlocked
+      && (authViewModel.bootstrapState == .ready || isOffline)
+      && !syncViewModel.isSyncing
+  }
+
+  private var protectedAccessTaskID: String {
+    guard isLoggedIn else { return "logged-out" }
+    return current.instanceId
   }
 
   private var automaticReadingHistorySyncTrigger: String {
@@ -75,9 +88,11 @@ struct ContentView: View {
             }
           }
         }
-        .task(id: isLoggedIn) {
+        .task(id: protectedAccessTaskID) {
           guard isLoggedIn else { return }
+          protectedAccessGate = .checking
           guard await authenticateProtectedCurrentInstanceIfNeeded() else { return }
+          protectedAccessGate = .unlocked
 
           if authViewModel.bootstrapState == .requiresValidation {
             let serverReachable = await authViewModel.loadCurrentUser()
@@ -95,7 +110,7 @@ struct ContentView: View {
           if enableSSE && !isOffline {
             await SSEService.shared.connect()
           }
-          WidgetDataService.refreshWidgetData()
+          await ExternalContentSurfaceService.refreshWidgetsForCurrentInstance()
 
           // Wire automatic recovery from auto-entered offline mode. The
           // primary mechanism is `OfflineRecoveryService`'s backoff probe
@@ -192,8 +207,8 @@ struct ContentView: View {
             }
             Task(priority: .utility) {
               await SSEService.shared.disconnect(notify: false)
+              await ExternalContentSurfaceService.refreshWidgetsForCurrentInstance()
             }
-            WidgetDataService.refreshWidgetData()
           }
         }
       } else {

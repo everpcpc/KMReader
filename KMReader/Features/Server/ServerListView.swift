@@ -36,8 +36,12 @@ struct ServerListView: View {
     current.instanceId.isEmpty ? nil : current.instanceId
   }
 
+  private var canShowProtectedServers: Bool {
+    showProtectedServers && LocalDeviceAuthenticationService.shared.hasProtectedAccess
+  }
+
   private var visibleInstances: [ServerDisplayItem] {
-    showProtectedServers ? allInstances : allInstances.filter { !$0.protected }
+    canShowProtectedServers ? allInstances : allInstances.filter { !$0.protected }
   }
 
   var body: some View {
@@ -47,7 +51,7 @@ struct ServerListView: View {
           Toggle(isOn: showProtectedServersBinding) {
             Label(
               String(localized: "Show Protected Servers"),
-              systemImage: showProtectedServers ? "eye" : "eye.slash"
+              systemImage: canShowProtectedServers ? "eye" : "eye.slash"
             )
           }
           .disabled(isAuthenticatingProtectedServers)
@@ -90,10 +94,10 @@ struct ServerListView: View {
                 }
               },
               onEdit: {
-                editingInstance = instance
+                edit(instance)
               },
               onDelete: {
-                instancePendingDeletion = instance
+                confirmDelete(instance)
               }
             )
             // .tvFocusableHighlight()
@@ -186,7 +190,11 @@ struct ServerListView: View {
       }
     }
     .task {
+      resetProtectedVisibilityIfNeeded()
       await loadInstances()
+    }
+    .onAppear {
+      resetProtectedVisibilityIfNeeded()
     }
     .onChange(of: showLogin) { _, isPresented in
       if !isPresented {
@@ -322,7 +330,7 @@ struct ServerListView: View {
 
   private var showProtectedServersBinding: Binding<Bool> {
     Binding(
-      get: { showProtectedServers },
+      get: { canShowProtectedServers },
       set: { newValue in
         if newValue {
           authenticateAndShowProtectedServers()
@@ -333,6 +341,12 @@ struct ServerListView: View {
         }
       }
     )
+  }
+
+  private func resetProtectedVisibilityIfNeeded() {
+    guard showProtectedServers else { return }
+    guard !LocalDeviceAuthenticationService.shared.hasProtectedAccess else { return }
+    showProtectedServers = false
   }
 
   private var protectedServersFooter: some View {
@@ -365,6 +379,33 @@ struct ServerListView: View {
       }
       isAuthenticatingProtectedServers = false
     }
+  }
+
+  private func edit(_ instance: ServerDisplayItem) {
+    Task {
+      guard await authenticateProtectedServerActionIfNeeded(instance) else { return }
+      editingInstance = instance
+    }
+  }
+
+  private func confirmDelete(_ instance: ServerDisplayItem) {
+    Task {
+      guard await authenticateProtectedServerActionIfNeeded(instance) else { return }
+      instancePendingDeletion = instance
+    }
+  }
+
+  private func authenticateProtectedServerActionIfNeeded(_ instance: ServerDisplayItem) async -> Bool {
+    guard instance.protected else { return true }
+    let authenticated = await LocalDeviceAuthenticationService.shared.authenticateProtectedAccess(
+      reason: String(localized: "Authenticate to show protected servers.")
+    )
+    if !authenticated {
+      withAnimation {
+        showProtectedServers = false
+      }
+    }
+    return authenticated
   }
 
 }

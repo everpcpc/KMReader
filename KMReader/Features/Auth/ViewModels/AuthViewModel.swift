@@ -182,6 +182,7 @@ class AuthViewModel {
         displayName: instance.displayName,
         instanceId: instance.instanceId,
         shouldPersistInstance: false,
+        protected: instance.protected,
         successMessage: String(localized: "Switched to \(instance.name)")
       )
 
@@ -218,6 +219,9 @@ class AuthViewModel {
         current.clearUserMetadata()
         AppConfig.current = current
         bootstrapState = .ready
+        if instance.protected {
+          ExternalContentSurfaceService.clearAll()
+        }
 
         ErrorManager.shared.notify(
           message: String(localized: "Server unreachable, switched to offline mode")
@@ -243,6 +247,7 @@ class AuthViewModel {
     displayName: String?,
     instanceId: String? = nil,
     shouldPersistInstance: Bool,
+    protected: Bool = false,
     successMessage: String
   ) async throws {
     // Update AppConfig only after validation succeeds
@@ -306,11 +311,10 @@ class AuthViewModel {
     await SSEService.shared.disconnect()
     await SSEService.shared.connect()
 
-    WidgetDataService.refreshWidgetData()
-    #if os(iOS) || os(macOS)
-      SpotlightIndexService.removeAllItems()
-      SpotlightIndexService.indexAllDownloadedBooks(instanceId: finalInstanceId)
-    #endif
+    ExternalContentSurfaceService.updateAfterSelectingInstance(
+      instanceId: finalInstanceId,
+      protected: protected
+    )
   }
 
   func updatePassword(password: String) async throws {

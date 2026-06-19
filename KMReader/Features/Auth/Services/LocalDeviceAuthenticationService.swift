@@ -27,6 +27,11 @@ final class LocalDeviceAuthenticationService {
     #endif
   }
 
+  var hasProtectedAccess: Bool {
+    guard let expiresAt = protectedAccessExpiresAt else { return false }
+    return expiresAt > Date()
+  }
+
   func authenticateProtectedAccess(reason: String) async -> Bool {
     if isProtectedAccessUnlocked {
       return true
@@ -66,8 +71,10 @@ final class LocalDeviceAuthenticationService {
   }
 
   private var isProtectedAccessUnlocked: Bool {
-    guard let expiresAt = protectedAccessExpiresAt else { return false }
-    guard expiresAt > Date() else {
+    guard let expiresAt = protectedAccessExpiresAt else {
+      return false
+    }
+    if expiresAt <= Date() {
       protectedAccessExpiresAt = nil
       return false
     }
