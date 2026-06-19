@@ -33,7 +33,7 @@ struct OfflineBooksView: View {
       } else {
         Section {
           HStack {
-            Text(String(localized: "settings.offline_books.total_size"))
+            Text(String(localized: "settings.offline_books.total"))
               .fontWeight(.semibold)
             Spacer()
             totalMetrics(
@@ -304,17 +304,17 @@ struct OfflineBooksView: View {
   private func totalMetrics(count: Int, size: Int64) -> some View {
     HStack(spacing: 6) {
       Text(booksCountText(count))
-        .font(.caption)
-        .foregroundColor(.secondary)
+      Text("/")
       Text(formatter.string(fromByteCount: size))
-        .foregroundColor(.accentColor)
     }
+    .foregroundColor(.accentColor)
     .lineLimit(1)
   }
 
   private func downloadedMetrics(count: Int, size: Int64) -> some View {
     HStack(spacing: 6) {
       Text(booksCountText(count))
+      Text("/")
       Text(formatter.string(fromByteCount: size))
     }
     .font(.caption)
