@@ -304,7 +304,7 @@ struct OfflineBooksView: View {
   private func totalMetrics(count: Int, size: Int64) -> some View {
     HStack(spacing: 6) {
       Text(booksCountText(count))
-      Text("/")
+      Text(verbatim: "·")
       Text(formatter.string(fromByteCount: size))
     }
     .foregroundColor(.accentColor)
@@ -314,7 +314,7 @@ struct OfflineBooksView: View {
   private func downloadedMetrics(count: Int, size: Int64) -> some View {
     HStack(spacing: 6) {
       Text(booksCountText(count))
-      Text("/")
+      Text(verbatim: "·")
       Text(formatter.string(fromByteCount: size))
     }
     .font(.caption)
