@@ -36,8 +36,10 @@ struct OfflineBooksView: View {
             Text(String(localized: "settings.offline_books.total_size"))
               .fontWeight(.semibold)
             Spacer()
-            Text(formatter.string(fromByteCount: snapshot.totalDownloadedSize))
-              .foregroundColor(.accentColor)
+            totalMetrics(
+              count: snapshot.totalDownloadedBooksCount,
+              size: snapshot.totalDownloadedSize
+            )
           }
 
           Button {
@@ -96,9 +98,10 @@ struct OfflineBooksView: View {
             header: HStack {
               Text(lGroup.name ?? String(localized: "Unknown"))
               Spacer()
-              Text(formatter.string(fromByteCount: lGroup.downloadedSize))
-                .font(.caption)
-                .foregroundColor(.secondary)
+              downloadedMetrics(
+                count: lGroup.downloadedBooksCount,
+                size: lGroup.downloadedSize
+              )
             }
           ) {
             ForEach(lGroup.seriesGroups) { sGroup in
@@ -107,9 +110,10 @@ struct OfflineBooksView: View {
                   header: HStack {
                     Text(sGroup.name ?? String(localized: "Unknown"))
                     Spacer()
-                    Text(formatter.string(fromByteCount: sGroup.downloadedSize))
-                      .font(.caption)
-                      .foregroundColor(.secondary)
+                    downloadedMetrics(
+                      count: sGroup.downloadedBooksCount,
+                      size: sGroup.downloadedSize
+                    )
                   }
                 ) {
                   ForEach(sGroup.books) { book in
@@ -158,9 +162,10 @@ struct OfflineBooksView: View {
                   HStack {
                     Text(sGroup.name ?? String(localized: "Unknown"))
                     Spacer()
-                    Text(formatter.string(fromByteCount: sGroup.downloadedSize))
-                      .font(.caption)
-                      .foregroundColor(.secondary)
+                    downloadedMetrics(
+                      count: sGroup.downloadedBooksCount,
+                      size: sGroup.downloadedSize
+                    )
                   }
                 }
                 .swipeActions(edge: .trailing) {
@@ -179,9 +184,10 @@ struct OfflineBooksView: View {
                   header: HStack {
                     Text(String(localized: "settings.offline_books.oneshots"))
                     Spacer()
-                    Text(formatter.string(fromByteCount: downloadedSize(for: lGroup.oneshotBooks)))
-                      .font(.caption)
-                      .foregroundColor(.secondary)
+                    downloadedMetrics(
+                      count: lGroup.oneshotBooks.count,
+                      size: downloadedSize(for: lGroup.oneshotBooks)
+                    )
                   }
                 ) {
                   ForEach(lGroup.oneshotBooks) { book in
@@ -231,9 +237,10 @@ struct OfflineBooksView: View {
                   HStack {
                     Text(String(localized: "settings.offline_books.oneshots"))
                     Spacer()
-                    Text(formatter.string(fromByteCount: downloadedSize(for: lGroup.oneshotBooks)))
-                      .font(.caption)
-                      .foregroundColor(.secondary)
+                    downloadedMetrics(
+                      count: lGroup.oneshotBooks.count,
+                      size: downloadedSize(for: lGroup.oneshotBooks)
+                    )
                   }
                 }
                 .swipeActions(edge: .trailing) {
@@ -285,6 +292,34 @@ struct OfflineBooksView: View {
 
   private func downloadedSize(for books: [OfflineDownloadedBookItem]) -> Int64 {
     books.reduce(0) { $0 + $1.downloadedSize }
+  }
+
+  private func booksCountText(_ count: Int) -> String {
+    String(
+      format: String(localized: "library.list.metrics.books", defaultValue: "%lld books"),
+      Int64(count)
+    )
+  }
+
+  private func totalMetrics(count: Int, size: Int64) -> some View {
+    HStack(spacing: 6) {
+      Text(booksCountText(count))
+        .font(.caption)
+        .foregroundColor(.secondary)
+      Text(formatter.string(fromByteCount: size))
+        .foregroundColor(.accentColor)
+    }
+    .lineLimit(1)
+  }
+
+  private func downloadedMetrics(count: Int, size: Int64) -> some View {
+    HStack(spacing: 6) {
+      Text(booksCountText(count))
+      Text(formatter.string(fromByteCount: size))
+    }
+    .font(.caption)
+    .foregroundColor(.secondary)
+    .lineLimit(1)
   }
 
   private func deleteBook(_ book: OfflineDownloadedBookItem) {

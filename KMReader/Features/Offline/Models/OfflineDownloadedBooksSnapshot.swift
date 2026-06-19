@@ -33,6 +33,10 @@ nonisolated struct OfflineDownloadedSeriesGroup: Equatable, Identifiable, Sendab
   let name: String?
   let books: [OfflineDownloadedBookItem]
 
+  var downloadedBooksCount: Int {
+    books.count
+  }
+
   var downloadedSize: Int64 {
     books.reduce(0) { $0 + $1.downloadedSize }
   }
@@ -49,6 +53,11 @@ nonisolated struct OfflineDownloadedLibraryGroup: Equatable, Identifiable, Senda
     let oneshotSize = oneshotBooks.reduce(0) { $0 + $1.downloadedSize }
     return seriesSize + oneshotSize
   }
+
+  var downloadedBooksCount: Int {
+    let seriesCount = seriesGroups.reduce(0) { $0 + $1.downloadedBooksCount }
+    return seriesCount + oneshotBooks.count
+  }
 }
 
 nonisolated struct OfflineDownloadedBooksSnapshot: Equatable, Sendable {
@@ -62,6 +71,10 @@ nonisolated struct OfflineDownloadedBooksSnapshot: Equatable, Sendable {
 
   var totalDownloadedSize: Int64 {
     libraryGroups.reduce(0) { $0 + $1.downloadedSize }
+  }
+
+  var totalDownloadedBooksCount: Int {
+    libraryGroups.reduce(0) { $0 + $1.downloadedBooksCount }
   }
 
   var hasReadBooks: Bool {
