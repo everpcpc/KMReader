@@ -101,6 +101,7 @@ class BookViewModel {
         bookId: bookId,
         seriesId: updatedBook.seriesId
       )
+      await postReadStatusDashboardRefresh()
       ErrorManager.shared.notify(message: String(localized: "notification.book.markedRead"))
     } catch {
       ErrorManager.shared.alert(error: error)
@@ -119,6 +120,7 @@ class BookViewModel {
         bookId: bookId,
         seriesId: updatedBook.seriesId
       )
+      await postReadStatusDashboardRefresh()
       ErrorManager.shared.notify(message: String(localized: "notification.book.markedUnread"))
     } catch {
       ErrorManager.shared.alert(error: error)
@@ -197,6 +199,13 @@ class BookViewModel {
     var fallback = browseOpts
     fallback.sortField = .dateAdded
     return fallback
+  }
+
+  private func postReadStatusDashboardRefresh() async {
+    await DashboardSectionRefreshNotifier.postReadStatusChanged(
+      source: .manual,
+      reason: "Book read status changed"
+    )
   }
 
   func loadReadListBooks(

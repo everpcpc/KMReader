@@ -85,6 +85,7 @@ final class ReaderPresentationManager {
     #endif
 
     ContentProjectionNotifier.readerDidOpen(sessionID: session.id)
+    DashboardRefreshCoordinator.shared.readerDidOpen(sessionID: session.id)
 
     #if os(iOS)
       ReaderLiveActivityManager.shared.readerDidOpen(book: book, incognito: incognito)
@@ -373,10 +374,17 @@ final class ReaderPresentationManager {
         )
       }
       await SyncService.syncVisitedItems(bookIds: bookIds, seriesIds: seriesIds)
+      if postsContentProjectionChange {
+        await DashboardSectionRefreshNotifier.postReadingProgressChanged(
+          source: .manual,
+          reason: "Reader closed after progress sync"
+        )
+      }
       WidgetDataService.refreshWidgetData()
       if endsReaderActivity {
         await MainActor.run {
           ContentProjectionNotifier.readerDidClose(sessionID: session.id)
+          DashboardRefreshCoordinator.shared.readerDidClose(sessionID: session.id)
         }
       }
     }
@@ -385,5 +393,6 @@ final class ReaderPresentationManager {
   private func finishReaderActivityIfNeeded(_ endsReaderActivity: Bool, sessionID: UUID) {
     guard endsReaderActivity else { return }
     ContentProjectionNotifier.readerDidClose(sessionID: sessionID)
+    DashboardRefreshCoordinator.shared.readerDidClose(sessionID: sessionID)
   }
 }

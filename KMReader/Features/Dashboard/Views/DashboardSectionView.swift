@@ -5,21 +5,9 @@
 
 import SwiftUI
 
-enum DashboardRefreshSource {
-  case manual
-  case auto
-}
-
-struct DashboardRefreshTrigger: Equatable {
-  let id: UUID
-  let source: DashboardRefreshSource
-  var sectionsToRefresh: Set<DashboardSection>?  // nil means refresh all
-}
-
 @MainActor
 struct DashboardSectionView: View {
   let section: DashboardSection
-  let refreshTrigger: DashboardRefreshTrigger
 
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
@@ -156,23 +144,12 @@ struct DashboardSectionView: View {
     #endif
     .opacity(pagination.isEmpty ? 0 : 1)
     .frame(height: pagination.isEmpty ? 0 : nil)
-    .onChange(of: refreshTrigger) { _, newTrigger in
-      // Skip if targeted refresh excludes this section
-      if let sections = newTrigger.sectionsToRefresh, !sections.contains(section) {
-        logger.debug("Dashboard section \(section) skipping refresh: targeted other sections")
+    .onReceive(NotificationCenter.default.publisher(for: .dashboardSectionsShouldReload)) {
+      notification in
+      guard let command = DashboardSectionRefreshNotifier.reloadCommand(from: notification) else {
         return
       }
-
-      if newTrigger.source == .auto, pagination.currentPage > 1 {
-        logger.debug(
-          "Dashboard section \(section) skipping auto-refresh: deep in pagination (page \(pagination.currentPage))"
-        )
-        return
-      }
-      Task {
-        logger.debug("Dashboard section \(section) refreshing")
-        await refresh()
-      }
+      handleReloadCommand(command)
     }
     .task {
       guard !hasLoadedInitial else { return }
@@ -203,6 +180,25 @@ struct DashboardSectionView: View {
   private func refresh() async {
     pagination.reset()
     await loadMore()
+  }
+
+  private func handleReloadCommand(_ command: DashboardSectionReloadCommand) {
+    guard command.includes(section) else {
+      logger.debug("Dashboard section \(section) skipping reload: targeted other sections")
+      return
+    }
+
+    if command.source == .auto, pagination.currentPage > 1 {
+      logger.debug(
+        "Dashboard section \(section) skipping auto-refresh: deep in pagination (page \(pagination.currentPage))"
+      )
+      return
+    }
+
+    Task {
+      logger.debug("Dashboard section \(section) reloading")
+      await refresh()
+    }
   }
 
   private func loadMore() async {

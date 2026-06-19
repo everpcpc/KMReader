@@ -14,7 +14,6 @@ extension Notification.Name {
 
 nonisolated enum ContentProjectionNotifier {
   static let localRefreshDelay: UInt64 = 750_000_000
-  static let remoteRefreshDelay: UInt64 = 5_000_000_000
 
   @MainActor private static var activeReaderSessionID: UUID?
   @MainActor private static var pendingFlushTask: Task<Void, Never>?
@@ -396,7 +395,6 @@ nonisolated enum ContentProjectionNotifier {
     for readListId in readListIds {
       postReadListNow(readListId)
     }
-
     schedulePendingFlush()
   }
 

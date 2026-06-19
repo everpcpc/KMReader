@@ -156,6 +156,10 @@ struct BookContextMenu: View {
           bookId: bookId,
           seriesId: book.seriesId
         )
+        await DashboardSectionRefreshNotifier.postReadStatusChanged(
+          source: .manual,
+          reason: "Book read status changed"
+        )
         ErrorManager.shared.notify(message: String(localized: "notification.book.markedRead"))
         onMutationCompleted?()
       } catch {
@@ -172,6 +176,10 @@ struct BookContextMenu: View {
         await ContentProjectionNotifier.postBookAndSeriesDidChange(
           bookId: bookId,
           seriesId: book.seriesId
+        )
+        await DashboardSectionRefreshNotifier.postReadStatusChanged(
+          source: .manual,
+          reason: "Book read status changed"
         )
         ErrorManager.shared.notify(message: String(localized: "notification.book.markedUnread"))
         onMutationCompleted?()

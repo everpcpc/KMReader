@@ -217,6 +217,10 @@ struct OneshotDetailView: View {
           bookId: book.id,
           seriesId: seriesId
         )
+        await DashboardSectionRefreshNotifier.postReadStatusChanged(
+          source: .manual,
+          reason: "Book read status changed"
+        )
         ErrorManager.shared.notify(message: String(localized: "notification.book.markedRead"))
         await refreshOneshotData()
       } catch {
@@ -234,6 +238,10 @@ struct OneshotDetailView: View {
         await ContentProjectionNotifier.postBookAndSeriesDidChange(
           bookId: book.id,
           seriesId: seriesId
+        )
+        await DashboardSectionRefreshNotifier.postReadStatusChanged(
+          source: .manual,
+          reason: "Book read status changed"
         )
         ErrorManager.shared.notify(message: String(localized: "notification.book.markedUnread"))
         await refreshOneshotData()

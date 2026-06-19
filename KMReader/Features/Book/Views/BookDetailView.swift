@@ -169,6 +169,10 @@ struct BookDetailView: View {
         } else {
           await ContentProjectionNotifier.postBookDidChange(bookId: bookId)
         }
+        await DashboardSectionRefreshNotifier.postReadStatusChanged(
+          source: .manual,
+          reason: "Book read status changed"
+        )
         ErrorManager.shared.notify(message: String(localized: "notification.book.markedRead"))
         await loadBook()
       } catch {
@@ -194,6 +198,10 @@ struct BookDetailView: View {
           _ = try? await SyncService.syncBook(bookId: bookId)
           await ContentProjectionNotifier.postBookDidChange(bookId: bookId)
         }
+        await DashboardSectionRefreshNotifier.postReadStatusChanged(
+          source: .manual,
+          reason: "Book read status changed"
+        )
         ErrorManager.shared.notify(message: String(localized: "notification.book.markedUnread"))
         await loadBook()
       } catch {

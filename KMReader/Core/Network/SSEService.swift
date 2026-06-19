@@ -207,32 +207,32 @@ actor SSEService {
   private func handleSSEAutoRefreshEvent(_ eventType: SSEEventType, data: String) async {
     switch eventType {
     case .seriesAdded, .seriesChanged, .seriesDeleted:
-      guard await postSeriesProjectionChange(data: data) else {
+      guard await postSeriesDashboardRefresh(data: data) else {
         broadcastNotification(type: eventType, data: data)
         return
       }
     case .bookAdded, .bookChanged, .bookDeleted, .bookImported:
-      guard await postBookProjectionChange(data: data) else {
+      guard await postBookDashboardRefresh(data: data) else {
         broadcastNotification(type: eventType, data: data)
         return
       }
     case .collectionAdded, .collectionChanged, .collectionDeleted:
-      guard await postCollectionProjectionChange(data: data) else {
+      guard await postCollectionDashboardRefresh(data: data) else {
         broadcastNotification(type: eventType, data: data)
         return
       }
     case .readListAdded, .readListChanged, .readListDeleted:
-      guard await postReadListProjectionChange(data: data) else {
+      guard await postReadListDashboardRefresh(data: data) else {
         broadcastNotification(type: eventType, data: data)
         return
       }
     case .readProgressChanged, .readProgressDeleted:
-      guard await postReadProgressProjectionChange(data: data) else {
+      guard await postReadProgressDashboardRefresh(data: data) else {
         broadcastNotification(type: eventType, data: data)
         return
       }
     case .readProgressSeriesChanged, .readProgressSeriesDeleted:
-      guard await postReadProgressSeriesProjectionChange(data: data) else {
+      guard await postReadProgressSeriesDashboardRefresh(data: data) else {
         broadcastNotification(type: eventType, data: data)
         return
       }
@@ -268,65 +268,62 @@ actor SSEService {
     }
   }
 
-  private func postSeriesProjectionChange(data: String) async -> Bool {
-    guard let seriesId = stringValue("seriesId", from: data) else { return false }
-    await ContentProjectionNotifier.postSeriesDidChange(
-      seriesId: seriesId,
-      libraryId: stringValue("libraryId", from: data),
-      refreshDelay: ContentProjectionNotifier.remoteRefreshDelay
+  private func postSeriesDashboardRefresh(data: String) async -> Bool {
+    guard stringValue("seriesId", from: data) != nil else { return false }
+    await DashboardSectionRefreshNotifier.postSeriesContentChanged(
+      source: .auto,
+      reason: "Remote series changed"
     )
     return true
   }
 
-  private func postBookProjectionChange(data: String) async -> Bool {
+  private func postBookDashboardRefresh(data: String) async -> Bool {
     guard
-      let bookId = stringValue("bookId", from: data),
-      let seriesId = stringValue("seriesId", from: data)
+      stringValue("bookId", from: data) != nil,
+      stringValue("seriesId", from: data) != nil
     else { return false }
 
-    await ContentProjectionNotifier.postBookAndSeriesDidChange(
-      bookId: bookId,
-      instanceId: AppConfig.current.instanceId,
-      seriesId: seriesId,
-      libraryId: stringValue("libraryId", from: data),
-      refreshDelay: ContentProjectionNotifier.remoteRefreshDelay
+    await DashboardSectionRefreshNotifier.post(
+      sections: DashboardSectionRefreshNotifier.bookContentSections
+        .union(DashboardSectionRefreshNotifier.seriesContentSections),
+      source: .auto,
+      reason: "Remote book changed"
     )
     return true
   }
 
-  private func postCollectionProjectionChange(data: String) async -> Bool {
-    guard let collectionId = stringValue("collectionId", from: data) else { return false }
-    await ContentProjectionNotifier.postCollectionDidChange(
-      collectionId: collectionId,
-      refreshDelay: ContentProjectionNotifier.remoteRefreshDelay
+  private func postCollectionDashboardRefresh(data: String) async -> Bool {
+    guard stringValue("collectionId", from: data) != nil else { return false }
+    await DashboardSectionRefreshNotifier.postCollectionContentChanged(
+      source: .auto,
+      reason: "Remote collection changed"
     )
     return true
   }
 
-  private func postReadListProjectionChange(data: String) async -> Bool {
-    guard let readListId = stringValue("readListId", from: data) else { return false }
-    await ContentProjectionNotifier.postReadListDidChange(
-      readListId: readListId,
-      refreshDelay: ContentProjectionNotifier.remoteRefreshDelay
+  private func postReadListDashboardRefresh(data: String) async -> Bool {
+    guard stringValue("readListId", from: data) != nil else { return false }
+    await DashboardSectionRefreshNotifier.postReadListContentChanged(
+      source: .auto,
+      reason: "Remote read-list changed"
     )
     return true
   }
 
-  private func postReadProgressProjectionChange(data: String) async -> Bool {
-    guard let bookId = stringValue("bookId", from: data) else { return false }
-    await ContentProjectionNotifier.postBookAndSeriesDidChange(
-      bookId: bookId,
-      refreshDelay: ContentProjectionNotifier.remoteRefreshDelay
+  private func postReadProgressDashboardRefresh(data: String) async -> Bool {
+    guard stringValue("bookId", from: data) != nil else { return false }
+    await DashboardSectionRefreshNotifier.postReadStatusChanged(
+      source: .auto,
+      reason: "Remote read progress changed"
     )
     return true
   }
 
-  private func postReadProgressSeriesProjectionChange(data: String) async -> Bool {
-    guard let seriesId = stringValue("seriesId", from: data) else { return false }
-    await ContentProjectionNotifier.postSeriesDidChange(
-      seriesId: seriesId,
-      libraryId: stringValue("libraryId", from: data),
-      refreshDelay: ContentProjectionNotifier.remoteRefreshDelay
+  private func postReadProgressSeriesDashboardRefresh(data: String) async -> Bool {
+    guard stringValue("seriesId", from: data) != nil else { return false }
+    await DashboardSectionRefreshNotifier.postReadStatusChanged(
+      source: .auto,
+      reason: "Remote series read progress changed"
     )
     return true
   }

@@ -3,18 +3,13 @@
 //
 //
 
-import Combine
-import OSLog
 import SwiftUI
 
 struct DashboardView: View {
   let authViewModel: AuthViewModel
   let readerPresentation: ReaderPresentationManager
-  @State private var refreshTrigger = DashboardRefreshTrigger(id: UUID(), source: .manual)
   @State private var isRefreshing = false
-  @State private var pendingRefreshTask: Task<Void, Never>?
   @State private var showLibraryPicker = false
-  @State private var shouldRefreshAfterReading = false
   @State private var isCheckingConnection = false
   @State private var offlineQueueingSections: Set<DashboardSection> = []
 
@@ -27,12 +22,7 @@ struct DashboardView: View {
 
   private let sseService = SSEService.shared
   private let sectionCacheStore = DashboardSectionCacheStore.shared
-  private let debounceInterval: TimeInterval = 5.0  // 5 seconds debounce
   private let logger = AppLogger(.dashboard)
-
-  private var isReaderActive: Bool {
-    readerPresentation.currentSession != nil
-  }
 
   private var gridDensityBinding: Binding<GridDensity> {
     Binding(
@@ -74,7 +64,9 @@ struct DashboardView: View {
             .disabled(isCheckingConnection)
           } else {
             Button {
-              refreshDashboard(reason: "Manual tvOS button")
+              Task {
+                await refreshDashboard(reason: "Manual tvOS button")
+              }
             } label: {
               Label("Refresh", systemImage: "arrow.clockwise")
             }
@@ -88,136 +80,36 @@ struct DashboardView: View {
     .padding()
   }
 
-  private func performRefresh(
-    reason: String,
-    source: DashboardRefreshSource,
-    sectionsToRefresh: Set<DashboardSection>? = nil
-  ) {
-    logger.debug("Dashboard refresh start: \(reason)")
-
-    Task {
-      if sectionsToRefresh == nil {
-        isRefreshing = true
-      }
-
-      refreshTrigger = DashboardRefreshTrigger(
-        id: UUID(),
-        source: source,
-        sectionsToRefresh: sectionsToRefresh
-      )
-
-      guard sectionsToRefresh == nil else { return }
-
-      defer { isRefreshing = false }
-      // Wait for 2 seconds to allow any pending refreshes to complete
-      try? await Task.sleep(nanoseconds: 2_000_000_000)  // 2 seconds
-    }
-  }
-
-  private func refreshSections(_ sections: Set<DashboardSection>, reason: String) {
-    performRefresh(
-      reason: "Dashboard partial refresh: \(reason)",
-      source: .manual,
-      sectionsToRefresh: sections
-    )
-  }
-
-  private func refreshDashboard(reason: String) {
+  @MainActor
+  private func refreshDashboard(reason: String) async {
     logger.debug("Dashboard refresh requested: \(reason)")
-
-    // Cancel any pending debounced refresh
-    pendingRefreshTask?.cancel()
-    pendingRefreshTask = nil
-    shouldRefreshAfterReading = false
 
     // Update last event time for manual refreshes
     AppConfig.serverLastUpdate = Date()
 
     // Check SSE connection status and reconnect if disconnected
     if enableSSE {
-      Task {
-        await SSEService.shared.connect()
-      }
+      await SSEService.shared.connect()
     }
 
-    // Perform refresh immediately
-    performRefresh(reason: reason, source: .manual)
-  }
-
-  private func scheduleRefresh(reason: String) {
-    // Skip if auto-refresh is disabled
-    guard enableSSEAutoRefresh else { return }
-
-    logger.debug("Dashboard auto-refresh scheduled: \(reason)")
-
-    // Cancel any existing pending refresh
-    pendingRefreshTask?.cancel()
-    pendingRefreshTask = nil
-
-    // Defer refresh while actively reading
-    if isReaderActive {
-      shouldRefreshAfterReading = true
-      AppConfig.serverLastUpdate = Date()
-      return
-    }
-
-    // Record latest event time immediately
-    AppConfig.serverLastUpdate = Date()
-
-    // Schedule a new refresh after debounce interval
-    // This ensures the last event will always trigger a refresh
-    pendingRefreshTask = Task {
-      do {
-        try await Task.sleep(nanoseconds: UInt64(debounceInterval * 1_000_000_000))
-      } catch {
-        // Task cancelled
-        return
-      }
-
-      // Check if task was cancelled
-      guard !Task.isCancelled else { return }
-
-      // Perform the refresh
-      if isReaderActive {
-        shouldRefreshAfterReading = true
-      } else {
-        logger.debug("Executing scheduled refresh: \(reason)")
-        performRefresh(reason: "Auto after debounce: \(reason)", source: .auto)
-      }
-      pendingRefreshTask = nil
-    }
+    isRefreshing = true
+    await DashboardSectionRefreshNotifier.postAll(source: .manual, reason: reason)
+    try? await Task.sleep(nanoseconds: 2_000_000_000)
+    isRefreshing = false
   }
 
   private func handleSSEEvent(_ info: SSEEventInfo) {
     switch info.type {
     case .libraryAdded, .libraryChanged, .libraryDeleted:
-      scheduleRefresh(reason: "SSE \(info.type.rawValue)")
+      Task {
+        await DashboardSectionRefreshNotifier.postAll(
+          source: .auto,
+          reason: "SSE \(info.type.rawValue)"
+        )
+      }
     default:
       break
     }
-  }
-
-  private func shouldRefreshForProjection(_ notification: Notification) -> Bool {
-    let selectedLibraryIds = Set(dashboard.libraryIds)
-    guard !selectedLibraryIds.isEmpty else { return true }
-
-    let changedLibraryIds = libraryIds(from: notification)
-    guard !changedLibraryIds.isEmpty else { return true }
-
-    return !changedLibraryIds.isDisjoint(with: selectedLibraryIds)
-  }
-
-  private func libraryIds(from notification: Notification) -> Set<String> {
-    if let ids = notification.userInfo?["libraryIds"] as? Set<String> {
-      return ids
-    }
-    if let ids = notification.userInfo?["libraryIds"] as? [String] {
-      return Set(ids)
-    }
-    if let id = notification.userInfo?["libraryId"] as? String {
-      return [id]
-    }
-    return []
   }
 
   var body: some View {
@@ -233,15 +125,9 @@ struct DashboardView: View {
 
         ForEach(dashboard.sections, id: \.id) { section in
           if section.isLocalSection {
-            DashboardPinnedSectionView(
-              section: section,
-              refreshTrigger: refreshTrigger
-            )
+            DashboardPinnedSectionView(section: section)
           } else {
-            DashboardSectionView(
-              section: section,
-              refreshTrigger: refreshTrigger
-            )
+            DashboardSectionView(section: section)
           }
         }
       }
@@ -253,60 +139,31 @@ struct DashboardView: View {
       // Refresh when server switch completes (transitions from switching to not switching)
       // This avoids race condition where refresh happens after logout but before new auth is ready
       if oldValue && !newValue {
-        refreshDashboard(reason: "Server switch completed")
+        Task {
+          await refreshDashboard(reason: "Server switch completed")
+        }
       }
     }
     .onChange(of: dashboard.libraryIds) { _, _ in
       // Skip during server switch - dedicated refresh happens when switch completes
       guard !authViewModel.isSwitching else { return }
       // Bypass auto-refresh setting for configuration changes
-      refreshDashboard(reason: "Library filter changed")
+      Task {
+        await refreshDashboard(reason: "Library filter changed")
+      }
       WidgetDataService.refreshWidgetData()
     }
-    .onDisappear {
-      // Cancel any pending refresh when view disappears
-      pendingRefreshTask?.cancel()
-      pendingRefreshTask = nil
-      shouldRefreshAfterReading = false
+    .task {
+      DashboardRefreshCoordinator.shared.configure(
+        autoRefreshEnabled: enableSSEAutoRefresh
+      )
     }
     .onReceive(NotificationCenter.default.publisher(for: .sseEventReceived)) { notification in
       guard let info = notification.userInfo?["info"] as? SSEEventInfo else { return }
       handleSSEEvent(info)
     }
-    .onReceive(NotificationCenter.default.publisher(for: .bookProjectionDidChange)) { notification in
-      guard shouldRefreshForProjection(notification) else { return }
-      scheduleRefresh(reason: "Local book projection")
-    }
-    .onReceive(NotificationCenter.default.publisher(for: .seriesProjectionDidChange)) { notification in
-      guard shouldRefreshForProjection(notification) else { return }
-      scheduleRefresh(reason: "Local series projection")
-    }
-    .onReceive(NotificationCenter.default.publisher(for: .collectionProjectionDidChange)) { _ in
-      scheduleRefresh(reason: "Local collection projection")
-    }
-    .onReceive(NotificationCenter.default.publisher(for: .readListProjectionDidChange)) { _ in
-      scheduleRefresh(reason: "Local read list projection")
-    }
     .onChange(of: enableSSEAutoRefresh) { _, newValue in
-      // Cancel any pending refresh when auto-refresh is disabled
-      if !newValue {
-        pendingRefreshTask?.cancel()
-        pendingRefreshTask = nil
-      }
-    }
-    .onChange(of: readerPresentation.currentSession) { _, newSession in
-      if newSession != nil {
-        if pendingRefreshTask != nil {
-          shouldRefreshAfterReading = true
-          AppConfig.serverLastUpdate = Date()
-        }
-        // Reader opened - cancel any pending dashboard refresh
-        pendingRefreshTask?.cancel()
-        pendingRefreshTask = nil
-      } else if shouldRefreshAfterReading {
-        shouldRefreshAfterReading = false
-        scheduleRefresh(reason: "Reader closed after deferred dashboard refresh")
-      }
+      DashboardRefreshCoordinator.shared.setAutoRefreshEnabled(newValue)
     }
     #if os(iOS) || os(macOS)
       .toolbar {
@@ -388,7 +245,9 @@ struct DashboardView: View {
               Divider()
 
               Button {
-                refreshDashboard(reason: "Manual toolbar button")
+                Task {
+                  await refreshDashboard(reason: "Manual toolbar button")
+                }
               } label: {
                 Label(String(localized: "Refresh Dashboard"), systemImage: "arrow.clockwise")
               }
@@ -407,7 +266,7 @@ struct DashboardView: View {
         }
       }
       .refreshable {
-        refreshDashboard(reason: "Pull to refresh")
+        await refreshDashboard(reason: "Pull to refresh")
       }
       .sheet(isPresented: $showLibraryPicker) {
         LibraryPickerSheet()
@@ -436,7 +295,7 @@ struct DashboardView: View {
     if reconnected {
       await sseService.connect()
       ErrorManager.shared.notify(message: String(localized: "settings.connection_restored"))
-      refreshDashboard(reason: "Reconnected")
+      await refreshDashboard(reason: "Reconnected")
     }
   }
 
@@ -516,9 +375,7 @@ struct DashboardView: View {
   private func enterOfflineMode() {
     guard !isOffline else { return }
 
-    pendingRefreshTask?.cancel()
-    pendingRefreshTask = nil
-    shouldRefreshAfterReading = false
+    DashboardRefreshCoordinator.shared.cancelPendingAutoRefresh(clearDeferred: true)
     AppConfig.enterManualOfflineMode()
 
     Task {

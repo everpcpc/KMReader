@@ -8,7 +8,6 @@ import SwiftUI
 @MainActor
 struct DashboardPinnedSectionView: View {
   let section: DashboardSection
-  let refreshTrigger: DashboardRefreshTrigger
 
   @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
@@ -24,11 +23,6 @@ struct DashboardPinnedSectionView: View {
   @State private var isHoveringScrollArea = false
   @State private var hoverShowDelayTask: Task<Void, Never>?
   @State private var hoverHideDelayTask: Task<Void, Never>?
-
-  init(section: DashboardSection, refreshTrigger: DashboardRefreshTrigger) {
-    self.section = section
-    self.refreshTrigger = refreshTrigger
-  }
 
   private var isSupportedSection: Bool {
     switch section.contentKind {
@@ -211,8 +205,12 @@ struct DashboardPinnedSectionView: View {
           }
         }
       #endif
-      .onChange(of: refreshTrigger) { _, newTrigger in
-        if let sections = newTrigger.sectionsToRefresh, !sections.contains(section) {
+      .onReceive(NotificationCenter.default.publisher(for: .dashboardSectionsShouldReload)) {
+        notification in
+        guard
+          let command = DashboardSectionRefreshNotifier.reloadCommand(from: notification),
+          command.includes(section)
+        else {
           return
         }
         Task {

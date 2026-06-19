@@ -289,6 +289,10 @@ extension SeriesDetailView {
         _ = try? await SyncService.syncSeriesDetail(seriesId: seriesId)
         try? await SyncService.syncAllSeriesBooks(seriesId: seriesId)
         await ContentProjectionNotifier.postSeriesBooksDidChange(seriesId: seriesId)
+        await DashboardSectionRefreshNotifier.postReadStatusChanged(
+          source: .manual,
+          reason: "Series read status changed"
+        )
         ErrorManager.shared.notify(message: String(localized: "notification.series.markedRead"))
         await refreshSeriesData()
       } catch {
@@ -304,6 +308,10 @@ extension SeriesDetailView {
         _ = try? await SyncService.syncSeriesDetail(seriesId: seriesId)
         try? await SyncService.syncAllSeriesBooks(seriesId: seriesId)
         await ContentProjectionNotifier.postSeriesBooksDidChange(seriesId: seriesId)
+        await DashboardSectionRefreshNotifier.postReadStatusChanged(
+          source: .manual,
+          reason: "Series read status changed"
+        )
         ErrorManager.shared.notify(message: String(localized: "notification.series.markedUnread"))
         await refreshSeriesData()
       } catch {
