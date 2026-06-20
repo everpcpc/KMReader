@@ -194,7 +194,7 @@ struct SeriesRowView: View {
   private func deleteSeries() {
     Task {
       do {
-        try await SeriesService.deleteSeries(seriesId: series.id)
+        try await SeriesDeletionService.deleteSeries(series, instanceId: item.instanceId)
         ErrorManager.shared.notify(message: String(localized: "notification.series.deleted"))
         onMutationCompleted?()
       } catch {

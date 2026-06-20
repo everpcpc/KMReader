@@ -254,7 +254,14 @@ struct OneshotDetailView: View {
   private func deleteOneshot() {
     Task {
       do {
-        try await SeriesService.deleteSeries(seriesId: seriesId)
+        if let series = seriesItem?.series {
+          try await SeriesDeletionService.deleteSeries(series, instanceId: current.instanceId)
+        } else {
+          try await SeriesDeletionService.deleteSeries(
+            seriesId: seriesId,
+            instanceId: current.instanceId
+          )
+        }
         ErrorManager.shared.notify(message: String(localized: "notification.series.deleted"))
         dismiss()
       } catch {

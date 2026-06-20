@@ -28,6 +28,8 @@ struct SeriesDetailView: View {
   @State private var readingTargetIsOffline: Bool?
   @State private var isResolvingReadingTarget = false
   @State private var readingTargetResolutionID = 0
+  @AppStorage("seriesBookBrowseOptions") private var seriesBookBrowseOptions: BookBrowseOptions =
+    BookBrowseOptions()
 
   init(seriesId: String) {
     self.seriesId = seriesId
@@ -211,6 +213,7 @@ struct SeriesDetailView: View {
       guard shouldRefreshForSeriesProjection(notification) else { return }
       Task {
         await refreshLocalSeriesData()
+        await refreshSeriesBooks()
       }
     }
     .onReceive(NotificationCenter.default.publisher(for: .bookProjectionDidChange)) {
@@ -218,6 +221,7 @@ struct SeriesDetailView: View {
       guard shouldRefreshForBookProjection(notification) else { return }
       Task {
         await refreshLocalSeriesData()
+        await refreshSeriesBooks()
       }
     }
   }
@@ -243,6 +247,14 @@ extension SeriesDetailView {
   private func refreshLocalSeriesData() async {
     await loadLocalSeries()
     await refreshReadingTargetBook()
+  }
+
+  private func refreshSeriesBooks() async {
+    await bookViewModel.loadSeriesBooks(
+      seriesId: seriesId,
+      browseOpts: seriesBookBrowseOptions,
+      refresh: true
+    )
   }
 
   private func loadLocalSeries() async {
@@ -323,7 +335,14 @@ extension SeriesDetailView {
   private func deleteSeries() {
     Task {
       do {
-        try await SeriesService.deleteSeries(seriesId: seriesId)
+        if let series {
+          try await SeriesDeletionService.deleteSeries(series, instanceId: current.instanceId)
+        } else {
+          try await SeriesDeletionService.deleteSeries(
+            seriesId: seriesId,
+            instanceId: current.instanceId
+          )
+        }
         ErrorManager.shared.notify(message: String(localized: "notification.series.deleted"))
         dismiss()
       } catch {

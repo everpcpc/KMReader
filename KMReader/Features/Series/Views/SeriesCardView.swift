@@ -194,7 +194,7 @@ struct SeriesCardView: View {
   private func deleteSeries() {
     Task {
       do {
-        try await SeriesService.deleteSeries(seriesId: item.seriesId)
+        try await SeriesDeletionService.deleteSeries(item)
         ErrorManager.shared.notify(message: String(localized: "notification.series.deleted"))
         onMutationCompleted?()
       } catch {
