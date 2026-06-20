@@ -1459,29 +1459,6 @@ actor OfflineManager {
     }
   }
 
-  func clearOfflinePageImages(instanceId: String, bookId: String) async {
-    guard await isBookDownloaded(bookId: bookId, instanceId: instanceId) else { return }
-    let dir = bookDirectory(instanceId: instanceId, bookId: bookId)
-
-    guard
-      let fileURLs = try? FileManager.default.contentsOfDirectory(
-        at: dir,
-        includingPropertiesForKeys: nil,
-        options: [.skipsHiddenFiles]
-      )
-    else {
-      return
-    }
-
-    for fileURL in fileURLs where fileURL.lastPathComponent.hasPrefix("page-") {
-      do {
-        try FileManager.default.removeItem(at: fileURL)
-      } catch {
-        logger.error("❌ Failed to remove offline page asset \(fileURL.lastPathComponent): \(error)")
-      }
-    }
-  }
-
   func refreshDownloadedBookSize(instanceId: String, bookId: String) async {
     guard await isBookDownloaded(bookId: bookId, instanceId: instanceId) else { return }
     let bookDir = bookDirectory(instanceId: instanceId, bookId: bookId)
