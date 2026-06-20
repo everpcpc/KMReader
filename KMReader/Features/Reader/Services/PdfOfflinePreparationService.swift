@@ -30,6 +30,11 @@ actor PdfOfflinePreparationService {
     let skippedImageCount: Int
   }
 
+  struct MetadataResult: Sendable {
+    let pages: [BookPage]
+    let tableOfContents: [ReaderTOCEntry]
+  }
+
   struct PreparationProgress: Sendable {
     let completedPages: Int
     let totalPages: Int
@@ -49,8 +54,58 @@ actor PdfOfflinePreparationService {
 
   private let logger = AppLogger(.reader)
   private var preparationTasks: [String: Task<PreparationResult?, Never>] = [:]
+  private var pageRenderTasks: [String: Task<URL?, Never>] = [:]
 
   private init() {}
+
+  func loadMetadata(
+    documentURL: URL
+  ) async -> MetadataResult? {
+    let renderQuality = AppConfig.pdfOfflineRenderQuality
+    return await Self.loadDocumentMetadata(
+      documentURL: documentURL,
+      renderQuality: renderQuality
+    )
+  }
+
+  func renderPageIfNeeded(
+    instanceId: String,
+    bookId: String,
+    documentURL: URL,
+    pageNumber: Int
+  ) async -> URL? {
+    guard pageNumber > 0 else { return nil }
+
+    if let existingURL = await OfflineManager.shared.getOfflinePageImageURL(
+      instanceId: instanceId,
+      bookId: bookId,
+      pageNumber: pageNumber,
+      fileExtension: "png"
+    ) {
+      return existingURL
+    }
+
+    let taskKey = "\(instanceId)|\(bookId)|\(pageNumber)"
+    if let existingTask = pageRenderTasks[taskKey] {
+      return await existingTask.value
+    }
+
+    let renderQuality = AppConfig.pdfOfflineRenderQuality
+    let task = Task(priority: .userInitiated) {
+      await Self.renderSinglePage(
+        instanceId: instanceId,
+        bookId: bookId,
+        documentURL: documentURL,
+        pageNumber: pageNumber,
+        renderQuality: renderQuality
+      )
+    }
+
+    pageRenderTasks[taskKey] = task
+    let result = await task.value
+    pageRenderTasks.removeValue(forKey: taskKey)
+    return result
+  }
 
   func prepare(
     instanceId: String,
@@ -124,6 +179,83 @@ actor PdfOfflinePreparationService {
   }
 
   #if os(iOS) || os(macOS)
+    nonisolated private static func loadDocumentMetadata(
+      documentURL: URL,
+      renderQuality: PdfOfflineRenderQuality
+    ) async -> MetadataResult? {
+      await Task.detached(priority: .userInitiated) {
+        guard let document = PDFDocument(url: documentURL) else {
+          return nil
+        }
+
+        let totalPages = document.pageCount
+        guard totalPages > 0 else {
+          return MetadataResult(pages: [], tableOfContents: [])
+        }
+
+        var pages: [BookPage] = []
+        pages.reserveCapacity(totalPages)
+
+        for pageIndex in 0..<totalPages {
+          let pageNumber = pageIndex + 1
+          let pixelSize = document.page(at: pageIndex).flatMap {
+            targetPixelSize(for: $0, renderQuality: renderQuality)
+          }
+          pages.append(
+            BookPage(
+              number: pageNumber,
+              fileName: "page-\(pageNumber).png",
+              mediaType: "image/png",
+              width: pixelSize.map { Int($0.width) },
+              height: pixelSize.map { Int($0.height) },
+              sizeBytes: nil,
+              size: "",
+              downloadURL: nil
+            )
+          )
+        }
+
+        return MetadataResult(
+          pages: pages,
+          tableOfContents: buildTableOfContents(from: document)
+        )
+      }.value
+    }
+
+    nonisolated private static func renderSinglePage(
+      instanceId: String,
+      bookId: String,
+      documentURL: URL,
+      pageNumber: Int,
+      renderQuality: PdfOfflineRenderQuality
+    ) async -> URL? {
+      await Task.detached(priority: .userInitiated) {
+        if let existingURL = await OfflineManager.shared.getOfflinePageImageURL(
+          instanceId: instanceId,
+          bookId: bookId,
+          pageNumber: pageNumber,
+          fileExtension: "png"
+        ) {
+          return existingURL
+        }
+
+        guard let document = PDFDocument(url: documentURL),
+          let page = document.page(at: pageNumber - 1),
+          let pageData = renderPageData(page: page, renderQuality: renderQuality)
+        else {
+          return nil
+        }
+
+        return await OfflineManager.shared.storeOfflinePageImage(
+          instanceId: instanceId,
+          bookId: bookId,
+          pageNumber: pageNumber,
+          fileExtension: "png",
+          data: pageData.data
+        )
+      }.value
+    }
+
     nonisolated private static func prepareDocument(
       instanceId: String,
       bookId: String,
@@ -455,6 +587,23 @@ actor PdfOfflinePreparationService {
       return String.localizedStringWithFormat(format, pageNumber)
     }
   #else
+    nonisolated private static func loadDocumentMetadata(
+      documentURL _: URL,
+      renderQuality _: PdfOfflineRenderQuality
+    ) async -> MetadataResult? {
+      nil
+    }
+
+    nonisolated private static func renderSinglePage(
+      instanceId _: String,
+      bookId _: String,
+      documentURL _: URL,
+      pageNumber _: Int,
+      renderQuality _: PdfOfflineRenderQuality
+    ) async -> URL? {
+      nil
+    }
+
     nonisolated private static func prepareDocument(
       instanceId _: String,
       bookId _: String,

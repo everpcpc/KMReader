@@ -2475,7 +2475,7 @@ actor OfflineManager {
     let preferredExtension = page.detectedUTType?.preferredFilenameExtension?.lowercased() ?? "jpg"
     let fallbackExtension = (page.fileName as NSString).pathExtension.lowercased()
     let extensions =
-      ([preferredExtension, fallbackExtension].filter { !$0.isEmpty } + ["jpg"])
+      ([preferredExtension, fallbackExtension].filter { !$0.isEmpty } + ["png", "jpg"])
       .reduce(into: [String]()) { result, fileExtension in
         if !result.contains(fileExtension) {
           result.append(fileExtension)

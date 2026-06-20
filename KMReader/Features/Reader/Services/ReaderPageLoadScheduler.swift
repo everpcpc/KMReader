@@ -450,6 +450,21 @@ final class ReaderPageLoadScheduler {
         return cachedFileURL
       }
 
+      if let offlinePDFURL = await OfflineManager.shared.getOfflinePDFURL(
+        instanceId: AppConfig.current.instanceId,
+        bookId: currentBookId
+      ) {
+        if let renderedURL = await PdfOfflinePreparationService.shared.renderPageIfNeeded(
+          instanceId: AppConfig.current.instanceId,
+          bookId: currentBookId,
+          documentURL: offlinePDFURL,
+          pageNumber: page.number
+        ) {
+          self.logger.debug("✅ Rendered PDF page \(page.number) on demand for book \(currentBookId)")
+          return renderedURL
+        }
+      }
+
       if AppConfig.isOffline {
         self.logger.error("❌ Missing offline page \(page.number) for book \(currentBookId)")
         return nil
