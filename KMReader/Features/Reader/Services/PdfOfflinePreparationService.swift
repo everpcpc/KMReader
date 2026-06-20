@@ -28,6 +28,7 @@ actor PdfOfflinePreparationService {
     let renderedImageCount: Int
     let reusedImageCount: Int
     let skippedImageCount: Int
+    let rerenderedImages: Bool
   }
 
   struct MetadataResult: Sendable {
@@ -141,7 +142,7 @@ actor PdfOfflinePreparationService {
         instanceId: instanceId,
         bookId: bookId,
         documentURL: documentURL,
-        forceRerenderImages: existingStamp != nil && existingStamp != completionFlag,
+        forceRerenderImages: existingStamp != completionFlag,
         renderQuality: renderQuality,
         onProgress: onProgress
       )
@@ -276,7 +277,8 @@ actor PdfOfflinePreparationService {
             tableOfContents: [],
             renderedImageCount: 0,
             reusedImageCount: 0,
-            skippedImageCount: 0
+            skippedImageCount: 0,
+            rerenderedImages: false
           )
         }
 
@@ -385,14 +387,15 @@ actor PdfOfflinePreparationService {
           )
           pages.append(bookPage)
 
-          if await OfflineManager.shared.storeOfflinePageImage(
+          let storedURL = await OfflineManager.shared.storeOfflinePageImage(
             instanceId: instanceId,
             bookId: bookId,
             pageNumber: pageNumber,
             fileExtension: "png",
             data: pageData.data,
             replaceExisting: forceRerenderImages
-          ) != nil {
+          )
+          if storedURL != nil {
             if forceRerenderImages {
               await OfflineManager.shared.clearOfflinePageImageDerivatives(
                 instanceId: instanceId,
@@ -414,7 +417,8 @@ actor PdfOfflinePreparationService {
           tableOfContents: toc,
           renderedImageCount: renderedImageCount,
           reusedImageCount: reusedImageCount,
-          skippedImageCount: skippedImageCount
+          skippedImageCount: skippedImageCount,
+          rerenderedImages: forceRerenderImages && renderedImageCount > 0
         )
       }.value
     }

@@ -1067,6 +1067,10 @@ class ReaderViewModel {
       return
     }
 
+    if result.rerenderedImages {
+      pageLoadScheduler.discardPreloadedImages(forBookId: bookId)
+    }
+
     replaceLoadedSegmentPages(bookId: bookId, pages: result.pages)
     updateLoadedTableOfContents(bookId: bookId, tableOfContents: result.tableOfContents)
 
