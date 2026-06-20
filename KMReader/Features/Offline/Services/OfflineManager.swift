@@ -1411,18 +1411,19 @@ actor OfflineManager {
     bookId: String,
     pageNumber: Int,
     fileExtension: String,
-    data: Data
+    data: Data,
+    replaceExisting: Bool = false
   ) async -> URL? {
     guard await isBookDownloaded(bookId: bookId) else { return nil }
     let dir = bookDirectory(instanceId: instanceId, bookId: bookId)
     let file = dir.appendingPathComponent("page-\(pageNumber).\(fileExtension)")
 
-    if FileManager.default.fileExists(atPath: file.path) {
+    if FileManager.default.fileExists(atPath: file.path), !replaceExisting {
       return file
     }
 
     do {
-      try data.write(to: file)
+      try data.write(to: file, options: .atomic)
       Self.excludeFromBackupIfNeeded(at: file)
       return file
     } catch {

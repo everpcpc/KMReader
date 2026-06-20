@@ -450,12 +450,13 @@ final class ReaderPageLoadScheduler {
         return cachedFileURL
       }
 
+      let instanceId = AppConfig.current.instanceId
       if let offlinePDFURL = await OfflineManager.shared.getOfflinePDFURL(
-        instanceId: AppConfig.current.instanceId,
+        instanceId: instanceId,
         bookId: currentBookId
       ) {
         if let renderedURL = await PdfOfflinePreparationService.shared.renderPageIfNeeded(
-          instanceId: AppConfig.current.instanceId,
+          instanceId: instanceId,
           bookId: currentBookId,
           documentURL: offlinePDFURL,
           pageNumber: page.number

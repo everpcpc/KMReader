@@ -141,7 +141,7 @@ actor PdfOfflinePreparationService {
         instanceId: instanceId,
         bookId: bookId,
         documentURL: documentURL,
-        forceRerenderImages: existingStamp != completionFlag,
+        forceRerenderImages: existingStamp != nil && existingStamp != completionFlag,
         renderQuality: renderQuality,
         onProgress: onProgress
       )
@@ -303,10 +303,6 @@ actor PdfOfflinePreparationService {
             )
           }
 
-        if forceRerenderImages {
-          await OfflineManager.shared.clearOfflinePageImages(instanceId: instanceId, bookId: bookId)
-        }
-
         await reportProgress(0, renderedImageCount, reusedImageCount, skippedImageCount)
 
         for pageIndex in 0..<totalPages {
@@ -335,12 +331,14 @@ actor PdfOfflinePreparationService {
 
           let fallbackPixelSize = targetPixelSize(for: pdfPage, renderQuality: renderQuality)
 
-          if let offlineURL = await OfflineManager.shared.getOfflinePageImageURL(
-            instanceId: instanceId,
-            bookId: bookId,
-            pageNumber: pageNumber,
-            fileExtension: "png"
-          ) {
+          if !forceRerenderImages,
+            let offlineURL = await OfflineManager.shared.getOfflinePageImageURL(
+              instanceId: instanceId,
+              bookId: bookId,
+              pageNumber: pageNumber,
+              fileExtension: "png"
+            )
+          {
             let existingPixelSize = imagePixelSize(at: offlineURL) ?? fallbackPixelSize
             let bookPage = BookPage(
               number: pageNumber,
@@ -392,7 +390,8 @@ actor PdfOfflinePreparationService {
             bookId: bookId,
             pageNumber: pageNumber,
             fileExtension: "png",
-            data: pageData.data
+            data: pageData.data,
+            replaceExisting: forceRerenderImages
           ) != nil {
             renderedImageCount += 1
           } else {
