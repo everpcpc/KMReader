@@ -641,7 +641,7 @@ class ReaderViewModel {
   private func restoreCurrentPosition(using currentViewItem: ReaderViewItem?) {
     guard let currentViewItem else { return }
     guard navigationTarget == nil else { return }
-    requestNavigation(toViewItem: currentViewItem)
+    updateCurrentPosition(viewItem: currentViewItem)
   }
 
   private func syncPageLoadSchedulerCurrentPage() {
