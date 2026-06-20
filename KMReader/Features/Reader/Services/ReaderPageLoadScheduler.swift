@@ -303,6 +303,27 @@ final class ReaderPageLoadScheduler {
     logger.debug("🗑️ Cleared all preloaded images and cancelled tasks")
   }
 
+  func discardPreloadedImages(forBookId bookId: String) {
+    let pageIDs = Set(readerPages.lazy.filter { $0.bookId == bookId }.map(\.id))
+    guard !pageIDs.isEmpty else { return }
+
+    cancelTrackedURLTasks(&upscalingTasks, matching: pageIDs)
+    cancelTrackedImageTasks(&preloadingImageTasks, matching: pageIDs)
+
+    var removedImageCount = 0
+    for pageID in pageIDs {
+      if preloadedImagesByID.removeValue(forKey: pageID) != nil {
+        removedImageCount += 1
+      }
+      animatedPageStates.removeValue(forKey: pageID)
+      animatedPageSourceFileURLs.removeValue(forKey: pageID)
+    }
+
+    logger.debug(
+      "🗑️ Discarded preloaded images for book \(bookId): pages=\(pageIDs.count), removed=\(removedImageCount)"
+    )
+  }
+
   func resetForBookLoad() {
     clearPreloadedImages()
     readerPages.removeAll()
@@ -395,12 +416,34 @@ final class ReaderPageLoadScheduler {
     }
   }
 
+  private func cancelTrackedURLTasks(
+    _ tasks: inout [ReaderPageID: URLLoadTaskRecord],
+    matching pageIDs: Set<ReaderPageID>
+  ) {
+    let matchedPageIDs = tasks.keys.filter { pageIDs.contains($0) }
+    for pageID in matchedPageIDs {
+      tasks[pageID]?.task.cancel()
+      tasks.removeValue(forKey: pageID)
+    }
+  }
+
   private func cancelTrackedImageTasksOutsideWindow(
     _ tasks: inout [ReaderPageID: ImageLoadTaskRecord],
     keeping keepPageIDs: Set<ReaderPageID>
   ) {
     let stalePageIDs = tasks.keys.filter { !keepPageIDs.contains($0) }
     for pageID in stalePageIDs {
+      tasks[pageID]?.task.cancel()
+      tasks.removeValue(forKey: pageID)
+    }
+  }
+
+  private func cancelTrackedImageTasks(
+    _ tasks: inout [ReaderPageID: ImageLoadTaskRecord],
+    matching pageIDs: Set<ReaderPageID>
+  ) {
+    let matchedPageIDs = tasks.keys.filter { pageIDs.contains($0) }
+    for pageID in matchedPageIDs {
       tasks[pageID]?.task.cancel()
       tasks.removeValue(forKey: pageID)
     }
@@ -448,6 +491,22 @@ final class ReaderPageLoadScheduler {
       if let cachedFileURL = await self.getCachedImageFileURL(for: readerPage) {
         self.logger.debug("✅ Using cached image for page \(page.number) for book \(currentBookId)")
         return cachedFileURL
+      }
+
+      let instanceId = AppConfig.current.instanceId
+      if let offlinePDFURL = await OfflineManager.shared.getOfflinePDFURL(
+        instanceId: instanceId,
+        bookId: currentBookId
+      ) {
+        if let renderedURL = await PdfOfflinePreparationService.shared.renderPageIfNeeded(
+          instanceId: instanceId,
+          bookId: currentBookId,
+          documentURL: offlinePDFURL,
+          pageNumber: page.number
+        ) {
+          self.logger.debug("✅ Rendered PDF page \(page.number) on demand for book \(currentBookId)")
+          return renderedURL
+        }
       }
 
       if AppConfig.isOffline {

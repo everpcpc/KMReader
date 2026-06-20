@@ -454,7 +454,11 @@ extension DatabaseOperator {
 
 extension DatabaseOperator {
   func getDownloadStatus(bookId: String) -> DownloadStatus {
-    let instanceId = AppConfig.current.instanceId
+    getDownloadStatus(bookId: bookId, instanceId: AppConfig.current.instanceId)
+  }
+
+  func getDownloadStatus(bookId: String, instanceId: String) -> DownloadStatus {
+    guard !instanceId.isEmpty else { return .notDownloaded }
     return
       (try? read { db in
         try fetchBookRecord(db: db, id: bookId, instanceId: instanceId)?.downloadStatus

@@ -38,6 +38,8 @@ class ReaderViewModel {
   typealias PagePresentationInvalidationHandler = @MainActor (ReaderPagePresentationInvalidation) -> Void
   @ObservationIgnored
   private var pagePresentationInvalidationHandlers: [UUID: PagePresentationInvalidationHandler] = [:]
+  @ObservationIgnored
+  private var pdfPreparationTasks: [String: Task<Void, Never>] = [:]
 
   private enum SegmentFetchPurpose {
     case nextPreload
@@ -56,6 +58,10 @@ class ReaderViewModel {
   private let logger = AppLogger(.reader)
   private let pageLoadScheduler: ReaderPageLoadScheduler
   private var bookMediaProfile: MediaProfile = .unknown
+
+  private static func pdfPreparationTaskKey(instanceId: String, bookId: String) -> String {
+    CompositeID.generate(instanceId: instanceId, id: bookId)
+  }
 
   private var readerPageIndexByID: [ReaderPageID: Int] = [:]
   private var segmentPageRangeByBookId: [String: Range<Int>] = [:]
@@ -775,7 +781,7 @@ class ReaderViewModel {
       if AppConfig.offlineFirstReading {
         try await ensureOfflineReady(book: book, updatesLoadingState: true)
       }
-      await prepareOfflinePDFForDivina(book: book)
+      await ensureOfflinePDFMetadataForDivina(book: book)
       let database = await DatabaseOperator.databaseIfConfigured()
 
       let fetchedPages: [BookPage]
@@ -811,6 +817,7 @@ class ReaderViewModel {
       // Update page pairs and dual page indices after loading pages
       regenerateViewState()
       await ensureTableOfContentsLoaded(for: book)
+      startBackgroundOfflinePDFPreparationIfNeeded(book: book)
     } catch {
       ErrorManager.shared.alert(error: error)
     }
@@ -894,16 +901,15 @@ class ReaderViewModel {
     }
   }
 
-  private func prepareOfflinePDFForDivina(book: Book) async {
+  private func ensureOfflinePDFMetadataForDivina(book: Book) async {
     guard bookMediaProfile == .pdf else {
       return
     }
 
-    logger.debug("🧪 Preparing offline PDF metadata for Divina, book \(book.id)")
-
+    let instanceId = AppConfig.current.instanceId
     guard
       let offlinePDFURL = await OfflineManager.shared.getOfflinePDFURL(
-        instanceId: AppConfig.current.instanceId,
+        instanceId: instanceId,
         bookId: book.id
       )
     else {
@@ -912,8 +918,72 @@ class ReaderViewModel {
     }
 
     let database = await DatabaseOperator.databaseIfConfigured()
-    let localPages = await database?.fetchPages(id: book.id)
-    let localTOC = await database?.fetchTOC(id: book.id)
+    let localPages = await database?.fetchPages(id: book.id, instanceId: instanceId)
+    let localTOC = await database?.fetchTOC(id: book.id, instanceId: instanceId)
+    let hasLocalPages = !(localPages ?? []).isEmpty
+    let hasLocalTOC = localTOC != nil
+    guard !hasLocalPages || !hasLocalTOC else { return }
+
+    updateLoadingTitle(String(localized: "Preparing PDF..."))
+    updateLoadingDetail(String(localized: "Checking PDF download information"))
+
+    logger.debug(
+      "🧪 Loading PDF metadata for DIVINA reader, book \(book.id), hasPages=\(hasLocalPages), hasTOC=\(hasLocalTOC)"
+    )
+
+    guard
+      let metadata = await PdfOfflinePreparationService.shared.loadMetadata(
+        documentURL: offlinePDFURL
+      )
+    else {
+      logger.debug("⏭️ Skip PDF metadata load because local PDF cannot be opened for book \(book.id)")
+      return
+    }
+
+    if !hasLocalPages {
+      await database?.updateBookPages(bookId: book.id, instanceId: instanceId, pages: metadata.pages)
+    }
+    if !hasLocalTOC {
+      await database?.updateBookTOC(bookId: book.id, instanceId: instanceId, toc: metadata.tableOfContents)
+    }
+  }
+
+  private func startBackgroundOfflinePDFPreparationIfNeeded(book: Book) {
+    guard bookMediaProfile == .pdf else {
+      return
+    }
+
+    let instanceId = AppConfig.current.instanceId
+    let taskKey = Self.pdfPreparationTaskKey(instanceId: instanceId, bookId: book.id)
+    guard pdfPreparationTasks[taskKey] == nil else { return }
+
+    pdfPreparationTasks[taskKey] = Task { [weak self] in
+      guard let self else { return }
+      await self.prepareOfflinePDFForDivinaInBackground(book: book, instanceId: instanceId)
+      self.pdfPreparationTasks[taskKey] = nil
+    }
+  }
+
+  private func prepareOfflinePDFForDivinaInBackground(book: Book, instanceId: String) async {
+    guard bookMediaProfile == .pdf else {
+      return
+    }
+
+    logger.debug("🧪 Preparing offline PDF assets for DIVINA reader, book \(book.id)")
+
+    guard
+      let offlinePDFURL = await OfflineManager.shared.getOfflinePDFURL(
+        instanceId: instanceId,
+        bookId: book.id
+      )
+    else {
+      logger.debug("⏭️ Skip offline PDF preparation because offline PDF file is missing for book \(book.id)")
+      return
+    }
+
+    let database = await DatabaseOperator.databaseIfConfigured()
+    let localPages = await database?.fetchPages(id: book.id, instanceId: instanceId)
+    let localTOC = await database?.fetchTOC(id: book.id, instanceId: instanceId)
     let hasLocalPages = !(localPages ?? []).isEmpty
     let hasLocalTOC = localTOC != nil
     let forceRebuildMetadata = !hasLocalPages || !hasLocalTOC
@@ -923,34 +993,19 @@ class ReaderViewModel {
       )
     }
 
-    updateLoadingTitle(String(localized: "Offline DIVINA Rendering"))
-    updateLoadingDetail(String(localized: "Rendering PDF pages for DIVINA reader"))
-    clearLoadingProgress()
-    defer {
-      updateLoadingTitle(String(localized: "Loading book..."))
-      updateLoadingDetail(String(localized: "Resolving page metadata"))
-      clearLoadingProgress()
-    }
-
     guard
       let result = await PdfOfflinePreparationService.shared.prepare(
-        instanceId: AppConfig.current.instanceId,
+        instanceId: instanceId,
         bookId: book.id,
         documentURL: offlinePDFURL,
-        forceRebuildMetadata: forceRebuildMetadata,
-        onProgress: { [weak self] progress in
-          guard let self else { return }
-          self.updateLoadingTitle(String(localized: "Offline DIVINA Rendering"))
-          self.updateLoadingProgress(progress.fractionCompleted)
-          self.updateLoadingDetail("\(progress.completedPages) / \(progress.totalPages)")
-        }
+        forceRebuildMetadata: forceRebuildMetadata
       )
     else {
       logger.debug("⏭️ Skip offline PDF preparation because assets are already valid for book \(book.id)")
       return
     }
 
-    await applyPreparedPDFMetadata(bookId: book.id, result: result)
+    await applyPreparedPDFMetadata(bookId: book.id, instanceId: instanceId, result: result)
   }
 
   private func updateLoadingTitle(_ title: String) {
@@ -985,6 +1040,7 @@ class ReaderViewModel {
 
   private func applyPreparedPDFMetadata(
     bookId: String,
+    instanceId: String,
     result: PdfOfflinePreparationService.PreparationResult
   ) async {
     logger.debug(
@@ -992,21 +1048,63 @@ class ReaderViewModel {
     )
 
     if let database = await DatabaseOperator.databaseIfConfigured() {
-      await database.updateBookPages(bookId: bookId, pages: result.pages)
-      await database.updateBookTOC(bookId: bookId, toc: result.tableOfContents)
+      await database.updateBookPages(bookId: bookId, instanceId: instanceId, pages: result.pages)
+      await database.updateBookTOC(bookId: bookId, instanceId: instanceId, toc: result.tableOfContents)
     }
     if result.renderedImageCount > 0 {
       await OfflineManager.shared.refreshDownloadedBookSize(
-        instanceId: AppConfig.current.instanceId,
+        instanceId: instanceId,
         bookId: bookId
       )
     } else {
       logger.debug("⏭️ Skip downloaded size refresh for book \(bookId) because no new PDF page was rendered")
     }
 
+    guard AppConfig.current.instanceId == instanceId else {
+      logger.debug(
+        "⏭️ Skip applying prepared PDF metadata to visible reader because active instance changed for book \(bookId)"
+      )
+      return
+    }
+
+    if result.rerenderedImages {
+      pageLoadScheduler.discardPreloadedImages(forBookId: bookId)
+    }
+
+    replaceLoadedSegmentPages(bookId: bookId, pages: result.pages)
+    updateLoadedTableOfContents(bookId: bookId, tableOfContents: result.tableOfContents)
+
     logger.debug(
       "✅ Applied prepared PDF metadata for book \(bookId), rendered=\(result.renderedImageCount), reused=\(result.reusedImageCount), skipped=\(result.skippedImageCount)"
     )
+  }
+
+  private func replaceLoadedSegmentPages(bookId: String, pages: [BookPage]) {
+    guard !pages.isEmpty else { return }
+    guard let segmentIndex = segmentIndex(forSegmentBookId: bookId) else { return }
+
+    let segment = segments[segmentIndex]
+    let currentItem = currentViewItem()
+    segments[segmentIndex] = ReaderSegment(
+      previousBook: segment.previousBook,
+      currentBook: segment.currentBook,
+      nextBook: segment.nextBook,
+      pages: pages
+    )
+    rebuildReaderPages()
+    regenerateViewState()
+    restoreCurrentPosition(using: currentItem)
+    notifyPagePresentationInvalidation(.all)
+  }
+
+  private func updateLoadedTableOfContents(
+    bookId: String,
+    tableOfContents: [ReaderTOCEntry]
+  ) {
+    tableOfContentsByBookId[bookId] = tableOfContents
+    if activeBookId == bookId || tableOfContentsBookId == bookId {
+      setTableOfContents(tableOfContents, for: bookId)
+    }
   }
 
   func preloadPages(bypassThrottle: Bool = false) async {

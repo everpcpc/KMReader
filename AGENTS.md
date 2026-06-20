@@ -126,12 +126,8 @@ make major              # Increment major version (MARKETING_VERSION)
 Version execution rules:
 - Do not edit `MARKETING_VERSION` or `CURRENT_PROJECT_VERSION` manually in `KMReader.xcodeproj/project.pbxproj`; use `make bump`, `make minor`, or `make major`.
 - `make minor` / `make major` increment `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` together and commit only the version file.
-- Feature or fix PRs may include one generated `make bump` commit when the change should produce a TestFlight or release-candidate build. This is the normal delivery flow and does not require a separate bump-only PR.
-- `make bump` isolation is a commit-level rule, not a PR-level rule. A single feature/fix PR may contain both:
-  - one feature/fix commit that changes app code and does not change `KMReader.xcodeproj/project.pbxproj`;
-  - one generated bump commit that changes only `KMReader.xcodeproj/project.pbxproj`.
-- It is expected that the aggregate GitHub PR diff shows both app-code files and `KMReader.xcodeproj/project.pbxproj` when the PR intentionally includes a bump commit. Do not request removing the bump, creating a separate bump-only PR, or treating the PR as invalid solely because the PR-level diff includes both kinds of files. Review the commit list before flagging bump isolation.
-- Do not fold the version change into a feature/fix commit. If the same commit changes `CURRENT_PROJECT_VERSION` and non-version files, split it or remove the bump from that commit.
+- Feature or fix PRs may include a generated `make bump` change when the change should produce a TestFlight or release-candidate build. This is the normal delivery flow and does not require a separate bump-only PR.
+- It is expected that the aggregate PR diff shows both app-code files and `KMReader.xcodeproj/project.pbxproj` when the PR intentionally includes a build-number bump. Do not request removing the bump, creating a separate bump-only PR, or treating the PR as invalid solely because the PR-level diff includes both kinds of files.
 - Release automation treats build upload and GitHub Release creation separately:
   - Any `CURRENT_PROJECT_VERSION` change uploads the current HEAD build to App Store Connect. For feature/fix PRs with an intentional `make bump` commit, this upload is expected: the resulting build may be used for TestFlight or as the release build.
   - A major transition such as `4.14 -> 5.0` uploads the `5.0` build but does not create a GitHub Release.
