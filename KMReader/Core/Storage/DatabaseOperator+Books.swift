@@ -313,6 +313,61 @@ extension DatabaseOperator {
     }
   }
 
+  @discardableResult
+  func markBookUnavailable(bookId: String, instanceId: String) -> Bool {
+    do {
+      return try write { db in
+        guard var book = try fetchBookRecord(db: db, id: bookId, instanceId: instanceId) else {
+          return false
+        }
+        guard !book.isUnavailable else { return true }
+        book.isUnavailable = true
+        try save(book, db: db)
+        return true
+      }
+    } catch {
+      logger.error("Failed to mark book unavailable: \(error)")
+      return false
+    }
+  }
+
+  func markSeriesBooksUnavailable(seriesId: String, instanceId: String) -> [String] {
+    do {
+      return try write { db in
+        let books = try fetchBooks(db: db, instanceId: instanceId, seriesId: seriesId)
+        var changedBookIds: [String] = []
+        for var book in books {
+          if !book.isUnavailable {
+            book.isUnavailable = true
+            try save(book, db: db)
+          }
+          changedBookIds.append(book.bookId)
+        }
+        return changedBookIds
+      }
+    } catch {
+      logger.error("Failed to mark series books unavailable: \(error)")
+      return []
+    }
+  }
+
+  func fetchAllSeriesBookIds(seriesId: String, instanceId: String) -> [String] {
+    guard !seriesId.isEmpty, !instanceId.isEmpty else { return [] }
+    return
+      (try? read { db in
+        try String.fetchAll(
+          db,
+          sql: """
+            SELECT book_id
+            FROM \(KomgaBook.databaseTableName)
+            WHERE instance_id = ? AND series_id = ?
+            ORDER BY meta_number_sort, id
+            """,
+          arguments: [instanceId, seriesId]
+        )
+      }) ?? []
+  }
+
   func upsertBooks(_ books: [Book], instanceId: String) {
     do {
       try write { db in

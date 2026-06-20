@@ -145,8 +145,11 @@ struct BookDetailView: View {
   private func deleteBook() {
     Task {
       do {
-        try await BookService.deleteBook(bookId: bookId)
-        await CacheManager.clearCache(forBookId: bookId)
+        if let book {
+          try await BookDeletionService.deleteBook(book, instanceId: current.instanceId)
+        } else {
+          try await BookDeletionService.deleteBook(bookId: bookId, instanceId: current.instanceId)
+        }
         ErrorManager.shared.notify(message: String(localized: "notification.book.deleted"))
         dismiss()
       } catch {

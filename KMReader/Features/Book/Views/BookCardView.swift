@@ -256,8 +256,7 @@ struct BookCardView: View {
   private func deleteBook() {
     Task {
       do {
-        try await BookService.deleteBook(bookId: item.bookId)
-        await CacheManager.clearCache(forBookId: item.bookId)
+        try await BookDeletionService.deleteBook(item)
         ErrorManager.shared.notify(message: String(localized: "notification.book.deleted"))
         onMutationCompleted?()
       } catch {

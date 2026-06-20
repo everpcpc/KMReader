@@ -144,6 +144,24 @@ extension DatabaseOperator {
     }
   }
 
+  @discardableResult
+  func markSeriesUnavailable(seriesId: String, instanceId: String) -> Bool {
+    do {
+      return try write { db in
+        guard var series = try fetchSeriesRecord(db: db, id: seriesId, instanceId: instanceId) else {
+          return false
+        }
+        guard !series.isUnavailable else { return true }
+        series.isUnavailable = true
+        try save(series, db: db)
+        return true
+      }
+    } catch {
+      logger.error("Failed to mark series unavailable: \(error)")
+      return false
+    }
+  }
+
   func upsertSeriesList(_ seriesList: [Series], instanceId: String) {
     do {
       try write { db in
