@@ -534,8 +534,14 @@ extension SeriesDetailView {
   private func shouldRefreshForBookProjection(_ notification: Notification) -> Bool {
     let changedIds = changedBookIds(from: notification)
     guard !changedIds.isEmpty else { return true }
-    guard let readingTargetBook = readingTargetBookForCurrentContext else { return true }
-    return changedIds.contains(readingTargetBook.id)
+    if let readingTargetBook = readingTargetBookForCurrentContext,
+      changedIds.contains(readingTargetBook.id)
+    {
+      return true
+    }
+    let visibleBookIds = Set(bookViewModel.pagination.items.map(\.id))
+    guard !visibleBookIds.isEmpty else { return true }
+    return !changedIds.isDisjoint(with: visibleBookIds)
   }
 
   private func shouldRefreshForSeriesProjection(_ notification: Notification) -> Bool {

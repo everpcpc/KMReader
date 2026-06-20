@@ -6,8 +6,6 @@
 import Foundation
 
 nonisolated enum BookDeletionService {
-  private static let logger = AppLogger(.api)
-
   static func deleteBook(_ item: BookDisplayItem) async throws {
     try await deleteBook(
       bookId: item.bookId,
@@ -44,34 +42,14 @@ nonisolated enum BookDeletionService {
 
     try await BookService.deleteBook(bookId: bookId)
 
-    let syncedBook = await syncDeletedBookProjection(bookId: bookId, instanceId: instanceId)
     await markBookUnavailable(bookId: bookId, instanceId: instanceId)
-    let resolvedSeriesId = syncedBook?.seriesId ?? scope.seriesId
-    let resolvedLibraryId = syncedBook?.libraryId ?? scope.libraryId
-
-    if let resolvedSeriesId {
-      _ = try? await SyncService.syncSeriesDetail(seriesId: resolvedSeriesId)
-    }
-
     await CacheManager.clearCache(forBookId: bookId)
     await ContentProjectionNotifier.postBookAndSeriesDidChange(
       bookId: bookId,
       instanceId: instanceId,
-      seriesId: resolvedSeriesId,
-      libraryId: resolvedLibraryId,
-      refreshDelay: 0
+      seriesId: scope.seriesId,
+      libraryId: scope.libraryId
     )
-  }
-
-  private static func syncDeletedBookProjection(bookId: String, instanceId: String) async -> Book? {
-    do {
-      return try await SyncService.syncBook(bookId: bookId)
-    } catch APIError.notFound {
-      return nil
-    } catch {
-      logger.error("Failed to sync deleted book projection: \(error)")
-      return nil
-    }
   }
 
   private static func markBookUnavailable(bookId: String, instanceId: String) async {

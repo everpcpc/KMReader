@@ -6,8 +6,6 @@
 import Foundation
 
 nonisolated enum SeriesDeletionService {
-  private static let logger = AppLogger(.api)
-
   static func deleteSeries(_ item: SeriesDisplayItem) async throws {
     try await deleteSeries(
       seriesId: item.seriesId,
@@ -40,12 +38,9 @@ nonisolated enum SeriesDeletionService {
 
     try await SeriesService.deleteSeries(seriesId: seriesId)
 
-    let syncedSeries = await syncDeletedSeriesProjection(seriesId: seriesId, instanceId: instanceId)
-    await syncDeletedSeriesBooks(seriesId: seriesId, instanceId: instanceId)
     await markSeriesUnavailable(seriesId: seriesId, instanceId: instanceId)
     let markedBookIds = await markSeriesBooksUnavailable(seriesId: seriesId, instanceId: instanceId)
 
-    let finalLibraryId = syncedSeries?.libraryId ?? resolvedLibraryId
     let bookIds =
       markedBookIds.isEmpty
       ? await fetchSeriesBookIds(seriesId: seriesId, instanceId: instanceId)
@@ -53,33 +48,12 @@ nonisolated enum SeriesDeletionService {
 
     await ContentProjectionNotifier.postBooksDidChange(
       bookIds: bookIds,
-      libraryId: finalLibraryId,
-      refreshDelay: 0
+      libraryId: resolvedLibraryId
     )
     await ContentProjectionNotifier.postSeriesDidChange(
       seriesId: seriesId,
-      libraryId: finalLibraryId,
-      refreshDelay: 0
+      libraryId: resolvedLibraryId
     )
-  }
-
-  private static func syncDeletedSeriesProjection(seriesId: String, instanceId: String) async -> Series? {
-    do {
-      return try await SyncService.syncSeriesDetail(seriesId: seriesId)
-    } catch APIError.notFound {
-      return nil
-    } catch {
-      logger.error("Failed to sync deleted series projection: \(error)")
-      return nil
-    }
-  }
-
-  private static func syncDeletedSeriesBooks(seriesId: String, instanceId: String) async {
-    do {
-      try await SyncService.syncAllSeriesBooks(seriesId: seriesId)
-    } catch {
-      logger.error("Failed to sync deleted series books projection: \(error)")
-    }
   }
 
   private static func markSeriesUnavailable(seriesId: String, instanceId: String) async {
