@@ -59,6 +59,10 @@ class ReaderViewModel {
   private let pageLoadScheduler: ReaderPageLoadScheduler
   private var bookMediaProfile: MediaProfile = .unknown
 
+  private static func pdfPreparationTaskKey(instanceId: String, bookId: String) -> String {
+    CompositeID.generate(instanceId: instanceId, id: bookId)
+  }
+
   private var readerPageIndexByID: [ReaderPageID: Int] = [:]
   private var segmentPageRangeByBookId: [String: Range<Int>] = [:]
   private(set) var readerPagesVersion: Int = 0
@@ -914,8 +918,8 @@ class ReaderViewModel {
     }
 
     let database = await DatabaseOperator.databaseIfConfigured()
-    let localPages = await database?.fetchPages(id: book.id)
-    let localTOC = await database?.fetchTOC(id: book.id)
+    let localPages = await database?.fetchPages(id: book.id, instanceId: instanceId)
+    let localTOC = await database?.fetchTOC(id: book.id, instanceId: instanceId)
     let hasLocalPages = !(localPages ?? []).isEmpty
     let hasLocalTOC = localTOC != nil
     guard !hasLocalPages || !hasLocalTOC else { return }
@@ -937,10 +941,10 @@ class ReaderViewModel {
     }
 
     if !hasLocalPages {
-      await database?.updateBookPages(bookId: book.id, pages: metadata.pages)
+      await database?.updateBookPages(bookId: book.id, instanceId: instanceId, pages: metadata.pages)
     }
     if !hasLocalTOC {
-      await database?.updateBookTOC(bookId: book.id, toc: metadata.tableOfContents)
+      await database?.updateBookTOC(bookId: book.id, instanceId: instanceId, toc: metadata.tableOfContents)
     }
   }
 
@@ -948,13 +952,15 @@ class ReaderViewModel {
     guard bookMediaProfile == .pdf else {
       return
     }
-    guard pdfPreparationTasks[book.id] == nil else { return }
 
     let instanceId = AppConfig.current.instanceId
-    pdfPreparationTasks[book.id] = Task { [weak self] in
+    let taskKey = Self.pdfPreparationTaskKey(instanceId: instanceId, bookId: book.id)
+    guard pdfPreparationTasks[taskKey] == nil else { return }
+
+    pdfPreparationTasks[taskKey] = Task { [weak self] in
       guard let self else { return }
       await self.prepareOfflinePDFForDivinaInBackground(book: book, instanceId: instanceId)
-      self.pdfPreparationTasks[book.id] = nil
+      self.pdfPreparationTasks[taskKey] = nil
     }
   }
 
@@ -976,8 +982,8 @@ class ReaderViewModel {
     }
 
     let database = await DatabaseOperator.databaseIfConfigured()
-    let localPages = await database?.fetchPages(id: book.id)
-    let localTOC = await database?.fetchTOC(id: book.id)
+    let localPages = await database?.fetchPages(id: book.id, instanceId: instanceId)
+    let localTOC = await database?.fetchTOC(id: book.id, instanceId: instanceId)
     let hasLocalPages = !(localPages ?? []).isEmpty
     let hasLocalTOC = localTOC != nil
     let forceRebuildMetadata = !hasLocalPages || !hasLocalTOC
@@ -1042,11 +1048,9 @@ class ReaderViewModel {
     )
 
     if let database = await DatabaseOperator.databaseIfConfigured() {
-      await database.updateBookPages(bookId: bookId, pages: result.pages)
-      await database.updateBookTOC(bookId: bookId, toc: result.tableOfContents)
+      await database.updateBookPages(bookId: bookId, instanceId: instanceId, pages: result.pages)
+      await database.updateBookTOC(bookId: bookId, instanceId: instanceId, toc: result.tableOfContents)
     }
-    replaceLoadedSegmentPages(bookId: bookId, pages: result.pages)
-    updateLoadedTableOfContents(bookId: bookId, tableOfContents: result.tableOfContents)
     if result.renderedImageCount > 0 {
       await OfflineManager.shared.refreshDownloadedBookSize(
         instanceId: instanceId,
@@ -1055,6 +1059,16 @@ class ReaderViewModel {
     } else {
       logger.debug("⏭️ Skip downloaded size refresh for book \(bookId) because no new PDF page was rendered")
     }
+
+    guard AppConfig.current.instanceId == instanceId else {
+      logger.debug(
+        "⏭️ Skip applying prepared PDF metadata to visible reader because active instance changed for book \(bookId)"
+      )
+      return
+    }
+
+    replaceLoadedSegmentPages(bookId: bookId, pages: result.pages)
+    updateLoadedTableOfContents(bookId: bookId, tableOfContents: result.tableOfContents)
 
     logger.debug(
       "✅ Applied prepared PDF metadata for book \(bookId), rendered=\(result.renderedImageCount), reused=\(result.reusedImageCount), skipped=\(result.skippedImageCount)"

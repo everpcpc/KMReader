@@ -561,8 +561,12 @@ extension DatabaseOperator {
   }
 
   func fetchPages(id: String) -> [BookPage]? {
+    fetchPages(id: id, instanceId: AppConfig.current.instanceId)
+  }
+
+  func fetchPages(id: String, instanceId: String) -> [BookPage]? {
     try? read { db in
-      try fetchBookRecord(db: db, id: id)?.pages
+      try fetchBookRecord(db: db, id: id, instanceId: instanceId)?.pages
     }
   }
 
@@ -625,19 +629,31 @@ extension DatabaseOperator {
   }
 
   func fetchTOC(id: String) -> [ReaderTOCEntry]? {
+    fetchTOC(id: id, instanceId: AppConfig.current.instanceId)
+  }
+
+  func fetchTOC(id: String, instanceId: String) -> [ReaderTOCEntry]? {
     try? read { db in
-      try fetchBookRecord(db: db, id: id)?.tableOfContents
+      try fetchBookRecord(db: db, id: id, instanceId: instanceId)?.tableOfContents
     }
   }
 
   func updateBookPages(bookId: String, pages: [BookPage]) {
-    updateBookRecord(bookId: bookId) { book in
+    updateBookPages(bookId: bookId, instanceId: AppConfig.current.instanceId, pages: pages)
+  }
+
+  func updateBookPages(bookId: String, instanceId: String, pages: [BookPage]) {
+    updateBookRecord(bookId: bookId, instanceId: instanceId) { book in
       book.pages = pages
     }
   }
 
   func updateBookTOC(bookId: String, toc: [ReaderTOCEntry]) {
-    updateBookRecord(bookId: bookId) { book in
+    updateBookTOC(bookId: bookId, instanceId: AppConfig.current.instanceId, toc: toc)
+  }
+
+  func updateBookTOC(bookId: String, instanceId: String, toc: [ReaderTOCEntry]) {
+    updateBookRecord(bookId: bookId, instanceId: instanceId) { book in
       book.tableOfContents = toc
     }
   }
@@ -710,9 +726,14 @@ extension DatabaseOperator {
   }
 
   func updateBookRecord(bookId: String, update: (inout KomgaBook) -> Void) {
+    updateBookRecord(bookId: bookId, instanceId: AppConfig.current.instanceId, update: update)
+  }
+
+  func updateBookRecord(bookId: String, instanceId: String, update: (inout KomgaBook) -> Void) {
+    guard !instanceId.isEmpty else { return }
     do {
       try write { db in
-        guard var book = try fetchBookRecord(db: db, id: bookId) else { return }
+        guard var book = try fetchBookRecord(db: db, id: bookId, instanceId: instanceId) else { return }
         update(&book)
         try save(book, db: db)
       }

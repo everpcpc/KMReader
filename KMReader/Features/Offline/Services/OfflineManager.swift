@@ -298,12 +298,20 @@ actor OfflineManager {
 
   /// Get the download status of a book from the local database.
   func getDownloadStatus(bookId: String) async -> DownloadStatus {
-    (try? await DatabaseOperator.database().getDownloadStatus(bookId: bookId)) ?? .notDownloaded
+    await getDownloadStatus(bookId: bookId, instanceId: AppConfig.current.instanceId)
+  }
+
+  func getDownloadStatus(bookId: String, instanceId: String) async -> DownloadStatus {
+    (try? await DatabaseOperator.database().getDownloadStatus(bookId: bookId, instanceId: instanceId)) ?? .notDownloaded
   }
 
   /// Check if a book is downloaded.
   func isBookDownloaded(bookId: String) async -> Bool {
-    if case .downloaded = await getDownloadStatus(bookId: bookId) {
+    await isBookDownloaded(bookId: bookId, instanceId: AppConfig.current.instanceId)
+  }
+
+  func isBookDownloaded(bookId: String, instanceId: String) async -> Bool {
+    if case .downloaded = await getDownloadStatus(bookId: bookId, instanceId: instanceId) {
       return true
     }
     return false
@@ -1356,17 +1364,18 @@ actor OfflineManager {
   func getOfflinePageImageURL(
     instanceId: String, bookId: String, pageNumber: Int, fileExtension: String
   ) async -> URL? {
-    guard await isBookDownloaded(bookId: bookId) else { return nil }
+    guard await isBookDownloaded(bookId: bookId, instanceId: instanceId) else { return nil }
     let dir = bookDirectory(instanceId: instanceId, bookId: bookId)
 
     let file = dir.appendingPathComponent("page-\(pageNumber).\(fileExtension)")
     if FileManager.default.fileExists(atPath: file.path) {
       return file
     }
-    if let database = try? await DatabaseOperator.database(),
-      let page = await database.fetchPages(id: bookId)?.first(where: { $0.number == pageNumber })
-    {
-      return await getOfflinePageImageURL(instanceId: instanceId, bookId: bookId, page: page)
+    if let database = try? await DatabaseOperator.database() {
+      let pages = await database.fetchPages(id: bookId, instanceId: instanceId)
+      if let page = pages?.first(where: { $0.number == pageNumber }) {
+        return await getOfflinePageImageURL(instanceId: instanceId, bookId: bookId, page: page)
+      }
     }
     return nil
   }
@@ -1374,7 +1383,7 @@ actor OfflineManager {
   func getOfflinePageImageURL(
     instanceId: String, bookId: String, page: BookPage
   ) async -> URL? {
-    guard await isBookDownloaded(bookId: bookId) else { return nil }
+    guard await isBookDownloaded(bookId: bookId, instanceId: instanceId) else { return nil }
     let dir = bookDirectory(instanceId: instanceId, bookId: bookId)
 
     for file in offlinePageImageFileURLs(bookDir: dir, page: page) {
@@ -1414,7 +1423,7 @@ actor OfflineManager {
     data: Data,
     replaceExisting: Bool = false
   ) async -> URL? {
-    guard await isBookDownloaded(bookId: bookId) else { return nil }
+    guard await isBookDownloaded(bookId: bookId, instanceId: instanceId) else { return nil }
     let dir = bookDirectory(instanceId: instanceId, bookId: bookId)
     let file = dir.appendingPathComponent("page-\(pageNumber).\(fileExtension)")
 
@@ -1433,8 +1442,25 @@ actor OfflineManager {
     }
   }
 
+  func clearOfflinePageImageDerivatives(instanceId: String, bookId: String, pageNumber: Int) async {
+    guard await isBookDownloaded(bookId: bookId, instanceId: instanceId) else { return }
+    let dir = bookDirectory(instanceId: instanceId, bookId: bookId)
+    let baseName = "page-\(pageNumber)@2x"
+    let candidates = ["png", "jpg", "jpeg"].map { fileExtension in
+      dir.appendingPathComponent(baseName).appendingPathExtension(fileExtension)
+    }
+
+    for fileURL in candidates where FileManager.default.fileExists(atPath: fileURL.path) {
+      do {
+        try FileManager.default.removeItem(at: fileURL)
+      } catch {
+        logger.error("❌ Failed to remove offline page derivative \(fileURL.lastPathComponent): \(error)")
+      }
+    }
+  }
+
   func clearOfflinePageImages(instanceId: String, bookId: String) async {
-    guard await isBookDownloaded(bookId: bookId) else { return }
+    guard await isBookDownloaded(bookId: bookId, instanceId: instanceId) else { return }
     let dir = bookDirectory(instanceId: instanceId, bookId: bookId)
 
     guard
@@ -1457,7 +1483,7 @@ actor OfflineManager {
   }
 
   func refreshDownloadedBookSize(instanceId: String, bookId: String) async {
-    guard await isBookDownloaded(bookId: bookId) else { return }
+    guard await isBookDownloaded(bookId: bookId, instanceId: instanceId) else { return }
     let bookDir = bookDirectory(instanceId: instanceId, bookId: bookId)
     guard let size = try? Self.calculateDirectorySize(bookDir) else { return }
 
@@ -1471,7 +1497,7 @@ actor OfflineManager {
   }
 
   func readOfflinePDFPreparationStamp(instanceId: String, bookId: String) async -> String? {
-    guard await isBookDownloaded(bookId: bookId) else { return nil }
+    guard await isBookDownloaded(bookId: bookId, instanceId: instanceId) else { return nil }
     let file = bookDirectory(instanceId: instanceId, bookId: bookId).appendingPathComponent(
       Self.pdfPreparationStampFileName
     )
@@ -1482,7 +1508,7 @@ actor OfflineManager {
   }
 
   func writeOfflinePDFPreparationStamp(instanceId: String, bookId: String, stamp: String) async {
-    guard await isBookDownloaded(bookId: bookId) else { return }
+    guard await isBookDownloaded(bookId: bookId, instanceId: instanceId) else { return }
     let file = bookDirectory(instanceId: instanceId, bookId: bookId).appendingPathComponent(
       Self.pdfPreparationStampFileName
     )
@@ -1504,7 +1530,7 @@ actor OfflineManager {
   }
 
   func getOfflinePDFURL(instanceId: String, bookId: String) async -> URL? {
-    guard await isBookDownloaded(bookId: bookId) else { return nil }
+    guard await isBookDownloaded(bookId: bookId, instanceId: instanceId) else { return nil }
     let file = bookDirectory(instanceId: instanceId, bookId: bookId).appendingPathComponent(
       Self.pdfFileName
     )

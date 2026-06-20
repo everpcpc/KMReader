@@ -393,6 +393,13 @@ actor PdfOfflinePreparationService {
             data: pageData.data,
             replaceExisting: forceRerenderImages
           ) != nil {
+            if forceRerenderImages {
+              await OfflineManager.shared.clearOfflinePageImageDerivatives(
+                instanceId: instanceId,
+                bookId: bookId,
+                pageNumber: pageNumber
+              )
+            }
             renderedImageCount += 1
           } else {
             skippedImageCount += 1
