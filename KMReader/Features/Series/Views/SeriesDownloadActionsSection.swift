@@ -99,9 +99,9 @@ struct SeriesDownloadActionsSection: View {
         )
       }
     }
-    .animation(.easeInOut(duration: 0.2), value: status)
-    .animation(.easeInOut(duration: 0.2), value: policy)
     .padding(.vertical, 4)
+    .animation(.default, value: status)
+    .animation(.default, value: policy)
     .alert(
       pendingAction?.label(for: status) ?? "",
       isPresented: Binding(

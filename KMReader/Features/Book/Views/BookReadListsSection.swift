@@ -57,7 +57,9 @@ struct BookReadListsSection: View {
     let instanceId = current.instanceId
     guard !instanceId.isEmpty, !readListIds.isEmpty else {
       if !readLists.isEmpty {
-        readLists = []
+        withAnimation {
+          readLists = []
+        }
       }
       return
     }
@@ -69,7 +71,9 @@ struct BookReadListsSection: View {
         readListIds: Set(readListIds)
       )
       if readLists != loadedReadLists {
-        readLists = loadedReadLists
+        withAnimation {
+          readLists = loadedReadLists
+        }
       }
     } catch {
       ErrorManager.shared.alert(error: error)

@@ -62,15 +62,14 @@ struct BookSelectionItemView: View {
               .stroke(Color.accentColor, lineWidth: 2)
           }
         }
+        .animation(.default, value: isSelected)
         .contentShape(Rectangle())
         .highPriorityGesture(
           TapGesture().onEnded {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-              if isSelected {
-                selectedBookIds.remove(bookId)
-              } else {
-                selectedBookIds.insert(bookId)
-              }
+            if isSelected {
+              selectedBookIds.remove(bookId)
+            } else {
+              selectedBookIds.insert(bookId)
             }
           }
         )

@@ -147,7 +147,6 @@ struct BrowseView: View {
       }
     }
     .inlineNavigationBarTitle(title)
-    .animation(.default, value: librarySelection)
     .searchable(text: $searchQuery)
     #if os(iOS) || os(macOS)
       .toolbar {

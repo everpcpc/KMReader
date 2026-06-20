@@ -28,7 +28,9 @@ struct ApiKeysView: View {
           #if os(tvOS) || os(macOS)
             Section {
               Button {
-                showingAddSheet = true
+                withAnimation {
+                  showingAddSheet = true
+                }
               } label: {
                 HStack {
                   Spacer()
@@ -66,18 +68,14 @@ struct ApiKeysView: View {
                     .foregroundColor(.secondary.opacity(0.6))
                   if showRelativeDate {
                     Button {
-                      withAnimation {
-                        showRelativeDate = false
-                      }
+                      showRelativeDate = false
                     } label: {
                       Text(lastActivity.formatted(.relative(presentation: .named)))
                         .monospacedDigit()
                     }.adaptiveButtonStyle(.plain)
                   } else {
                     Button {
-                      withAnimation {
-                        showRelativeDate = true
-                      }
+                      showRelativeDate = true
                     } label: {
                       Text(formatTime(lastActivity))
                         .monospacedDigit()
@@ -86,6 +84,7 @@ struct ApiKeysView: View {
                 }
                 .font(.caption)
                 .foregroundColor(.secondary)
+                .animation(.default, value: showRelativeDate)
               } else {
                 HStack {
                   Image(systemName: "clock")
@@ -98,8 +97,10 @@ struct ApiKeysView: View {
               #if os(iOS) || os(macOS)
                 .swipeActions {
                   Button(role: .destructive) {
-                    keyToDelete = apiKey
-                    showingDeleteConfirmation = true
+                    withAnimation {
+                      keyToDelete = apiKey
+                      showingDeleteConfirmation = true
+                    }
                   } label: {
                     Label(String(localized: "Delete"), systemImage: "trash")
                   }
@@ -111,13 +112,13 @@ struct ApiKeysView: View {
     }
     .formStyle(.grouped)
     .inlineNavigationBarTitle(ServerSection.apiKeys.title)
-    .animation(.default, value: apiKeys)
-    .animation(.default, value: lastActivities)
     #if os(iOS)
       .toolbar {
         ToolbarItem(placement: .primaryAction) {
           Button {
-            showingAddSheet = true
+            withAnimation {
+              showingAddSheet = true
+            }
           } label: {
             Image(systemName: "plus")
           }
@@ -137,7 +138,9 @@ struct ApiKeysView: View {
         }
       }
       Button(String(localized: "Cancel"), role: .cancel) {
-        keyToDelete = nil
+        withAnimation {
+          keyToDelete = nil
+        }
       }
     } message: {
       Text(
@@ -156,15 +159,22 @@ struct ApiKeysView: View {
   }
 
   private func loadApiKeys() async {
-    isLoading = true
+    withAnimation {
+      isLoading = true
+    }
     do {
-      apiKeys = try await AuthService.getApiKeys()
+      let loadedApiKeys = try await AuthService.getApiKeys()
+      withAnimation {
+        apiKeys = loadedApiKeys
+      }
       for apiKey in apiKeys {
         Task {
           do {
             let activity = try await AuthService.getLatestAuthenticationActivity(
               apiKey: apiKey)
-            lastActivities[apiKey.id] = activity.dateTime
+            withAnimation {
+              lastActivities[apiKey.id] = activity.dateTime
+            }
           } catch {
             // Ignore error for missing activity
           }
@@ -173,7 +183,9 @@ struct ApiKeysView: View {
     } catch {
       ErrorManager.shared.alert(error: error)
     }
-    isLoading = false
+    withAnimation {
+      isLoading = false
+    }
   }
 
   private func deleteApiKey(_ apiKey: ApiKey) {
@@ -181,7 +193,9 @@ struct ApiKeysView: View {
       do {
         try await AuthService.deleteApiKey(id: apiKey.id)
         if let index = apiKeys.firstIndex(where: { $0.id == apiKey.id }) {
-          apiKeys.remove(at: index)
+          withAnimation {
+            _ = apiKeys.remove(at: index)
+          }
         }
         ErrorManager.shared.notify(message: String(localized: "notification.apiKey.deleted"))
       } catch {

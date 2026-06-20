@@ -82,8 +82,6 @@ struct ApiKeyAddSheet: View {
         }
       }
     }
-    .animation(.default, value: isCreating)
-    .animation(.default, value: newKey)
     .onDisappear {
       if newKey != nil {
         onSuccess()
@@ -92,15 +90,22 @@ struct ApiKeyAddSheet: View {
   }
 
   private func createApiKey() {
-    isCreating = true
+    withAnimation {
+      isCreating = true
+    }
     Task {
       do {
-        newKey = try await AuthService.createApiKey(comment: comment)
-        comment = ""
+        let createdKey = try await AuthService.createApiKey(comment: comment)
+        withAnimation {
+          newKey = createdKey
+          comment = ""
+        }
       } catch {
         ErrorManager.shared.alert(error: error)
       }
-      isCreating = false
+      withAnimation {
+        isCreating = false
+      }
     }
   }
 }

@@ -103,7 +103,9 @@ struct ReadListsBrowseView: View {
   private func loadReadLists(refresh: Bool) async {
     let currentLoadID = UUID()
     loadID = currentLoadID
-    isLoading = true
+    withAnimation {
+      isLoading = true
+    }
 
     do {
       let ids = try await loadReadListIds()
@@ -119,7 +121,9 @@ struct ReadListsBrowseView: View {
     }
 
     guard loadID == currentLoadID else { return }
-    isLoading = false
+    withAnimation {
+      isLoading = false
+    }
   }
 
   private func loadReadListIds() async throws -> [String] {

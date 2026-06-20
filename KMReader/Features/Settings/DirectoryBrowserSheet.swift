@@ -108,28 +108,36 @@ struct DirectoryBrowserSheet: View {
   }
 
   private func navigateTo(_ path: String) {
-    currentPath = path
+    withAnimation {
+      currentPath = path
+    }
     loadDirectory(path: path)
   }
 
   private func loadDirectory(path: String) {
-    isLoading = true
-    error = nil
+    withAnimation {
+      isLoading = true
+      error = nil
+    }
     Task {
       do {
         let result = try await FilesystemService.getDirectoryListing(path: path)
-        directoryListing = result
-        // Update currentPath based on the directory we're viewing
-        if path.isEmpty, result.directories.first != nil {
-          // We're at root, keep path empty or use parent to determine
-          currentPath = result.parent ?? path
-        } else {
-          currentPath = path
+        withAnimation {
+          directoryListing = result
+          // Update currentPath based on the directory we're viewing
+          if path.isEmpty, result.directories.first != nil {
+            // We're at root, keep path empty or use parent to determine
+            currentPath = result.parent ?? path
+          } else {
+            currentPath = path
+          }
+          isLoading = false
         }
-        isLoading = false
       } catch {
-        self.error = error
-        isLoading = false
+        withAnimation {
+          self.error = error
+          isLoading = false
+        }
       }
     }
   }

@@ -308,17 +308,23 @@ struct DuplicatePagesKnownView: View {
   private func loadData(refresh: Bool) async {
     let actions = Array(filterActions)
     guard !actions.isEmpty else {
-      pagination.reset()
-      _ = pagination.applyPage([])
+      withAnimation {
+        pagination.reset()
+        _ = pagination.applyPage([])
+      }
       return
     }
 
     if refresh {
-      pagination.reset()
+      withAnimation {
+        pagination.reset()
+      }
       lastTriggeredItemId = nil
     }
 
-    isLoading = true
+    withAnimation {
+      isLoading = true
+    }
     do {
       let page = try await MediaManagementService.getKnownPageHashes(
         actions: actions,
@@ -326,19 +332,25 @@ struct DuplicatePagesKnownView: View {
         size: pagination.pageSize,
         sort: "deleteCount,desc"
       )
-      _ = pagination.applyPage(page.content)
-      pagination.advance(moreAvailable: !page.last)
+      withAnimation {
+        _ = pagination.applyPage(page.content)
+        pagination.advance(moreAvailable: !page.last)
+      }
       lastTriggeredItemId = nil
     } catch {
       lastTriggeredItemId = nil
       ErrorManager.shared.alert(error: error)
     }
-    isLoading = false
+    withAnimation {
+      isLoading = false
+    }
   }
 
   private func loadMore() async {
     guard pagination.hasMorePages && !isLoadingMore else { return }
-    isLoadingMore = true
+    withAnimation {
+      isLoadingMore = true
+    }
     do {
       let page = try await MediaManagementService.getKnownPageHashes(
         actions: Array(filterActions),
@@ -346,13 +358,17 @@ struct DuplicatePagesKnownView: View {
         size: pagination.pageSize,
         sort: "deleteCount,desc"
       )
-      _ = pagination.applyPage(page.content)
-      pagination.advance(moreAvailable: !page.last)
+      withAnimation {
+        _ = pagination.applyPage(page.content)
+        pagination.advance(moreAvailable: !page.last)
+      }
       lastTriggeredItemId = nil
     } catch {
       lastTriggeredItemId = nil
       ErrorManager.shared.alert(error: error)
     }
-    isLoadingMore = false
+    withAnimation {
+      isLoadingMore = false
+    }
   }
 }

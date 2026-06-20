@@ -113,7 +113,6 @@ struct SettingsDashboardView: View {
       .toolbar {
         EditButton()
       }
-      .animation(.default, value: dashboard)
     }
   }
 #elseif os(macOS)
@@ -237,7 +236,6 @@ struct SettingsDashboardView: View {
       }
       .formStyle(.grouped)
       .inlineNavigationBarTitle(SettingsSection.dashboard.title)
-      .animation(.default, value: dashboard)
     }
   }
 

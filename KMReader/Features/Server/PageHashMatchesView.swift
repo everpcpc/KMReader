@@ -118,24 +118,32 @@ struct PageHashMatchesView: View {
   private func deleteMatch(_ match: PageHashMatch) async {
     do {
       try await MediaManagementService.deleteMatchByHash(hash, match: match)
-      matches.removeAll { $0.id == match.id }
+      withAnimation {
+        matches.removeAll { $0.id == match.id }
+      }
     } catch {
       ErrorManager.shared.alert(error: error)
     }
   }
 
   private func loadMatches() async {
-    isLoading = true
+    withAnimation {
+      isLoading = true
+    }
     do {
       let page = try await MediaManagementService.getPageHashMatches(
         hash: hash,
         page: 0,
         size: 100
       )
-      matches = page.content
+      withAnimation {
+        matches = page.content
+      }
     } catch {
       ErrorManager.shared.alert(error: error)
     }
-    isLoading = false
+    withAnimation {
+      isLoading = false
+    }
   }
 }

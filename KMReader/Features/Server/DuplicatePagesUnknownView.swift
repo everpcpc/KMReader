@@ -233,7 +233,9 @@ struct DuplicatePagesUnknownView: View {
       try await MediaManagementService.createOrUpdatePageHash(
         PageHashCreation(hash: hash.hash, size: hash.size, action: action)
       )
-      processedHashes.insert(hash.hash)
+      withAnimation {
+        _ = processedHashes.insert(hash.hash)
+      }
 
       if visibleItems.isEmpty {
         await loadData(refresh: true)
@@ -249,7 +251,9 @@ struct DuplicatePagesUnknownView: View {
         try await MediaManagementService.createOrUpdatePageHash(
           PageHashCreation(hash: hash.hash, size: hash.size, action: action)
         )
-        processedHashes.insert(hash.hash)
+        withAnimation {
+          _ = processedHashes.insert(hash.hash)
+        }
       } catch {
         ErrorManager.shared.alert(error: error)
         return
@@ -263,44 +267,58 @@ struct DuplicatePagesUnknownView: View {
 
   private func loadData(refresh: Bool) async {
     if refresh {
-      pagination.reset()
+      withAnimation {
+        pagination.reset()
+        processedHashes.removeAll()
+      }
       lastTriggeredItemId = nil
-      processedHashes.removeAll()
     }
 
-    isLoading = true
+    withAnimation {
+      isLoading = true
+    }
     do {
       let page = try await MediaManagementService.getUnknownPageHashes(
         page: pagination.currentPage,
         size: pagination.pageSize,
         sort: "matchCount,desc"
       )
-      _ = pagination.applyPage(page.content)
-      pagination.advance(moreAvailable: !page.last)
+      withAnimation {
+        _ = pagination.applyPage(page.content)
+        pagination.advance(moreAvailable: !page.last)
+      }
       lastTriggeredItemId = nil
     } catch {
       lastTriggeredItemId = nil
       ErrorManager.shared.alert(error: error)
     }
-    isLoading = false
+    withAnimation {
+      isLoading = false
+    }
   }
 
   private func loadMore() async {
     guard pagination.hasMorePages && !isLoadingMore else { return }
-    isLoadingMore = true
+    withAnimation {
+      isLoadingMore = true
+    }
     do {
       let page = try await MediaManagementService.getUnknownPageHashes(
         page: pagination.currentPage,
         size: pagination.pageSize,
         sort: "matchCount,desc"
       )
-      _ = pagination.applyPage(page.content)
-      pagination.advance(moreAvailable: !page.last)
+      withAnimation {
+        _ = pagination.applyPage(page.content)
+        pagination.advance(moreAvailable: !page.last)
+      }
       lastTriggeredItemId = nil
     } catch {
       lastTriggeredItemId = nil
       ErrorManager.shared.alert(error: error)
     }
-    isLoadingMore = false
+    withAnimation {
+      isLoadingMore = false
+    }
   }
 }

@@ -170,6 +170,7 @@ struct DashboardPinnedSectionView: View {
                   itemIds: itemIds,
                   isVisible: isHoveringScrollArea
                 )
+                .animation(.default, value: isHoveringScrollArea)
               }
             #endif
           }
@@ -187,9 +188,7 @@ struct DashboardPinnedSectionView: View {
             hoverShowDelayTask = Task { @MainActor in
               try? await Task.sleep(nanoseconds: 100_000_000)
               guard !Task.isCancelled else { return }
-              withAnimation(.easeInOut(duration: 0.2)) {
-                isHoveringScrollArea = true
-              }
+              isHoveringScrollArea = true
             }
           case .ended:
             hoverShowDelayTask?.cancel()
@@ -198,9 +197,7 @@ struct DashboardPinnedSectionView: View {
             hoverHideDelayTask = Task { @MainActor in
               try? await Task.sleep(nanoseconds: 100_000_000)
               guard !Task.isCancelled else { return }
-              withAnimation(.easeInOut(duration: 0.2)) {
-                isHoveringScrollArea = false
-              }
+              isHoveringScrollArea = false
             }
           }
         }
@@ -229,9 +226,13 @@ struct DashboardPinnedSectionView: View {
 
   private func refresh() async {
     guard !isLoading else { return }
-    isLoading = true
+    withAnimation {
+      isLoading = true
+    }
     defer {
-      isLoading = false
+      withAnimation {
+        isLoading = false
+      }
     }
 
     await loadPinnedItems()
@@ -256,8 +257,10 @@ struct DashboardPinnedSectionView: View {
 
   private func loadPinnedItems() async {
     guard !currentInstanceId.isEmpty else {
-      if !pinnedCollections.isEmpty { pinnedCollections = [] }
-      if !pinnedReadLists.isEmpty { pinnedReadLists = [] }
+      withAnimation {
+        if !pinnedCollections.isEmpty { pinnedCollections = [] }
+        if !pinnedReadLists.isEmpty { pinnedReadLists = [] }
+      }
       return
     }
 
@@ -268,18 +271,22 @@ struct DashboardPinnedSectionView: View {
         let loadedCollections = try await database.fetchPinnedCollectionDisplayItems(
           instanceId: currentInstanceId
         )
-        if pinnedCollections != loadedCollections {
-          pinnedCollections = loadedCollections
+        withAnimation {
+          if pinnedCollections != loadedCollections {
+            pinnedCollections = loadedCollections
+          }
+          if !pinnedReadLists.isEmpty { pinnedReadLists = [] }
         }
-        if !pinnedReadLists.isEmpty { pinnedReadLists = [] }
       case .readLists:
         let loadedReadLists = try await database.fetchPinnedReadListDisplayItems(
           instanceId: currentInstanceId
         )
-        if pinnedReadLists != loadedReadLists {
-          pinnedReadLists = loadedReadLists
+        withAnimation {
+          if pinnedReadLists != loadedReadLists {
+            pinnedReadLists = loadedReadLists
+          }
+          if !pinnedCollections.isEmpty { pinnedCollections = [] }
         }
-        if !pinnedCollections.isEmpty { pinnedCollections = [] }
       default:
         break
       }

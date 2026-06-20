@@ -19,14 +19,7 @@ class BookViewModel {
     browseOpts: BookBrowseOptions,
     refresh: Bool = true
   ) async {
-    if refresh {
-      pagination.reset()
-    } else {
-      guard pagination.hasMorePages && !isLoading else { return }
-    }
-
-    let loadID = pagination.loadID
-    isLoading = true
+    guard let loadID = beginLoad(refresh: refresh) else { return }
 
     defer {
       if loadID == pagination.loadID {
@@ -75,6 +68,22 @@ class BookViewModel {
       _ = pagination.applyPage(wrappedIds)
     }
     pagination.advance(moreAvailable: moreAvailable)
+  }
+
+  private func beginLoad(refresh: Bool) -> UUID? {
+    if refresh {
+      withAnimation {
+        pagination.reset()
+        isLoading = true
+      }
+      return pagination.loadID
+    }
+
+    guard pagination.hasMorePages && !isLoading else { return nil }
+    withAnimation {
+      isLoading = true
+    }
+    return pagination.loadID
   }
 
   func updatePageReadProgress(bookId: String, page: Int, completed: Bool = false) async {
@@ -135,14 +144,7 @@ class BookViewModel {
     useLocalOnly: Bool = false,
     offlineOnly: Bool = false
   ) async {
-    if refresh {
-      pagination.reset()
-    } else {
-      guard pagination.hasMorePages && !isLoading else { return }
-    }
-
-    let loadID = pagination.loadID
-    isLoading = true
+    guard let loadID = beginLoad(refresh: refresh) else { return }
 
     defer {
       if loadID == pagination.loadID {
@@ -214,16 +216,7 @@ class BookViewModel {
     libraryIds: [String]? = nil,
     refresh: Bool = false
   ) async {
-    if !refresh {
-      guard pagination.hasMorePages && !isLoading else { return }
-    }
-
-    if refresh {
-      pagination.reset()
-    }
-
-    let loadID = pagination.loadID
-    isLoading = true
+    guard let loadID = beginLoad(refresh: refresh) else { return }
 
     defer {
       if loadID == pagination.loadID {

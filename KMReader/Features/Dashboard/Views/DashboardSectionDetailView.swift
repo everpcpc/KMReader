@@ -28,12 +28,19 @@ struct DashboardSectionDetailView: View {
     LayoutConfig.spacing(for: gridDensity)
   }
 
+  private var browseLayoutBinding: Binding<BrowseLayoutMode> {
+    Binding(
+      get: { browseLayout },
+      set: { setBrowseLayout($0) }
+    )
+  }
+
   var body: some View {
     GeometryReader { geometry in
       ScrollView {
 
         #if os(tvOS)
-          Picker("Layout", selection: $browseLayout) {
+          Picker("Layout", selection: browseLayoutBinding) {
             ForEach(BrowseLayoutMode.allCases, id: \.self) { layout in
               Image(systemName: layout.iconName)
             }
@@ -59,7 +66,6 @@ struct DashboardSectionDetailView: View {
           .padding(.horizontal)
       }
     }
-    .animation(.default, value: browseLayout)
     .inlineNavigationBarTitle(section.displayName)
     .task {
       guard !hasLoadedInitial else { return }
@@ -96,7 +102,7 @@ struct DashboardSectionDetailView: View {
             }
 
             LayoutModePicker(
-              selection: $browseLayout,
+              selection: browseLayoutBinding,
               showGridDensity: true
             )
           } label: {
@@ -210,9 +216,15 @@ struct DashboardSectionDetailView: View {
     }
     guard refresh || pagination.hasMorePages else { return }
 
-    isLoading = true
     if refresh {
-      pagination.reset()
+      withAnimation {
+        isLoading = true
+        pagination.reset()
+      }
+    } else {
+      withAnimation {
+        isLoading = true
+      }
     }
 
     let libraryIds = dashboard.libraryIds
@@ -284,14 +296,18 @@ struct DashboardSectionDetailView: View {
     guard section.supportsDownloadAll, !isOffline else { return }
     guard !isQueueingAllOffline else { return }
 
-    isQueueingAllOffline = true
+    withAnimation {
+      isQueueingAllOffline = true
+    }
     let libraryIds = dashboard.libraryIds
     let instanceId = AppConfig.current.instanceId
 
     Task {
       defer {
         Task { @MainActor in
-          isQueueingAllOffline = false
+          withAnimation {
+            isQueueingAllOffline = false
+          }
         }
       }
 
@@ -370,5 +386,12 @@ struct DashboardSectionDetailView: View {
       _ = pagination.applyPage(wrappedIds)
     }
     pagination.advance(moreAvailable: moreAvailable)
+  }
+
+  private func setBrowseLayout(_ layout: BrowseLayoutMode) {
+    guard browseLayout != layout else { return }
+    withAnimation {
+      browseLayout = layout
+    }
   }
 }

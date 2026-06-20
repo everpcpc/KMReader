@@ -26,9 +26,7 @@ struct CollectionSeriesBrowseOptionsSheet: View {
         Section(String(localized: "Read Status")) {
           ForEach(ReadStatus.allCases, id: \.self) { filter in
             Button {
-              withAnimation(.easeInOut) {
-                toggleReadStatus(filter)
-              }
+              toggleReadStatus(filter)
             } label: {
               HStack {
                 Text(filter.displayName)
@@ -40,6 +38,7 @@ struct CollectionSeriesBrowseOptionsSheet: View {
                 )
                 Image(systemName: icon(for: state))
                   .foregroundStyle(color(for: state))
+                  .animation(.default, value: state)
               }
             }
           }
@@ -54,15 +53,15 @@ struct CollectionSeriesBrowseOptionsSheet: View {
 
           ForEach(SeriesStatus.allCases, id: \.self) { filter in
             Button {
-              withAnimation(.easeInOut) {
-                cycleSeriesStatus(filter)
-              }
+              cycleSeriesStatus(filter)
             } label: {
               HStack {
                 Text(filter.displayName)
                 Spacer()
-                Image(systemName: icon(for: state(for: filter)))
-                  .foregroundStyle(color(for: state(for: filter)))
+                let state = state(for: filter)
+                Image(systemName: icon(for: state))
+                  .foregroundStyle(color(for: state))
+                  .animation(.default, value: state)
               }
             }
           }
@@ -70,41 +69,41 @@ struct CollectionSeriesBrowseOptionsSheet: View {
 
         Section(String(localized: "Flags")) {
           Button {
-            withAnimation(.easeInOut) {
-              tempOpts.completeFilter.cycle(to: .yes)
-            }
+            tempOpts.completeFilter.cycle(to: .yes)
           } label: {
             HStack {
               Text(FilterStrings.complete)
               Spacer()
-              Image(systemName: icon(for: tempOpts.completeFilter.state(for: .yes)))
-                .foregroundStyle(color(for: tempOpts.completeFilter.state(for: .yes)))
+              let state = tempOpts.completeFilter.state(for: .yes)
+              Image(systemName: icon(for: state))
+                .foregroundStyle(color(for: state))
+                .animation(.default, value: state)
             }
           }
 
           Button {
-            withAnimation(.easeInOut) {
-              tempOpts.oneshotFilter.cycle(to: .yes)
-            }
+            tempOpts.oneshotFilter.cycle(to: .yes)
           } label: {
             HStack {
               Text(FilterStrings.oneshot)
               Spacer()
-              Image(systemName: icon(for: tempOpts.oneshotFilter.state(for: .yes)))
-                .foregroundStyle(color(for: tempOpts.oneshotFilter.state(for: .yes)))
+              let state = tempOpts.oneshotFilter.state(for: .yes)
+              Image(systemName: icon(for: state))
+                .foregroundStyle(color(for: state))
+                .animation(.default, value: state)
             }
           }
 
           Button {
-            withAnimation(.easeInOut) {
-              tempOpts.deletedFilter.cycle(to: .yes)
-            }
+            tempOpts.deletedFilter.cycle(to: .yes)
           } label: {
             HStack {
               Text(FilterStrings.deleted)
               Spacer()
-              Image(systemName: icon(for: tempOpts.deletedFilter.state(for: .yes)))
-                .foregroundStyle(color(for: tempOpts.deletedFilter.state(for: .yes)))
+              let state = tempOpts.deletedFilter.state(for: .yes)
+              Image(systemName: icon(for: state))
+                .foregroundStyle(color(for: state))
+                .animation(.default, value: state)
             }
           }
         }
@@ -123,7 +122,9 @@ struct CollectionSeriesBrowseOptionsSheet: View {
       }
     } controls: {
       Button {
-        showSaveFilterSheet = true
+        withAnimation {
+          showSaveFilterSheet = true
+        }
       } label: {
         Label(String(localized: "Save Filter"), systemImage: "bookmark")
       }

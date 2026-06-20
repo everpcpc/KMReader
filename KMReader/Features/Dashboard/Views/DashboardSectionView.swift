@@ -109,6 +109,7 @@ struct DashboardSectionView: View {
                 itemIds: pagination.items.map(\.id),
                 isVisible: isHoveringScrollArea
               )
+              .animation(.default, value: isHoveringScrollArea)
             }
           #endif
         }
@@ -124,9 +125,7 @@ struct DashboardSectionView: View {
           hoverShowDelayTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: 100_000_000)
             guard !Task.isCancelled else { return }
-            withAnimation(.easeInOut(duration: 0.2)) {
-              isHoveringScrollArea = true
-            }
+            isHoveringScrollArea = true
           }
         case .ended:
           hoverShowDelayTask?.cancel()
@@ -135,9 +134,7 @@ struct DashboardSectionView: View {
           hoverHideDelayTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: 100_000_000)
             guard !Task.isCancelled else { return }
-            withAnimation(.easeInOut(duration: 0.2)) {
-              isHoveringScrollArea = false
-            }
+            isHoveringScrollArea = false
           }
         }
       }
@@ -178,7 +175,9 @@ struct DashboardSectionView: View {
   }
 
   private func refresh() async {
-    pagination.reset()
+    withAnimation {
+      pagination.reset()
+    }
     await loadMore()
   }
 
@@ -203,7 +202,9 @@ struct DashboardSectionView: View {
 
   private func loadMore() async {
     guard pagination.hasMorePages, !isLoading else { return }
-    isLoading = true
+    withAnimation {
+      isLoading = true
+    }
 
     let libraryIds = dashboard.libraryIds
     let isFirstPage = pagination.currentPage == 0
@@ -266,7 +267,9 @@ struct DashboardSectionView: View {
       }
     }
 
-    isLoading = false
+    withAnimation {
+      isLoading = false
+    }
   }
 
   private func seedFromCacheIfNeeded(isFirstPage: Bool) async {
@@ -275,7 +278,9 @@ struct DashboardSectionView: View {
 
     let cachedIds = sectionCacheStore.ids(for: section)
     guard !cachedIds.isEmpty else { return }
-    pagination.items = cachedIds.map(IdentifiedString.init)
+    withAnimation {
+      pagination.items = cachedIds.map(IdentifiedString.init)
+    }
   }
 
   private func applyPage(ids: [String], moreAvailable: Bool) {

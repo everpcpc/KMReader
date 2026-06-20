@@ -41,13 +41,21 @@ struct SavedFiltersView: View {
       "Rename Filter",
       isPresented: .init(
         get: { filterToRename != nil },
-        set: { if !$0 { filterToRename = nil } }
+        set: {
+          if !$0 {
+            withAnimation {
+              filterToRename = nil
+            }
+          }
+        }
       )
     ) {
       TextField("Filter Name", text: $newName)
       Button("Cancel", role: .cancel) {
-        filterToRename = nil
-        newName = ""
+        withAnimation {
+          filterToRename = nil
+          newName = ""
+        }
       }
       Button("Rename") {
         if let filter = filterToRename {
@@ -91,8 +99,10 @@ struct SavedFiltersView: View {
         }
 
         Button {
-          newName = filter.name
-          filterToRename = filter
+          withAnimation {
+            newName = filter.name
+            filterToRename = filter
+          }
         } label: {
           Label("Rename", systemImage: "pencil")
         }
@@ -108,8 +118,10 @@ struct SavedFiltersView: View {
       }
 
       Button {
-        newName = filter.name
-        filterToRename = filter
+        withAnimation {
+          newName = filter.name
+          filterToRename = filter
+        }
       } label: {
         Label("Rename", systemImage: "pencil")
       }
@@ -170,8 +182,10 @@ struct SavedFiltersView: View {
         let database = try await DatabaseOperator.database()
         try await database.renameSavedFilter(id: filter.id, name: trimmed)
         await loadFilters()
-        filterToRename = nil
-        self.newName = ""
+        withAnimation {
+          filterToRename = nil
+          self.newName = ""
+        }
       } catch {
         ErrorManager.shared.alert(error: error)
       }
@@ -183,7 +197,9 @@ struct SavedFiltersView: View {
       let database = try await DatabaseOperator.database()
       let loadedFilters = try await database.fetchSavedFilterDisplayItems(filterType: filterType)
       if savedFilters != loadedFilters {
-        savedFilters = loadedFilters
+        withAnimation {
+          savedFilters = loadedFilters
+        }
       }
     } catch {
       ErrorManager.shared.alert(error: error)

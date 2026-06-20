@@ -29,12 +29,44 @@ struct SidebarView: View {
     #endif
   }
 
+  private var browseExpandedBinding: Binding<Bool> {
+    Binding(
+      get: { browseExpanded },
+      set: { setBrowseExpanded($0) }
+    )
+  }
+
+  private var librariesExpandedBinding: Binding<Bool> {
+    Binding(
+      get: { librariesExpanded },
+      set: { setLibrariesExpanded($0) }
+    )
+  }
+
+  private var collectionsExpandedBinding: Binding<Bool> {
+    Binding(
+      get: { collectionsExpanded },
+      set: { setCollectionsExpanded($0) }
+    )
+  }
+
+  private var readListsExpandedBinding: Binding<Bool> {
+    Binding(
+      get: { readListsExpanded },
+      set: { setReadListsExpanded($0) }
+    )
+  }
+
   private func refreshSidebar() async {
     guard !current.instanceId.isEmpty, !isRefreshing else { return }
-    isRefreshing = true
+    withAnimation {
+      isRefreshing = true
+    }
     ErrorManager.shared.notify(message: String(localized: "notification.refreshing"))
     defer {
-      isRefreshing = false
+      withAnimation {
+        isRefreshing = false
+      }
       ErrorManager.shared.notify(message: String(localized: "notification.refresh_completed"))
     }
     await SyncService.syncLibraries(instanceId: current.instanceId)
@@ -45,9 +77,7 @@ struct SidebarView: View {
 
   private func loadSidebarItems(instanceId: String) async {
     guard !instanceId.isEmpty else {
-      if !libraries.isEmpty { libraries = [] }
-      if !collections.isEmpty { collections = [] }
-      if !readLists.isEmpty { readLists = [] }
+      clearSidebarItemsIfNeeded()
       return
     }
 
@@ -57,11 +87,68 @@ struct SidebarView: View {
       let loadedCollections = try await database.fetchSidebarCollections(instanceId: instanceId)
       let loadedReadLists = try await database.fetchSidebarReadLists(instanceId: instanceId)
 
+      applySidebarItems(
+        libraries: loadedLibraries,
+        collections: loadedCollections,
+        readLists: loadedReadLists
+      )
+    } catch {
+      ErrorManager.shared.alert(error: error)
+    }
+  }
+
+  private func clearSidebarItemsIfNeeded() {
+    guard !libraries.isEmpty || !collections.isEmpty || !readLists.isEmpty else { return }
+
+    withAnimation {
+      libraries = []
+      collections = []
+      readLists = []
+    }
+  }
+
+  private func applySidebarItems(
+    libraries loadedLibraries: [SidebarLibraryItem],
+    collections loadedCollections: [SidebarCollectionItem],
+    readLists loadedReadLists: [SidebarReadListItem]
+  ) {
+    guard
+      libraries != loadedLibraries || collections != loadedCollections
+        || readLists != loadedReadLists
+    else { return }
+
+    withAnimation {
       if libraries != loadedLibraries { libraries = loadedLibraries }
       if collections != loadedCollections { collections = loadedCollections }
       if readLists != loadedReadLists { readLists = loadedReadLists }
-    } catch {
-      ErrorManager.shared.alert(error: error)
+    }
+  }
+
+  private func setBrowseExpanded(_ isExpanded: Bool) {
+    guard browseExpanded != isExpanded else { return }
+    withAnimation {
+      browseExpanded = isExpanded
+    }
+  }
+
+  private func setLibrariesExpanded(_ isExpanded: Bool) {
+    guard librariesExpanded != isExpanded else { return }
+    withAnimation {
+      librariesExpanded = isExpanded
+    }
+  }
+
+  private func setCollectionsExpanded(_ isExpanded: Bool) {
+    guard collectionsExpanded != isExpanded else { return }
+    withAnimation {
+      collectionsExpanded = isExpanded
+    }
+  }
+
+  private func setReadListsExpanded(_ isExpanded: Bool) {
+    guard readListsExpanded != isExpanded else { return }
+    withAnimation {
+      readListsExpanded = isExpanded
     }
   }
 
@@ -74,13 +161,6 @@ struct SidebarView: View {
     #if os(iOS)
       .listStyle(.sidebar)
     #endif
-    .animation(.default, value: libraries)
-    .animation(.default, value: collections)
-    .animation(.default, value: readLists)
-    .animation(.default, value: browseExpanded)
-    .animation(.default, value: librariesExpanded)
-    .animation(.default, value: collectionsExpanded)
-    .animation(.default, value: readListsExpanded)
     #if os(iOS)
       .refreshable {
         await refreshSidebar()
@@ -136,7 +216,7 @@ struct SidebarView: View {
       }
     }
 
-    Section(isExpanded: $browseExpanded) {
+    Section(isExpanded: browseExpandedBinding) {
       NavigationLink(value: NavDestination.browseSeries) {
         Label(String(localized: "tab.series"), systemImage: ContentIcon.series)
       }
@@ -154,7 +234,7 @@ struct SidebarView: View {
     }
 
     if !libraries.isEmpty {
-      Section(isExpanded: $librariesExpanded) {
+      Section(isExpanded: librariesExpandedBinding) {
         ForEach(libraries) { library in
           NavigationLink(
             value: NavDestination.browseLibrary(selection: LibrarySelection(sidebarItem: library))
@@ -182,7 +262,7 @@ struct SidebarView: View {
     }
 
     if !collections.isEmpty {
-      Section(isExpanded: $collectionsExpanded) {
+      Section(isExpanded: collectionsExpandedBinding) {
         ForEach(collections) { collection in
           NavigationLink(
             value: NavDestination.collectionDetail(collectionId: collection.collectionId)
@@ -199,7 +279,7 @@ struct SidebarView: View {
     }
 
     if !readLists.isEmpty {
-      Section(isExpanded: $readListsExpanded) {
+      Section(isExpanded: readListsExpandedBinding) {
         ForEach(readLists) { readList in
           NavigationLink(
             value: NavDestination.readListDetail(readListId: readList.readListId)

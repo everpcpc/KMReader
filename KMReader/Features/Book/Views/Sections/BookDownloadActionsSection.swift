@@ -39,7 +39,7 @@ struct BookDownloadActionsSection: View {
         foregroundColor: status.displayColor
       )
     }
-    .animation(.default, value: status)
     .padding(.vertical, 4)
+    .animation(.default, value: status)
   }
 }

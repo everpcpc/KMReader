@@ -46,6 +46,28 @@ struct OfflineTasksView: View {
     return .idle
   }
 
+  private var downloadsEnabledBinding: Binding<Bool> {
+    Binding(
+      get: { !isPaused },
+      set: { setPaused(!$0) }
+    )
+  }
+
+  private var autoDeleteReadBinding: Binding<Bool> {
+    Binding(
+      get: { autoDeleteRead },
+      set: { newValue in
+        if newValue {
+          showingAutoDeleteAlert = true
+        } else {
+          withAnimation {
+            autoDeleteRead = false
+          }
+        }
+      }
+    )
+  }
+
   var body: some View {
     Form {
       Section {
@@ -64,16 +86,7 @@ struct OfflineTasksView: View {
         }
 
         Toggle(
-          isOn: Binding(
-            get: { autoDeleteRead },
-            set: { newValue in
-              if newValue {
-                showingAutoDeleteAlert = true
-              } else {
-                autoDeleteRead = false
-              }
-            }
-          )
+          isOn: autoDeleteReadBinding
         ) {
           VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
@@ -91,12 +104,7 @@ struct OfflineTasksView: View {
 
       Section {
         Toggle(
-          isOn: Binding(
-            get: { !isPaused },
-            set: { newValue in
-              isPaused = !newValue
-            }
-          )
+          isOn: downloadsEnabledBinding
         ) {
           Label(currentStatus.label, systemImage: currentStatus.icon)
             .foregroundColor(currentStatus.color)
@@ -189,9 +197,6 @@ struct OfflineTasksView: View {
     }
     .formStyle(.grouped)
     .inlineNavigationBarTitle(OfflineSection.tasks.title)
-    .animation(.default, value: isPaused)
-    .animation(.default, value: currentStatus)
-    .animation(.default, value: tasks)
     .alert(
       "Confirm Action", isPresented: $showingBulkAlert,
       presenting: pendingBulkAction
@@ -250,8 +255,10 @@ struct OfflineTasksView: View {
     ) {
       Button(String(localized: "Cancel"), role: .cancel) {}
       Button(String(localized: "Confirm"), role: .destructive) {
-        autoDeleteRead = true
-        isPaused = true
+        withAnimation {
+          autoDeleteRead = true
+          isPaused = true
+        }
         ErrorManager.shared.notify(
           message: String(localized: "notification.offline.autoDeleteReadEnabled")
         )
@@ -264,7 +271,9 @@ struct OfflineTasksView: View {
   private func loadTasks() async {
     guard !instanceId.isEmpty else {
       if !tasks.isEmpty {
-        tasks = []
+        withAnimation {
+          tasks = []
+        }
       }
       return
     }
@@ -273,10 +282,19 @@ struct OfflineTasksView: View {
       let database = try await DatabaseOperator.database()
       let loadedTasks = try await database.fetchOfflineTaskItems(instanceId: instanceId)
       if tasks != loadedTasks {
-        tasks = loadedTasks
+        withAnimation {
+          tasks = loadedTasks
+        }
       }
     } catch {
       ErrorManager.shared.alert(error: error)
+    }
+  }
+
+  private func setPaused(_ paused: Bool) {
+    guard isPaused != paused else { return }
+    withAnimation {
+      isPaused = paused
     }
   }
 }

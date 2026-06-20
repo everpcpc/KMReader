@@ -81,6 +81,7 @@ struct CollectionPickerSheet: View {
                   }
                 }
                 .foregroundStyle(item.alreadyIn ? .secondary : .primary)
+                .animation(.default, value: selectedCollectionId == item.id)
               }
               .disabled(item.alreadyIn)
             }
@@ -89,7 +90,9 @@ struct CollectionPickerSheet: View {
       }
     } controls: {
       Button {
-        showCreateSheet = true
+        withAnimation {
+          showCreateSheet = true
+        }
       } label: {
         Label("Create New", systemImage: "plus.circle.fill")
       }
@@ -120,15 +123,23 @@ struct CollectionPickerSheet: View {
   private func refreshCollections() async {
     await loadCollections()
     guard !AppConfig.isOffline else { return }
-    isLoading = true
+    withAnimation {
+      isLoading = true
+    }
     await SyncService.syncCollections(instanceId: current.instanceId)
-    isLoading = false
+    withAnimation {
+      isLoading = false
+    }
     await loadCollections()
   }
 
   private func loadCollections() async {
     guard !current.instanceId.isEmpty else {
-      if !collections.isEmpty { collections = [] }
+      if !collections.isEmpty {
+        withAnimation {
+          collections = []
+        }
+      }
       return
     }
 
@@ -138,7 +149,9 @@ struct CollectionPickerSheet: View {
         instanceId: current.instanceId
       )
       if collections != loadedCollections {
-        collections = loadedCollections
+        withAnimation {
+          collections = loadedCollections
+        }
       }
     } catch {
       ErrorManager.shared.alert(error: error)
@@ -183,7 +196,9 @@ struct CreateCollectionSheet: View {
   private func createCollection() {
     guard !name.isEmpty else { return }
 
-    isCreating = true
+    withAnimation {
+      isCreating = true
+    }
 
     Task {
       do {
@@ -194,11 +209,15 @@ struct CreateCollectionSheet: View {
         // Sync the collection to update its local series IDs
         _ = try? await SyncService.syncCollection(id: collection.id)
         ErrorManager.shared.notify(message: String(localized: "notification.collection.created"))
-        isCreating = false
+        withAnimation {
+          isCreating = false
+        }
         onCreate(collection.id)
         dismiss()
       } catch {
-        isCreating = false
+        withAnimation {
+          isCreating = false
+        }
         ErrorManager.shared.alert(error: error)
       }
     }

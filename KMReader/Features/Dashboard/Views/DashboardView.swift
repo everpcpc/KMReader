@@ -92,10 +92,14 @@ struct DashboardView: View {
       await SSEService.shared.connect()
     }
 
-    isRefreshing = true
+    withAnimation {
+      isRefreshing = true
+    }
     await DashboardSectionRefreshNotifier.postAll(source: .manual, reason: reason)
     try? await Task.sleep(nanoseconds: 2_000_000_000)
-    isRefreshing = false
+    withAnimation {
+      isRefreshing = false
+    }
   }
 
   private func handleSSEEvent(_ info: SSEEventInfo) {
@@ -134,7 +138,6 @@ struct DashboardView: View {
       .padding(.vertical)
     }
     .inlineNavigationBarTitle(String(localized: "title.dashboard"))
-    .animation(.default, value: dashboard)
     .onChange(of: authViewModel.isSwitching) { oldValue, newValue in
       // Refresh when server switch completes (transitions from switching to not switching)
       // This avoids race condition where refresh happens after logout but before new auth is ready
@@ -280,7 +283,9 @@ struct DashboardView: View {
   }
 
   private func tryReconnect() async {
-    isCheckingConnection = true
+    withAnimation {
+      isCheckingConnection = true
+    }
     let serverReachable = await authViewModel.loadCurrentUser()
     let reconnected = serverReachable && AppConfig.isLoggedIn
     if reconnected {
@@ -290,7 +295,9 @@ struct DashboardView: View {
     // `enterAutoOfflineMode()` here — the user invoked the reconnect manually
     // from a state that may have been either auto or manual, and a failed retry
     // should preserve that classification rather than reclassifying as auto.
-    isCheckingConnection = false
+    withAnimation {
+      isCheckingConnection = false
+    }
 
     if reconnected {
       await sseService.connect()
@@ -303,14 +310,18 @@ struct DashboardView: View {
     guard section.supportsDownloadLatest, !current.instanceId.isEmpty, !isOffline else { return }
     guard !offlineQueueingSections.contains(section) else { return }
 
-    offlineQueueingSections.insert(section)
+    withAnimation {
+      _ = offlineQueueingSections.insert(section)
+    }
     let instanceId = current.instanceId
     let libraryIds = dashboard.libraryIds
 
     Task {
       defer {
         Task { @MainActor in
-          offlineQueueingSections.remove(section)
+          withAnimation {
+            offlineQueueingSections.remove(section)
+          }
         }
       }
 

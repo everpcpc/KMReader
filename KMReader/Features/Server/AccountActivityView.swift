@@ -149,44 +149,58 @@ struct AccountActivityView: View {
 
   private func loadActivities(refresh: Bool = false) async {
     if refresh {
-      pagination.reset()
+      withAnimation {
+        pagination.reset()
+      }
       lastTriggeredIndex = -1
     }
 
-    isLoading = true
+    withAnimation {
+      isLoading = true
+    }
 
     do {
       let page = try await AuthService.getAuthenticationActivity(
         page: pagination.currentPage,
         size: pagination.pageSize
       )
-      _ = pagination.applyPage(page.content)
-      pagination.advance(moreAvailable: !page.last)
+      withAnimation {
+        _ = pagination.applyPage(page.content)
+        pagination.advance(moreAvailable: !page.last)
+      }
       lastTriggeredIndex = -1
     } catch {
       ErrorManager.shared.alert(error: error)
     }
 
-    isLoading = false
+    withAnimation {
+      isLoading = false
+    }
   }
 
   private func loadMoreActivities() async {
     guard pagination.hasMorePages && !isLoadingMore else { return }
 
-    isLoadingMore = true
+    withAnimation {
+      isLoadingMore = true
+    }
 
     do {
       let page = try await AuthService.getAuthenticationActivity(
         page: pagination.currentPage,
         size: pagination.pageSize
       )
-      _ = pagination.applyPage(page.content)
-      pagination.advance(moreAvailable: !page.last)
+      withAnimation {
+        _ = pagination.applyPage(page.content)
+        pagination.advance(moreAvailable: !page.last)
+      }
       lastTriggeredIndex = -1
     } catch {
       ErrorManager.shared.alert(error: error)
     }
 
-    isLoadingMore = false
+    withAnimation {
+      isLoadingMore = false
+    }
   }
 }

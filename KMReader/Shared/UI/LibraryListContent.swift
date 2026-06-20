@@ -118,7 +118,6 @@ struct LibraryListContent: View {
         }
       }
     }
-    .animation(.default, value: libraries)
     .formStyle(.grouped)
     .task(id: current.instanceId) {
       await refreshLibraries(forceMetrics: forceMetricsOnAppear)
@@ -130,11 +129,15 @@ struct LibraryListContent: View {
     }
     .onChange(of: isSingleSelectionMode) { _, newValue in
       guard selectionEnabled, newValue, selectedLibraryIds.count > 1 else { return }
-      selectedLibraryIds = Array(selectedLibraryIds.prefix(1))
+      withAnimation {
+        selectedLibraryIds = Array(selectedLibraryIds.prefix(1))
+      }
     }
     .onDisappear {
       if selectionEnabled, dashboard.libraryIds != selectedLibraryIds {
-        dashboard.libraryIds = selectedLibraryIds
+        withAnimation {
+          dashboard.libraryIds = selectedLibraryIds
+        }
       }
     }
   }
@@ -144,19 +147,22 @@ struct LibraryListContent: View {
   }
 
   func refreshLibraries(forceMetrics: Bool) async {
-    isLoading = true
+    withAnimation {
+      isLoading = true
+    }
     await loadLibraryItems()
     await LibraryManager.shared.refreshLibraries()
     await loadLibraryItems()
     await triggerMetricsUpdate(force: forceMetrics)
     await loadLibraryItems()
-    isLoading = false
+    withAnimation {
+      isLoading = false
+    }
   }
 
   private func loadLibraryItems() async {
     guard !current.instanceId.isEmpty else {
-      if !libraries.isEmpty { libraries = [] }
-      if allLibrariesEntry != nil { allLibrariesEntry = nil }
+      clearLibraryItemsIfNeeded()
       return
     }
 
@@ -167,14 +173,39 @@ struct LibraryListContent: View {
         instanceId: current.instanceId
       )
 
+      applyLibraryItems(
+        libraries: loadedLibraries,
+        allLibrariesEntry: loadedAllLibrariesEntry
+      )
+    } catch {
+      ErrorManager.shared.alert(error: error)
+    }
+  }
+
+  private func clearLibraryItemsIfNeeded() {
+    guard !libraries.isEmpty || allLibrariesEntry != nil else { return }
+
+    withAnimation {
+      libraries = []
+      allLibrariesEntry = nil
+    }
+  }
+
+  private func applyLibraryItems(
+    libraries loadedLibraries: [SidebarLibraryItem],
+    allLibrariesEntry loadedAllLibrariesEntry: SidebarLibraryItem?
+  ) {
+    guard libraries != loadedLibraries || allLibrariesEntry != loadedAllLibrariesEntry else {
+      return
+    }
+
+    withAnimation {
       if libraries != loadedLibraries {
         libraries = loadedLibraries
       }
       if allLibrariesEntry != loadedAllLibrariesEntry {
         allLibrariesEntry = loadedAllLibrariesEntry
       }
-    } catch {
-      ErrorManager.shared.alert(error: error)
     }
   }
 
@@ -265,32 +296,28 @@ struct LibraryListContent: View {
   }
 
   private func handleLibrarySelection(for libraryId: String) {
-    withAnimation(.easeInOut(duration: 0.2)) {
-      if isSingleSelectionMode {
-        selectedLibraryIds = [libraryId]
-        onLibrarySelected?(libraryId)
-        return
-      }
-
-      var currentIds = selectedLibraryIds
-      let isSelected = currentIds.contains(libraryId)
-      if isSelected {
-        currentIds.removeAll { $0 == libraryId }
-      } else if !currentIds.contains(libraryId) {
-        currentIds.append(libraryId)
-      }
-
-      var seen = Set<String>()
-      selectedLibraryIds = currentIds.filter { seen.insert($0).inserted }
-      onLibrarySelected?(isSelected ? nil : libraryId)
+    if isSingleSelectionMode {
+      selectedLibraryIds = [libraryId]
+      onLibrarySelected?(libraryId)
+      return
     }
+
+    var currentIds = selectedLibraryIds
+    let isSelected = currentIds.contains(libraryId)
+    if isSelected {
+      currentIds.removeAll { $0 == libraryId }
+    } else if !currentIds.contains(libraryId) {
+      currentIds.append(libraryId)
+    }
+
+    var seen = Set<String>()
+    selectedLibraryIds = currentIds.filter { seen.insert($0).inserted }
+    onLibrarySelected?(isSelected ? nil : libraryId)
   }
 
   private func selectAllLibraries() {
-    withAnimation(.easeInOut(duration: 0.2)) {
-      selectedLibraryIds = []
-      onLibrarySelected?("")
-    }
+    selectedLibraryIds = []
+    onLibrarySelected?("")
   }
 
   private func rowTextContent(
@@ -320,6 +347,7 @@ struct LibraryListContent: View {
     Image(systemName: selectionIndicatorName(isSelected: isSelected))
       .foregroundStyle(isSelected ? Color.accentColor : .secondary)
       .font(.title3)
+      .animation(.default, value: isSelected)
   }
 
   private func selectionIndicatorName(isSelected: Bool) -> String {

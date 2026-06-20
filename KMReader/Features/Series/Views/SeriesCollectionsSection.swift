@@ -57,7 +57,9 @@ struct SeriesCollectionsSection: View {
     let instanceId = current.instanceId
     guard !instanceId.isEmpty, !collectionIds.isEmpty else {
       if !collections.isEmpty {
-        collections = []
+        withAnimation {
+          collections = []
+        }
       }
       return
     }
@@ -69,7 +71,9 @@ struct SeriesCollectionsSection: View {
         collectionIds: Set(collectionIds)
       )
       if collections != loadedCollections {
-        collections = loadedCollections
+        withAnimation {
+          collections = loadedCollections
+        }
       }
     } catch {
       ErrorManager.shared.alert(error: error)

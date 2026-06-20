@@ -351,7 +351,9 @@ struct OfflineBooksView: View {
     let instanceId = current.instanceId
     guard !instanceId.isEmpty else {
       if snapshot != .empty {
-        snapshot = .empty
+        withAnimation {
+          snapshot = .empty
+        }
       }
       return
     }
@@ -362,7 +364,9 @@ struct OfflineBooksView: View {
         instanceId: instanceId
       )
       if snapshot != loadedSnapshot {
-        snapshot = loadedSnapshot
+        withAnimation {
+          snapshot = loadedSnapshot
+        }
       }
     } catch {
       ErrorManager.shared.alert(error: error)

@@ -81,6 +81,7 @@ struct ReadListPickerSheet: View {
                   }
                 }
                 .foregroundStyle(item.alreadyIn ? .secondary : .primary)
+                .animation(.default, value: selectedReadListId == item.id)
               }
               .disabled(item.alreadyIn)
             }
@@ -89,7 +90,9 @@ struct ReadListPickerSheet: View {
       }
     } controls: {
       Button {
-        showCreateSheet = true
+        withAnimation {
+          showCreateSheet = true
+        }
       } label: {
         Label("Create New", systemImage: "plus.circle.fill")
       }
@@ -120,15 +123,23 @@ struct ReadListPickerSheet: View {
   private func refreshReadLists() async {
     await loadReadLists()
     guard !AppConfig.isOffline else { return }
-    isLoading = true
+    withAnimation {
+      isLoading = true
+    }
     await SyncService.syncReadLists(instanceId: current.instanceId)
-    isLoading = false
+    withAnimation {
+      isLoading = false
+    }
     await loadReadLists()
   }
 
   private func loadReadLists() async {
     guard !current.instanceId.isEmpty else {
-      if !readLists.isEmpty { readLists = [] }
+      if !readLists.isEmpty {
+        withAnimation {
+          readLists = []
+        }
+      }
       return
     }
 
@@ -138,7 +149,9 @@ struct ReadListPickerSheet: View {
         instanceId: current.instanceId
       )
       if readLists != loadedReadLists {
-        readLists = loadedReadLists
+        withAnimation {
+          readLists = loadedReadLists
+        }
       }
     } catch {
       ErrorManager.shared.alert(error: error)
@@ -186,7 +199,9 @@ struct CreateReadListSheet: View {
   private func createReadList() {
     guard !name.isEmpty else { return }
 
-    isCreating = true
+    withAnimation {
+      isCreating = true
+    }
 
     Task {
       do {
@@ -198,11 +213,15 @@ struct CreateReadListSheet: View {
         // Sync the readlist to update its local book IDs
         _ = try? await SyncService.syncReadList(id: readList.id)
         ErrorManager.shared.notify(message: String(localized: "notification.readList.created"))
-        isCreating = false
+        withAnimation {
+          isCreating = false
+        }
         onCreate(readList.id)
         dismiss()
       } catch {
-        isCreating = false
+        withAnimation {
+          isCreating = false
+        }
         ErrorManager.shared.alert(error: error)
       }
     }

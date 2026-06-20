@@ -102,7 +102,9 @@ struct CollectionsBrowseView: View {
   private func loadCollections(refresh: Bool) async {
     let currentLoadID = UUID()
     loadID = currentLoadID
-    isLoading = true
+    withAnimation {
+      isLoading = true
+    }
 
     do {
       let ids = try await loadCollectionIds()
@@ -118,7 +120,9 @@ struct CollectionsBrowseView: View {
     }
 
     guard loadID == currentLoadID else { return }
-    isLoading = false
+    withAnimation {
+      isLoading = false
+    }
   }
 
   private func loadCollectionIds() async throws -> [String] {

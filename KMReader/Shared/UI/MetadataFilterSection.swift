@@ -308,15 +308,23 @@ struct MetadataMultiSelectLoader: View {
 
   private func loadMetadata(force: Bool) async {
     guard force || cachedItems == nil else { return }
-    isLoading = true
-    loadError = nil
+    withAnimation {
+      isLoading = true
+      loadError = nil
+    }
     do {
       let items = try await source.load()
-      cachedItems = items
+      withAnimation {
+        cachedItems = items
+      }
     } catch {
-      loadError = error
+      withAnimation {
+        loadError = error
+      }
     }
-    isLoading = false
+    withAnimation {
+      isLoading = false
+    }
   }
 
   @ToolbarContentBuilder
@@ -394,7 +402,9 @@ struct MultiSelectList: View {
     .toolbar {
       ToolbarItem(placement: .cancellationAction) {
         Button(String(localized: "Reset")) {
-          selectedItems.removeAll()
+          withAnimation {
+            selectedItems.removeAll()
+          }
         }
         .disabled(selectedItems.isEmpty)
       }
@@ -431,6 +441,7 @@ struct SelectableRow: View {
             .foregroundStyle(.green)
         }
       }
+      .animation(.default, value: isSelected)
     }
   }
 }

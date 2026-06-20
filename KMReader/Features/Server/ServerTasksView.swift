@@ -9,6 +9,7 @@ struct ServerTasksView: View {
   @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("taskQueueStatus") private var taskQueueStatus: TaskQueueSSEDto = TaskQueueSSEDto()
 
+  @State private var displayedTaskQueueStatus = TaskQueueSSEDto()
   @State private var isLoading = false
   @State private var isCancelling = false
   @State private var showCancelAllConfirmation = false
@@ -37,7 +38,9 @@ struct ServerTasksView: View {
           if current.isAdmin {
             Section {
               Button(role: .destructive) {
-                showCancelAllConfirmation = true
+                withAnimation {
+                  showCancelAllConfirmation = true
+                }
               } label: {
                 HStack {
                   Spacer()
@@ -57,7 +60,7 @@ struct ServerTasksView: View {
         #endif
 
         // Task Queue Status Section (from SSE)
-        if taskQueueStatus.count > 0 {
+        if displayedTaskQueueStatus.count > 0 {
           Section {
             VStack(spacing: 12) {
               // Total Tasks with highlight
@@ -65,20 +68,23 @@ struct ServerTasksView: View {
                 Label(String(localized: "Total Tasks"), systemImage: "list.bullet.clipboard")
                   .font(.headline)
                 Spacer()
-                Text("\(taskQueueStatus.count)")
+                Text("\(displayedTaskQueueStatus.count)")
                   .font(.title2)
                   .fontWeight(.bold)
-                  .foregroundColor(taskQueueStatus.count > 0 ? Color.accentColor : .secondary)
+                  .foregroundColor(
+                    displayedTaskQueueStatus.count > 0 ? Color.accentColor : .secondary
+                  )
                   .contentTransition(.numericText())
               }
               .padding(.vertical, 4)
               .tvFocusableHighlight()
 
               // Task types with animation
-              if !taskQueueStatus.countByType.isEmpty {
+              if !displayedTaskQueueStatus.countByType.isEmpty {
                 Divider()
-                ForEach(Array(taskQueueStatus.countByType.keys.sorted()), id: \.self) { taskType in
-                  if let count = taskQueueStatus.countByType[taskType] {
+                ForEach(Array(displayedTaskQueueStatus.countByType.keys.sorted()), id: \.self) {
+                  taskType in
+                  if let count = displayedTaskQueueStatus.countByType[taskType] {
                     HStack {
                       Label(taskType, systemImage: "gearshape")
                         .font(.subheadline)
@@ -100,7 +106,7 @@ struct ServerTasksView: View {
               Text(String(localized: "Task Queue Status"))
                 .font(.headline)
               Spacer()
-              if taskQueueStatus.count > 0 {
+              if displayedTaskQueueStatus.count > 0 {
                 Circle()
                   .fill(Color.accentColor)
                   .frame(width: 8, height: 8)
@@ -108,9 +114,6 @@ struct ServerTasksView: View {
               }
             }
           }
-          .animation(.spring(response: 0.3, dampingFraction: 0.7), value: taskQueueStatus.count)
-          .animation(
-            .spring(response: 0.3, dampingFraction: 0.7), value: taskQueueStatus.countByType)
         }
 
         // Tasks Section
@@ -173,7 +176,9 @@ struct ServerTasksView: View {
       .toolbar {
         ToolbarItem(placement: .primaryAction) {
           Button(role: .destructive) {
-            showCancelAllConfirmation = true
+            withAnimation {
+              showCancelAllConfirmation = true
+            }
           } label: {
             Label(String(localized: "Cancel All Tasks"), systemImage: "xmark.circle")
           }
@@ -194,7 +199,15 @@ struct ServerTasksView: View {
     }
     .task {
       if current.isAdmin {
+        withAnimation {
+          displayedTaskQueueStatus = taskQueueStatus
+        }
         await loadMetrics()
+      }
+    }
+    .onChange(of: taskQueueStatus) { _, newValue in
+      withAnimation {
+        displayedTaskQueueStatus = newValue
       }
     }
     .refreshable {
@@ -206,35 +219,47 @@ struct ServerTasksView: View {
 
   private func loadMetrics() async {
     if !hasLoadedMetrics {
-      isLoading = true
+      withAnimation {
+        isLoading = true
+      }
     }
-    metricErrors.removeAll()
+    withAnimation {
+      metricErrors.removeAll()
+    }
 
     // Load tasks metrics
     do {
       let metric = try await ManagementService.getMetric(MetricName.tasksExecution.rawValue)
       let (countByType, totalTimeByType, errors) = await processTasksMetrics(metric)
 
-      tasks = metric
-      tasksCountByType = countByType
-      tasksTotalTimeByType = totalTimeByType
-      if let tasksExecutedError = errors[.tasksExecuted] {
-        metricErrors[.tasksExecuted] = tasksExecutedError
-      }
-      if let tasksTotalTimeError = errors[.tasksTotalTime] {
-        metricErrors[.tasksTotalTime] = tasksTotalTimeError
+      withAnimation {
+        tasks = metric
+        tasksCountByType = countByType
+        tasksTotalTimeByType = totalTimeByType
+        if let tasksExecutedError = errors[.tasksExecuted] {
+          metricErrors[.tasksExecuted] = tasksExecutedError
+        }
+        if let tasksTotalTimeError = errors[.tasksTotalTime] {
+          metricErrors[.tasksTotalTime] = tasksTotalTimeError
+        }
       }
     } catch {
-      tasks = nil
+      withAnimation {
+        tasks = nil
+      }
     }
 
-    hasLoadedMetrics = true
-    isLoading = false
+    withAnimation {
+      hasLoadedMetrics = true
+      isLoading = false
+    }
   }
 
   private func cancelAllTasks() {
     guard !isCancelling else { return }
-    isCancelling = true
+    withAnimation {
+      isCancelling = true
+    }
     Task {
       do {
         try await ManagementService.cancelAllTasks()
@@ -243,7 +268,9 @@ struct ServerTasksView: View {
       } catch {
         ErrorManager.shared.alert(error: error)
       }
-      isCancelling = false
+      withAnimation {
+        isCancelling = false
+      }
     }
   }
 

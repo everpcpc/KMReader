@@ -18,6 +18,13 @@ struct SettingsLogsView: View {
   @State private var activeQueryKey: LogQueryKey?
   @State private var lastTriggeredEntryId: Int64?
 
+  private var selectedLevelBinding: Binding<LogLevel> {
+    Binding(
+      get: { selectedLevel },
+      set: { setSelectedLevel($0) }
+    )
+  }
+
   private var currentQueryKey: LogQueryKey {
     LogQueryKey(
       minPriority: selectedLevel.priority,
@@ -60,11 +67,6 @@ struct SettingsLogsView: View {
       }
     }
     .optimizedListStyle(alternatesRowBackgrounds: true)
-    .animation(.default, value: pagination.items)
-    .animation(.default, value: categoryCounts)
-    .animation(.default, value: isLoading)
-    .animation(.default, value: selectedLevel)
-    .animation(.default, value: selectedCategory)
     #if os(iOS)
       .searchable(text: $searchText, prompt: String(localized: "settings.logs.search"))
     #endif
@@ -108,7 +110,7 @@ struct SettingsLogsView: View {
 
       HFlow(spacing: 8) {
         Menu {
-          Picker("Level", selection: $selectedLevel) {
+          Picker("Level", selection: selectedLevelBinding) {
             ForEach(LogLevel.allCases, id: \.self) { level in
               Text(level.rawValue).tag(level)
             }
@@ -123,7 +125,7 @@ struct SettingsLogsView: View {
           count: totalCount,
           isSelected: selectedCategory == "All"
         ) {
-          selectedCategory = "All"
+          setSelectedCategory("All")
         }
 
         ForEach(categoryCounts, id: \.category) { category in
@@ -132,7 +134,7 @@ struct SettingsLogsView: View {
             count: category.count,
             isSelected: selectedCategory == category.category
           ) {
-            selectedCategory = category.category
+            setSelectedCategory(category.category)
           }
         }
       }
@@ -174,11 +176,7 @@ struct SettingsLogsView: View {
     queryGeneration += 1
     let generation = queryGeneration
     let queryKey = currentQueryKey
-    pagination = PaginationState<LogStore.LogEntry>(pageSize: pagination.pageSize)
-    lastTriggeredEntryId = nil
-    isLoading = true
-    isLoadingMore = false
-    activeQueryKey = queryKey
+    prepareForLogReload(queryKey: queryKey)
 
     let counts = await LogStore.shared.categoryCounts(
       minPriority: queryKey.minPriority,
@@ -200,11 +198,25 @@ struct SettingsLogsView: View {
     }
   }
 
+  private func prepareForLogReload(queryKey: LogQueryKey) {
+    let pageSize = pagination.pageSize
+    lastTriggeredEntryId = nil
+    activeQueryKey = queryKey
+
+    withAnimation {
+      pagination = PaginationState<LogStore.LogEntry>(pageSize: pageSize)
+      isLoading = true
+      isLoadingMore = false
+    }
+  }
+
   private func loadMoreLogs() async {
     guard pagination.hasMorePages && !isLoading && !isLoadingMore else { return }
     guard let lastEntry = pagination.items.last else { return }
     guard let queryKey = activeQueryKey else { return }
-    isLoadingMore = true
+    withAnimation {
+      isLoadingMore = true
+    }
 
     let generation = queryGeneration
     let entries = await LogStore.shared.query(
@@ -221,6 +233,20 @@ struct SettingsLogsView: View {
       pagination.advance(moreAvailable: entries.count == pagination.pageSize)
       isLoadingMore = false
       lastTriggeredEntryId = nil
+    }
+  }
+
+  private func setSelectedLevel(_ level: LogLevel) {
+    guard selectedLevel != level else { return }
+    withAnimation {
+      selectedLevel = level
+    }
+  }
+
+  private func setSelectedCategory(_ category: String) {
+    guard selectedCategory != category else { return }
+    withAnimation {
+      selectedCategory = category
     }
   }
 

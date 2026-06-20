@@ -128,41 +128,55 @@ struct MissingPostersView: View {
 
   private func loadData(refresh: Bool) async {
     if refresh {
-      pagination.reset()
+      withAnimation {
+        pagination.reset()
+      }
       lastTriggeredItemId = nil
     }
 
-    isLoading = true
+    withAnimation {
+      isLoading = true
+    }
     do {
       let page = try await MediaManagementService.getMissingPosterBooks(
         page: pagination.currentPage,
         size: pagination.pageSize
       )
-      _ = pagination.applyPage(page.content)
-      pagination.advance(moreAvailable: !page.last)
+      withAnimation {
+        _ = pagination.applyPage(page.content)
+        pagination.advance(moreAvailable: !page.last)
+      }
       lastTriggeredItemId = nil
     } catch {
       lastTriggeredItemId = nil
       ErrorManager.shared.alert(error: error)
     }
-    isLoading = false
+    withAnimation {
+      isLoading = false
+    }
   }
 
   private func loadMore() async {
     guard pagination.hasMorePages && !isLoadingMore else { return }
-    isLoadingMore = true
+    withAnimation {
+      isLoadingMore = true
+    }
     do {
       let page = try await MediaManagementService.getMissingPosterBooks(
         page: pagination.currentPage,
         size: pagination.pageSize
       )
-      _ = pagination.applyPage(page.content)
-      pagination.advance(moreAvailable: !page.last)
+      withAnimation {
+        _ = pagination.applyPage(page.content)
+        pagination.advance(moreAvailable: !page.last)
+      }
       lastTriggeredItemId = nil
     } catch {
       lastTriggeredItemId = nil
       ErrorManager.shared.alert(error: error)
     }
-    isLoadingMore = false
+    withAnimation {
+      isLoadingMore = false
+    }
   }
 }

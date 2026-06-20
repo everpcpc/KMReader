@@ -17,14 +17,7 @@ class PaginatedIdViewModel {
     offlineFetch: (_ offset: Int, _ limit: Int) -> [String],
     onlineFetch: (_ page: Int, _ size: Int) async throws -> (ids: [String], isLastPage: Bool)
   ) async {
-    if refresh {
-      pagination.reset()
-    } else {
-      guard pagination.hasMorePages && !isLoading else { return }
-    }
-
-    let loadID = pagination.loadID
-    isLoading = true
+    guard let loadID = beginLoad(refresh: refresh) else { return }
 
     defer {
       if loadID == pagination.loadID {
@@ -61,5 +54,21 @@ class PaginatedIdViewModel {
       _ = pagination.applyPage(wrappedIds)
     }
     pagination.advance(moreAvailable: moreAvailable)
+  }
+
+  private func beginLoad(refresh: Bool) -> UUID? {
+    if refresh {
+      withAnimation {
+        pagination.reset()
+        isLoading = true
+      }
+      return pagination.loadID
+    }
+
+    guard pagination.hasMorePages && !isLoading else { return nil }
+    withAnimation {
+      isLoading = true
+    }
+    return pagination.loadID
   }
 }

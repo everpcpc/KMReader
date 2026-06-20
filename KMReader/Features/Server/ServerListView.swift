@@ -71,7 +71,9 @@ struct ServerListView: View {
               .foregroundStyle(.secondary)
               .multilineTextAlignment(.center)
             Button {
-              showLogin = true
+              withAnimation {
+                showLogin = true
+              }
             } label: {
               Label(String(localized: "Connect to a Server"), systemImage: "plus.circle")
                 .labelStyle(.titleAndIcon)
@@ -89,7 +91,7 @@ struct ServerListView: View {
               isSwitching: isSwitching(instance),
               isActive: isActive(instance),
               onSelect: {
-                withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) {
+                withAnimation {
                   switchTo(instance)
                 }
               },
@@ -109,7 +111,9 @@ struct ServerListView: View {
       if !visibleInstances.isEmpty {
         Section {
           Button {
-            showLogin = true
+            withAnimation {
+              showLogin = true
+            }
           } label: {
             HStack {
               Spacer()
@@ -124,7 +128,9 @@ struct ServerListView: View {
       if mode == .management, isLoggedIn {
         Section {
           Button(role: .destructive) {
-            showLogoutAlert = true
+            withAnimation {
+              showLogoutAlert = true
+            }
           } label: {
             HStack {
               Spacer()
@@ -157,7 +163,9 @@ struct ServerListView: View {
         get: { instancePendingDeletion != nil },
         set: { isPresented in
           if !isPresented {
-            instancePendingDeletion = nil
+            withAnimation {
+              instancePendingDeletion = nil
+            }
           }
         }
       ),
@@ -243,7 +251,9 @@ struct ServerListView: View {
   private var addServerSection: some View {
     Section {
       Button {
-        showLogin = true
+        withAnimation {
+          showLogin = true
+        }
       } label: {
         Label(addButtonTitle, systemImage: "plus.circle")
       }
@@ -297,7 +307,9 @@ struct ServerListView: View {
         try await database.deleteServerDisplayItem(id: instance.id)
         await loadInstances()
         ErrorManager.shared.notify(message: String(localized: "notification.server.deleted"))
-        instancePendingDeletion = nil
+        withAnimation {
+          instancePendingDeletion = nil
+        }
       } catch {
         ErrorManager.shared.alert(error: error)
         return
@@ -384,14 +396,18 @@ struct ServerListView: View {
   private func edit(_ instance: ServerDisplayItem) {
     Task {
       guard await authenticateProtectedServerActionIfNeeded(instance) else { return }
-      editingInstance = instance
+      withAnimation {
+        editingInstance = instance
+      }
     }
   }
 
   private func confirmDelete(_ instance: ServerDisplayItem) {
     Task {
       guard await authenticateProtectedServerActionIfNeeded(instance) else { return }
-      instancePendingDeletion = instance
+      withAnimation {
+        instancePendingDeletion = instance
+      }
     }
   }
 

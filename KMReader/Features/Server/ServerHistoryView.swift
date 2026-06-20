@@ -195,13 +195,17 @@ struct ServerHistoryView: View {
 
   private func loadHistory(refresh: Bool) async {
     if refresh {
-      pagination.reset()
+      withAnimation {
+        pagination.reset()
+      }
       lastTriggeredItemId = nil
       bookNameById.removeAll()
       seriesNameById.removeAll()
     }
 
-    isLoading = true
+    withAnimation {
+      isLoading = true
+    }
 
     do {
       let page = try await HistoryService.getHistory(
@@ -209,8 +213,10 @@ struct ServerHistoryView: View {
         size: pagination.pageSize
       )
       let items = page.content ?? []
-      _ = pagination.applyPage(items)
-      pagination.advance(moreAvailable: !(page.last ?? true))
+      withAnimation {
+        _ = pagination.applyPage(items)
+        pagination.advance(moreAvailable: !(page.last ?? true))
+      }
       lastTriggeredItemId = nil
       await updateLocalReferences(for: pagination.items)
     } catch {
@@ -218,13 +224,17 @@ struct ServerHistoryView: View {
       ErrorManager.shared.alert(error: error)
     }
 
-    isLoading = false
+    withAnimation {
+      isLoading = false
+    }
   }
 
   private func loadMoreHistory() async {
     guard pagination.hasMorePages && !isLoadingMore else { return }
 
-    isLoadingMore = true
+    withAnimation {
+      isLoadingMore = true
+    }
 
     do {
       let page = try await HistoryService.getHistory(
@@ -232,8 +242,10 @@ struct ServerHistoryView: View {
         size: pagination.pageSize
       )
       let items = page.content ?? []
-      _ = pagination.applyPage(items)
-      pagination.advance(moreAvailable: !(page.last ?? true))
+      withAnimation {
+        _ = pagination.applyPage(items)
+        pagination.advance(moreAvailable: !(page.last ?? true))
+      }
       lastTriggeredItemId = nil
       await updateLocalReferences(for: pagination.items)
     } catch {
@@ -241,7 +253,9 @@ struct ServerHistoryView: View {
       ErrorManager.shared.alert(error: error)
     }
 
-    isLoadingMore = false
+    withAnimation {
+      isLoadingMore = false
+    }
   }
 
   private func updateLocalReferences(for events: [HistoricalEvent]) async {

@@ -72,9 +72,9 @@ struct ServerRowView: View {
       .frame(maxWidth: .infinity, alignment: .leading)
       .background(cardBackground)
     }
-    .animation(.easeInOut(duration: 0.25), value: isActive)
     .adaptiveButtonStyle(.plain)
     .allowsHitTesting(!(isActive || isGlobalSwitching))
+    .animation(.default, value: isActive)
     #if os(iOS) || os(macOS)
       .listRowInsets(EdgeInsets(top: 4, leading: 8, bottom: 4, trailing: 8))
       .listRowSeparator(.hidden)

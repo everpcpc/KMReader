@@ -47,8 +47,8 @@ struct ReadListDownloadActionsSection: View {
         )
       }
     }
-    .animation(.easeInOut(duration: 0.2), value: status)
     .padding(.vertical, 4)
+    .animation(.default, value: status)
     .alert(
       pendingAction?.label(for: status) ?? "",
       isPresented: Binding(

@@ -21,14 +21,7 @@ class SeriesViewModel {
     useLocalOnly: Bool = false,
     offlineOnly: Bool = false
   ) async {
-    if refresh {
-      pagination.reset()
-    } else {
-      guard pagination.hasMorePages && !isLoading else { return }
-    }
-
-    let loadID = pagination.loadID
-    isLoading = true
+    guard let loadID = beginLoad(refresh: refresh) else { return }
 
     defer {
       if loadID == pagination.loadID {
@@ -95,16 +88,7 @@ class SeriesViewModel {
     libraryIds: [String]? = nil,
     refresh: Bool = false
   ) async {
-    if !refresh {
-      guard pagination.hasMorePages && !isLoading else { return }
-    }
-
-    if refresh {
-      pagination.reset()
-    }
-
-    let loadID = pagination.loadID
-    isLoading = true
+    guard let loadID = beginLoad(refresh: refresh) else { return }
 
     defer {
       if loadID == pagination.loadID {
@@ -154,5 +138,21 @@ class SeriesViewModel {
       _ = pagination.applyPage(wrappedIds)
     }
     pagination.advance(moreAvailable: moreAvailable)
+  }
+
+  private func beginLoad(refresh: Bool) -> UUID? {
+    if refresh {
+      withAnimation {
+        pagination.reset()
+        isLoading = true
+      }
+      return pagination.loadID
+    }
+
+    guard pagination.hasMorePages && !isLoading else { return nil }
+    withAnimation {
+      isLoading = true
+    }
+    return pagination.loadID
   }
 }

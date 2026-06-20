@@ -109,14 +109,11 @@ struct ServerEditView: View {
             }
           }
         ) {
-          Picker(String(localized: "Authentication Method"), selection: $authMethod) {
+          Picker(String(localized: "Authentication Method"), selection: authMethodBinding) {
             Text(String(localized: "Username & Password")).tag(AuthenticationMethod.basicAuth)
             Text(String(localized: "API Key")).tag(AuthenticationMethod.apiKey)
           }
           .pickerStyle(.segmented)
-          .onChange(of: authMethod) { _, _ in
-            resetValidation()
-          }
 
           if authMethod == .basicAuth {
             TextField(String(localized: "Username"), text: $username)
@@ -195,8 +192,18 @@ struct ServerEditView: View {
       }
       .disabled(!canSave)
     }
-    .animation(.default, value: authMethod)
-    .animation(.default, value: validationStatus)
+  }
+
+  private var authMethodBinding: Binding<AuthenticationMethod> {
+    Binding(
+      get: { authMethod },
+      set: { newValue in
+        withAnimation {
+          authMethod = newValue
+          clearValidation()
+        }
+      }
+    )
   }
 
   private var trimmedName: String {
@@ -305,7 +312,9 @@ struct ServerEditView: View {
       resolvedAuthToken = apiKey
     }
 
-    isSaving = true
+    withAnimation {
+      isSaving = true
+    }
 
     Task {
       if protected != instance.protected {
@@ -313,7 +322,9 @@ struct ServerEditView: View {
           reason: String(localized: "Authenticate to change protection for this server.")
         )
         guard authenticated else {
-          isSaving = false
+          withAnimation {
+            isSaving = false
+          }
           return
         }
       }
@@ -331,10 +342,14 @@ struct ServerEditView: View {
             protected: protected
           )
         else {
-          isSaving = false
+          withAnimation {
+            isSaving = false
+          }
           return
         }
-        isSaving = false
+        withAnimation {
+          isSaving = false
+        }
 
         if current.instanceId == updatedInstance.instanceId {
           Task {
@@ -345,7 +360,9 @@ struct ServerEditView: View {
         onSaved()
         dismiss()
       } catch {
-        isSaving = false
+        withAnimation {
+          isSaving = false
+        }
         ErrorManager.shared.alert(error: error)
       }
     }
@@ -357,6 +374,12 @@ struct ServerEditView: View {
   }
 
   private func resetValidation() {
+    withAnimation {
+      clearValidation()
+    }
+  }
+
+  private func clearValidation() {
     isValidated = false
     validationMessage = nil
   }
@@ -371,8 +394,10 @@ struct ServerEditView: View {
     if authMethod == .basicAuth {
       if !password.isEmpty {
         guard let token = makeAuthToken(username: trimmedUsername, password: password) else {
-          validationMessage = String(localized: "Unable to encode credentials")
-          isValidated = false
+          withAnimation {
+            validationMessage = String(localized: "Unable to encode credentials")
+            isValidated = false
+          }
           return
         }
         tokenToTest = token
@@ -384,9 +409,11 @@ struct ServerEditView: View {
       tokenToTest = apiKey
     }
 
-    isValidating = true
-    validationMessage = nil
-    isValidated = false
+    withAnimation {
+      isValidating = true
+      validationMessage = nil
+      isValidated = false
+    }
 
     Task {
       do {
@@ -398,31 +425,35 @@ struct ServerEditView: View {
           authMethod: authMethod
         )
 
-        validationMessage = String(localized: "Connection validated successfully")
-        isValidated = true
-        isValidating = false
+        withAnimation {
+          validationMessage = String(localized: "Connection validated successfully")
+          isValidated = true
+          isValidating = false
 
-        // Update username if using API Key so it's correct when saving
-        if authMethod == .apiKey {
-          self.username = user.email
+          // Update username if using API Key so it's correct when saving
+          if authMethod == .apiKey {
+            self.username = user.email
+          }
         }
       } catch {
+        let message: String
         if let apiError = error as? APIError {
           switch apiError {
           case .unauthorized:
-            validationMessage = String(localized: "Invalid credentials")
+            message = String(localized: "Invalid credentials")
           case .networkError:
-            validationMessage = String(localized: "Network error - check server URL")
+            message = String(localized: "Network error - check server URL")
           default:
-            validationMessage = String(
-              localized: "Validation failed: \(apiError.localizedDescription)")
+            message = String(localized: "Validation failed: \(apiError.localizedDescription)")
           }
         } else {
-          validationMessage = String(
-            localized: "Validation failed: \(error.localizedDescription)")
+          message = String(localized: "Validation failed: \(error.localizedDescription)")
         }
-        isValidated = false
-        isValidating = false
+        withAnimation {
+          validationMessage = message
+          isValidated = false
+          isValidating = false
+        }
       }
     }
   }

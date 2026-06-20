@@ -164,30 +164,38 @@ struct DuplicateFilesView: View {
 
   private func loadData(refresh: Bool) async {
     if refresh {
-      currentPage = 0
-      hasMore = true
-      books = []
+      withAnimation {
+        currentPage = 0
+        hasMore = true
+        books = []
+      }
     }
 
-    isLoading = true
+    withAnimation {
+      isLoading = true
+    }
     do {
       let page = try await MediaManagementService.getDuplicateBooks(
         page: currentPage,
         size: 50,
         sort: "fileHash,asc"
       )
-      if refresh {
-        books = page.content
-      } else {
-        books.append(contentsOf: page.content)
+      withAnimation {
+        if refresh {
+          books = page.content
+        } else {
+          books.append(contentsOf: page.content)
+        }
+        totalElements = page.totalElements
+        hasMore = !page.last
+        currentPage += 1
       }
-      totalElements = page.totalElements
-      hasMore = !page.last
-      currentPage += 1
     } catch {
       ErrorManager.shared.alert(error: error)
     }
-    isLoading = false
+    withAnimation {
+      isLoading = false
+    }
   }
 
   private func loadMore() async {
