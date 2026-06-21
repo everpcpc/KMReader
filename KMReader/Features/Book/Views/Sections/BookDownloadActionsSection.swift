@@ -43,16 +43,13 @@ struct BookDownloadActionsSection: View {
 
       Spacer()
 
-      HStack(spacing: 6) {
-        InfoChip(
-          label: status.displayLabel,
-          systemImage: status.displayIcon,
-          backgroundColor: status.displayColor.opacity(0.2),
-          foregroundColor: status.displayColor
-        )
-
-        OfflineProtectionSourcesMenu(sources: protectionSources)
-      }
+      OfflineProtectionStatusChip(
+        label: status.displayLabel,
+        systemImage: status.displayIcon,
+        backgroundColor: status.displayColor.opacity(0.2),
+        foregroundColor: status.displayColor,
+        sources: protectionSources
+      )
     }
     .padding(.vertical, 4)
     .animation(.default, value: status)
