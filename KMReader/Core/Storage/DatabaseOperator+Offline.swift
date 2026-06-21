@@ -16,6 +16,8 @@ extension DatabaseOperator {
         try db.execute(
           sql: "DELETE FROM \(KomgaCollection.databaseTableName) WHERE instance_id = ?", arguments: [instanceId])
         try db.execute(
+          sql: "DELETE FROM \(ReadListBookMembership.databaseTableName) WHERE instance_id = ?", arguments: [instanceId])
+        try db.execute(
           sql: "DELETE FROM \(KomgaReadList.databaseTableName) WHERE instance_id = ?", arguments: [instanceId])
         try db.execute(
           sql: "DELETE FROM \(PendingProgress.databaseTableName) WHERE instance_id = ?", arguments: [instanceId])
