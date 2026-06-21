@@ -87,7 +87,7 @@ struct OfflineBooksView: View {
                 String(localized: "settings.offline_books.remove_read"),
                 systemImage: "checkmark.circle")
             }
-            .disabled(!snapshot.hasReadBooks)
+            .disabled(!snapshot.hasUnprotectedReadBooks)
           }.adaptiveButtonStyle(.bordered)
         }
 
@@ -121,6 +121,7 @@ struct OfflineBooksView: View {
                           .font(.caption)
                           .foregroundColor(.secondary)
                       }
+                      protectionBadge(for: book)
                       Text(formatter.string(fromByteCount: book.downloadedSize))
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -140,6 +141,7 @@ struct OfflineBooksView: View {
                           .font(.caption)
                           .foregroundColor(.secondary)
                       }
+                      protectionBadge(for: book)
                       Text(formatter.string(fromByteCount: book.downloadedSize))
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -191,6 +193,7 @@ struct OfflineBooksView: View {
                           .font(.caption)
                           .foregroundColor(.secondary)
                       }
+                      protectionBadge(for: book)
                       Text(formatter.string(fromByteCount: book.downloadedSize))
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -210,7 +213,7 @@ struct OfflineBooksView: View {
                           .font(.caption)
                           .foregroundColor(.secondary)
                       }
-                      Spacer()
+                      protectionBadge(for: book)
                       Text(formatter.string(fromByteCount: book.downloadedSize))
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -307,10 +310,44 @@ struct OfflineBooksView: View {
       .lineLimit(1)
   }
 
+  @ViewBuilder
+  private func protectionBadge(for book: OfflineDownloadedBookItem) -> some View {
+    if !book.protectionSources.isEmpty {
+      Menu {
+        ForEach(book.protectionSources) { source in
+          NavigationLink(value: protectionDestination(for: source)) {
+            Label(source.displayName, systemImage: source.kind.systemImage)
+          }
+        }
+      } label: {
+        HStack(spacing: 3) {
+          Image(systemName: "lock.fill")
+          Text(protectionTitle(for: book.protectionSources))
+        }
+      }
+      .font(.caption2)
+      .foregroundColor(.accentColor)
+      .lineLimit(1)
+    }
+  }
+
+  private func protectionTitle(for sources: [OfflineProtectionSource]) -> String {
+    sources.map(\.displayName).joined(separator: ", ")
+  }
+
+  private func protectionDestination(for source: OfflineProtectionSource) -> NavDestination {
+    switch source.kind {
+    case .series:
+      return .seriesDetail(seriesId: source.sourceId)
+    case .readList:
+      return .readListDetail(readListId: source.sourceId)
+    }
+  }
+
   private func deleteBook(_ book: OfflineDownloadedBookItem) {
     Task {
       await OfflineManager.shared.deleteBookManually(
-        seriesId: book.seriesId, instanceId: book.instanceId, bookId: book.bookId)
+        instanceId: book.instanceId, bookId: book.bookId)
       await loadSnapshot()
     }
   }
@@ -319,7 +356,7 @@ struct OfflineBooksView: View {
     guard let firstBook = books.first else { return }
     Task {
       await OfflineManager.shared.deleteBooksManually(
-        seriesId: firstBook.seriesId,
+        seriesIds: Set(books.map(\.seriesId)),
         instanceId: firstBook.instanceId,
         bookIds: books.map { $0.bookId }
       )

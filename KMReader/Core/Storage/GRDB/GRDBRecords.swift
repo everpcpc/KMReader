@@ -216,6 +216,8 @@ nonisolated extension KomgaReadList: FetchableRecord, MutablePersistableRecord {
     case downloadedSize = "downloaded_size"
     case downloadedBooks = "downloaded_books"
     case pendingBooks = "pending_books"
+    case offlinePolicyRaw = "offline_policy_raw"
+    case offlinePolicyLimit = "offline_policy_limit"
   }
 }
 

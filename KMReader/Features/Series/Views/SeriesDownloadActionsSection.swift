@@ -8,7 +8,7 @@ import SwiftUI
 struct SeriesDownloadActionsSection: View {
   let seriesId: String
   let status: SeriesDownloadStatus
-  let policy: SeriesOfflinePolicy
+  let policy: OfflinePolicy
   let offlinePolicyLimit: Int
   var onMutationCompleted: (() -> Void)? = nil
 
@@ -60,18 +60,6 @@ struct SeriesDownloadActionsSection: View {
             }
           } label: {
             offlinePolicyLabel(.unreadOnly)
-          }
-
-          Menu {
-            ForEach(limitPresets, id: \.self) { value in
-              Button {
-                updatePolicyAndLimit(.unreadOnlyAndCleanupRead, limit: value)
-              } label: {
-                limitOptionLabel(policy: .unreadOnlyAndCleanupRead, limit: value)
-              }
-            }
-          } label: {
-            offlinePolicyLabel(.unreadOnlyAndCleanupRead)
           }
 
           Button {
@@ -169,7 +157,7 @@ struct SeriesDownloadActionsSection: View {
     }
   }
 
-  private func updatePolicy(_ newPolicy: SeriesOfflinePolicy) {
+  private func updatePolicy(_ newPolicy: OfflinePolicy) {
     Task {
       // Sync books first if policy is not manual
       if newPolicy != .manual {
@@ -182,7 +170,7 @@ struct SeriesDownloadActionsSection: View {
     }
   }
 
-  private func updatePolicyAndLimit(_ newPolicy: SeriesOfflinePolicy, limit: Int) {
+  private func updatePolicyAndLimit(_ newPolicy: OfflinePolicy, limit: Int) {
     Task {
       try? await SyncService.syncAllSeriesBooks(seriesId: seriesId)
       try? await DatabaseOperator.database().updateSeriesOfflinePolicy(
@@ -196,7 +184,7 @@ struct SeriesDownloadActionsSection: View {
   }
 
   @ViewBuilder
-  private func offlinePolicyLabel(_ value: SeriesOfflinePolicy) -> some View {
+  private func offlinePolicyLabel(_ value: OfflinePolicy) -> some View {
     let title = value.title(limit: offlinePolicyLimit)
     Label {
       HStack(spacing: 4) {
@@ -211,8 +199,8 @@ struct SeriesDownloadActionsSection: View {
   }
 
   @ViewBuilder
-  private func limitOptionLabel(policy: SeriesOfflinePolicy, limit: Int) -> some View {
-    let title = SeriesOfflinePolicy.limitTitle(limit)
+  private func limitOptionLabel(policy: OfflinePolicy, limit: Int) -> some View {
+    let title = OfflinePolicy.limitTitle(limit)
     if self.policy == policy && offlinePolicyLimit == limit {
       Label(title, systemImage: "checkmark")
     } else {
@@ -283,7 +271,7 @@ struct SeriesDownloadActionsSection: View {
       Button {
         handleDownloadUnreadTap(limit: value)
       } label: {
-        Text(SeriesOfflinePolicy.limitTitle(value))
+        Text(OfflinePolicy.limitTitle(value))
       }
     }
   }

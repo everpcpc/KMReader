@@ -8,6 +8,8 @@ import SwiftUI
 struct ReadListDownloadActionsSection: View {
   let readListId: String
   let status: SeriesDownloadStatus
+  let policy: OfflinePolicy
+  let offlinePolicyLimit: Int
   var onMutationCompleted: (() -> Void)? = nil
 
   @AppStorage("currentAccount") private var current: Current = .init()
@@ -20,7 +22,11 @@ struct ReadListDownloadActionsSection: View {
   }
 
   private var actions: [SeriesDownloadAction] {
-    SeriesDownloadAction.availableActions(for: status)
+    SeriesDownloadAction.availableReadListActions(for: status)
+  }
+
+  private var policyLabel: Text {
+    Text("Offline Policy") + Text(" : ") + Text(policy.title(limit: offlinePolicyLimit))
   }
 
   var body: some View {
@@ -36,6 +42,40 @@ struct ReadListDownloadActionsSection: View {
         }
         .font(.caption)
         .adaptiveButtonStyle(status.isProminent ? .borderedProminent : .bordered)
+
+        Menu {
+          Button {
+            updatePolicy(.manual)
+          } label: {
+            offlinePolicyLabel(.manual)
+          }
+
+          Menu {
+            ForEach(limitPresets, id: \.self) { value in
+              Button {
+                updatePolicyAndLimit(.unreadOnly, limit: value)
+              } label: {
+                limitOptionLabel(policy: .unreadOnly, limit: value)
+              }
+            }
+          } label: {
+            offlinePolicyLabel(.unreadOnly)
+          }
+
+          Button {
+            updatePolicy(.all)
+          } label: {
+            offlinePolicyLabel(.all)
+          }
+        } label: {
+          HStack(spacing: 4) {
+            Image(systemName: policy.icon)
+            policyLabel.lineLimit(1)
+            Image(systemName: "chevron.down")
+          }
+        }
+        .font(.caption)
+        .adaptiveButtonStyle(.bordered)
 
         Spacer()
 
@@ -116,6 +156,58 @@ struct ReadListDownloadActionsSection: View {
     }
   }
 
+  private func updatePolicy(_ newPolicy: OfflinePolicy) {
+    Task {
+      if newPolicy != .manual {
+        try? await SyncService.syncAllReadListBooks(readListId: readListId)
+      }
+      try? await DatabaseOperator.database().updateReadListOfflinePolicy(
+        readListId: readListId,
+        instanceId: current.instanceId,
+        policy: newPolicy
+      )
+      onMutationCompleted?()
+    }
+  }
+
+  private func updatePolicyAndLimit(_ newPolicy: OfflinePolicy, limit: Int) {
+    Task {
+      try? await SyncService.syncAllReadListBooks(readListId: readListId)
+      try? await DatabaseOperator.database().updateReadListOfflinePolicy(
+        readListId: readListId,
+        instanceId: current.instanceId,
+        policy: newPolicy,
+        limit: limit
+      )
+      onMutationCompleted?()
+    }
+  }
+
+  @ViewBuilder
+  private func offlinePolicyLabel(_ value: OfflinePolicy) -> some View {
+    let title = value.title(limit: offlinePolicyLimit)
+    Label {
+      HStack(spacing: 4) {
+        Text(value == policy ? title : value.label)
+        if value == policy {
+          Image(systemName: "checkmark")
+        }
+      }
+    } icon: {
+      Image(systemName: value.icon)
+    }
+  }
+
+  @ViewBuilder
+  private func limitOptionLabel(policy: OfflinePolicy, limit: Int) -> some View {
+    let title = OfflinePolicy.limitTitle(limit)
+    if self.policy == policy && offlinePolicyLimit == limit {
+      Label(title, systemImage: "checkmark")
+    } else {
+      Text(title)
+    }
+  }
+
   private func performAction(_ action: SeriesDownloadAction) {
     switch action {
     case .download:
@@ -126,8 +218,10 @@ struct ReadListDownloadActionsSection: View {
       downloadUnread(limit: limit)
     case .removeRead:
       removeRead()
-    case .remove, .cancel:
+    case .remove:
       removeAll()
+    case .cancel:
+      cancelDownload()
     }
   }
 
@@ -179,7 +273,7 @@ struct ReadListDownloadActionsSection: View {
       Button {
         handleDownloadUnreadTap(limit: value)
       } label: {
-        Text(SeriesOfflinePolicy.limitTitle(value))
+        Text(OfflinePolicy.limitTitle(value))
       }
     }
   }
@@ -191,6 +285,19 @@ struct ReadListDownloadActionsSection: View {
       )
       ErrorManager.shared.notify(
         message: String(localized: "notification.readList.offlineRemoved")
+      )
+      onMutationCompleted?()
+    }
+  }
+
+  private func cancelDownload() {
+    Task {
+      await OfflineManager.shared.cancelReadListDownload(
+        readListId: readListId,
+        instanceId: current.instanceId
+      )
+      ErrorManager.shared.notify(
+        message: String(localized: "notification.book.downloadCancelled", defaultValue: "Download cancelled")
       )
       onMutationCompleted?()
     }

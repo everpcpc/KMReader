@@ -18,6 +18,7 @@ nonisolated struct OfflineDownloadedBookItem: Equatable, Identifiable, Sendable 
   let metaNumberSort: Double
   let downloadedSize: Int64
   let isReadCompleted: Bool
+  let protectionSources: [OfflineProtectionSource]
 
   var listTitle: String {
     "#\(metaNumber) - \(metaTitle)"
@@ -25,6 +26,10 @@ nonisolated struct OfflineDownloadedBookItem: Equatable, Identifiable, Sendable 
 
   var oneshotTitle: String {
     metaTitle.isEmpty ? bookName : metaTitle
+  }
+
+  var isProtected: Bool {
+    !protectionSources.isEmpty
   }
 }
 
@@ -77,11 +82,11 @@ nonisolated struct OfflineDownloadedBooksSnapshot: Equatable, Sendable {
     libraryGroups.reduce(0) { $0 + $1.downloadedBooksCount }
   }
 
-  var hasReadBooks: Bool {
+  var hasUnprotectedReadBooks: Bool {
     libraryGroups.contains { libraryGroup in
-      libraryGroup.oneshotBooks.contains { $0.isReadCompleted }
+      libraryGroup.oneshotBooks.contains { $0.isReadCompleted && !$0.isProtected }
         || libraryGroup.seriesGroups.contains { seriesGroup in
-          seriesGroup.books.contains { $0.isReadCompleted }
+          seriesGroup.books.contains { $0.isReadCompleted && !$0.isProtected }
         }
     }
   }

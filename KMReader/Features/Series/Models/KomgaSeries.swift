@@ -58,7 +58,7 @@ nonisolated struct KomgaSeries: Codable, Equatable, Sendable {
     downloadedBooks: Int = 0,
     pendingBooks: Int = 0,
     downloadedSize: Int64 = 0,
-    offlinePolicy: SeriesOfflinePolicy = .manual,
+    offlinePolicy: OfflinePolicy = .manual,
     offlinePolicyLimit: Int = 0
   ) {
     self.id = id ?? CompositeID.generate(instanceId: instanceId, id: seriesId)
@@ -90,8 +90,8 @@ nonisolated struct KomgaSeries: Codable, Equatable, Sendable {
     self.downloadedSize = downloadedSize
     self.downloadedBooks = downloadedBooks
     self.pendingBooks = pendingBooks
-    self.offlinePolicyRaw = offlinePolicy.rawValue
-    self.offlinePolicyLimit = offlinePolicyLimit
+    self.offlinePolicyRaw = offlinePolicy.storageValue
+    self.offlinePolicyLimit = max(0, offlinePolicyLimit)
     self.collectionIdsRaw = try? JSONEncoder().encode([] as [String])
   }
 }
@@ -153,12 +153,12 @@ nonisolated extension KomgaSeries {
   }
 
   /// Computed property for offline policy.
-  var offlinePolicy: SeriesOfflinePolicy {
+  var offlinePolicy: OfflinePolicy {
     get {
-      SeriesOfflinePolicy(rawValue: offlinePolicyRaw) ?? .manual
+      OfflinePolicy(storageValue: offlinePolicyRaw)
     }
     set {
-      offlinePolicyRaw = newValue.rawValue
+      offlinePolicyRaw = newValue.storageValue
     }
   }
 

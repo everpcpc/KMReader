@@ -144,7 +144,7 @@ nonisolated enum LegacySwiftDataImporter {
         downloadedBooks: item.downloadedBooks,
         pendingBooks: item.pendingBooks,
         downloadedSize: item.downloadedSize,
-        offlinePolicy: SeriesOfflinePolicy(rawValue: item.offlinePolicyRaw) ?? .manual,
+        offlinePolicy: OfflinePolicy(storageValue: item.offlinePolicyRaw),
         offlinePolicyLimit: item.offlinePolicyLimit
       )
       record.metadataRaw = item.metadataRaw
@@ -272,6 +272,22 @@ nonisolated enum LegacySwiftDataImporter {
       record.downloadError = item.downloadError
       record.downloadAt = item.downloadAt
       try record.save(db)
+      try db.execute(
+        sql: """
+          DELETE FROM \(ReadListBookMembership.databaseTableName)
+          WHERE instance_id = ?
+          AND read_list_id = ?
+          """,
+        arguments: [record.instanceId, record.readListId]
+      )
+      for (position, bookId) in bookIds.enumerated() {
+        try ReadListBookMembership(
+          instanceId: record.instanceId,
+          readListId: record.readListId,
+          bookId: bookId,
+          position: position
+        ).insert(db)
+      }
     }
 
     try importBatches(

@@ -552,7 +552,7 @@ extension DatabaseOperator {
       guard !downloadedBooks.isEmpty else { return .empty }
 
       let downloadedLibraryIds = Array(Set(downloadedBooks.map(\.libraryId)))
-      let downloadedSeriesIds = Array(Set(downloadedBooks.lazy.filter { !$0.oneshot }.map(\.seriesId)))
+      let downloadedSeriesIds = Array(Set(downloadedBooks.map(\.seriesId)))
       let libraryMap = Dictionary(
         uniqueKeysWithValues: try fetchLibraryRecords(
           db: db,
@@ -565,14 +565,30 @@ extension DatabaseOperator {
           db: db,
           ids: downloadedSeriesIds,
           instanceId: instanceId
-        ).map { ($0.seriesId, $0.name) }
+        ).map { ($0.seriesId, $0) }
+      )
+      let readListSources = try fetchReadListsAndMembershipsContainingBooks(
+        db: db,
+        instanceId: instanceId,
+        bookIds: downloadedBooks.map(\.bookId)
+      )
+      let protectionIndex = OfflineProtectionIndex(
+        books: try fetchBooks(db: db, instanceId: instanceId),
+        series: Array(seriesMap.values),
+        readLists: readListSources.readLists,
+        readListMemberships: readListSources.memberships
       )
       let libraryBooksMap = Dictionary(grouping: downloadedBooks) { $0.libraryId }
       var libraryGroups: [OfflineDownloadedLibraryGroup] = []
 
       for (libraryId, libraryBooks) in libraryBooksMap {
         let oneshotBooks = libraryBooks.filter(\.oneshot)
-          .map(Self.makeOfflineDownloadedBookItem)
+          .map { book in
+            Self.makeOfflineDownloadedBookItem(
+              book,
+              protectionSources: protectionIndex.sources(for: book)
+            )
+          }
           .sorted {
             $0.oneshotTitle.localizedCaseInsensitiveCompare($1.oneshotTitle) == .orderedAscending
           }
@@ -582,12 +598,17 @@ extension DatabaseOperator {
         for (seriesId, seriesBooks) in seriesBooksMap {
           let bookItems =
             seriesBooks
-            .map(Self.makeOfflineDownloadedBookItem)
+            .map { book in
+              Self.makeOfflineDownloadedBookItem(
+                book,
+                protectionSources: protectionIndex.sources(for: book)
+              )
+            }
             .sorted { $0.metaNumberSort < $1.metaNumberSort }
           seriesGroups.append(
             OfflineDownloadedSeriesGroup(
               id: seriesId,
-              name: seriesMap[seriesId] ?? bookItems.first?.seriesTitle,
+              name: seriesMap[seriesId]?.name ?? bookItems.first?.seriesTitle,
               books: bookItems
             )
           )
@@ -647,16 +668,39 @@ extension DatabaseOperator {
       let books = try KomgaBook.fetchAll(
         db,
         sql: """
-          SELECT *
-          FROM \(KomgaBook.databaseTableName)
-          WHERE instance_id = ?
-          AND download_status_raw = 'downloaded'
-          AND progress_completed = 1
+            SELECT *
+            FROM \(KomgaBook.databaseTableName)
+            WHERE instance_id = ?
+            AND download_status_raw = 'downloaded'
+            AND progress_completed = 1
           """,
         arguments: [instanceId]
       )
+      guard !books.isEmpty else { return [] }
+      let seriesById = Dictionary(
+        uniqueKeysWithValues: try fetchSeriesByIds(
+          db: db,
+          ids: Array(Set(books.map(\.seriesId))),
+          instanceId: instanceId
+        ).map { ($0.seriesId, $0) }
+      )
+      let readListSources = try fetchReadListsAndMembershipsContainingBooks(
+        db: db,
+        instanceId: instanceId,
+        bookIds: books.map(\.bookId)
+      )
+      let protectionIndex = OfflineProtectionIndex(
+        books: try fetchBooks(db: db, instanceId: instanceId),
+        series: Array(seriesById.values),
+        readLists: readListSources.readLists,
+        readListMemberships: readListSources.memberships
+      )
+
       return books.compactMap { book in
         if let downloadAt = book.downloadAt, now.timeIntervalSince(downloadAt) < 300 {
+          return nil
+        }
+        if protectionIndex.isProtected(book) {
           return nil
         }
         return (id: book.bookId, seriesId: book.seriesId)
@@ -874,14 +918,25 @@ extension DatabaseOperator {
     }) ?? 0
   }
 
-  func syncReadListsContainingBooksInTransaction(db: Database, bookIds: [String], instanceId: String) {
+  func syncReadListsContainingBooksInTransaction(
+    db: Database,
+    bookIds: [String],
+    instanceId: String,
+    excludingReadListId: String? = nil
+  ) {
     guard !bookIds.isEmpty else { return }
-    let bookIdSet = Set(bookIds)
-    guard var readLists = try? fetchReadLists(db: db, instanceId: instanceId) else { return }
-    for index in readLists.indices {
-      guard readLists[index].bookIds.contains(where: { bookIdSet.contains($0) }) else {
-        continue
+    guard
+      let containingReadListIds = try? fetchReadListIdsContainingBooks(db: db, instanceId: instanceId, bookIds: bookIds)
+    else { return }
+    let readListIds = containingReadListIds.filter { readListId in
+      if let excludingReadListId {
+        return readListId != excludingReadListId
       }
+      return true
+    }
+    guard !readListIds.isEmpty else { return }
+    guard var readLists = try? fetchReadListsByIds(db: db, ids: readListIds, instanceId: instanceId) else { return }
+    for index in readLists.indices {
       syncReadListDownloadStatus(db: db, readList: &readLists[index])
       try? save(readLists[index], db: db)
     }
@@ -937,7 +992,10 @@ extension DatabaseOperator {
     return defaultName(serverURL: serverURL, username: username)
   }
 
-  nonisolated static func makeOfflineDownloadedBookItem(_ book: KomgaBook) -> OfflineDownloadedBookItem {
+  nonisolated static func makeOfflineDownloadedBookItem(
+    _ book: KomgaBook,
+    protectionSources: [OfflineProtectionSource] = []
+  ) -> OfflineDownloadedBookItem {
     OfflineDownloadedBookItem(
       id: book.id,
       instanceId: book.instanceId,
@@ -950,7 +1008,8 @@ extension DatabaseOperator {
       metaTitle: book.metaTitle,
       metaNumberSort: book.metaNumberSort,
       downloadedSize: book.downloadedSize,
-      isReadCompleted: book.readProgress?.completed == true
+      isReadCompleted: book.readProgress?.completed == true,
+      protectionSources: protectionSources
     )
   }
 }
