@@ -58,6 +58,7 @@ struct OneshotDetailView: View {
             book: book,
             series: series,
             downloadStatus: downloadStatus,
+            protectionSources: bookItem?.protectionSources ?? [],
             inSheet: false
           )
 
@@ -178,7 +179,8 @@ struct OneshotDetailView: View {
     )
     bookItem = try? await database.fetchFirstBookDisplayItem(
       seriesId: seriesId,
-      instanceId: current.instanceId
+      instanceId: current.instanceId,
+      includeOfflineProtection: true
     )
   }
 

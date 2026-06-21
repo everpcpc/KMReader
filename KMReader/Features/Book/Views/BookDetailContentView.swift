@@ -9,6 +9,7 @@ import SwiftUI
 struct BookDetailContentView: View {
   let book: Book
   let downloadStatus: DownloadStatus?
+  let protectionSources: [OfflineProtectionSource]
   let inSheet: Bool
 
   @AppStorage("thumbnailBlurUnreadCovers") private var thumbnailBlurUnreadCovers: Bool = false
@@ -16,6 +17,18 @@ struct BookDetailContentView: View {
   @State private var thumbnailRefreshKey = UUID()
 
   private let collapsedMetadataChipLimit = 10
+
+  init(
+    book: Book,
+    downloadStatus: DownloadStatus?,
+    protectionSources: [OfflineProtectionSource] = [],
+    inSheet: Bool
+  ) {
+    self.book = book
+    self.downloadStatus = downloadStatus
+    self.protectionSources = protectionSources
+    self.inSheet = inSheet
+  }
 
   private var coverBlurRadius: CGFloat {
     thumbnailBlurUnreadCovers && book.isUnread ? CoverBlurStyle.unreadRadius : 0
@@ -193,7 +206,11 @@ struct BookDetailContentView: View {
 
       if let downloadStatus = downloadStatus {
         Divider()
-        BookDownloadActionsSection(book: book, status: downloadStatus)
+        BookDownloadActionsSection(
+          book: book,
+          status: downloadStatus,
+          protectionSources: protectionSources
+        )
       }
 
       if !inSheet {

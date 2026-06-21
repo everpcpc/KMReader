@@ -7,21 +7,45 @@ import Foundation
 import GRDB
 
 extension DatabaseOperator {
-  func fetchBookDisplayItem(bookId: String, instanceId: String) throws -> BookDisplayItem? {
+  func fetchBookDisplayItem(
+    bookId: String,
+    instanceId: String,
+    includeOfflineProtection: Bool = false
+  ) throws -> BookDisplayItem? {
     guard !bookId.isEmpty, !instanceId.isEmpty else { return nil }
     return try read { db in
-      try fetchBookRecord(db: db, id: bookId, instanceId: instanceId).map(Self.makeBookDisplayItem)
+      guard let book = try fetchBookRecord(db: db, id: bookId, instanceId: instanceId) else {
+        return nil
+      }
+      return try makeBookDisplayItem(
+        db: db,
+        book: book,
+        includeOfflineProtection: includeOfflineProtection
+      )
     }
   }
 
-  func fetchFirstBookDisplayItem(seriesId: String, instanceId: String) throws -> BookDisplayItem? {
+  func fetchFirstBookDisplayItem(
+    seriesId: String,
+    instanceId: String,
+    includeOfflineProtection: Bool = false
+  ) throws -> BookDisplayItem? {
     guard !seriesId.isEmpty, !instanceId.isEmpty else { return nil }
     return try read { db in
-      try KomgaBook
-        .filter(KomgaBook.Columns.instanceId == instanceId && KomgaBook.Columns.seriesId == seriesId)
-        .order(KomgaBook.Columns.metaNumberSort, KomgaBook.Columns.id)
-        .fetchOne(db)
-        .map(Self.makeBookDisplayItem)
+      guard
+        let book =
+          try KomgaBook
+          .filter(KomgaBook.Columns.instanceId == instanceId && KomgaBook.Columns.seriesId == seriesId)
+          .order(KomgaBook.Columns.metaNumberSort, KomgaBook.Columns.id)
+          .fetchOne(db)
+      else {
+        return nil
+      }
+      return try makeBookDisplayItem(
+        db: db,
+        book: book,
+        includeOfflineProtection: includeOfflineProtection
+      )
     }
   }
 
@@ -828,12 +852,57 @@ extension DatabaseOperator {
     try? save(series, db: db)
   }
 
-  nonisolated static func makeBookDisplayItem(_ book: KomgaBook) -> BookDisplayItem {
+  private func makeBookDisplayItem(
+    db: Database,
+    book: KomgaBook,
+    includeOfflineProtection: Bool
+  ) throws -> BookDisplayItem {
+    if includeOfflineProtection {
+      return try Self.makeBookDisplayItem(
+        book,
+        protectionSources: fetchOfflineProtectionSources(db: db, book: book)
+      )
+    }
+    return Self.makeBookDisplayItem(book)
+  }
+
+  private func fetchOfflineProtectionSources(db: Database, book: KomgaBook) throws -> [OfflineProtectionSource] {
+    var sourceBooksById: [String: KomgaBook] = [:]
+    for sourceBook in try fetchBooks(db: db, instanceId: book.instanceId, seriesId: book.seriesId) {
+      sourceBooksById[sourceBook.bookId] = sourceBook
+    }
+    sourceBooksById[book.bookId] = book
+
+    let readListSources = try fetchReadListsAndMembershipsContainingBooks(
+      db: db,
+      instanceId: book.instanceId,
+      bookIds: [book.bookId]
+    )
+    let readListBookIds = Set(readListSources.memberships.map(\.bookId))
+    let missingBookIds = readListBookIds.filter { sourceBooksById[$0] == nil }
+    for sourceBook in try fetchBooksByIds(db: db, ids: Array(missingBookIds), instanceId: book.instanceId) {
+      sourceBooksById[sourceBook.bookId] = sourceBook
+    }
+
+    let protectionIndex = OfflineProtectionIndex(
+      books: Array(sourceBooksById.values),
+      series: try fetchSeriesByIds(db: db, ids: [book.seriesId], instanceId: book.instanceId),
+      readLists: readListSources.readLists,
+      readListMemberships: readListSources.memberships
+    )
+    return protectionIndex.sources(for: book)
+  }
+
+  nonisolated static func makeBookDisplayItem(
+    _ book: KomgaBook,
+    protectionSources: [OfflineProtectionSource] = []
+  ) -> BookDisplayItem {
     BookDisplayItem(
       instanceId: book.instanceId,
       book: book.toBook(),
       downloadStatus: book.downloadStatus,
-      readListIds: book.readListIds
+      readListIds: book.readListIds,
+      protectionSources: protectionSources
     )
   }
 

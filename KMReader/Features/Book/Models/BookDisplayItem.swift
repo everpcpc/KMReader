@@ -11,18 +11,21 @@ nonisolated struct BookDisplayItem: Equatable, Identifiable, Sendable {
   let book: Book
   let downloadStatus: DownloadStatus
   let readListIds: [String]
+  let protectionSources: [OfflineProtectionSource]
 
   init(
     instanceId: String,
     book: Book,
     downloadStatus: DownloadStatus,
-    readListIds: [String] = []
+    readListIds: [String] = [],
+    protectionSources: [OfflineProtectionSource] = []
   ) {
     id = book.id
     self.instanceId = instanceId
     self.book = book
     self.downloadStatus = downloadStatus
     self.readListIds = readListIds
+    self.protectionSources = protectionSources
   }
 
   var bookId: String {

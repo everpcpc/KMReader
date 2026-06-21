@@ -10,6 +10,7 @@ struct OneShotDetailContentView: View {
   let book: Book
   let series: Series
   let downloadStatus: DownloadStatus?
+  let protectionSources: [OfflineProtectionSource]
   let inSheet: Bool
 
   @AppStorage("thumbnailBlurUnreadCovers") private var thumbnailBlurUnreadCovers: Bool = false
@@ -17,6 +18,20 @@ struct OneShotDetailContentView: View {
   @State private var thumbnailRefreshKey = UUID()
 
   private let collapsedMetadataChipLimit = 10
+
+  init(
+    book: Book,
+    series: Series,
+    downloadStatus: DownloadStatus?,
+    protectionSources: [OfflineProtectionSource] = [],
+    inSheet: Bool
+  ) {
+    self.book = book
+    self.series = series
+    self.downloadStatus = downloadStatus
+    self.protectionSources = protectionSources
+    self.inSheet = inSheet
+  }
 
   private var coverBlurRadius: CGFloat {
     thumbnailBlurUnreadCovers && book.isUnread ? CoverBlurStyle.unreadRadius : 0
@@ -239,7 +254,11 @@ struct OneShotDetailContentView: View {
 
       if let downloadStatus = downloadStatus {
         Divider()
-        BookDownloadActionsSection(book: book, status: downloadStatus)
+        BookDownloadActionsSection(
+          book: book,
+          status: downloadStatus,
+          protectionSources: protectionSources
+        )
       }
 
       if !inSheet {

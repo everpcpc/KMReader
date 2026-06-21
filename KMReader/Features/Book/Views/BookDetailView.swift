@@ -50,6 +50,7 @@ struct BookDetailView: View {
           BookDetailContentView(
             book: book,
             downloadStatus: downloadStatus,
+            protectionSources: item?.protectionSources ?? [],
             inSheet: false
           )
 
@@ -247,7 +248,8 @@ struct BookDetailView: View {
     }
     item = try? await database.fetchBookDisplayItem(
       bookId: bookId,
-      instanceId: current.instanceId
+      instanceId: current.instanceId,
+      includeOfflineProtection: true
     )
   }
 

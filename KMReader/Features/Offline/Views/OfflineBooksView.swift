@@ -121,7 +121,7 @@ struct OfflineBooksView: View {
                           .font(.caption)
                           .foregroundColor(.secondary)
                       }
-                      protectionBadge(for: book)
+                      OfflineProtectionSourcesMenu(sources: book.protectionSources)
                       Text(formatter.string(fromByteCount: book.downloadedSize))
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -141,7 +141,7 @@ struct OfflineBooksView: View {
                           .font(.caption)
                           .foregroundColor(.secondary)
                       }
-                      protectionBadge(for: book)
+                      OfflineProtectionSourcesMenu(sources: book.protectionSources)
                       Text(formatter.string(fromByteCount: book.downloadedSize))
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -193,7 +193,7 @@ struct OfflineBooksView: View {
                           .font(.caption)
                           .foregroundColor(.secondary)
                       }
-                      protectionBadge(for: book)
+                      OfflineProtectionSourcesMenu(sources: book.protectionSources)
                       Text(formatter.string(fromByteCount: book.downloadedSize))
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -213,7 +213,7 @@ struct OfflineBooksView: View {
                           .font(.caption)
                           .foregroundColor(.secondary)
                       }
-                      protectionBadge(for: book)
+                      OfflineProtectionSourcesMenu(sources: book.protectionSources)
                       Text(formatter.string(fromByteCount: book.downloadedSize))
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -308,40 +308,6 @@ struct OfflineBooksView: View {
       .font(.caption)
       .foregroundColor(.secondary)
       .lineLimit(1)
-  }
-
-  @ViewBuilder
-  private func protectionBadge(for book: OfflineDownloadedBookItem) -> some View {
-    if !book.protectionSources.isEmpty {
-      Menu {
-        ForEach(book.protectionSources) { source in
-          NavigationLink(value: protectionDestination(for: source)) {
-            Label(source.displayName, systemImage: source.kind.systemImage)
-          }
-        }
-      } label: {
-        HStack(spacing: 3) {
-          Image(systemName: "lock.fill")
-          Text(protectionTitle(for: book.protectionSources))
-        }
-      }
-      .font(.caption2)
-      .foregroundColor(.accentColor)
-      .lineLimit(1)
-    }
-  }
-
-  private func protectionTitle(for sources: [OfflineProtectionSource]) -> String {
-    sources.map(\.displayName).joined(separator: ", ")
-  }
-
-  private func protectionDestination(for source: OfflineProtectionSource) -> NavDestination {
-    switch source.kind {
-    case .series:
-      return .seriesDetail(seriesId: source.sourceId)
-    case .readList:
-      return .readListDetail(readListId: source.sourceId)
-    }
   }
 
   private func deleteBook(_ book: OfflineDownloadedBookItem) {
