@@ -40,46 +40,15 @@ struct OfflineBooksView: View {
             countBadge(snapshot.totalDownloadedBooksCount)
             Spacer()
             totalMetrics(size: snapshot.totalDownloadedSize)
-
-            Menu {
-              Button(role: .destructive) {
-                showRemoveReadAlert = true
-              } label: {
-                Label(
-                  String(localized: "settings.offline_books.remove_read"),
-                  systemImage: "checkmark.circle")
-              }
-              .disabled(!canRemoveReadBooks)
-
-              Button(role: .destructive) {
-                showRemoveAllAlert = true
-              } label: {
-                Label(String(localized: "settings.offline_books.remove_all"), systemImage: "trash")
-              }
-
-              Divider()
-
-              Button {
-                cleanupOrphanedFiles()
-              } label: {
-                Label(
-                  String(localized: "settings.offline_books.cleanup_orphaned"),
-                  systemImage: "arrow.3.trianglepath"
-                )
-              }
-              .disabled(isScanning)
-            } label: {
-              HStack(spacing: 6) {
-                if isScanning {
-                  ProgressView()
-                    .controlSize(.small)
-                }
-                Label(String(localized: "Manage"), systemImage: "ellipsis.circle")
-              }
-            }
-            .adaptiveButtonStyle(.bordered)
           }
         }
+
+        #if os(tvOS)
+          Section {
+            managementMenu
+              .adaptiveButtonStyle(.bordered)
+          }
+        #endif
 
         ForEach(snapshot.libraryGroups) { lGroup in
           Section(
@@ -119,6 +88,15 @@ struct OfflineBooksView: View {
     }
     .formStyle(.grouped)
     .inlineNavigationBarTitle(OfflineSection.books.title)
+    #if os(iOS) || os(macOS)
+      .toolbar {
+        if !snapshot.isEmpty {
+          ToolbarItem(placement: .primaryAction) {
+            managementMenu
+          }
+        }
+      }
+    #endif
     .alert(
       String(localized: "settings.offline_books.remove_all"),
       isPresented: $showRemoveAllAlert
@@ -149,6 +127,20 @@ struct OfflineBooksView: View {
         await loadSnapshot()
       }
     }
+  }
+
+  private var managementMenu: some View {
+    OfflineBooksManagementMenu(
+      canRemoveReadBooks: canRemoveReadBooks,
+      isScanning: isScanning,
+      onRemoveRead: {
+        showRemoveReadAlert = true
+      },
+      onCleanupOrphanedFiles: cleanupOrphanedFiles,
+      onRemoveAll: {
+        showRemoveAllAlert = true
+      }
+    )
   }
 
   private func countBadge(_ count: Int) -> some View {

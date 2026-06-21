@@ -69761,37 +69761,37 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Verwaiste Dateien bereinigen"
+            "value" : "Verwaiste Offline-Dateien bereinigen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cleanup Orphaned Files"
+            "value" : "Clean Up Orphaned Offline Files"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Limpiar archivos huerfanos"
+            "value" : "Limpiar archivos offline huérfanos"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nettoyer les fichiers orphelins"
+            "value" : "Nettoyer les fichiers hors ligne orphelins"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pulisci file orfani"
+            "value" : "Pulisci file offline orfani"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "孤立したファイルをクリーンアップ"
+            "value" : "孤立したオフラインファイルをクリーンアップ"
           }
         },
         "ko" : {
@@ -69803,7 +69803,7 @@
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Очистить потерянные файлы"
+            "value" : "Очистить потерянные офлайн-файлы"
           }
         },
         "zh-Hans" : {
@@ -70017,61 +70017,61 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Alle entfernen"
+            "value" : "Alle Offline-Bücher entfernen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Remove All"
+            "value" : "Remove All Offline Books"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Eliminar todo"
+            "value" : "Eliminar todos los libros offline"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tout supprimer"
+            "value" : "Supprimer tous les livres hors ligne"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rimuovi tutto"
+            "value" : "Rimuovi tutti i libri offline"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "すべて削除"
+            "value" : "すべてのオフライン本を削除"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "모두 삭제"
+            "value" : "모든 오프라인 도서 삭제"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Удалить все"
+            "value" : "Удалить все офлайн-книги"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "删除全部"
+            "value" : "删除全部离线书籍"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "刪除全部"
+            "value" : "刪除全部離線書籍"
           }
         }
       }
@@ -70145,61 +70145,61 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gelesene entfernen"
+            "value" : "Gelesene Offline-Bücher entfernen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Remove Read"
+            "value" : "Remove Read Offline Books"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Eliminar leidos"
+            "value" : "Eliminar libros offline leídos"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Supprimer les lus"
+            "value" : "Supprimer les livres hors ligne lus"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rimuovi letti"
+            "value" : "Rimuovi libri offline letti"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "既読を削除"
+            "value" : "既読のオフライン本を削除"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "읽은 항목 삭제"
+            "value" : "읽은 오프라인 도서 삭제"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Удалить прочитанные"
+            "value" : "Удалить прочитанные офлайн-книги"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "删除已读"
+            "value" : "删除已读离线书籍"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "刪除已讀"
+            "value" : "刪除已讀離線書籍"
           }
         }
       }
