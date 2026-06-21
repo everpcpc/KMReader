@@ -12,6 +12,8 @@ struct OfflineBooksView: View {
   @State private var showRemoveReadAlert = false
   @State private var isScanning = false
   @State private var snapshot: OfflineDownloadedBooksSnapshot = .empty
+  @State private var snapshotReloadToken = 0
+  @State private var canRemoveReadBooks = false
   @State private var progressTracker = DownloadProgressTracker.shared
 
   private let formatter: ByteCountFormatter = {
@@ -87,7 +89,7 @@ struct OfflineBooksView: View {
                 String(localized: "settings.offline_books.remove_read"),
                 systemImage: "checkmark.circle")
             }
-            .disabled(!snapshot.hasUnprotectedReadBooks)
+            .disabled(!canRemoveReadBooks)
           }.adaptiveButtonStyle(.bordered)
         }
 
@@ -101,147 +103,27 @@ struct OfflineBooksView: View {
             }
           ) {
             ForEach(lGroup.seriesGroups) { sGroup in
-              #if os(tvOS)
-                Section(
-                  header: HStack {
-                    Text(sGroup.name ?? String(localized: "Unknown"))
-                    countBadge(sGroup.downloadedBooksCount)
-                    Spacer()
-                    downloadedMetrics(size: sGroup.downloadedSize)
-                  }
-                ) {
-                  ForEach(sGroup.books) { book in
-                    HStack {
-                      Text(book.listTitle)
-                        .font(.footnote)
-
-                      Spacer()
-                      if book.isReadCompleted {
-                        Image(systemName: "checkmark.circle.fill")
-                          .font(.caption)
-                          .foregroundColor(.secondary)
-                      }
-                      OfflineProtectionSourcesMenu(sources: book.protectionSources)
-                      Text(formatter.string(fromByteCount: book.downloadedSize))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    }
-                  }
-                }
-              #else
-                DisclosureGroup {
-                  ForEach(sGroup.books) { book in
-                    HStack {
-                      Text(book.listTitle)
-                        .font(.footnote)
-
-                      Spacer()
-                      if book.isReadCompleted {
-                        Image(systemName: "checkmark.circle.fill")
-                          .font(.caption)
-                          .foregroundColor(.secondary)
-                      }
-                      OfflineProtectionSourcesMenu(sources: book.protectionSources)
-                      Text(formatter.string(fromByteCount: book.downloadedSize))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    }
-                    .swipeActions(edge: .trailing) {
-                      Button(role: .destructive) {
-                        deleteBook(book)
-                      } label: {
-                        Label(String(localized: "Delete"), systemImage: "trash")
-                      }.optimizedControlSize()
-                    }
-                  }
-                } label: {
-                  HStack {
-                    Text(sGroup.name ?? String(localized: "Unknown"))
-                    countBadge(sGroup.downloadedBooksCount)
-                    Spacer()
-                    downloadedMetrics(size: sGroup.downloadedSize)
-                  }
-                }
-                .swipeActions(edge: .trailing) {
-                  Button(role: .destructive) {
-                    deleteSeries(sGroup.books)
-                  } label: {
-                    Label(String(localized: "Delete All"), systemImage: "trash")
-                  }.optimizedControlSize()
-                }
-              #endif
+              OfflineDownloadedBookGroupView(
+                groupId: "series:\(sGroup.id)",
+                title: sGroup.name ?? String(localized: "Unknown"),
+                books: sGroup.books,
+                titleStyle: .numbered,
+                reloadToken: snapshotReloadToken,
+                onDeleteBook: deleteBook,
+                onDeleteBooks: deleteSeries
+              )
             }
 
             if !lGroup.oneshotBooks.isEmpty {
-              #if os(tvOS)
-                Section(
-                  header: HStack {
-                    Text(String(localized: "settings.offline_books.oneshots"))
-                    countBadge(lGroup.oneshotBooks.count)
-                    Spacer()
-                    downloadedMetrics(size: downloadedSize(for: lGroup.oneshotBooks))
-                  }
-                ) {
-                  ForEach(lGroup.oneshotBooks) { book in
-                    HStack {
-                      Text(book.oneshotTitle)
-                        .font(.footnote)
-
-                      Spacer()
-                      if book.isReadCompleted {
-                        Image(systemName: "checkmark.circle.fill")
-                          .font(.caption)
-                          .foregroundColor(.secondary)
-                      }
-                      OfflineProtectionSourcesMenu(sources: book.protectionSources)
-                      Text(formatter.string(fromByteCount: book.downloadedSize))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    }
-                  }
-                }
-              #else
-                DisclosureGroup {
-                  ForEach(lGroup.oneshotBooks) { book in
-                    HStack {
-                      Text(book.oneshotTitle)
-                        .font(.footnote)
-
-                      Spacer()
-                      if book.isReadCompleted {
-                        Image(systemName: "checkmark.circle.fill")
-                          .font(.caption)
-                          .foregroundColor(.secondary)
-                      }
-                      OfflineProtectionSourcesMenu(sources: book.protectionSources)
-                      Text(formatter.string(fromByteCount: book.downloadedSize))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    }
-                    .swipeActions(edge: .trailing) {
-                      Button(role: .destructive) {
-                        deleteBook(book)
-                      } label: {
-                        Label(String(localized: "Delete"), systemImage: "trash")
-                      }.optimizedControlSize()
-                    }
-                  }
-                } label: {
-                  HStack {
-                    Text(String(localized: "settings.offline_books.oneshots"))
-                    countBadge(lGroup.oneshotBooks.count)
-                    Spacer()
-                    downloadedMetrics(size: downloadedSize(for: lGroup.oneshotBooks))
-                  }
-                }
-                .swipeActions(edge: .trailing) {
-                  Button(role: .destructive) {
-                    deleteSeries(lGroup.oneshotBooks)
-                  } label: {
-                    Label(String(localized: "Delete All"), systemImage: "trash")
-                  }.optimizedControlSize()
-                }
-              #endif
+              OfflineDownloadedBookGroupView(
+                groupId: "oneshot:\(lGroup.id)",
+                title: String(localized: "settings.offline_books.oneshots"),
+                books: lGroup.oneshotBooks,
+                titleStyle: .oneshot,
+                reloadToken: snapshotReloadToken,
+                onDeleteBook: deleteBook,
+                onDeleteBooks: deleteSeries
+              )
             }
           }
         }
@@ -279,10 +161,6 @@ struct OfflineBooksView: View {
         await loadSnapshot()
       }
     }
-  }
-
-  private func downloadedSize(for books: [OfflineDownloadedBookItem]) -> Int64 {
-    books.reduce(0) { $0 + $1.downloadedSize }
   }
 
   private func countBadge(_ count: Int) -> some View {
@@ -353,9 +231,11 @@ struct OfflineBooksView: View {
   private func loadSnapshot() async {
     let instanceId = current.instanceId
     guard !instanceId.isEmpty else {
+      canRemoveReadBooks = false
       if snapshot != .empty {
         withAnimation {
           snapshot = .empty
+          snapshotReloadToken &+= 1
         }
       }
       return
@@ -369,7 +249,26 @@ struct OfflineBooksView: View {
       if snapshot != loadedSnapshot {
         withAnimation {
           snapshot = loadedSnapshot
+          snapshotReloadToken &+= 1
         }
+      }
+      if loadedSnapshot.hasReadBooks {
+        await loadReadRemovalAvailability(instanceId: instanceId)
+      } else {
+        canRemoveReadBooks = false
+      }
+    } catch {
+      ErrorManager.shared.alert(error: error)
+    }
+  }
+
+  private func loadReadRemovalAvailability(instanceId: String) async {
+    do {
+      let database = try await DatabaseOperator.database()
+      let canRemove = await database.hasReadBooksEligibleForAutoDelete(instanceId: instanceId)
+      guard current.instanceId == instanceId else { return }
+      if canRemoveReadBooks != canRemove {
+        canRemoveReadBooks = canRemove
       }
     } catch {
       ErrorManager.shared.alert(error: error)

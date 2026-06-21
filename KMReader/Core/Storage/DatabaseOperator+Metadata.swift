@@ -567,28 +567,12 @@ extension DatabaseOperator {
           instanceId: instanceId
         ).map { ($0.seriesId, $0) }
       )
-      let readListSources = try fetchReadListsAndMembershipsContainingBooks(
-        db: db,
-        instanceId: instanceId,
-        bookIds: downloadedBooks.map(\.bookId)
-      )
-      let protectionIndex = OfflineProtectionIndex(
-        books: try fetchBooks(db: db, instanceId: instanceId),
-        series: Array(seriesMap.values),
-        readLists: readListSources.readLists,
-        readListMemberships: readListSources.memberships
-      )
       let libraryBooksMap = Dictionary(grouping: downloadedBooks) { $0.libraryId }
       var libraryGroups: [OfflineDownloadedLibraryGroup] = []
 
       for (libraryId, libraryBooks) in libraryBooksMap {
         let oneshotBooks = libraryBooks.filter(\.oneshot)
-          .map { book in
-            Self.makeOfflineDownloadedBookItem(
-              book,
-              protectionSources: protectionIndex.sources(for: book)
-            )
-          }
+          .map(Self.makeOfflineDownloadedBookItem)
           .sorted {
             $0.oneshotTitle.localizedCaseInsensitiveCompare($1.oneshotTitle) == .orderedAscending
           }
@@ -598,12 +582,7 @@ extension DatabaseOperator {
         for (seriesId, seriesBooks) in seriesBooksMap {
           let bookItems =
             seriesBooks
-            .map { book in
-              Self.makeOfflineDownloadedBookItem(
-                book,
-                protectionSources: protectionIndex.sources(for: book)
-              )
-            }
+            .map(Self.makeOfflineDownloadedBookItem)
             .sorted { $0.metaNumberSort < $1.metaNumberSort }
           seriesGroups.append(
             OfflineDownloadedSeriesGroup(
@@ -706,6 +685,10 @@ extension DatabaseOperator {
         return (id: book.bookId, seriesId: book.seriesId)
       }
     }) ?? []
+  }
+
+  func hasReadBooksEligibleForAutoDelete(instanceId: String) -> Bool {
+    !fetchReadBooksEligibleForAutoDelete(instanceId: instanceId).isEmpty
   }
 }
 
@@ -992,10 +975,7 @@ extension DatabaseOperator {
     return defaultName(serverURL: serverURL, username: username)
   }
 
-  nonisolated static func makeOfflineDownloadedBookItem(
-    _ book: KomgaBook,
-    protectionSources: [OfflineProtectionSource] = []
-  ) -> OfflineDownloadedBookItem {
+  nonisolated static func makeOfflineDownloadedBookItem(_ book: KomgaBook) -> OfflineDownloadedBookItem {
     OfflineDownloadedBookItem(
       id: book.id,
       instanceId: book.instanceId,
@@ -1008,8 +988,7 @@ extension DatabaseOperator {
       metaTitle: book.metaTitle,
       metaNumberSort: book.metaNumberSort,
       downloadedSize: book.downloadedSize,
-      isReadCompleted: book.readProgress?.completed == true,
-      protectionSources: protectionSources
+      isReadCompleted: book.readProgress?.completed == true
     )
   }
 }

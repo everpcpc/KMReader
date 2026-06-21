@@ -49,6 +49,21 @@ extension DatabaseOperator {
     }
   }
 
+  func fetchOfflineProtectionSources(
+    instanceId: String,
+    bookIds: [String]
+  ) throws -> [String: [OfflineProtectionSource]] {
+    guard !instanceId.isEmpty, !bookIds.isEmpty else { return [:] }
+    return try read { db in
+      let targetBooks = try fetchBooksByIds(db: db, ids: bookIds, instanceId: instanceId)
+      return try fetchOfflineProtectionSources(
+        db: db,
+        instanceId: instanceId,
+        targetBooks: targetBooks
+      )
+    }
+  }
+
   func fetchBrowseBookIds(
     instanceId: String,
     libraryIds: [String]?,
@@ -858,39 +873,56 @@ extension DatabaseOperator {
     includeOfflineProtection: Bool
   ) throws -> BookDisplayItem {
     if includeOfflineProtection {
-      return try Self.makeBookDisplayItem(
+      let sourcesByBookId = try fetchOfflineProtectionSources(
+        db: db,
+        instanceId: book.instanceId,
+        targetBooks: [book]
+      )
+      return Self.makeBookDisplayItem(
         book,
-        protectionSources: fetchOfflineProtectionSources(db: db, book: book)
+        protectionSources: sourcesByBookId[book.bookId] ?? []
       )
     }
     return Self.makeBookDisplayItem(book)
   }
 
-  private func fetchOfflineProtectionSources(db: Database, book: KomgaBook) throws -> [OfflineProtectionSource] {
+  private func fetchOfflineProtectionSources(
+    db: Database,
+    instanceId: String,
+    targetBooks: [KomgaBook]
+  ) throws -> [String: [OfflineProtectionSource]] {
+    guard !targetBooks.isEmpty else { return [:] }
+    let targetBookIds = targetBooks.map(\.bookId)
+    let seriesIds = Array(Set(targetBooks.map(\.seriesId)))
     var sourceBooksById: [String: KomgaBook] = [:]
-    for sourceBook in try fetchBooks(db: db, instanceId: book.instanceId, seriesId: book.seriesId) {
+    for sourceBook in try fetchBooks(db: db, instanceId: instanceId, seriesIds: seriesIds) {
       sourceBooksById[sourceBook.bookId] = sourceBook
     }
-    sourceBooksById[book.bookId] = book
+    for book in targetBooks {
+      sourceBooksById[book.bookId] = book
+    }
 
     let readListSources = try fetchReadListsAndMembershipsContainingBooks(
       db: db,
-      instanceId: book.instanceId,
-      bookIds: [book.bookId]
+      instanceId: instanceId,
+      bookIds: targetBookIds
     )
     let readListBookIds = Set(readListSources.memberships.map(\.bookId))
     let missingBookIds = readListBookIds.filter { sourceBooksById[$0] == nil }
-    for sourceBook in try fetchBooksByIds(db: db, ids: Array(missingBookIds), instanceId: book.instanceId) {
+    for sourceBook in try fetchBooksByIds(db: db, ids: Array(missingBookIds), instanceId: instanceId) {
       sourceBooksById[sourceBook.bookId] = sourceBook
     }
 
     let protectionIndex = OfflineProtectionIndex(
       books: Array(sourceBooksById.values),
-      series: try fetchSeriesByIds(db: db, ids: [book.seriesId], instanceId: book.instanceId),
+      series: try fetchSeriesByIds(db: db, ids: seriesIds, instanceId: instanceId),
       readLists: readListSources.readLists,
       readListMemberships: readListSources.memberships
     )
-    return protectionIndex.sources(for: book)
+    return Dictionary(
+      uniqueKeysWithValues: targetBooks.map { book in
+        (book.bookId, protectionIndex.sources(for: book))
+      })
   }
 
   nonisolated static func makeBookDisplayItem(

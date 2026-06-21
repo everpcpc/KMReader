@@ -184,6 +184,22 @@ extension DatabaseOperator {
       .fetchAll(db)
   }
 
+  func fetchBooks(db: Database, instanceId: String, seriesIds: [String]) throws -> [KomgaBook] {
+    guard !seriesIds.isEmpty else { return [] }
+    var books: [KomgaBook] = []
+    for seriesIds in Self.chunkedSQLValues(seriesIds, chunkSize: Self.recordFetchChunkSize) {
+      var sql = """
+        SELECT *
+        FROM \(KomgaBook.databaseTableName)
+        WHERE instance_id = ?
+        """
+      var arguments: StatementArguments = [instanceId]
+      Self.appendSQLInFilter(column: "series_id", values: seriesIds, sql: &sql, arguments: &arguments)
+      books.append(contentsOf: try KomgaBook.fetchAll(db, sql: sql, arguments: arguments))
+    }
+    return books
+  }
+
   func fetchSeriesRecords(db: Database, instanceId: String) throws -> [KomgaSeries] {
     try KomgaSeries
       .filter(KomgaSeries.Columns.instanceId == instanceId)

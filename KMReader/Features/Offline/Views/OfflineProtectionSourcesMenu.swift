@@ -18,10 +18,9 @@ struct OfflineProtectionSourcesMenu: View {
         }
       } label: {
         Image(systemName: "lock.fill")
-          .imageScale(.small)
-          .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
+          .font(.body)
+          .frame(width: 24, height: 24)
       }
-      .font(.caption2)
       .foregroundColor(.accentColor)
       .lineLimit(1)
     }
