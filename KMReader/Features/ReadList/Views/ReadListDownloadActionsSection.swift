@@ -76,7 +76,6 @@ struct ReadListDownloadActionsSection: View {
         }
         .font(.caption)
         .adaptiveButtonStyle(.bordered)
-        .tint(policy.buttonTint)
 
         Spacer()
 
