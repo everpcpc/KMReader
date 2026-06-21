@@ -138,16 +138,13 @@ extension DatabaseOperator {
           try save(series, db: db)
         }
 
-        for readListId in book.readListIds {
-          guard var readList = try fetchReadListRecord(db: db, id: readListId, instanceId: instanceId),
-            readList.bookIds.contains(book.bookId)
-          else {
-            continue
-          }
-          if readList.offlinePolicy == .manual {
+        let readListIds = try fetchReadListIdsContainingBooks(db: db, instanceId: instanceId, bookIds: [book.bookId])
+        var readLists = try fetchReadListsByIds(db: db, ids: readListIds, instanceId: instanceId)
+        for index in readLists.indices {
+          if readLists[index].offlinePolicy == .manual {
             applyReadListDownloadDelta(
               db: db,
-              readList: &readList,
+              readList: &readLists[index],
               oldStatusRaw: oldStatusRaw,
               newStatusRaw: book.downloadStatusRaw,
               oldDownloadedSize: oldDownloadedSize,
@@ -156,9 +153,9 @@ extension DatabaseOperator {
               newDownloadAt: book.downloadAt
             )
           } else {
-            syncReadListDownloadStatus(db: db, readList: &readList)
+            syncReadListDownloadStatus(db: db, readList: &readLists[index])
           }
-          try save(readList, db: db)
+          try save(readLists[index], db: db)
         }
       }
     } catch {

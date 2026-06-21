@@ -429,32 +429,63 @@ extension DatabaseOperator {
     if let readListIds, readListIds.isEmpty { return [] }
     if let bookIds, bookIds.isEmpty { return [] }
 
-    var sql = """
-      SELECT *
-      FROM \(ReadListBookMembership.databaseTableName)
-      WHERE instance_id = ?
-      """
-    var arguments: StatementArguments = [instanceId]
-    if let readListIds {
-      Self.appendSQLInFilter(column: "read_list_id", values: readListIds, sql: &sql, arguments: &arguments)
+    let chunkSize =
+      readListIds != nil && bookIds != nil
+      ? max(1, Self.recordFetchChunkSize / 2)
+      : Self.recordFetchChunkSize
+    let readListChunks: [[String]?] =
+      if let readListIds {
+        Self.chunkedSQLValues(readListIds, chunkSize: chunkSize).map(Optional.some)
+      } else {
+        [nil]
+      }
+    let bookChunks: [[String]?] =
+      if let bookIds {
+        Self.chunkedSQLValues(bookIds, chunkSize: chunkSize).map(Optional.some)
+      } else {
+        [nil]
+      }
+
+    var memberships: [ReadListBookMembership] = []
+    for readListChunk in readListChunks {
+      for bookChunk in bookChunks {
+        var sql = """
+          SELECT *
+          FROM \(ReadListBookMembership.databaseTableName)
+          WHERE instance_id = ?
+          """
+        var arguments: StatementArguments = [instanceId]
+        if let readListChunk {
+          Self.appendSQLInFilter(column: "read_list_id", values: readListChunk, sql: &sql, arguments: &arguments)
+        }
+        if let bookChunk {
+          Self.appendSQLInFilter(column: "book_id", values: bookChunk, sql: &sql, arguments: &arguments)
+        }
+        memberships.append(contentsOf: try ReadListBookMembership.fetchAll(db, sql: sql, arguments: arguments))
+      }
     }
-    if let bookIds {
-      Self.appendSQLInFilter(column: "book_id", values: bookIds, sql: &sql, arguments: &arguments)
+    return memberships.sorted {
+      if $0.readListId == $1.readListId {
+        return $0.position < $1.position
+      }
+      return $0.readListId < $1.readListId
     }
-    sql += "\nORDER BY read_list_id ASC, position ASC"
-    return try ReadListBookMembership.fetchAll(db, sql: sql, arguments: arguments)
   }
 
   func fetchReadListIdsContainingBooks(db: Database, instanceId: String, bookIds: [String]) throws -> [String] {
     guard !bookIds.isEmpty else { return [] }
-    var sql = """
-      SELECT DISTINCT read_list_id
-      FROM \(ReadListBookMembership.databaseTableName)
-      WHERE instance_id = ?
-      """
-    var arguments: StatementArguments = [instanceId]
-    Self.appendSQLInFilter(column: "book_id", values: bookIds, sql: &sql, arguments: &arguments)
-    return try String.fetchAll(db, sql: sql, arguments: arguments)
+    var readListIds = Set<String>()
+    for bookIds in Self.chunkedSQLValues(bookIds, chunkSize: Self.recordFetchChunkSize) {
+      var sql = """
+        SELECT DISTINCT read_list_id
+        FROM \(ReadListBookMembership.databaseTableName)
+        WHERE instance_id = ?
+        """
+      var arguments: StatementArguments = [instanceId]
+      Self.appendSQLInFilter(column: "book_id", values: bookIds, sql: &sql, arguments: &arguments)
+      readListIds.formUnion(try String.fetchAll(db, sql: sql, arguments: arguments))
+    }
+    return readListIds.sorted()
   }
 
   func fetchReadListsAndMembershipsContainingBooks(
@@ -472,14 +503,28 @@ extension DatabaseOperator {
 
   func fetchReadListsByIds(db: Database, ids: [String], instanceId: String) throws -> [KomgaReadList] {
     guard !ids.isEmpty else { return [] }
-    var sql = """
-      SELECT *
-      FROM \(KomgaReadList.databaseTableName)
-      WHERE instance_id = ?
-      """
-    var arguments: StatementArguments = [instanceId]
-    Self.appendSQLInFilter(column: "read_list_id", values: ids, sql: &sql, arguments: &arguments)
-    return try KomgaReadList.fetchAll(db, sql: sql, arguments: arguments)
+    var readLists: [KomgaReadList] = []
+    for ids in Self.chunkedSQLValues(ids, chunkSize: Self.recordFetchChunkSize) {
+      var sql = """
+        SELECT *
+        FROM \(KomgaReadList.databaseTableName)
+        WHERE instance_id = ?
+        """
+      var arguments: StatementArguments = [instanceId]
+      Self.appendSQLInFilter(column: "read_list_id", values: ids, sql: &sql, arguments: &arguments)
+      readLists.append(contentsOf: try KomgaReadList.fetchAll(db, sql: sql, arguments: arguments))
+    }
+    return Self.orderedByIds(readLists, ids: ids, id: \.readListId)
+  }
+
+  nonisolated static func chunkedSQLValues(_ values: [String], chunkSize: Int) -> [[String]] {
+    let uniqueValues = Array(Set(values))
+    guard !uniqueValues.isEmpty else { return [] }
+    let safeChunkSize = max(1, chunkSize)
+    return stride(from: 0, to: uniqueValues.count, by: safeChunkSize).map { start in
+      let end = min(start + safeChunkSize, uniqueValues.count)
+      return Array(uniqueValues[start..<end])
+    }
   }
 
   nonisolated static func makeCollectionDisplayItem(_ collection: KomgaCollection) -> CollectionDisplayItem {
