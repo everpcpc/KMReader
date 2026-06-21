@@ -18,8 +18,7 @@ struct OfflineProtectionSourcesMenu: View {
         }
       } label: {
         Image(systemName: "lock.fill")
-          .font(.body)
-          .frame(width: 24, height: 24)
+          .font(.caption)
       }
       .foregroundColor(.accentColor)
       .lineLimit(1)
