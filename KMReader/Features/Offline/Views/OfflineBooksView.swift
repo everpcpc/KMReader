@@ -40,57 +40,45 @@ struct OfflineBooksView: View {
             countBadge(snapshot.totalDownloadedBooksCount)
             Spacer()
             totalMetrics(size: snapshot.totalDownloadedSize)
-          }
 
-          Button {
-            Task {
-              isScanning = true
-              let result = await OfflineManager.shared.cleanupOrphanedFiles()
-              isScanning = false
-              if result.deletedCount > 0 {
-                ErrorManager.shared.notify(
-                  message: String(
-                    localized:
-                      "settings.offline_books.cleanup_orphaned.result \(result.deletedCount) \(formatter.string(fromByteCount: result.bytesFreed))"
-                  )
-                )
-              } else {
-                ErrorManager.shared.notify(
-                  message: String(localized: "settings.offline_books.cleanup_orphaned.no_orphaned")
+            Menu {
+              Button(role: .destructive) {
+                showRemoveReadAlert = true
+              } label: {
+                Label(
+                  String(localized: "settings.offline_books.remove_read"),
+                  systemImage: "checkmark.circle")
+              }
+              .disabled(!canRemoveReadBooks)
+
+              Button(role: .destructive) {
+                showRemoveAllAlert = true
+              } label: {
+                Label(String(localized: "settings.offline_books.remove_all"), systemImage: "trash")
+              }
+
+              Divider()
+
+              Button {
+                cleanupOrphanedFiles()
+              } label: {
+                Label(
+                  String(localized: "settings.offline_books.cleanup_orphaned"),
+                  systemImage: "arrow.3.trianglepath"
                 )
               }
-              await loadSnapshot()
-            }
-          } label: {
-            HStack {
-              Label(
-                String(localized: "settings.offline_books.cleanup_orphaned"),
-                systemImage: "arrow.3.trianglepath"
-              )
-              Spacer()
-              if isScanning {
-                ProgressView()
+              .disabled(isScanning)
+            } label: {
+              HStack(spacing: 6) {
+                if isScanning {
+                  ProgressView()
+                    .controlSize(.small)
+                }
+                Label(String(localized: "Manage"), systemImage: "ellipsis.circle")
               }
             }
+            .adaptiveButtonStyle(.bordered)
           }
-          .disabled(isScanning)
-        } header: {
-          HStack {
-            Button(role: .destructive) {
-              showRemoveAllAlert = true
-            } label: {
-              Label(String(localized: "settings.offline_books.remove_all"), systemImage: "trash")
-            }
-            Spacer()
-            Button(role: .destructive) {
-              showRemoveReadAlert = true
-            } label: {
-              Label(
-                String(localized: "settings.offline_books.remove_read"),
-                systemImage: "checkmark.circle")
-            }
-            .disabled(!canRemoveReadBooks)
-          }.adaptiveButtonStyle(.bordered)
         }
 
         ForEach(snapshot.libraryGroups) { lGroup in
@@ -224,6 +212,27 @@ struct OfflineBooksView: View {
       ErrorManager.shared.notify(
         message: String(localized: "notification.offline.booksRemovedRead")
       )
+      await loadSnapshot()
+    }
+  }
+
+  private func cleanupOrphanedFiles() {
+    Task {
+      isScanning = true
+      let result = await OfflineManager.shared.cleanupOrphanedFiles()
+      isScanning = false
+      if result.deletedCount > 0 {
+        ErrorManager.shared.notify(
+          message: String(
+            localized:
+              "settings.offline_books.cleanup_orphaned.result \(result.deletedCount) \(formatter.string(fromByteCount: result.bytesFreed))"
+          )
+        )
+      } else {
+        ErrorManager.shared.notify(
+          message: String(localized: "settings.offline_books.cleanup_orphaned.no_orphaned")
+        )
+      }
       await loadSnapshot()
     }
   }
