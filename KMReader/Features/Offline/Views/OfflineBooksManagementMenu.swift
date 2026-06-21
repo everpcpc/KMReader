@@ -48,7 +48,7 @@ struct OfflineBooksManagementMenu: View {
           ProgressView()
             .controlSize(.small)
         }
-        Label(String(localized: "Manage"), systemImage: "ellipsis.circle")
+        Label(String(localized: "Manage"), systemImage: "ellipsis")
       }
     }
   }

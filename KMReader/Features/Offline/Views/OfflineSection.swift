@@ -12,9 +12,9 @@ enum OfflineSection: String, CaseIterable {
   var icon: String {
     switch self {
     case .tasks:
-      return "tray.and.arrow.down"
+      return "arrow.down.circle"
     case .books:
-      return "tray.full"
+      return "books.vertical"
     }
   }
 
