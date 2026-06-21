@@ -62,12 +62,4 @@ nonisolated enum SeriesDownloadStatus: Equatable, Sendable {
     return false
   }
 
-  var isProminent: Bool {
-    switch self {
-    case .notDownloaded:
-      return true
-    default:
-      return false
-    }
-  }
 }
