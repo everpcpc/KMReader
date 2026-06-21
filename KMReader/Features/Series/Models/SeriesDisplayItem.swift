@@ -10,7 +10,7 @@ nonisolated struct SeriesDisplayItem: Equatable, Identifiable, Sendable {
   let instanceId: String
   let series: Series
   let downloadStatus: SeriesDownloadStatus
-  let offlinePolicy: SeriesOfflinePolicy
+  let offlinePolicy: OfflinePolicy
   let offlinePolicyLimit: Int
   let collectionIds: [String]
 
@@ -18,7 +18,7 @@ nonisolated struct SeriesDisplayItem: Equatable, Identifiable, Sendable {
     instanceId: String,
     series: Series,
     downloadStatus: SeriesDownloadStatus,
-    offlinePolicy: SeriesOfflinePolicy,
+    offlinePolicy: OfflinePolicy,
     offlinePolicyLimit: Int,
     collectionIds: [String] = []
   ) {

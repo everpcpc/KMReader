@@ -82,6 +82,18 @@ nonisolated enum LocalDatabase {
       }
     }
 
+    migrator.registerMigration("00003_add_read_list_offline_policy") { db in
+      try db.alter(table: KomgaReadList.databaseTableName) { table in
+        table.add(column: "offline_policy_raw", .text).notNull().defaults(to: OfflinePolicy.manual.storageValue)
+        table.add(column: "offline_policy_limit", .integer).notNull().defaults(to: 0)
+      }
+    }
+
+    migrator.registerMigration("00004_add_read_list_book_memberships") { db in
+      try createReadListBookMembershipTable(db)
+      try backfillReadListBookMemberships(db)
+    }
+
     try migrator.migrate(writer)
   }
 
@@ -277,6 +289,51 @@ nonisolated enum LocalDatabase {
       table.column("downloaded_size", .integer).notNull()
       table.column("downloaded_books", .integer).notNull()
       table.column("pending_books", .integer).notNull()
+    }
+  }
+
+  private static nonisolated func createReadListBookMembershipTable(_ db: Database) throws {
+    try db.create(table: ReadListBookMembership.databaseTableName, ifNotExists: true) { table in
+      table.column("instance_id", .text).notNull()
+      table.column("read_list_id", .text).notNull()
+      table.column("book_id", .text).notNull()
+      table.column("position", .integer).notNull()
+      table.primaryKey(["instance_id", "read_list_id", "book_id"], onConflict: .replace)
+    }
+    try db.create(
+      index: "idx_read_list_books_book",
+      on: ReadListBookMembership.databaseTableName,
+      columns: ["instance_id", "book_id"]
+    )
+    try db.create(
+      index: "idx_read_list_books_read_list",
+      on: ReadListBookMembership.databaseTableName,
+      columns: ["instance_id", "read_list_id", "position"]
+    )
+  }
+
+  private static nonisolated func backfillReadListBookMemberships(_ db: Database) throws {
+    let rows = try Row.fetchAll(
+      db,
+      sql: """
+        SELECT instance_id, read_list_id, book_ids_raw
+        FROM \(KomgaReadList.databaseTableName)
+        """
+    )
+    let decoder = JSONDecoder()
+    for row in rows {
+      let instanceId: String = row["instance_id"]
+      let readListId: String = row["read_list_id"]
+      let bookIdsRaw: Data? = row["book_ids_raw"]
+      let bookIds = bookIdsRaw.flatMap { try? decoder.decode([String].self, from: $0) } ?? []
+      for (position, bookId) in bookIds.enumerated() {
+        try ReadListBookMembership(
+          instanceId: instanceId,
+          readListId: readListId,
+          bookId: bookId,
+          position: position
+        ).insert(db)
+      }
     }
   }
 

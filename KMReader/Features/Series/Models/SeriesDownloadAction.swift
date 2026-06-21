@@ -90,4 +90,12 @@ enum SeriesDownloadAction: String, Identifiable, CaseIterable {
     }
   }
 
+  static func availableReadListActions(for status: SeriesDownloadStatus) -> [SeriesDownloadAction] {
+    switch status {
+    case .pending:
+      return [.cancel, .remove]
+    default:
+      return availableActions(for: status)
+    }
+  }
 }

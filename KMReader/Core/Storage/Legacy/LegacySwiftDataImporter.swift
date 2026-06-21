@@ -144,7 +144,7 @@ nonisolated enum LegacySwiftDataImporter {
         downloadedBooks: item.downloadedBooks,
         pendingBooks: item.pendingBooks,
         downloadedSize: item.downloadedSize,
-        offlinePolicy: SeriesOfflinePolicy(rawValue: item.offlinePolicyRaw) ?? .manual,
+        offlinePolicy: OfflinePolicy(storageValue: item.offlinePolicyRaw),
         offlinePolicyLimit: item.offlinePolicyLimit
       )
       record.metadataRaw = item.metadataRaw

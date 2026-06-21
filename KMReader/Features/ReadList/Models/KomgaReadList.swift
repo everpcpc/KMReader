@@ -22,6 +22,8 @@ nonisolated struct KomgaReadList: Codable, Equatable, Sendable {
   var downloadedSize: Int64
   var downloadedBooks: Int
   var pendingBooks: Int
+  var offlinePolicyRaw: String
+  var offlinePolicyLimit: Int
 
   init(
     id: String? = nil,
@@ -37,7 +39,9 @@ nonisolated struct KomgaReadList: Codable, Equatable, Sendable {
     bookIds: [String] = [],
     downloadedBooks: Int = 0,
     pendingBooks: Int = 0,
-    downloadedSize: Int64 = 0
+    downloadedSize: Int64 = 0,
+    offlinePolicy: OfflinePolicy = .manual,
+    offlinePolicyLimit: Int = 0
   ) {
     self.id = id ?? CompositeID.generate(instanceId: instanceId, id: readListId)
     self.readListId = readListId
@@ -56,6 +60,8 @@ nonisolated struct KomgaReadList: Codable, Equatable, Sendable {
     self.downloadedSize = downloadedSize
     self.downloadedBooks = downloadedBooks
     self.pendingBooks = pendingBooks
+    self.offlinePolicyRaw = offlinePolicy.storageValue
+    self.offlinePolicyLimit = max(0, offlinePolicyLimit)
   }
 }
 
@@ -63,6 +69,15 @@ nonisolated extension KomgaReadList {
   var bookIds: [String] {
     get { bookIdsRaw.flatMap { try? JSONDecoder().decode([String].self, from: $0) } ?? [] }
     set { bookIdsRaw = try? JSONEncoder().encode(newValue) }
+  }
+
+  var offlinePolicy: OfflinePolicy {
+    get {
+      OfflinePolicy(storageValue: offlinePolicyRaw)
+    }
+    set {
+      offlinePolicyRaw = newValue.storageValue
+    }
   }
 
   /// Computed property for download status.

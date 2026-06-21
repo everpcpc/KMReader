@@ -318,6 +318,7 @@ nonisolated enum SyncService {
       hasMore = !result.last
       page += 1
     }
+    await database.syncReadListDownloadStatus(readListId: readListId, instanceId: instanceId)
     logger.info("📖 Synced all books for readlist \(readListId)")
   }
 
@@ -513,6 +514,10 @@ nonisolated enum SyncService {
       let readList = try await ReadListService.getReadList(id: id)
       let instanceId = AppConfig.current.instanceId
       await database.upsertReadList(dto: readList, instanceId: instanceId)
+      let item = try? await database.fetchReadListDisplayItem(readListId: id, instanceId: instanceId)
+      if item?.offlinePolicy != .manual {
+        try? await syncAllReadListBooks(readListId: id)
+      }
       return readList
     } catch APIError.notFound {
       let instanceId = AppConfig.current.instanceId

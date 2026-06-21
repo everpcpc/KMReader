@@ -54,6 +54,8 @@ struct ReadListDetailView: View {
               ReadListDownloadActionsSection(
                 readListId: item.readListId,
                 status: item.downloadStatus,
+                policy: item.offlinePolicy,
+                offlinePolicyLimit: item.offlinePolicyLimit,
                 onMutationCompleted: {
                   Task {
                     await loadReadListDetails()

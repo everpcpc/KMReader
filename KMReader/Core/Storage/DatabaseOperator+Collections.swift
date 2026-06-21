@@ -257,9 +257,11 @@ extension DatabaseOperator {
         let compositeId = CompositeID.generate(instanceId: instanceId, id: dto.id)
         if var existing = try KomgaReadList.fetchOne(db, key: compositeId) {
           applyReadList(dto: dto, to: &existing)
+          try replaceReadListBookMemberships(db: db, readList: existing)
+          syncReadListDownloadStatus(db: db, readList: &existing)
           try save(existing, db: db)
         } else {
-          let readList = KomgaReadList(
+          var readList = KomgaReadList(
             id: compositeId,
             readListId: dto.id,
             instanceId: instanceId,
@@ -271,6 +273,8 @@ extension DatabaseOperator {
             filtered: dto.filtered,
             bookIds: dto.bookIds
           )
+          try replaceReadListBookMemberships(db: db, readList: readList)
+          syncReadListDownloadStatus(db: db, readList: &readList)
           try save(readList, db: db)
         }
       }
@@ -281,6 +285,7 @@ extension DatabaseOperator {
 
   func deleteReadList(id: String, instanceId: String) {
     _ = try? write { db in
+      try deleteReadListBookMemberships(db: db, readListId: id, instanceId: instanceId)
       try KomgaReadList.deleteOne(db, key: CompositeID.generate(instanceId: instanceId, id: id))
     }
   }
@@ -316,6 +321,8 @@ extension DatabaseOperator {
               bookIds: readList.bookIds
             )
           applyReadList(dto: readList, to: &record)
+          try replaceReadListBookMemberships(db: db, readList: record)
+          syncReadListDownloadStatus(db: db, readList: &record)
           try save(record, db: db)
         }
       }
@@ -329,6 +336,7 @@ extension DatabaseOperator {
       let existingReadLists = try fetchReadLists(db: db, instanceId: instanceId)
       var deletedCount = 0
       for readList in existingReadLists where !readListIds.contains(readList.readListId) {
+        try deleteReadListBookMemberships(db: db, readListId: readList.readListId, instanceId: instanceId)
         try KomgaReadList.deleteOne(db, key: readList.id)
         deletedCount += 1
       }
@@ -385,6 +393,95 @@ extension DatabaseOperator {
     if existing.bookIds != dto.bookIds { existing.bookIds = dto.bookIds }
   }
 
+  func replaceReadListBookMemberships(db: Database, readList: KomgaReadList) throws {
+    try deleteReadListBookMemberships(
+      db: db,
+      readListId: readList.readListId,
+      instanceId: readList.instanceId
+    )
+    for (position, bookId) in readList.bookIds.enumerated() {
+      try ReadListBookMembership(
+        instanceId: readList.instanceId,
+        readListId: readList.readListId,
+        bookId: bookId,
+        position: position
+      ).insert(db)
+    }
+  }
+
+  func deleteReadListBookMemberships(db: Database, readListId: String, instanceId: String) throws {
+    try db.execute(
+      sql: """
+        DELETE FROM \(ReadListBookMembership.databaseTableName)
+        WHERE instance_id = ?
+        AND read_list_id = ?
+        """,
+      arguments: [instanceId, readListId]
+    )
+  }
+
+  func fetchReadListBookMemberships(
+    db: Database,
+    instanceId: String,
+    readListIds: [String]? = nil,
+    bookIds: [String]? = nil
+  ) throws -> [ReadListBookMembership] {
+    if let readListIds, readListIds.isEmpty { return [] }
+    if let bookIds, bookIds.isEmpty { return [] }
+
+    var sql = """
+      SELECT *
+      FROM \(ReadListBookMembership.databaseTableName)
+      WHERE instance_id = ?
+      """
+    var arguments: StatementArguments = [instanceId]
+    if let readListIds {
+      Self.appendSQLInFilter(column: "read_list_id", values: readListIds, sql: &sql, arguments: &arguments)
+    }
+    if let bookIds {
+      Self.appendSQLInFilter(column: "book_id", values: bookIds, sql: &sql, arguments: &arguments)
+    }
+    sql += "\nORDER BY read_list_id ASC, position ASC"
+    return try ReadListBookMembership.fetchAll(db, sql: sql, arguments: arguments)
+  }
+
+  func fetchReadListIdsContainingBooks(db: Database, instanceId: String, bookIds: [String]) throws -> [String] {
+    guard !bookIds.isEmpty else { return [] }
+    var sql = """
+      SELECT DISTINCT read_list_id
+      FROM \(ReadListBookMembership.databaseTableName)
+      WHERE instance_id = ?
+      """
+    var arguments: StatementArguments = [instanceId]
+    Self.appendSQLInFilter(column: "book_id", values: bookIds, sql: &sql, arguments: &arguments)
+    return try String.fetchAll(db, sql: sql, arguments: arguments)
+  }
+
+  func fetchReadListsAndMembershipsContainingBooks(
+    db: Database,
+    instanceId: String,
+    bookIds: [String]
+  ) throws -> (readLists: [KomgaReadList], memberships: [ReadListBookMembership]) {
+    let readListIds = try fetchReadListIdsContainingBooks(db: db, instanceId: instanceId, bookIds: bookIds)
+    guard !readListIds.isEmpty else { return ([], []) }
+    return (
+      try fetchReadListsByIds(db: db, ids: readListIds, instanceId: instanceId),
+      try fetchReadListBookMemberships(db: db, instanceId: instanceId, readListIds: readListIds)
+    )
+  }
+
+  func fetchReadListsByIds(db: Database, ids: [String], instanceId: String) throws -> [KomgaReadList] {
+    guard !ids.isEmpty else { return [] }
+    var sql = """
+      SELECT *
+      FROM \(KomgaReadList.databaseTableName)
+      WHERE instance_id = ?
+      """
+    var arguments: StatementArguments = [instanceId]
+    Self.appendSQLInFilter(column: "read_list_id", values: ids, sql: &sql, arguments: &arguments)
+    return try KomgaReadList.fetchAll(db, sql: sql, arguments: arguments)
+  }
+
   nonisolated static func makeCollectionDisplayItem(_ collection: KomgaCollection) -> CollectionDisplayItem {
     CollectionDisplayItem(
       collectionId: collection.collectionId,
@@ -411,7 +508,9 @@ extension DatabaseOperator {
       filtered: readList.filtered,
       isPinned: readList.isPinned,
       bookIds: readList.bookIds,
-      downloadStatus: readList.downloadStatus
+      downloadStatus: readList.downloadStatus,
+      offlinePolicy: readList.offlinePolicy,
+      offlinePolicyLimit: readList.offlinePolicyLimit
     )
   }
 

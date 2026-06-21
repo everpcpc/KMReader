@@ -179,7 +179,7 @@ enum KMReaderSchemaV6: VersionedSchema {
       downloadedBooks: Int = 0,
       pendingBooks: Int = 0,
       downloadedSize: Int64 = 0,
-      offlinePolicy: SeriesOfflinePolicy = .manual,
+      offlinePolicy: OfflinePolicy = .manual,
       offlinePolicyLimit: Int = 0
     ) {
       self.id = id ?? CompositeID.generate(instanceId: instanceId, id: seriesId)
@@ -210,7 +210,7 @@ enum KMReaderSchemaV6: VersionedSchema {
       self.downloadedBooks = downloadedBooks
       self.pendingBooks = pendingBooks
       self.downloadedSize = downloadedSize
-      self.offlinePolicyRaw = offlinePolicy.rawValue
+      self.offlinePolicyRaw = offlinePolicy.storageValue
       self.offlinePolicyLimit = offlinePolicyLimit
       self.collectionIdsRaw = try? JSONEncoder().encode([] as [String])
     }

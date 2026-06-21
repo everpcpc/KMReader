@@ -138,8 +138,8 @@ nonisolated enum ReadListService {
       throw AppErrorType.operationNotAllowed(message: "Cannot remove all books from read list")
     }
 
-    // Update readlist with new book list
     try await updateReadListBookIds(readListId: readListId, bookIds: updatedBookIds)
+    _ = try await SyncService.syncReadList(id: readListId)
   }
 
   static func addBooksToReadList(readListId: String, bookIds: [String]) async throws {
@@ -156,8 +156,8 @@ nonisolated enum ReadListService {
       }
     }
 
-    // Update readlist with new book list
     try await updateReadListBookIds(readListId: readListId, bookIds: updatedBookIds)
+    _ = try await SyncService.syncReadList(id: readListId)
   }
 
   private static func updateReadListBookIds(readListId: String, bookIds: [String]) async throws {

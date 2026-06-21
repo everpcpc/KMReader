@@ -56,6 +56,8 @@ struct ReadListCompactCardView: View {
         readListId: item.readListId,
         menuTitle: item.name,
         downloadStatus: item.downloadStatus,
+        offlinePolicy: item.offlinePolicy,
+        offlinePolicyLimit: item.offlinePolicyLimit,
         isPinned: item.isPinned,
         onDeleteRequested: {
           showDeleteConfirmation = true
@@ -65,7 +67,8 @@ struct ReadListCompactCardView: View {
         },
         onPinToggleRequested: {
           togglePinned()
-        }
+        },
+        onMutationCompleted: onChanged
       )
     }
     .alert("Delete Read List", isPresented: $showDeleteConfirmation) {

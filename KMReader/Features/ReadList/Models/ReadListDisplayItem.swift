@@ -18,6 +18,8 @@ nonisolated struct ReadListDisplayItem: Equatable, Identifiable, Sendable {
   let isPinned: Bool
   let bookIds: [String]
   let downloadStatus: SeriesDownloadStatus
+  let offlinePolicy: OfflinePolicy
+  let offlinePolicyLimit: Int
 
   init(
     readListId: String,
@@ -30,7 +32,9 @@ nonisolated struct ReadListDisplayItem: Equatable, Identifiable, Sendable {
     filtered: Bool,
     isPinned: Bool,
     bookIds: [String],
-    downloadStatus: SeriesDownloadStatus
+    downloadStatus: SeriesDownloadStatus,
+    offlinePolicy: OfflinePolicy,
+    offlinePolicyLimit: Int
   ) {
     id = readListId
     self.readListId = readListId
@@ -44,6 +48,8 @@ nonisolated struct ReadListDisplayItem: Equatable, Identifiable, Sendable {
     self.isPinned = isPinned
     self.bookIds = bookIds
     self.downloadStatus = downloadStatus
+    self.offlinePolicy = offlinePolicy
+    self.offlinePolicyLimit = offlinePolicyLimit
   }
 
   var bookCount: Int {

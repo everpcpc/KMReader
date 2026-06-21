@@ -189,8 +189,6 @@ struct BooksListViewForReadList: View {
         readListId: readListId,
         bookIds: Array(selectedBookIds)
       )
-      // Sync the readlist to update its local book IDs
-      _ = try? await SyncService.syncReadList(id: readListId)
       await loadReadList()
 
       ErrorManager.shared.notify(message: String(localized: "notification.readList.booksRemoved"))

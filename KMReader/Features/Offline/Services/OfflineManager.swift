@@ -439,31 +439,29 @@ actor OfflineManager {
     #endif
   }
 
-  /// Delete a book manually, setting series policy to manual first to prevent automatic re-download.
-  func deleteBookManually(seriesId: String, instanceId: String, bookId: String) async {
-    try? await DatabaseOperator.database().updateSeriesOfflinePolicy(
-      seriesId: seriesId,
-      instanceId: instanceId,
-      policy: .manual,
-      syncSeriesStatus: false
+  /// Delete a book manually, setting active protection sources to manual first to prevent automatic re-download.
+  func deleteBookManually(instanceId: String, bookId: String) async {
+    try? await DatabaseOperator.database().updateOfflineProtectionSourcesToManual(
+      bookIds: [bookId],
+      instanceId: instanceId
     )
     await deleteBook(instanceId: instanceId, bookId: bookId)
   }
 
-  /// Delete multiple books manually, setting series policy to manual first to prevent automatic re-download.
-  func deleteBooksManually(seriesId: String, instanceId: String, bookIds: [String]) async {
-    try? await DatabaseOperator.database().updateSeriesOfflinePolicy(
-      seriesId: seriesId,
-      instanceId: instanceId,
-      policy: .manual,
-      syncSeriesStatus: false
+  /// Delete multiple books manually, setting active protection sources to manual first to prevent automatic re-download.
+  func deleteBooksManually(seriesIds: Set<String>, instanceId: String, bookIds: [String]) async {
+    try? await DatabaseOperator.database().updateOfflineProtectionSourcesToManual(
+      bookIds: bookIds,
+      instanceId: instanceId
     )
     for bookId in bookIds {
       await deleteBook(
         instanceId: instanceId, bookId: bookId, commit: false, syncSeriesStatus: false)
     }
-    try? await DatabaseOperator.database().syncSeriesDownloadStatus(
-      seriesId: seriesId, instanceId: instanceId)
+    for seriesId in seriesIds {
+      try? await DatabaseOperator.database().syncSeriesDownloadStatus(
+        seriesId: seriesId, instanceId: instanceId)
+    }
     // Also sync readlists containing these books
     try? await DatabaseOperator.database().syncReadListsContainingBooks(
       bookIds: bookIds, instanceId: instanceId)
@@ -477,16 +475,14 @@ actor OfflineManager {
     let books =
       (try? await DatabaseOperator.database().fetchDownloadedBooks(instanceId: instanceId)) ?? []
 
-    // Group by series to update policies
+    let bookIds = books.map(\.id)
+
+    // Reset active protection sources before deleting so projection sync does not requeue removed books.
     let seriesIds = Set(books.map { $0.seriesId })
-    for seriesId in seriesIds {
-      try? await DatabaseOperator.database().updateSeriesOfflinePolicy(
-        seriesId: seriesId,
-        instanceId: instanceId,
-        policy: .manual,
-        syncSeriesStatus: false
-      )
-    }
+    try? await DatabaseOperator.database().updateOfflineProtectionSourcesToManual(
+      bookIds: bookIds,
+      instanceId: instanceId
+    )
 
     for book in books {
       await deleteBook(
@@ -499,9 +495,9 @@ actor OfflineManager {
     }
     // Also sync readlists containing these books
     try? await DatabaseOperator.database().syncReadListsContainingBooks(
-      bookIds: books.map { $0.id }, instanceId: instanceId)
+      bookIds: bookIds, instanceId: instanceId)
     await postDownloadProjectionsDidChange(
-      bookIds: books.map { $0.id },
+      bookIds: bookIds,
       instanceId: instanceId
     )
     await refreshQueueStatus(instanceId: instanceId)
@@ -521,16 +517,8 @@ actor OfflineManager {
 
     if readBooks.isEmpty { return }
 
-    // Group by series to update policies
     let seriesIds = Set(readBooks.map { $0.seriesId })
-    for seriesId in seriesIds {
-      try? await DatabaseOperator.database().updateSeriesOfflinePolicy(
-        seriesId: seriesId,
-        instanceId: instanceId,
-        policy: .manual,
-        syncSeriesStatus: false
-      )
-    }
+    let bookIds = readBooks.map(\.id)
 
     for book in readBooks {
       await deleteBook(
@@ -543,9 +531,9 @@ actor OfflineManager {
     }
     // Also sync readlists containing these books
     try? await DatabaseOperator.database().syncReadListsContainingBooks(
-      bookIds: readBooks.map { $0.id }, instanceId: instanceId)
+      bookIds: bookIds, instanceId: instanceId)
     await postDownloadProjectionsDidChange(
-      bookIds: readBooks.map { $0.id },
+      bookIds: bookIds,
       instanceId: instanceId
     )
     await refreshQueueStatus(instanceId: instanceId)
@@ -617,6 +605,34 @@ actor OfflineManager {
       await postDownloadProjectionDidChange(bookId: bookId, instanceId: resolvedInstanceId)
       await refreshQueueStatus(instanceId: resolvedInstanceId)
     }
+  }
+
+  func cancelReadListDownload(readListId: String, instanceId: String) async {
+    guard let database = try? await DatabaseOperator.database() else {
+      return
+    }
+
+    let bookIds = await database.prepareReadListDownloadCancellation(
+      readListId: readListId,
+      instanceId: instanceId
+    )
+    guard !bookIds.isEmpty else {
+      await database.syncReadListDownloadStatus(readListId: readListId, instanceId: instanceId)
+      await refreshQueueStatus(instanceId: instanceId)
+      return
+    }
+
+    for bookId in bookIds {
+      await cancelDownload(
+        bookId: bookId,
+        instanceId: instanceId,
+        commit: false,
+        syncSeriesStatus: true
+      )
+    }
+    await database.syncReadListDownloadStatus(readListId: readListId, instanceId: instanceId)
+    await postDownloadProjectionsDidChange(bookIds: bookIds, instanceId: instanceId)
+    await refreshQueueStatus(instanceId: instanceId)
   }
 
   /// Cancel all active downloads (used during cleanup).
