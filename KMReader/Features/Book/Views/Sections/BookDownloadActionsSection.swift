@@ -38,7 +38,7 @@ struct BookDownloadActionsSection: View {
         }
       }
       .font(.caption)
-      .adaptiveButtonStyle(status.isDownloaded || status.isPending ? .bordered : .borderedProminent)
+      .adaptiveButtonStyle(.bordered)
       .tint(status.menuColor)
 
       Spacer()

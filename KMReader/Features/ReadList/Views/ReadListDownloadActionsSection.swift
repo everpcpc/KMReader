@@ -41,7 +41,7 @@ struct ReadListDownloadActionsSection: View {
           }
         }
         .font(.caption)
-        .adaptiveButtonStyle(status.isProminent ? .borderedProminent : .bordered)
+        .adaptiveButtonStyle(.bordered)
 
         Menu {
           Button {
@@ -75,7 +75,8 @@ struct ReadListDownloadActionsSection: View {
           }
         }
         .font(.caption)
-        .adaptiveButtonStyle(.bordered)
+        .adaptiveButtonStyle(.borderedProminent)
+        .tint(policy.buttonTint)
 
         Spacer()
 
