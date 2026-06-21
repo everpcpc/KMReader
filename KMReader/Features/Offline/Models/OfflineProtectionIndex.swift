@@ -34,12 +34,7 @@ nonisolated struct OfflineProtectionIndex: Sendable {
       )
       let sourceBooks = (booksBySeriesId[series.seriesId] ?? [])
         .filter { !$0.isUnavailable }
-        .sorted {
-          if $0.metaNumberSort == $1.metaNumberSort {
-            return $0.bookId < $1.bookId
-          }
-          return $0.metaNumberSort < $1.metaNumberSort
-        }
+        .sorted(by: KomgaBook.seriesOfflinePolicySort)
       Self.append(
         source: source,
         for: Self.protectedBookIds(

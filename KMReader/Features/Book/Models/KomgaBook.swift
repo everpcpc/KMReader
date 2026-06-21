@@ -113,6 +113,13 @@ nonisolated struct KomgaBook: Codable, Equatable, Sendable {
 }
 
 nonisolated extension KomgaBook {
+  static func seriesOfflinePolicySort(_ lhs: KomgaBook, _ rhs: KomgaBook) -> Bool {
+    if lhs.metaNumberSort == rhs.metaNumberSort {
+      return lhs.bookId < rhs.bookId
+    }
+    return lhs.metaNumberSort < rhs.metaNumberSort
+  }
+
   var readListIds: [String] {
     get { readListIdsRaw.flatMap { try? JSONDecoder().decode([String].self, from: $0) } ?? [] }
     set { readListIdsRaw = try? JSONEncoder().encode(newValue) }

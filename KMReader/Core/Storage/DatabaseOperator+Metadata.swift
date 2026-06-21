@@ -918,12 +918,24 @@ extension DatabaseOperator {
     }) ?? 0
   }
 
-  func syncReadListsContainingBooksInTransaction(db: Database, bookIds: [String], instanceId: String) {
+  func syncReadListsContainingBooksInTransaction(
+    db: Database,
+    bookIds: [String],
+    instanceId: String,
+    excludingReadListId: String? = nil
+  ) {
     guard !bookIds.isEmpty else { return }
     guard
-      let readListIds = try? fetchReadListIdsContainingBooks(db: db, instanceId: instanceId, bookIds: bookIds),
-      var readLists = try? fetchReadListsByIds(db: db, ids: readListIds, instanceId: instanceId)
+      let containingReadListIds = try? fetchReadListIdsContainingBooks(db: db, instanceId: instanceId, bookIds: bookIds)
     else { return }
+    let readListIds = containingReadListIds.filter { readListId in
+      if let excludingReadListId {
+        return readListId != excludingReadListId
+      }
+      return true
+    }
+    guard !readListIds.isEmpty else { return }
+    guard var readLists = try? fetchReadListsByIds(db: db, ids: readListIds, instanceId: instanceId) else { return }
     for index in readLists.indices {
       syncReadListDownloadStatus(db: db, readList: &readLists[index])
       try? save(readLists[index], db: db)

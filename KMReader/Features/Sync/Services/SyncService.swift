@@ -81,14 +81,17 @@ nonisolated enum SyncService {
       var page = 0
       var hasMore = true
       var remoteReadListIds = Set<String>()
+      var automaticPolicyReadListIds = Set<String>()
       while hasMore {
         let result: Page<ReadList> = try await ReadListService.getReadLists(
           page: page, size: syncPageSize)
         remoteReadListIds.formUnion(result.content.map(\.id))
-        await database.upsertReadLists(result.content, instanceId: instanceId)
+        let pagePolicyReadListIds = await database.upsertReadLists(result.content, instanceId: instanceId)
+        automaticPolicyReadListIds.formUnion(pagePolicyReadListIds)
         hasMore = !result.last
         page += 1
       }
+      await syncAutomaticReadListBooks(Array(automaticPolicyReadListIds), instanceId: instanceId)
       let deletedCount = await database.deleteReadListsNotIn(
         remoteReadListIds,
         instanceId: instanceId
@@ -300,9 +303,8 @@ nonisolated enum SyncService {
   }
 
   /// Sync all books for a readlist (all pages) - used before offline policy operations
-  static func syncAllReadListBooks(readListId: String) async throws {
+  static func syncAllReadListBooks(readListId: String, instanceId: String = AppConfig.current.instanceId) async throws {
     let database = try await DatabaseOperator.database()
-    let instanceId = AppConfig.current.instanceId
     var page = 0
     var hasMore = true
 
@@ -504,7 +506,8 @@ nonisolated enum SyncService {
       search: search
     )
     let instanceId = AppConfig.current.instanceId
-    await database.upsertReadLists(result.content, instanceId: instanceId)
+    let automaticPolicyReadListIds = await database.upsertReadLists(result.content, instanceId: instanceId)
+    await syncAutomaticReadListBooks(automaticPolicyReadListIds)
     return result
   }
 
@@ -558,6 +561,19 @@ nonisolated enum SyncService {
         bookId: bookId, readListIds: readListIds, instanceId: instanceId)
     } catch {
       logger.error("❌ Failed to sync book read lists: \(error)")
+    }
+  }
+
+  static func syncAutomaticReadListBooks(
+    _ readListIds: [String],
+    instanceId: String = AppConfig.current.instanceId
+  ) async {
+    for readListId in Set(readListIds).sorted() {
+      do {
+        try await syncAllReadListBooks(readListId: readListId, instanceId: instanceId)
+      } catch {
+        logger.error("❌ Failed to sync automatic read-list books \(readListId): \(error)")
+      }
     }
   }
 

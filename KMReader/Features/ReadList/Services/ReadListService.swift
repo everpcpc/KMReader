@@ -139,7 +139,7 @@ nonisolated enum ReadListService {
     }
 
     try await updateReadListBookIds(readListId: readListId, bookIds: updatedBookIds)
-    _ = try await SyncService.syncReadList(id: readListId)
+    _ = try? await SyncService.syncReadList(id: readListId)
   }
 
   static func addBooksToReadList(readListId: String, bookIds: [String]) async throws {
@@ -157,7 +157,7 @@ nonisolated enum ReadListService {
     }
 
     try await updateReadListBookIds(readListId: readListId, bookIds: updatedBookIds)
-    _ = try await SyncService.syncReadList(id: readListId)
+    _ = try? await SyncService.syncReadList(id: readListId)
   }
 
   private static func updateReadListBookIds(readListId: String, bookIds: [String]) async throws {

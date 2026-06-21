@@ -393,6 +393,7 @@ actor SyncWorker {
       var hasMore = true
       var totalPages = 1
       var remoteReadListIds = Set<String>()
+      var automaticPolicyReadListIds = Set<String>()
 
       while hasMore {
         let result: Page<ReadList> = try await ReadListService.getReadLists(
@@ -400,7 +401,8 @@ actor SyncWorker {
           size: syncPageSize
         )
         remoteReadListIds.formUnion(result.content.map(\.id))
-        await database.upsertReadLists(result.content, instanceId: instanceId)
+        let pagePolicyReadListIds = await database.upsertReadLists(result.content, instanceId: instanceId)
+        automaticPolicyReadListIds.formUnion(pagePolicyReadListIds)
 
         totalPages = max(result.totalPages, 1)
         hasMore = !result.last
@@ -413,6 +415,7 @@ actor SyncWorker {
         )
       }
 
+      await SyncService.syncAutomaticReadListBooks(Array(automaticPolicyReadListIds), instanceId: instanceId)
       let deletedCount = await database.deleteReadListsNotIn(
         remoteReadListIds,
         instanceId: instanceId

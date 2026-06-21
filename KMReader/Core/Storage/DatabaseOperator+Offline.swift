@@ -337,12 +337,7 @@ extension DatabaseOperator {
   func syncReadListsContainingBooks(bookIds: [String], instanceId: String) {
     guard !bookIds.isEmpty else { return }
     try? write { db in
-      let readListIds = try fetchReadListIdsContainingBooks(db: db, instanceId: instanceId, bookIds: bookIds)
-      var readLists = try fetchReadListsByIds(db: db, ids: readListIds, instanceId: instanceId)
-      for index in readLists.indices {
-        syncReadListDownloadStatus(db: db, readList: &readLists[index])
-        try save(readLists[index], db: db)
-      }
+      syncReadListsContainingBooksInTransaction(db: db, bookIds: bookIds, instanceId: instanceId)
     }
   }
 
@@ -506,11 +501,12 @@ extension DatabaseOperator {
 
     var books = books
     var needsSyncQueue = false
+    var queuedBookIds: [String] = []
     let policyLimit = max(0, series.offlinePolicyLimit)
     let sortedBooks =
       books
       .filter { !$0.isUnavailable }
-      .sorted { $0.metaNumberSort < $1.metaNumberSort }
+      .sorted(by: KomgaBook.seriesOfflinePolicySort)
     var allowedUnreadIds = Set<String>()
     if policyLimit > 0, policy == .unreadOnly {
       let unreadBooks = sortedBooks.filter { $0.progressCompleted != true }
@@ -547,9 +543,11 @@ extension DatabaseOperator {
           books[index].downloadAt = now.addingTimeInterval(Double(sortedIndex) * 0.001)
           try? save(books[index], db: db)
           needsSyncQueue = true
+          queuedBookIds.append(books[index].bookId)
         }
       }
     }
+    syncReadListsContainingBooksInTransaction(db: db, bookIds: queuedBookIds, instanceId: series.instanceId)
 
     if needsSyncQueue {
       OfflineManager.shared.triggerSync(instanceId: series.instanceId)
@@ -564,6 +562,7 @@ extension DatabaseOperator {
     var books = books
     var needsSyncQueue = false
     var seriesIdsToSync = Set<String>()
+    var queuedBookIds: [String] = []
     let policyLimit = max(0, readList.offlinePolicyLimit)
     let sortedBooks = books.filter { !$0.isUnavailable }
     var allowedUnreadIds = Set<String>()
@@ -603,6 +602,7 @@ extension DatabaseOperator {
           try? save(books[index], db: db)
           needsSyncQueue = true
           seriesIdsToSync.insert(books[index].seriesId)
+          queuedBookIds.append(books[index].bookId)
         }
       }
     }
@@ -610,6 +610,12 @@ extension DatabaseOperator {
     for seriesId in seriesIdsToSync {
       syncSeriesDownloadStatus(db: db, seriesId: seriesId, instanceId: readList.instanceId)
     }
+    syncReadListsContainingBooksInTransaction(
+      db: db,
+      bookIds: queuedBookIds,
+      instanceId: readList.instanceId,
+      excludingReadListId: readList.readListId
+    )
 
     if needsSyncQueue {
       OfflineManager.shared.triggerSync(instanceId: readList.instanceId)
@@ -827,8 +833,9 @@ extension DatabaseOperator {
           return
         }
         series.offlinePolicy = .manual
+        var affectedBookIds: [String] = []
         var books = try fetchBooks(db: db, instanceId: instanceId, seriesId: seriesId)
-          .sorted { $0.metaNumberSort < $1.metaNumberSort }
+          .sorted(by: KomgaBook.seriesOfflinePolicySort)
         if case .unread(let limit) = mode {
           let unreadBooks = books.filter { $0.progressCompleted != true }
           let limitValue = max(0, limit)
@@ -846,9 +853,11 @@ extension DatabaseOperator {
             books[index].downloadAt = now.addingTimeInterval(Double(index) * 0.001)
             try save(books[index], db: db)
             shouldTriggerSync = true
+            affectedBookIds.append(books[index].bookId)
           }
         }
         syncSeriesDownloadStatus(db: db, series: &series)
+        syncReadListsContainingBooksInTransaction(db: db, bookIds: affectedBookIds, instanceId: instanceId)
         try save(series, db: db)
       }
       if shouldTriggerSync {
@@ -867,6 +876,7 @@ extension DatabaseOperator {
           return
         }
         series.offlinePolicy = .manual
+        var affectedBookIds: [String] = []
         var books = try fetchBooks(db: db, instanceId: instanceId, seriesId: seriesId)
         let readListSources = try fetchReadListsAndMembershipsContainingBooks(
           db: db,
@@ -899,8 +909,10 @@ extension DatabaseOperator {
           books[index].webPubManifestRaw = nil
           try save(books[index], db: db)
           bookIdsToRemove.append(books[index].bookId)
+          affectedBookIds.append(books[index].bookId)
         }
         syncSeriesDownloadStatus(db: db, series: &series)
+        syncReadListsContainingBooksInTransaction(db: db, bookIds: affectedBookIds, instanceId: instanceId)
         try save(series, db: db)
       }
       Task {
@@ -923,6 +935,7 @@ extension DatabaseOperator {
           return
         }
         var seriesIdsToSync = Set<String>()
+        var affectedBookIds: [String] = []
         readList.offlinePolicy = .manual
         var books = try fetchBooksByIds(db: db, ids: readList.bookIds, instanceId: instanceId)
         if case .unread(let limit) = mode {
@@ -942,11 +955,18 @@ extension DatabaseOperator {
             try save(books[index], db: db)
             shouldTriggerSync = true
             seriesIdsToSync.insert(books[index].seriesId)
+            affectedBookIds.append(books[index].bookId)
           }
         }
         for seriesId in seriesIdsToSync {
           syncSeriesDownloadStatus(db: db, seriesId: seriesId, instanceId: instanceId)
         }
+        syncReadListsContainingBooksInTransaction(
+          db: db,
+          bookIds: affectedBookIds,
+          instanceId: instanceId,
+          excludingReadListId: readList.readListId
+        )
         syncReadListDownloadStatus(db: db, readList: &readList)
         try save(readList, db: db)
       }
@@ -966,6 +986,7 @@ extension DatabaseOperator {
           return
         }
         var seriesIdsToSync = Set<String>()
+        var affectedBookIds: [String] = []
         readList.offlinePolicy = .manual
         var books = try fetchBooksByIds(db: db, ids: readList.bookIds, instanceId: instanceId)
         let readListSources = try fetchReadListsAndMembershipsContainingBooks(
@@ -1004,10 +1025,17 @@ extension DatabaseOperator {
           try save(books[index], db: db)
           bookIdsToRemove.append(books[index].bookId)
           seriesIdsToSync.insert(books[index].seriesId)
+          affectedBookIds.append(books[index].bookId)
         }
         for seriesId in seriesIdsToSync {
           syncSeriesDownloadStatus(db: db, seriesId: seriesId, instanceId: instanceId)
         }
+        syncReadListsContainingBooksInTransaction(
+          db: db,
+          bookIds: affectedBookIds,
+          instanceId: instanceId,
+          excludingReadListId: readList.readListId
+        )
         syncReadListDownloadStatus(db: db, readList: &readList)
         try save(readList, db: db)
       }

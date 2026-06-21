@@ -300,7 +300,9 @@ extension DatabaseOperator {
     }
   }
 
-  func upsertReadLists(_ readLists: [ReadList], instanceId: String) {
+  @discardableResult
+  func upsertReadLists(_ readLists: [ReadList], instanceId: String) -> [String] {
+    var automaticPolicyReadListIds = Set<String>()
     do {
       try write { db in
         let existingReadLists = try fetchReadLists(db: db, instanceId: instanceId)
@@ -323,12 +325,16 @@ extension DatabaseOperator {
           applyReadList(dto: readList, to: &record)
           try replaceReadListBookMemberships(db: db, readList: record)
           syncReadListDownloadStatus(db: db, readList: &record)
+          if record.offlinePolicy != .manual {
+            automaticPolicyReadListIds.insert(record.readListId)
+          }
           try save(record, db: db)
         }
       }
     } catch {
       logger.error("Failed to upsert read lists: \(error)")
     }
+    return automaticPolicyReadListIds.sorted()
   }
 
   func deleteReadListsNotIn(_ readListIds: Set<String>, instanceId: String) -> Int {
