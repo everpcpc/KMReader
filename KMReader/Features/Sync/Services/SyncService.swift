@@ -307,6 +307,7 @@ nonisolated enum SyncService {
     let database = try await DatabaseOperator.database()
     var page = 0
     var hasMore = true
+    var bookIds: [String] = []
 
     while hasMore {
       let result = try await ReadListService.getReadListBooks(
@@ -317,10 +318,11 @@ nonisolated enum SyncService {
         libraryIds: nil
       )
       await database.upsertBooks(result.content, instanceId: instanceId)
+      bookIds.append(contentsOf: result.content.map(\.id))
       hasMore = !result.last
       page += 1
     }
-    await database.syncReadListDownloadStatus(readListId: readListId, instanceId: instanceId)
+    await database.replaceReadListBookIds(readListId: readListId, instanceId: instanceId, bookIds: bookIds)
     logger.info("📖 Synced all books for readlist \(readListId)")
   }
 

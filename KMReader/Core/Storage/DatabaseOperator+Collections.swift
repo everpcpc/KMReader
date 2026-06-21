@@ -290,6 +290,18 @@ extension DatabaseOperator {
     }
   }
 
+  func replaceReadListBookIds(readListId: String, instanceId: String, bookIds: [String]) {
+    try? write { db in
+      guard var readList = try fetchReadListRecord(db: db, id: readListId, instanceId: instanceId) else {
+        return
+      }
+      readList.bookIds = bookIds
+      try replaceReadListBookMemberships(db: db, readList: readList)
+      syncReadListDownloadStatus(db: db, readList: &readList)
+      try save(readList, db: db)
+    }
+  }
+
   func setReadListPinned(readListId: String, instanceId: String, isPinned: Bool) {
     try? write { db in
       guard var readList = try fetchReadListRecord(db: db, id: readListId, instanceId: instanceId) else {
