@@ -13,10 +13,10 @@ Use Keep Reading, On Deck, Recently Added, Recently Updated, pinned collections/
 KMReader keeps a local database for responsive browsing, dashboards, logs, and downloaded-library workflows, including large libraries.
 
 - Offline and sync
-Download books for offline reading, set per-series download policies, browse downloaded items, queue dashboard sections, keep reading with iOS background downloads and Live Activities, prepare local pages on demand with offline-first reading, and sync progress when you reconnect.
+Download books for offline reading, set per-series and per-read-list download policies, browse downloaded items with count and storage summaries, queue dashboard sections, keep reading with iOS background downloads and Live Activities, prepare local pages on demand with offline-first reading, and sync progress when you reconnect.
 
 - Multi-server and admin tools
-Save multiple Komga servers and switch instantly.
+Save multiple Komga servers, protect private servers with device authentication, and switch instantly.
 Sign in with password or API key, and manage API keys in the app.
 Edit metadata, manage libraries and media, find missing posters or duplicates, monitor tasks, and browse paginated logs.
 

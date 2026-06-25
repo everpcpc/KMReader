@@ -1,16 +1,16 @@
 New
-- KMReader 5.0 rebuilds local library storage around a dedicated database, improving reliability for large libraries, browsing, dashboards, and offline data.
-- Added EPUB overlay customization for reading progress, controls, headers, and footers.
-- Added smarter offline archive handling so downloaded books stay compact and pages are prepared on demand when reading.
+- Protect saved Komga servers with device authentication, so private libraries stay hidden until you unlock them.
+- Add offline download policies for read lists, matching the existing series policy workflow.
+- Add a floating reading action bar on series pages that shows the exact book and progress target before opening the reader.
 
 Improvements
-- Reader loading states are clearer and more stable, with smoother progress updates and less visual flicker while downloads or page preparation are running.
-- The in-app logs viewer now uses paginated storage, making settings logs easier to browse on long-running installs.
-- Offline download status, read progress lists, and one-shot read summaries refresh more reliably across browsing and detail screens.
-- EPUB theme color scheme choices now persist per book.
+- Offline downloaded sections now show clearer book counts alongside storage usage.
+- Offline pages can be refreshed with pull to refresh on iOS and macOS.
+- Downloaded PDFs open faster in DIVINA mode by preparing lightweight metadata first and rendering page images as needed.
+- Dashboard sections now better match Komga web UI behavior and stay current after local reading, deletion, and offline changes.
+- Reader overlays and tap handling are smoother, with fewer abrupt transitions during loading, keyboard help, zoom, and long-press interactions.
 
 Fixes
-- Fixed several reader loading edge cases around unknown download sizes, render progress, and background color transitions.
-- Fixed stale read progress or download indicators after reading, syncing, or returning from detail pages.
-- Fixed one-shot read status and summary placement in series views.
-- Fixed assorted reader control, keyboard, zoom, and tap-zone regressions.
+- Fixed end-page selection after offline preloading, especially for Webtoon reading.
+- Fixed unavailable book and series indicators after deleting local files.
+- Fixed stale dashboard and progress projections after reader close or server events.
