@@ -19,7 +19,7 @@ import UniformTypeIdentifiers
 #endif
 
 /// Simple Sendable struct for download info.
-nonisolated enum DownloadContentKind: Sendable {
+nonisolated enum DownloadContentKind: Equatable, Sendable {
   case pages
   case archiveImages(DownloadedImageArchiveFormat)
   case epubWebPub
@@ -27,9 +27,20 @@ nonisolated enum DownloadContentKind: Sendable {
   case pdf
 }
 
-nonisolated enum DownloadedImageArchiveFormat: Sendable {
+nonisolated enum DownloadedImageArchiveFormat: Equatable, Sendable {
   case cbz
   case cbr
+
+  init?(fileExtension: String) {
+    switch fileExtension.lowercased() {
+    case "cbz":
+      self = .cbz
+    case "cbr":
+      self = .cbr
+    default:
+      return nil
+    }
+  }
 
   var fileName: String {
     switch self {
@@ -1302,7 +1313,8 @@ actor OfflineManager {
           await self.updateDownloadLiveActivityProcessing(
             bookId: info.bookId,
             instanceId: instanceId,
-            seriesTitle: info.seriesTitle
+            seriesTitle: info.seriesTitle,
+            kind: info.kind
           )
         #endif
 
@@ -1834,7 +1846,8 @@ actor OfflineManager {
     private func updateDownloadLiveActivityProcessing(
       bookId: String,
       instanceId: String,
-      seriesTitle: String?
+      seriesTitle: String?,
+      kind: DownloadContentKind
     ) async {
       liveActivityProgressSnapshots.removeValue(forKey: bookId)
       let pendingBooks =
@@ -1844,7 +1857,7 @@ actor OfflineManager {
         ?? 0
       await LiveActivityManager.shared.updateActivity(
         seriesTitle: seriesTitle,
-        bookInfo: String(localized: "Processing offline files..."),
+        bookInfo: postDownloadTitle(for: kind),
         progress: 1.0,
         pendingCount: pendingBooks.count,
         failedCount: failedCount
@@ -1946,10 +1959,13 @@ actor OfflineManager {
 
   #if os(iOS)
     /// Track background download context per book
-    private var backgroundDownloadInfo:
-      [String: (
-        instanceId: String, seriesTitle: String?, bookInfo: String, kind: DownloadContentKind
-      )] = [:]
+    private typealias BackgroundDownloadInfo = (
+      instanceId: String,
+      seriesTitle: String?,
+      bookInfo: String,
+      kind: DownloadContentKind
+    )
+    private var backgroundDownloadInfo: [String: BackgroundDownloadInfo] = [:]
     private var backgroundDownloadTotalTasks: [String: Int] = [:]
     private var backgroundDownloadCompletedTasks: [String: Int] = [:]
     private var backgroundDownloadFinalizingBooks: Set<String> = []
@@ -2003,8 +2019,10 @@ actor OfflineManager {
       )
 
       if completedTasks >= totalTasks {
-        logger.debug(
-          "✅ Final per-file background callback received for book \(bookId); waiting for all-complete callback"
+        await finalizeBackgroundDownloadIfReady(
+          bookId: bookId,
+          info: info,
+          reason: "per-file completion"
         )
       }
     }
@@ -2122,37 +2140,50 @@ actor OfflineManager {
         return
       }
 
+      await finalizeBackgroundDownloadIfReady(
+        bookId: bookId,
+        info: info,
+        reason: "all-complete callback"
+      )
+    }
+
+    private func finalizeBackgroundDownloadIfReady(
+      bookId: String,
+      info: BackgroundDownloadInfo,
+      reason: String
+    ) async {
       let totalTasks = backgroundDownloadTotalTasks[bookId] ?? 0
       let completedTasks = backgroundDownloadCompletedTasks[bookId] ?? 0
       if totalTasks > 0, completedTasks < totalTasks {
         logger.debug(
-          "⏳ Defer all-complete callback: waiting per-file callbacks for book \(bookId), \(completedTasks)/\(totalTasks)"
+          "⏳ Defer \(reason): waiting per-file callbacks for book \(bookId), \(completedTasks)/\(totalTasks)"
         )
         return
       }
 
       if backgroundDownloadFinalizingBooks.contains(bookId) {
         logger.debug(
-          "⏭️ Ignore duplicate all-complete callback while finalizing book \(bookId), completed=\(completedTasks)/\(totalTasks)"
+          "⏭️ Ignore duplicate \(reason) while finalizing book \(bookId), completed=\(completedTasks)/\(totalTasks)"
         )
         return
       }
 
       backgroundDownloadFinalizingBooks.insert(bookId)
       logger.debug(
-        "🔒 Claimed background finalize for book \(bookId), completed=\(completedTasks)/\(totalTasks)"
+        "🔒 Claimed background finalize from \(reason) for book \(bookId), completed=\(completedTasks)/\(totalTasks)"
       )
       await updateDownloadLiveActivityProcessing(
         bookId: bookId,
         instanceId: info.instanceId,
-        seriesTitle: info.seriesTitle
+        seriesTitle: info.seriesTitle,
+        kind: info.kind
       )
       await finalizeBackgroundBookDownload(bookId: bookId, info: info)
     }
 
     private func finalizeBackgroundBookDownload(
       bookId: String,
-      info: (instanceId: String, seriesTitle: String?, bookInfo: String, kind: DownloadContentKind)
+      info: BackgroundDownloadInfo
     ) async {
       defer {
         backgroundDownloadFinalizingBooks.remove(bookId)
@@ -2315,7 +2346,7 @@ actor OfflineManager {
       await updateDownloadLiveActivityProgress(
         bookId: bookId,
         progress: 1.0,
-        bookInfoOverride: String(localized: "Processing offline files...")
+        bookInfoOverride: String(localized: "Validating offline archive...")
       )
     #endif
 
@@ -2968,14 +2999,7 @@ extension Book {
 
   private var downloadedImageArchiveFormat: DownloadedImageArchiveFormat? {
     if let urlExtension = URL(string: url)?.pathExtension.lowercased() {
-      switch urlExtension {
-      case "cbz":
-        return .cbz
-      case "cbr":
-        return .cbr
-      default:
-        break
-      }
+      return DownloadedImageArchiveFormat(fileExtension: urlExtension)
     }
 
     let mediaType = media.mediaType
@@ -2993,5 +3017,18 @@ extension Book {
     default:
       return nil
     }
+  }
+}
+
+private func postDownloadTitle(for kind: DownloadContentKind) -> String {
+  switch kind {
+  case .archiveImages:
+    return String(localized: "Validating offline archive...")
+  case .epubWebPub, .epubDivina:
+    return String(localized: "Finalizing offline EPUB...")
+  case .pdf:
+    return String(localized: "Finalizing offline PDF...")
+  case .pages:
+    return String(localized: "Finalizing offline pages...")
   }
 }

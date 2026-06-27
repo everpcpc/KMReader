@@ -676,8 +676,10 @@
         return String(localized: "Fetching book info...")
       case .downloading:
         return String(localized: "Downloading book...")
-      case .processingOfflineFiles:
-        return String(localized: "Processing offline files...")
+      case .finalizingOfflineDownload:
+        return String(localized: "Finalizing offline EPUB...")
+      case .preparingOfflineResources:
+        return String(localized: "Preparing offline EPUB...")
       case .preparingReader:
         return String(localized: "Preparing reader...")
       case .paginating:
@@ -712,8 +714,10 @@
           return "\(String(format: "%.1f", received / 1024 / 1024)) MB"
         }
         return String(localized: "Downloading book content")
-      case .processingOfflineFiles:
-        return String(localized: "Verifying offline files against page metadata")
+      case .finalizingOfflineDownload:
+        return String(localized: "Saving downloaded EPUB for offline reading")
+      case .preparingOfflineResources:
+        return String(localized: "Extracting reader resources from downloaded EPUB")
       case .preparingReader:
         return String(localized: "Preparing reader view")
       case .paginating:

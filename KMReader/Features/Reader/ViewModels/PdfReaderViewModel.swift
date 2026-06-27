@@ -7,7 +7,7 @@
     case idle
     case fetchingMetadata
     case downloading
-    case processingOfflineFiles
+    case finalizingOfflineDownload
     case preparingReader
   }
 
@@ -335,7 +335,7 @@
           if let progress = DownloadProgressTracker.shared.progress[bookId] {
             updateDownloadProgress(progress)
             if progress >= 1 {
-              updateLoadingStage(.processingOfflineFiles)
+              updateLoadingStage(.finalizingOfflineDownload)
             }
           }
         }
