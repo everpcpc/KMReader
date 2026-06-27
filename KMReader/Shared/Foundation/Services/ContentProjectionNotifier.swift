@@ -271,52 +271,6 @@ nonisolated enum ContentProjectionNotifier {
     return [.content]
   }
 
-  static func bookIds(from notification: Notification) -> Set<String> {
-    ids(from: notification, idsKey: "bookIds", idKey: "bookId")
-  }
-
-  static func seriesIds(from notification: Notification) -> Set<String> {
-    ids(from: notification, idsKey: "seriesIds", idKey: "seriesId")
-  }
-
-  static func libraryIds(from notification: Notification) -> Set<String>? {
-    guard let userInfo = notification.userInfo else { return nil }
-    var ids = stringSet(from: userInfo["libraryIds"])
-    ids.formUnion(stringSet(from: userInfo["libraryId"]))
-    return ids.isEmpty ? nil : ids
-  }
-
-  static func affectsLibraries(_ selectedLibraryIds: [String], notification: Notification) -> Bool {
-    let selectedIds = Set(selectedLibraryIds.filter { !$0.isEmpty })
-    guard !selectedIds.isEmpty else { return true }
-    guard let changedIds = libraryIds(from: notification) else { return true }
-    return !selectedIds.isDisjoint(with: changedIds)
-  }
-
-  private static func ids(
-    from notification: Notification,
-    idsKey: String,
-    idKey: String
-  ) -> Set<String> {
-    guard let userInfo = notification.userInfo else { return [] }
-    var ids = stringSet(from: userInfo[idsKey])
-    ids.formUnion(stringSet(from: userInfo[idKey]))
-    return ids
-  }
-
-  private static func stringSet(from value: Any?) -> Set<String> {
-    switch value {
-    case let values as Set<String>:
-      return Set(values.filter { !$0.isEmpty })
-    case let values as [String]:
-      return Set(values.filter { !$0.isEmpty })
-    case let value as String:
-      return value.isEmpty ? [] : [value]
-    default:
-      return []
-    }
-  }
-
   private static func parsedChangeReasons(from rawValues: Set<String>) -> Set<ContentProjectionChangeReason> {
     var reasons = Set(rawValues.compactMap(ContentProjectionChangeReason.init(rawValue:)))
     if reasons.count != rawValues.count {

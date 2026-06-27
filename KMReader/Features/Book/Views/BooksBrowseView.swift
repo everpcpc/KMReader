@@ -76,9 +76,6 @@ struct BooksBrowseView: View {
           await loadBooks(refresh: true)
         }
       }
-      .onReceive(NotificationCenter.default.publisher(for: .bookProjectionDidChange)) { notification in
-        handleBookProjection(notification)
-      }
     }
   }
 
@@ -100,23 +97,6 @@ struct BooksBrowseView: View {
       libraryIds: libraryIds,
       refresh: refresh
     )
-  }
-
-  private func handleBookProjection(_ notification: Notification) {
-    guard ContentProjectionNotifier.affectsLibraries(libraryIds, notification: notification) else { return }
-
-    let reasons = ContentProjectionNotifier.changeReasons(from: notification)
-    guard reasons.contains(.readingProgress) else { return }
-
-    let bookIds = ContentProjectionNotifier.bookIds(from: notification)
-    guard !bookIds.isEmpty else { return }
-
-    Task {
-      await viewModel.removeBooksNotMatchingReadStatusFilter(
-        bookIds: bookIds,
-        browseOpts: effectiveBrowseOpts
-      )
-    }
   }
 
 }

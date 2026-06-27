@@ -70,44 +70,6 @@ class SeriesViewModel {
     }
   }
 
-  func removeSeriesNotMatchingReadStatusFilter(
-    seriesIds: Set<String>,
-    browseOpts: SeriesBrowseOptions
-  ) async {
-    guard hasReadStatusFilter(browseOpts) else { return }
-
-    let visibleIds = Set(pagination.items.map(\.id))
-    let targetIds = visibleIds.intersection(seriesIds)
-    guard !targetIds.isEmpty else { return }
-    guard let database = try? await DatabaseOperator.database() else { return }
-
-    var removedIds = Set<String>()
-    for seriesId in targetIds {
-      guard
-        let item = try? await database.fetchSeriesDisplayItem(
-          seriesId: seriesId,
-          instanceId: AppConfig.current.instanceId
-        )
-      else {
-        removedIds.insert(seriesId)
-        continue
-      }
-
-      if !matchesReadStatusFilter(
-        readStatus(for: item),
-        include: browseOpts.includeReadStatuses,
-        exclude: browseOpts.excludeReadStatuses
-      ) {
-        removedIds.insert(seriesId)
-      }
-    }
-
-    guard !removedIds.isEmpty else { return }
-    withAnimation {
-      _ = pagination.removeAll { removedIds.contains($0.id) }
-    }
-  }
-
   private func normalizedRemoteBrowseOptions(_ browseOpts: SeriesBrowseOptions)
     -> SeriesBrowseOptions
   {
@@ -118,18 +80,6 @@ class SeriesViewModel {
     var fallback = browseOpts
     fallback.sortField = .dateAdded
     return fallback
-  }
-
-  private func hasReadStatusFilter(_ browseOpts: SeriesBrowseOptions) -> Bool {
-    !browseOpts.includeReadStatuses.isEmpty || !browseOpts.excludeReadStatuses.isEmpty
-  }
-
-  private func readStatus(for item: SeriesDisplayItem) -> ReadStatus {
-    ReadStatus.fromSeriesCounts(
-      booksCount: item.booksCount,
-      booksReadCount: item.booksReadCount,
-      booksInProgressCount: item.booksInProgressCount
-    )
   }
 
   func loadCollectionSeries(
