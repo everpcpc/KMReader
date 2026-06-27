@@ -14,10 +14,6 @@ import SwiftUI
 
     func body(content: Content) -> some View {
       content
-        .onHover { hovering in
-          guard areButtonsVisible != hovering else { return }
-          areButtonsVisible = hovering
-        }
         .overlay {
           HorizontalScrollButtons(
             scrollProxy: scrollProxy,
@@ -25,6 +21,10 @@ import SwiftUI
             isVisible: areButtonsVisible
           )
           .animation(.easeOut(duration: 0.15), value: areButtonsVisible)
+        }
+        .onHover { hovering in
+          guard areButtonsVisible != hovering else { return }
+          areButtonsVisible = hovering
         }
     }
   }
