@@ -20,9 +20,6 @@ struct DashboardPinnedSectionView: View {
   @State private var isLoading = false
   @State private var pinnedCollections: [CollectionDisplayItem] = []
   @State private var pinnedReadLists: [ReadListDisplayItem] = []
-  @State private var isHoveringScrollArea = false
-  @State private var hoverShowDelayTask: Task<Void, Never>?
-  @State private var hoverHideDelayTask: Task<Void, Never>?
 
   private var isSupportedSection: Bool {
     switch section.contentKind {
@@ -164,44 +161,16 @@ struct DashboardPinnedSectionView: View {
             .contentMargins(.horizontal, spacing, for: .scrollContent)
             .scrollClipDisabled()
             #if os(macOS)
-              .overlay {
-                HorizontalScrollButtons(
-                  scrollProxy: proxy,
-                  itemIds: itemIds,
-                  isVisible: isHoveringScrollArea
-                )
-                .animation(.default, value: isHoveringScrollArea)
-              }
+              .macHorizontalScrollButtons(
+                scrollProxy: proxy,
+                itemIds: itemIds
+              )
             #endif
           }
         }
       }
       .opacity(hasItems ? 1 : 0)
       .frame(height: hasItems ? nil : 0)
-      #if os(macOS)
-        .onContinuousHover { phase in
-          switch phase {
-          case .active:
-            hoverHideDelayTask?.cancel()
-            hoverHideDelayTask = nil
-            hoverShowDelayTask?.cancel()
-            hoverShowDelayTask = Task { @MainActor in
-              try? await Task.sleep(nanoseconds: 100_000_000)
-              guard !Task.isCancelled else { return }
-              isHoveringScrollArea = true
-            }
-          case .ended:
-            hoverShowDelayTask?.cancel()
-            hoverShowDelayTask = nil
-            hoverHideDelayTask?.cancel()
-            hoverHideDelayTask = Task { @MainActor in
-              try? await Task.sleep(nanoseconds: 100_000_000)
-              guard !Task.isCancelled else { return }
-              isHoveringScrollArea = false
-            }
-          }
-        }
-      #endif
       .onReceive(NotificationCenter.default.publisher(for: .dashboardSectionsShouldReload)) {
         notification in
         guard

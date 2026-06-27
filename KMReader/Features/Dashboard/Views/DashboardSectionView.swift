@@ -19,9 +19,6 @@ struct DashboardSectionView: View {
   @State private var pagination = PaginationState<IdentifiedString>(pageSize: 20)
   @State private var isLoading = false
   @State private var didSeedFromCache = false
-  @State private var isHoveringScrollArea = false
-  @State private var hoverShowDelayTask: Task<Void, Never>?
-  @State private var hoverHideDelayTask: Task<Void, Never>?
   @State private var hasLoadedInitial = false
 
   private let logger = AppLogger(.dashboard)
@@ -103,42 +100,14 @@ struct DashboardSectionView: View {
           .contentMargins(.horizontal, spacing, for: .scrollContent)
           .scrollClipDisabled()
           #if os(macOS)
-            .overlay {
-              HorizontalScrollButtons(
-                scrollProxy: proxy,
-                itemIds: pagination.items.map(\.id),
-                isVisible: isHoveringScrollArea
-              )
-              .animation(.default, value: isHoveringScrollArea)
-            }
+            .macHorizontalScrollButtons(
+              scrollProxy: proxy,
+              itemIds: pagination.items.map(\.id)
+            )
           #endif
         }
       }
     }
-    #if os(macOS)
-      .onContinuousHover { phase in
-        switch phase {
-        case .active:
-          hoverHideDelayTask?.cancel()
-          hoverHideDelayTask = nil
-          hoverShowDelayTask?.cancel()
-          hoverShowDelayTask = Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 100_000_000)
-            guard !Task.isCancelled else { return }
-            isHoveringScrollArea = true
-          }
-        case .ended:
-          hoverShowDelayTask?.cancel()
-          hoverShowDelayTask = nil
-          hoverHideDelayTask?.cancel()
-          hoverHideDelayTask = Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 100_000_000)
-            guard !Task.isCancelled else { return }
-            isHoveringScrollArea = false
-          }
-        }
-      }
-    #endif
     .opacity(pagination.isEmpty ? 0 : 1)
     .frame(height: pagination.isEmpty ? 0 : nil)
     .onReceive(NotificationCenter.default.publisher(for: .dashboardSectionsShouldReload)) {
