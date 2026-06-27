@@ -902,11 +902,12 @@
 
     private func toggleControls() {
       cancelAutoHideAfterResume()
+      let shouldHideControls = showingControls
       withAnimation(animation) {
         showingControls.toggle()
-      }
-      if !showingControls {
-        showingQuickActions = false
+        if shouldHideControls {
+          showingQuickActions = false
+        }
       }
     }
 

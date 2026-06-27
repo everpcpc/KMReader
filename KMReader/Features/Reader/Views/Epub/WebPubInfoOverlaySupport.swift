@@ -269,6 +269,7 @@
         private let bottomProgressTrackView: UIView
         private let bottomProgressFillView: UIView
         private let bottomProgressFillWidthConstraint: NSLayoutConstraint
+        private var contentUpdateToken = 0
         private var currentContent = Content(
           showingControls: false,
           topLeading: .hidden,
@@ -384,11 +385,12 @@
 
         func apply(theme: ReaderTheme) {
           let labelColor = theme.uiColorText.withAlphaComponent(0.6)
-          [
+          for label in [
             topLeadingLabel, topCenterLabel, topTrailingLabel, bottomLeadingLabel, bottomCenterLabel,
             bottomTrailingLabel,
-          ]
-          .forEach { $0.textColor = labelColor }
+          ] {
+            label.textColor = labelColor
+          }
           bottomProgressTrackView.backgroundColor = theme.uiColorText.withAlphaComponent(0.18)
           bottomProgressFillView.backgroundColor = theme.uiColorText.withAlphaComponent(0.85)
         }
@@ -397,41 +399,50 @@
           guard content != currentContent else { return }
           let previousContent = currentContent
           currentContent = content
+          contentUpdateToken += 1
+          let token = contentUpdateToken
+
           apply(
             entry: content.topLeading,
             previousEntry: previousContent.topLeading,
             to: topLeadingLabel,
-            animated: animated
+            animated: animated,
+            token: token
           )
           apply(
             entry: content.topCenter,
             previousEntry: previousContent.topCenter,
             to: topCenterLabel,
-            animated: animated
+            animated: animated,
+            token: token
           )
           apply(
             entry: content.topTrailing,
             previousEntry: previousContent.topTrailing,
             to: topTrailingLabel,
-            animated: animated
+            animated: animated,
+            token: token
           )
           apply(
             entry: content.bottomLeading,
             previousEntry: previousContent.bottomLeading,
             to: bottomLeadingLabel,
-            animated: animated
+            animated: animated,
+            token: token
           )
           apply(
             entry: content.bottomCenter,
             previousEntry: previousContent.bottomCenter,
             to: bottomCenterLabel,
-            animated: animated
+            animated: animated,
+            token: token
           )
           apply(
             entry: content.bottomTrailing,
             previousEntry: previousContent.bottomTrailing,
             to: bottomTrailingLabel,
-            animated: animated
+            animated: animated,
+            token: token
           )
           updateProgressBar(progress: content.bottomProgress, animated: animated)
         }
@@ -440,7 +451,8 @@
           entry: Entry,
           previousEntry: Entry,
           to label: UILabel,
-          animated: Bool
+          animated: Bool,
+          token: Int
         ) {
           guard animated else {
             apply(entry: entry, to: label)
@@ -491,7 +503,7 @@
           ) {
             label.alpha = 0.0
           } completion: { _ in
-            guard !entry.isVisible, label.alpha == 0.0 else { return }
+            guard token == self.contentUpdateToken, !entry.isVisible, label.alpha == 0.0 else { return }
             UIView.performWithoutAnimation {
               label.text = ""
               label.superview?.layoutIfNeeded()
@@ -560,6 +572,7 @@
         private let bottomProgressTrackView: NSView
         private let bottomProgressFillView: NSView
         private let bottomProgressFillWidthConstraint: NSLayoutConstraint
+        private var contentUpdateToken = 0
         private var currentContent = Content(
           showingControls: false,
           topLeading: .hidden,
@@ -671,11 +684,12 @@
 
         func apply(theme: ReaderTheme) {
           let labelColor = (NSColor(hex: theme.textColorHex) ?? .labelColor).withAlphaComponent(0.6)
-          [
+          for label in [
             topLeadingLabel, topCenterLabel, topTrailingLabel, bottomLeadingLabel, bottomCenterLabel,
             bottomTrailingLabel,
-          ]
-          .forEach { $0.textColor = labelColor }
+          ] {
+            label.textColor = labelColor
+          }
           bottomProgressTrackView.layer?.backgroundColor = labelColor.withAlphaComponent(0.18).cgColor
           bottomProgressFillView.layer?.backgroundColor = labelColor.withAlphaComponent(0.85).cgColor
         }
@@ -684,41 +698,50 @@
           guard content != currentContent else { return }
           let previousContent = currentContent
           currentContent = content
+          contentUpdateToken += 1
+          let token = contentUpdateToken
+
           apply(
             entry: content.topLeading,
             previousEntry: previousContent.topLeading,
             to: topLeadingLabel,
-            animated: animated
+            animated: animated,
+            token: token
           )
           apply(
             entry: content.topCenter,
             previousEntry: previousContent.topCenter,
             to: topCenterLabel,
-            animated: animated
+            animated: animated,
+            token: token
           )
           apply(
             entry: content.topTrailing,
             previousEntry: previousContent.topTrailing,
             to: topTrailingLabel,
-            animated: animated
+            animated: animated,
+            token: token
           )
           apply(
             entry: content.bottomLeading,
             previousEntry: previousContent.bottomLeading,
             to: bottomLeadingLabel,
-            animated: animated
+            animated: animated,
+            token: token
           )
           apply(
             entry: content.bottomCenter,
             previousEntry: previousContent.bottomCenter,
             to: bottomCenterLabel,
-            animated: animated
+            animated: animated,
+            token: token
           )
           apply(
             entry: content.bottomTrailing,
             previousEntry: previousContent.bottomTrailing,
             to: bottomTrailingLabel,
-            animated: animated
+            animated: animated,
+            token: token
           )
           updateProgressBar(progress: content.bottomProgress, animated: animated)
         }
@@ -727,7 +750,8 @@
           entry: Entry,
           previousEntry: Entry,
           to label: NSTextField,
-          animated: Bool
+          animated: Bool,
+          token: Int
         ) {
           guard animated else {
             apply(entry: entry, to: label)
@@ -754,7 +778,9 @@
           }
 
           animateAlpha(0.0, on: label) {
-            guard !entry.isVisible, label.alphaValue == 0.0 else { return }
+            guard token == self.contentUpdateToken, !entry.isVisible, label.alphaValue == 0.0 else {
+              return
+            }
             self.setText("", on: label)
           }
         }
