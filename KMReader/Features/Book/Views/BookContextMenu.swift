@@ -154,7 +154,8 @@ struct BookContextMenu: View {
         _ = try await SyncService.syncBookAndSeries(bookId: bookId, seriesId: book.seriesId)
         await ContentProjectionNotifier.postBookAndSeriesDidChange(
           bookId: bookId,
-          seriesId: book.seriesId
+          seriesId: book.seriesId,
+          reason: .readingProgress
         )
         await DashboardSectionRefreshNotifier.postReadStatusChanged(
           source: .manual,
@@ -175,7 +176,8 @@ struct BookContextMenu: View {
         _ = try await SyncService.syncBookAndSeries(bookId: bookId, seriesId: book.seriesId)
         await ContentProjectionNotifier.postBookAndSeriesDidChange(
           bookId: bookId,
-          seriesId: book.seriesId
+          seriesId: book.seriesId,
+          reason: .readingProgress
         )
         await DashboardSectionRefreshNotifier.postReadStatusChanged(
           source: .manual,

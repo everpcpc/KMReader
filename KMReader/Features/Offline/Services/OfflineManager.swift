@@ -1712,14 +1712,16 @@ actor OfflineManager {
   private func postDownloadProjectionDidChange(bookId: String, instanceId: String) async {
     await ContentProjectionNotifier.postBookAndSeriesDidChange(
       bookId: bookId,
-      instanceId: instanceId
+      instanceId: instanceId,
+      reason: .downloadStatus
     )
   }
 
   private func postDownloadProjectionsDidChange(bookIds: [String], instanceId: String) async {
     await ContentProjectionNotifier.postBooksAndSeriesDidChange(
       bookIds: bookIds,
-      instanceId: instanceId
+      instanceId: instanceId,
+      reason: .downloadStatus
     )
   }
 

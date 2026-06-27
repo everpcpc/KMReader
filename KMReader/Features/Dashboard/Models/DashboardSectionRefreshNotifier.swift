@@ -47,11 +47,7 @@ nonisolated enum DashboardSectionRefreshNotifier {
   }
 
   static func postReadStatusChanged(source: DashboardRefreshSource, reason: String) async {
-    await post(
-      sections: readingProgressSections.union(seriesContentSections),
-      source: source,
-      reason: reason
-    )
+    await post(sections: readingProgressSections, source: source, reason: reason)
   }
 
   static func postCollectionContentChanged(source: DashboardRefreshSource, reason: String) async {
@@ -82,6 +78,24 @@ nonisolated enum DashboardSectionRefreshNotifier {
       source: source,
       reason: reason
     )
+  }
+
+  static func sectionsForBookProjectionChange(
+    reasons: Set<ContentProjectionChangeReason>
+  ) -> Set<DashboardSection> {
+    if reasons.contains(.content) {
+      return bookContentSections.union(seriesContentSections)
+    }
+    return []
+  }
+
+  static func sectionsForSeriesProjectionChange(
+    reasons: Set<ContentProjectionChangeReason>
+  ) -> Set<DashboardSection> {
+    if reasons.contains(.content) {
+      return seriesContentSections
+    }
+    return []
   }
 
   @MainActor

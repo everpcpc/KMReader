@@ -168,10 +168,11 @@ struct BookDetailView: View {
             bookId: bookId, seriesId: book.seriesId)
           await ContentProjectionNotifier.postBookAndSeriesDidChange(
             bookId: bookId,
-            seriesId: book.seriesId
+            seriesId: book.seriesId,
+            reason: .readingProgress
           )
         } else {
-          await ContentProjectionNotifier.postBookDidChange(bookId: bookId)
+          await ContentProjectionNotifier.postBookDidChange(bookId: bookId, reason: .readingProgress)
         }
         await DashboardSectionRefreshNotifier.postReadStatusChanged(
           source: .manual,
@@ -196,11 +197,12 @@ struct BookDetailView: View {
           )
           await ContentProjectionNotifier.postBookAndSeriesDidChange(
             bookId: bookId,
-            seriesId: book.seriesId
+            seriesId: book.seriesId,
+            reason: .readingProgress
           )
         } else {
           _ = try? await SyncService.syncBook(bookId: bookId)
-          await ContentProjectionNotifier.postBookDidChange(bookId: bookId)
+          await ContentProjectionNotifier.postBookDidChange(bookId: bookId, reason: .readingProgress)
         }
         await DashboardSectionRefreshNotifier.postReadStatusChanged(
           source: .manual,

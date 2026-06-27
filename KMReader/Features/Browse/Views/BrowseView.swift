@@ -225,28 +225,6 @@ struct BrowseView: View {
       initializedLibraryIdsKey = resolvedLibraryIdsKey
       refreshBrowse()
     }
-    .onReceive(NotificationCenter.default.publisher(for: .bookProjectionDidChange)) { notification in
-      guard effectiveContent == .books else { return }
-      guard !authViewModel.isSwitching else { return }
-      refreshBrowse()
-    }
-    .onReceive(NotificationCenter.default.publisher(for: .seriesProjectionDidChange)) { notification in
-      guard effectiveContent == .series else { return }
-      guard !authViewModel.isSwitching else { return }
-      refreshBrowse()
-    }
-    .onReceive(NotificationCenter.default.publisher(for: .collectionProjectionDidChange)) {
-      notification in
-      guard effectiveContent == .collections else { return }
-      guard !authViewModel.isSwitching else { return }
-      refreshBrowse()
-    }
-    .onReceive(NotificationCenter.default.publisher(for: .readListProjectionDidChange)) {
-      notification in
-      guard effectiveContent == .readlists else { return }
-      guard !authViewModel.isSwitching else { return }
-      refreshBrowse()
-    }
   }
 
   private func refreshBrowse() {

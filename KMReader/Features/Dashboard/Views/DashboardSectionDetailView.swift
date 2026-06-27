@@ -75,12 +75,11 @@ struct DashboardSectionDetailView: View {
     .refreshable {
       await loadItems(refresh: true)
     }
-    .onReceive(NotificationCenter.default.publisher(for: .bookProjectionDidChange)) { notification in
-      guard section.contentKind == .books else { return }
-      Task { await loadItems(refresh: true) }
-    }
-    .onReceive(NotificationCenter.default.publisher(for: .seriesProjectionDidChange)) { notification in
-      guard section.contentKind == .series else { return }
+    .onReceive(NotificationCenter.default.publisher(for: .dashboardSectionsShouldReload)) { notification in
+      guard let command = DashboardSectionRefreshNotifier.reloadCommand(from: notification) else {
+        return
+      }
+      guard command.includes(section) else { return }
       Task { await loadItems(refresh: true) }
     }
     #if os(iOS) || os(macOS)

@@ -370,7 +370,8 @@ final class ReaderPresentationManager {
       if postsContentProjectionChange {
         await ContentProjectionNotifier.postBooksAndSeriesDidChange(
           bookIds: Array(bookIds),
-          instanceId: session.instanceId
+          instanceId: session.instanceId,
+          reason: .readingProgress
         )
       }
       await SyncService.syncVisitedItems(bookIds: bookIds, seriesIds: seriesIds)

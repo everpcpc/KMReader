@@ -12,6 +12,12 @@ extension Notification.Name {
   static let readListProjectionDidChange = Notification.Name("ReadListProjectionDidChange")
 }
 
+nonisolated enum ContentProjectionChangeReason: String, Sendable {
+  case content
+  case downloadStatus
+  case readingProgress
+}
+
 nonisolated enum ContentProjectionNotifier {
   static let localRefreshDelay: UInt64 = 750_000_000
 
@@ -23,7 +29,10 @@ nonisolated enum ContentProjectionNotifier {
   @MainActor private static var pendingReadListDeadlines: [String: Date] = [:]
   @MainActor private static var pendingBookLibraryIds: [String: String] = [:]
   @MainActor private static var pendingSeriesLibraryIds: [String: String] = [:]
+  @MainActor private static var pendingBookReasons: [String: Set<ContentProjectionChangeReason>] = [:]
+  @MainActor private static var pendingSeriesReasons: [String: Set<ContentProjectionChangeReason>] = [:]
   @MainActor private static var pendingAllSeriesDeadline: Date?
+  @MainActor private static var pendingAllSeriesReasons: Set<ContentProjectionChangeReason> = []
 
   @MainActor
   static func readerDidOpen(sessionID: UUID) {
@@ -42,46 +51,50 @@ nonisolated enum ContentProjectionNotifier {
   static func postBookDidChange(
     bookId: String,
     libraryId: String? = nil,
+    reason: ContentProjectionChangeReason = .content,
     refreshDelay: UInt64 = localRefreshDelay
   ) async {
     guard !bookId.isEmpty else { return }
 
     await MainActor.run {
-      enqueueBookIds([bookId], libraryId: libraryId, refreshDelay: refreshDelay)
+      enqueueBookIds([bookId], libraryId: libraryId, reason: reason, refreshDelay: refreshDelay)
     }
   }
 
   static func postBooksDidChange(
     bookIds: [String],
     libraryId: String? = nil,
+    reason: ContentProjectionChangeReason = .content,
     refreshDelay: UInt64 = localRefreshDelay
   ) async {
     let ids = Set(bookIds.filter { !$0.isEmpty })
     guard !ids.isEmpty else { return }
 
     await MainActor.run {
-      enqueueBookIds(ids, libraryId: libraryId, refreshDelay: refreshDelay)
+      enqueueBookIds(ids, libraryId: libraryId, reason: reason, refreshDelay: refreshDelay)
     }
   }
 
   static func postSeriesDidChange(
     seriesId: String,
     libraryId: String? = nil,
+    reason: ContentProjectionChangeReason = .content,
     refreshDelay: UInt64 = localRefreshDelay
   ) async {
     guard !seriesId.isEmpty else { return }
 
     let resolvedLibraryId = await resolveSeriesLibraryId(seriesId: seriesId, libraryId: libraryId)
     await MainActor.run {
-      enqueueSeriesIds([seriesId], libraryId: resolvedLibraryId, refreshDelay: refreshDelay)
+      enqueueSeriesIds([seriesId], libraryId: resolvedLibraryId, reason: reason, refreshDelay: refreshDelay)
     }
   }
 
   static func postAllSeriesDidChange(
+    reason: ContentProjectionChangeReason = .content,
     refreshDelay: UInt64 = localRefreshDelay
   ) async {
     await MainActor.run {
-      enqueueAllSeries(refreshDelay: refreshDelay)
+      enqueueAllSeries(reason: reason, refreshDelay: refreshDelay)
     }
   }
 
@@ -111,6 +124,7 @@ nonisolated enum ContentProjectionNotifier {
     bookId: String,
     seriesId: String? = nil,
     libraryId: String? = nil,
+    reason: ContentProjectionChangeReason = .content,
     refreshDelay: UInt64 = localRefreshDelay
   ) async {
     await postBookAndSeriesDidChange(
@@ -118,6 +132,7 @@ nonisolated enum ContentProjectionNotifier {
       instanceId: AppConfig.current.instanceId,
       seriesId: seriesId,
       libraryId: libraryId,
+      reason: reason,
       refreshDelay: refreshDelay
     )
   }
@@ -127,6 +142,7 @@ nonisolated enum ContentProjectionNotifier {
     instanceId: String,
     seriesId: String? = nil,
     libraryId: String? = nil,
+    reason: ContentProjectionChangeReason = .content,
     refreshDelay: UInt64 = localRefreshDelay
   ) async {
     guard !bookId.isEmpty else { return }
@@ -137,26 +153,43 @@ nonisolated enum ContentProjectionNotifier {
         instanceId: instanceId,
         libraryId: libraryId
       )
-      await postBookDidChange(bookId: bookId, libraryId: resolvedLibraryId, refreshDelay: refreshDelay)
+      await postBookDidChange(
+        bookId: bookId,
+        libraryId: resolvedLibraryId,
+        reason: reason,
+        refreshDelay: refreshDelay
+      )
       await postSeriesDidChange(
         seriesId: seriesId,
         libraryId: resolvedLibraryId,
+        reason: reason,
         refreshDelay: refreshDelay
       )
       return
     }
 
     guard let scope = await fetchBookProjectionScope(forBookId: bookId, instanceId: instanceId) else {
-      await postBookDidChange(bookId: bookId, libraryId: libraryId, refreshDelay: refreshDelay)
-      await postAllSeriesDidChange(refreshDelay: refreshDelay)
+      await postBookDidChange(
+        bookId: bookId,
+        libraryId: libraryId,
+        reason: reason,
+        refreshDelay: refreshDelay
+      )
+      await postAllSeriesDidChange(reason: reason, refreshDelay: refreshDelay)
       return
     }
 
     let resolvedLibraryId = libraryId ?? scope.libraryId
-    await postBookDidChange(bookId: bookId, libraryId: resolvedLibraryId, refreshDelay: refreshDelay)
+    await postBookDidChange(
+      bookId: bookId,
+      libraryId: resolvedLibraryId,
+      reason: reason,
+      refreshDelay: refreshDelay
+    )
     await postSeriesDidChange(
       seriesId: scope.seriesId,
       libraryId: resolvedLibraryId,
+      reason: reason,
       refreshDelay: refreshDelay
     )
   }
@@ -164,6 +197,7 @@ nonisolated enum ContentProjectionNotifier {
   static func postBooksAndSeriesDidChange(
     bookIds: [String],
     instanceId: String,
+    reason: ContentProjectionChangeReason = .content,
     refreshDelay: UInt64 = localRefreshDelay
   ) async {
     let ids = Set(bookIds.filter { !$0.isEmpty })
@@ -177,6 +211,7 @@ nonisolated enum ContentProjectionNotifier {
       await postBooksDidChange(
         bookIds: Array(scopedBookIds),
         libraryId: libraryId,
+        reason: reason,
         refreshDelay: refreshDelay
       )
     }
@@ -186,23 +221,62 @@ nonisolated enum ContentProjectionNotifier {
       seriesScopes[scope.seriesId] = scope.libraryId
     }
     for (seriesId, libraryId) in seriesScopes {
-      await postSeriesDidChange(seriesId: seriesId, libraryId: libraryId, refreshDelay: refreshDelay)
+      await postSeriesDidChange(
+        seriesId: seriesId,
+        libraryId: libraryId,
+        reason: reason,
+        refreshDelay: refreshDelay
+      )
     }
     if bookScopes.count < ids.count {
-      await postAllSeriesDidChange(refreshDelay: refreshDelay)
+      await postAllSeriesDidChange(reason: reason, refreshDelay: refreshDelay)
     }
   }
 
   static func postSeriesBooksDidChange(
     seriesId: String,
+    reason: ContentProjectionChangeReason = .content,
     refreshDelay: UInt64 = localRefreshDelay
   ) async {
     guard !seriesId.isEmpty else { return }
 
     let bookIds = await fetchSeriesBookIds(seriesId: seriesId)
     let libraryId = await fetchSeriesLibraryId(seriesId: seriesId)
-    await postBooksDidChange(bookIds: bookIds, libraryId: libraryId, refreshDelay: refreshDelay)
-    await postSeriesDidChange(seriesId: seriesId, libraryId: libraryId, refreshDelay: refreshDelay)
+    await postBooksDidChange(
+      bookIds: bookIds,
+      libraryId: libraryId,
+      reason: reason,
+      refreshDelay: refreshDelay
+    )
+    await postSeriesDidChange(
+      seriesId: seriesId,
+      libraryId: libraryId,
+      reason: reason,
+      refreshDelay: refreshDelay
+    )
+  }
+
+  static func changeReasons(from notification: Notification) -> Set<ContentProjectionChangeReason> {
+    guard let userInfo = notification.userInfo else { return [.content] }
+
+    if let reasons = userInfo["changeReasons"] as? Set<String> {
+      return parsedChangeReasons(from: reasons)
+    }
+    if let reasons = userInfo["changeReasons"] as? [String] {
+      return parsedChangeReasons(from: Set(reasons))
+    }
+    if let reason = userInfo["changeReason"] as? String {
+      return parsedChangeReasons(from: [reason])
+    }
+    return [.content]
+  }
+
+  private static func parsedChangeReasons(from rawValues: Set<String>) -> Set<ContentProjectionChangeReason> {
+    var reasons = Set(rawValues.compactMap(ContentProjectionChangeReason.init(rawValue:)))
+    if reasons.count != rawValues.count {
+      reasons.insert(.content)
+    }
+    return reasons.isEmpty ? [.content] : reasons
   }
 
   private static func fetchBookProjectionScope(
@@ -287,6 +361,7 @@ nonisolated enum ContentProjectionNotifier {
   private static func enqueueBookIds<S: Sequence>(
     _ ids: S,
     libraryId: String?,
+    reason: ContentProjectionChangeReason,
     refreshDelay: UInt64
   )
   where S.Element == String {
@@ -294,6 +369,7 @@ nonisolated enum ContentProjectionNotifier {
     for id in ids where !id.isEmpty {
       mergeDeadline(deadline, for: id, into: &pendingBookDeadlines)
       mergeLibraryId(libraryId, for: id, into: &pendingBookLibraryIds)
+      mergeReason(reason, for: id, into: &pendingBookReasons)
     }
     schedulePendingFlush()
   }
@@ -302,6 +378,7 @@ nonisolated enum ContentProjectionNotifier {
   private static func enqueueSeriesIds<S: Sequence>(
     _ ids: S,
     libraryId: String?,
+    reason: ContentProjectionChangeReason,
     refreshDelay: UInt64
   )
   where S.Element == String {
@@ -309,18 +386,20 @@ nonisolated enum ContentProjectionNotifier {
     for id in ids where !id.isEmpty {
       mergeDeadline(deadline, for: id, into: &pendingSeriesDeadlines)
       mergeLibraryId(libraryId, for: id, into: &pendingSeriesLibraryIds)
+      mergeReason(reason, for: id, into: &pendingSeriesReasons)
     }
     schedulePendingFlush()
   }
 
   @MainActor
-  private static func enqueueAllSeries(refreshDelay: UInt64) {
+  private static func enqueueAllSeries(reason: ContentProjectionChangeReason, refreshDelay: UInt64) {
     let deadline = deadline(after: refreshDelay)
     if let existing = pendingAllSeriesDeadline {
       pendingAllSeriesDeadline = min(existing, deadline)
     } else {
       pendingAllSeriesDeadline = deadline
     }
+    pendingAllSeriesReasons.insert(reason)
     schedulePendingFlush()
   }
 
@@ -372,22 +451,25 @@ nonisolated enum ContentProjectionNotifier {
 
     let now = Date()
     let bookIds = takeDueIds(from: &pendingBookDeadlines, now: now)
-    let allSeriesDue = takeAllSeriesIfDue(now: now)
-    let seriesIds = allSeriesDue ? [] : takeDueIds(from: &pendingSeriesDeadlines, now: now)
+    let allSeriesReasons = takeAllSeriesIfDue(now: now)
+    let seriesIds = allSeriesReasons == nil ? takeDueIds(from: &pendingSeriesDeadlines, now: now) : []
     let collectionIds = takeDueIds(from: &pendingCollectionDeadlines, now: now)
     let readListIds = takeDueIds(from: &pendingReadListDeadlines, now: now)
 
     if !bookIds.isEmpty {
       let libraryIds = takeCompleteLibraryIds(for: bookIds, from: &pendingBookLibraryIds)
-      postBooksNow(bookIds, libraryIds: libraryIds)
+      let reasons = takeReasons(for: bookIds, from: &pendingBookReasons)
+      postBooksNow(bookIds, libraryIds: libraryIds, reasons: reasons)
     }
-    if allSeriesDue {
+    if let allSeriesReasons {
       pendingSeriesDeadlines.removeAll()
       pendingSeriesLibraryIds.removeAll()
-      postAllSeriesNow()
+      pendingSeriesReasons.removeAll()
+      postAllSeriesNow(reasons: allSeriesReasons)
     } else if !seriesIds.isEmpty {
       let libraryIds = takeCompleteLibraryIds(for: seriesIds, from: &pendingSeriesLibraryIds)
-      postSeriesNow(seriesIds, libraryIds: libraryIds)
+      let reasons = takeReasons(for: seriesIds, from: &pendingSeriesReasons)
+      postSeriesNow(seriesIds, libraryIds: libraryIds, reasons: reasons)
     }
     for collectionId in collectionIds {
       postCollectionNow(collectionId)
@@ -433,6 +515,14 @@ nonisolated enum ContentProjectionNotifier {
     libraryIds[id] = libraryId
   }
 
+  private static func mergeReason(
+    _ reason: ContentProjectionChangeReason,
+    for id: String,
+    into reasons: inout [String: Set<ContentProjectionChangeReason>]
+  ) {
+    reasons[id, default: []].insert(reason)
+  }
+
   private static func takeDueIds(from deadlines: inout [String: Date], now: Date) -> Set<String> {
     let ids = deadlines.compactMap { id, deadline in
       deadline <= now ? id : nil
@@ -444,10 +534,25 @@ nonisolated enum ContentProjectionNotifier {
   }
 
   @MainActor
-  private static func takeAllSeriesIfDue(now: Date) -> Bool {
-    guard let deadline = pendingAllSeriesDeadline, deadline <= now else { return false }
+  private static func takeAllSeriesIfDue(now: Date) -> Set<ContentProjectionChangeReason>? {
+    guard let deadline = pendingAllSeriesDeadline, deadline <= now else { return nil }
     pendingAllSeriesDeadline = nil
-    return true
+    let reasons = pendingAllSeriesReasons
+    pendingAllSeriesReasons.removeAll()
+    return reasons.isEmpty ? [.content] : reasons
+  }
+
+  private static func takeReasons(
+    for ids: Set<String>,
+    from reasons: inout [String: Set<ContentProjectionChangeReason>]
+  ) -> Set<ContentProjectionChangeReason> {
+    var result = Set<ContentProjectionChangeReason>()
+    for id in ids {
+      if let idReasons = reasons.removeValue(forKey: id) {
+        result.formUnion(idReasons)
+      }
+    }
+    return result.isEmpty ? [.content] : result
   }
 
   private static func takeCompleteLibraryIds(for ids: Set<String>, from libraryIds: inout [String: String])
@@ -467,12 +572,17 @@ nonisolated enum ContentProjectionNotifier {
   }
 
   @MainActor
-  private static func postBooksNow(_ ids: Set<String>, libraryIds: Set<String>?) {
+  private static func postBooksNow(
+    _ ids: Set<String>,
+    libraryIds: Set<String>?,
+    reasons: Set<ContentProjectionChangeReason>
+  ) {
     var userInfo: [AnyHashable: Any] = ["bookIds": ids]
     if ids.count == 1, let bookId = ids.first {
       userInfo["bookId"] = bookId
     }
     addLibraryScope(libraryIds, to: &userInfo)
+    addChangeReasons(reasons, to: &userInfo)
     NotificationCenter.default.post(
       name: .bookProjectionDidChange,
       object: nil,
@@ -481,12 +591,17 @@ nonisolated enum ContentProjectionNotifier {
   }
 
   @MainActor
-  private static func postSeriesNow(_ ids: Set<String>, libraryIds: Set<String>?) {
+  private static func postSeriesNow(
+    _ ids: Set<String>,
+    libraryIds: Set<String>?,
+    reasons: Set<ContentProjectionChangeReason>
+  ) {
     var userInfo: [AnyHashable: Any] = ["seriesIds": ids]
     if ids.count == 1, let seriesId = ids.first {
       userInfo["seriesId"] = seriesId
     }
     addLibraryScope(libraryIds, to: &userInfo)
+    addChangeReasons(reasons, to: &userInfo)
     NotificationCenter.default.post(
       name: .seriesProjectionDidChange,
       object: nil,
@@ -495,11 +610,13 @@ nonisolated enum ContentProjectionNotifier {
   }
 
   @MainActor
-  private static func postAllSeriesNow() {
+  private static func postAllSeriesNow(reasons: Set<ContentProjectionChangeReason>) {
+    var userInfo: [AnyHashable: Any] = ["allSeries": true]
+    addChangeReasons(reasons, to: &userInfo)
     NotificationCenter.default.post(
       name: .seriesProjectionDidChange,
       object: nil,
-      userInfo: ["allSeries": true]
+      userInfo: userInfo
     )
   }
 
@@ -527,6 +644,18 @@ nonisolated enum ContentProjectionNotifier {
     userInfo["libraryIds"] = libraryIds
     if libraryIds.count == 1, let libraryId = libraryIds.first {
       userInfo["libraryId"] = libraryId
+    }
+  }
+
+  private static func addChangeReasons(
+    _ reasons: Set<ContentProjectionChangeReason>,
+    to userInfo: inout [AnyHashable: Any]
+  ) {
+    let rawReasons = Set(reasons.map(\.rawValue))
+    guard !rawReasons.isEmpty else { return }
+    userInfo["changeReasons"] = rawReasons
+    if rawReasons.count == 1, let reason = rawReasons.first {
+      userInfo["changeReason"] = reason
     }
   }
 }

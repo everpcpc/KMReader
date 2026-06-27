@@ -300,7 +300,10 @@ extension SeriesDetailView {
         try await SeriesService.markAsRead(seriesId: seriesId)
         _ = try? await SyncService.syncSeriesDetail(seriesId: seriesId)
         try? await SyncService.syncAllSeriesBooks(seriesId: seriesId)
-        await ContentProjectionNotifier.postSeriesBooksDidChange(seriesId: seriesId)
+        await ContentProjectionNotifier.postSeriesBooksDidChange(
+          seriesId: seriesId,
+          reason: .readingProgress
+        )
         await DashboardSectionRefreshNotifier.postReadStatusChanged(
           source: .manual,
           reason: "Series read status changed"
@@ -319,7 +322,10 @@ extension SeriesDetailView {
         try await SeriesService.markAsUnread(seriesId: seriesId)
         _ = try? await SyncService.syncSeriesDetail(seriesId: seriesId)
         try? await SyncService.syncAllSeriesBooks(seriesId: seriesId)
-        await ContentProjectionNotifier.postSeriesBooksDidChange(seriesId: seriesId)
+        await ContentProjectionNotifier.postSeriesBooksDidChange(
+          seriesId: seriesId,
+          reason: .readingProgress
+        )
         await DashboardSectionRefreshNotifier.postReadStatusChanged(
           source: .manual,
           reason: "Series read status changed"

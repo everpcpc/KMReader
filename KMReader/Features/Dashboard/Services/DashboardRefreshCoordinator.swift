@@ -201,17 +201,8 @@ final class DashboardRefreshCoordinator {
   }
 
   private func startProjectionObservers() {
-    observeProjection(
-      named: .bookProjectionDidChange,
-      sections: DashboardSectionRefreshNotifier.bookContentSections
-        .union(DashboardSectionRefreshNotifier.seriesContentSections),
-      reason: "Book projection changed"
-    )
-    observeProjection(
-      named: .seriesProjectionDidChange,
-      sections: DashboardSectionRefreshNotifier.seriesContentSections,
-      reason: "Series projection changed"
-    )
+    observeBookProjection()
+    observeSeriesProjection()
     observeProjection(
       named: .collectionProjectionDidChange,
       sections: [.pinnedCollections],
@@ -221,6 +212,32 @@ final class DashboardRefreshCoordinator {
       named: .readListProjectionDidChange,
       sections: [.pinnedReadLists],
       reason: "Read list projection changed"
+    )
+  }
+
+  private func observeBookProjection() {
+    projectionObserverTasks.append(
+      Task { @MainActor [weak self] in
+        for await notification in NotificationCenter.default.notifications(named: .bookProjectionDidChange) {
+          let reasons = ContentProjectionNotifier.changeReasons(from: notification)
+          let sections = DashboardSectionRefreshNotifier.sectionsForBookProjectionChange(reasons: reasons)
+          guard !sections.isEmpty else { continue }
+          self?.requestRefresh(sections: sections, source: .auto, reason: "Book projection changed")
+        }
+      }
+    )
+  }
+
+  private func observeSeriesProjection() {
+    projectionObserverTasks.append(
+      Task { @MainActor [weak self] in
+        for await notification in NotificationCenter.default.notifications(named: .seriesProjectionDidChange) {
+          let reasons = ContentProjectionNotifier.changeReasons(from: notification)
+          let sections = DashboardSectionRefreshNotifier.sectionsForSeriesProjectionChange(reasons: reasons)
+          guard !sections.isEmpty else { continue }
+          self?.requestRefresh(sections: sections, source: .auto, reason: "Series projection changed")
+        }
+      }
     )
   }
 

@@ -217,7 +217,8 @@ struct OneshotDetailView: View {
         _ = try? await SyncService.syncBookAndSeries(bookId: book.id, seriesId: seriesId)
         await ContentProjectionNotifier.postBookAndSeriesDidChange(
           bookId: book.id,
-          seriesId: seriesId
+          seriesId: seriesId,
+          reason: .readingProgress
         )
         await DashboardSectionRefreshNotifier.postReadStatusChanged(
           source: .manual,
@@ -239,7 +240,8 @@ struct OneshotDetailView: View {
         _ = try? await SyncService.syncBookAndSeries(bookId: book.id, seriesId: seriesId)
         await ContentProjectionNotifier.postBookAndSeriesDidChange(
           bookId: book.id,
-          seriesId: seriesId
+          seriesId: seriesId,
+          reason: .readingProgress
         )
         await DashboardSectionRefreshNotifier.postReadStatusChanged(
           source: .manual,

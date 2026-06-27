@@ -108,7 +108,8 @@ class BookViewModel {
       }
       await ContentProjectionNotifier.postBookAndSeriesDidChange(
         bookId: bookId,
-        seriesId: updatedBook.seriesId
+        seriesId: updatedBook.seriesId,
+        reason: .readingProgress
       )
       await postReadStatusDashboardRefresh()
       ErrorManager.shared.notify(message: String(localized: "notification.book.markedRead"))
@@ -127,7 +128,8 @@ class BookViewModel {
       }
       await ContentProjectionNotifier.postBookAndSeriesDidChange(
         bookId: bookId,
-        seriesId: updatedBook.seriesId
+        seriesId: updatedBook.seriesId,
+        reason: .readingProgress
       )
       await postReadStatusDashboardRefresh()
       ErrorManager.shared.notify(message: String(localized: "notification.book.markedUnread"))
