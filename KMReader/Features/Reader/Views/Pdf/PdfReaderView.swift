@@ -434,8 +434,8 @@
         return String(localized: "Fetching book info...")
       case .downloading:
         return String(localized: "Downloading book...")
-      case .processingOfflineFiles:
-        return String(localized: "Processing offline files...")
+      case .finalizingOfflineDownload:
+        return String(localized: "Finalizing offline PDF...")
       case .preparingReader:
         return String(localized: "Preparing PDF...")
       case .idle:
@@ -456,8 +456,8 @@
       switch viewModel.loadingStage {
       case .fetchingMetadata:
         return String(localized: "Checking PDF download information")
-      case .processingOfflineFiles:
-        return String(localized: "Finalizing offline PDF file")
+      case .finalizingOfflineDownload:
+        return String(localized: "Saving downloaded PDF for offline reading")
       case .preparingReader:
         return String(localized: "Opening downloaded PDF file")
       case .downloading:

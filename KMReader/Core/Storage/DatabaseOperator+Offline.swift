@@ -83,7 +83,8 @@ extension DatabaseOperator {
           metaNumber: book.metaNumber,
           metaTitle: book.metaTitle,
           downloadStatusRaw: book.downloadStatusRaw,
-          downloadStatus: book.downloadStatus
+          downloadStatus: book.downloadStatus,
+          contentKind: book.downloadContentKind
         )
       }
     }

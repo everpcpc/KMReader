@@ -883,8 +883,9 @@ class ReaderViewModel {
         {
           if progress >= 1 {
             clearLoadingProgress()
-            updateLoadingTitle(String(localized: "Processing offline files..."))
-            updateLoadingDetail(offlineProcessingDetail)
+            let status = offlinePostDownloadStatus(for: downloadInfo.kind)
+            updateLoadingTitle(status.title)
+            updateLoadingDetail(status.detail)
           } else if progress > 0 {
             updateLoadingProgress(progress)
             updateLoadingTitle(String(localized: "Downloading book..."))
@@ -1013,12 +1014,30 @@ class ReaderViewModel {
     loadingTitle = title
   }
 
-  private var offlineProcessingDetail: String {
-    switch bookMediaProfile {
+  private func offlinePostDownloadStatus(for kind: DownloadContentKind) -> (
+    title: String, detail: String
+  ) {
+    switch kind {
+    case .archiveImages:
+      return (
+        String(localized: "Validating offline archive..."),
+        String(localized: "Checking archive entries against page metadata")
+      )
+    case .epubWebPub, .epubDivina:
+      return (
+        String(localized: "Finalizing offline EPUB..."),
+        String(localized: "Saving downloaded EPUB for offline reading")
+      )
     case .pdf:
-      return String(localized: "Finalizing offline PDF file")
-    case .divina, .epub, .unknown:
-      return String(localized: "Verifying offline files against page metadata")
+      return (
+        String(localized: "Finalizing offline PDF..."),
+        String(localized: "Saving downloaded PDF for offline reading")
+      )
+    case .pages:
+      return (
+        String(localized: "Finalizing offline pages..."),
+        String(localized: "Saving downloaded page files")
+      )
     }
   }
 

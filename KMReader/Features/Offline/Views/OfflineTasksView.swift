@@ -311,6 +311,19 @@ struct OfflineTaskRow: View {
     progressTracker.progress[task.bookId]
   }
 
+  private var postDownloadStatusText: LocalizedStringResource {
+    switch task.contentKind {
+    case .archiveImages:
+      "Validating offline archive..."
+    case .epubWebPub, .epubDivina:
+      "Finalizing offline EPUB..."
+    case .pdf:
+      "Finalizing offline PDF..."
+    case .pages:
+      "Finalizing offline pages..."
+    }
+  }
+
   var body: some View {
     HStack(alignment: .center, spacing: 12) {
       VStack(alignment: .leading, spacing: 4) {
@@ -323,7 +336,7 @@ struct OfflineTaskRow: View {
         if task.isPending || task.isDownloading {
           if let progress = progress {
             if progress >= 1 {
-              Text(String(localized: "Processing offline files..."))
+              Text(postDownloadStatusText)
                 .font(.caption)
                 .foregroundStyle(.secondary)
             } else {

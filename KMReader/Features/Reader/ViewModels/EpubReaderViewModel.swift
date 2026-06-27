@@ -36,7 +36,8 @@
     case idle
     case fetchingMetadata
     case downloading
-    case processingOfflineFiles
+    case finalizingOfflineDownload
+    case preparingOfflineResources
     case preparingReader
     case paginating
   }
@@ -200,7 +201,7 @@
           )
         }
         try await ensureOfflineReady(downloadInfo: downloadInfo, instanceId: instanceId)
-        loadingStage = .processingOfflineFiles
+        loadingStage = .preparingOfflineResources
         _ = try await OfflineManager.shared.prepareOfflineWebPubIfNeeded(
           instanceId: instanceId,
           info: downloadInfo
@@ -385,7 +386,7 @@
           if let progress = DownloadProgressTracker.shared.progress[bookId] {
             updateDownloadProgress(progress)
             if progress >= 1 {
-              updateLoadingStage(.processingOfflineFiles)
+              updateLoadingStage(.finalizingOfflineDownload)
             }
           }
         }
@@ -431,7 +432,7 @@
           if let progress = DownloadProgressTracker.shared.progress[bookId] {
             updateDownloadProgress(progress)
             if progress >= 1 {
-              updateLoadingStage(.processingOfflineFiles)
+              updateLoadingStage(.finalizingOfflineDownload)
             }
           }
         }

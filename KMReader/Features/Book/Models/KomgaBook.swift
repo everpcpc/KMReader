@@ -189,6 +189,46 @@ nonisolated extension KomgaBook {
     }
   }
 
+  var downloadContentKind: DownloadContentKind {
+    if let archiveFormat = downloadedImageArchiveFormat {
+      return .archiveImages(archiveFormat)
+    }
+
+    switch mediaProfile.flatMap(MediaProfile.init(rawValue:)) ?? .unknown {
+    case .pdf:
+      return .pdf
+    case .epub:
+      let isDivinaCompatible = media?.epubDivinaCompatible ?? false
+      return isDivinaCompatible ? .epubDivina : .epubWebPub
+    case .divina, .unknown:
+      return .pages
+    }
+  }
+
+  private var downloadedImageArchiveFormat: DownloadedImageArchiveFormat? {
+    if let urlExtension = URL(string: url)?.pathExtension.lowercased(),
+      let archiveFormat = DownloadedImageArchiveFormat(fileExtension: urlExtension)
+    {
+      return archiveFormat
+    }
+
+    let mediaType = media?.mediaType
+      .split(separator: ";")
+      .first?
+      .trimmingCharacters(in: .whitespacesAndNewlines)
+      .lowercased()
+
+    switch mediaType {
+    case "application/vnd.comicbook+zip", "application/x-cbz", "application/zip":
+      return .cbz
+    case "application/vnd.comicbook-rar", "application/x-cbr", "application/vnd.rar",
+      "application/x-rar-compressed":
+      return .cbr
+    default:
+      return nil
+    }
+  }
+
   var hasStartedReading: Bool {
     readProgress != nil
   }

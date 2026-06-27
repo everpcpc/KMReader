@@ -13,6 +13,7 @@ nonisolated struct OfflineTaskItem: Equatable, Identifiable, Sendable {
   let metaTitle: String
   let downloadStatusRaw: String
   let downloadStatus: DownloadStatus
+  let contentKind: DownloadContentKind
 
   var isDownloading: Bool {
     downloadStatusRaw == "downloading"
