@@ -51,4 +51,10 @@ struct PaginationState<Item: Identifiable & Equatable> {
     }
     return true
   }
+
+  mutating func removeAll(where shouldRemove: (Item) -> Bool) -> Bool {
+    let originalCount = items.count
+    items.removeAll(where: shouldRemove)
+    return items.count != originalCount
+  }
 }

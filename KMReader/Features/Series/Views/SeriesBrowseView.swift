@@ -33,8 +33,7 @@ struct SeriesBrowseView: View {
       SeriesQueryView(
         libraryIds: libraryIds,
         searchText: searchText,
-        browseOpts: (searchIgnoreFilters && !searchText.isEmpty)
-          ? SeriesBrowseOptions() : browseOpts,
+        browseOpts: effectiveBrowseOpts,
         browseLayout: browseLayout,
         viewModel: viewModel
       )
@@ -77,6 +76,13 @@ struct SeriesBrowseView: View {
         await loadSeries(refresh: true)
       }
     }
+    .onReceive(NotificationCenter.default.publisher(for: .seriesProjectionDidChange)) { notification in
+      handleSeriesProjection(notification)
+    }
+  }
+
+  private var effectiveBrowseOpts: SeriesBrowseOptions {
+    (searchIgnoreFilters && !searchText.isEmpty) ? SeriesBrowseOptions() : browseOpts
   }
 
   private var initializationKey: String {
@@ -87,13 +93,28 @@ struct SeriesBrowseView: View {
   }
 
   private func loadSeries(refresh: Bool) async {
-    let effectiveBrowseOpts =
-      (searchIgnoreFilters && !searchText.isEmpty) ? SeriesBrowseOptions() : browseOpts
     await viewModel.loadSeries(
       browseOpts: effectiveBrowseOpts,
       searchText: searchText,
       libraryIds: libraryIds,
       refresh: refresh
     )
+  }
+
+  private func handleSeriesProjection(_ notification: Notification) {
+    guard ContentProjectionNotifier.affectsLibraries(libraryIds, notification: notification) else { return }
+
+    let reasons = ContentProjectionNotifier.changeReasons(from: notification)
+    guard reasons.contains(.readingProgress) else { return }
+
+    let seriesIds = ContentProjectionNotifier.seriesIds(from: notification)
+    guard !seriesIds.isEmpty else { return }
+
+    Task {
+      await viewModel.removeSeriesNotMatchingReadStatusFilter(
+        seriesIds: seriesIds,
+        browseOpts: effectiveBrowseOpts
+      )
+    }
   }
 }

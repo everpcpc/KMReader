@@ -193,6 +193,44 @@ class BookViewModel {
     }
   }
 
+  func removeBooksNotMatchingReadStatusFilter(
+    bookIds: Set<String>,
+    browseOpts: BookBrowseOptions
+  ) async {
+    guard hasReadStatusFilter(browseOpts) else { return }
+
+    let visibleIds = Set(pagination.items.map(\.id))
+    let targetIds = visibleIds.intersection(bookIds)
+    guard !targetIds.isEmpty else { return }
+    guard let database = try? await DatabaseOperator.database() else { return }
+
+    var removedIds = Set<String>()
+    for bookId in targetIds {
+      guard
+        let item = try? await database.fetchBookDisplayItem(
+          bookId: bookId,
+          instanceId: AppConfig.current.instanceId
+        )
+      else {
+        removedIds.insert(bookId)
+        continue
+      }
+
+      if !matchesReadStatusFilter(
+        readStatus(for: item),
+        include: browseOpts.includeReadStatuses,
+        exclude: browseOpts.excludeReadStatuses
+      ) {
+        removedIds.insert(bookId)
+      }
+    }
+
+    guard !removedIds.isEmpty else { return }
+    withAnimation {
+      _ = pagination.removeAll { removedIds.contains($0.id) }
+    }
+  }
+
   private func normalizedRemoteBrowseOptions(_ browseOpts: BookBrowseOptions)
     -> BookBrowseOptions
   {
@@ -203,6 +241,20 @@ class BookViewModel {
     var fallback = browseOpts
     fallback.sortField = .dateAdded
     return fallback
+  }
+
+  private func hasReadStatusFilter(_ browseOpts: BookBrowseOptions) -> Bool {
+    !browseOpts.includeReadStatuses.isEmpty || !browseOpts.excludeReadStatuses.isEmpty
+  }
+
+  private func readStatus(for item: BookDisplayItem) -> ReadStatus {
+    if item.isCompleted {
+      return .read
+    }
+    if item.isInProgress {
+      return .inProgress
+    }
+    return .unread
   }
 
   private func postReadStatusDashboardRefresh() async {

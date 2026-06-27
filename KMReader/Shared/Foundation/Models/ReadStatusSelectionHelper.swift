@@ -62,6 +62,20 @@ func applyReadStatusToggle(
   }
 }
 
+func matchesReadStatusFilter(
+  _ status: ReadStatus,
+  include: Set<ReadStatus>,
+  exclude: Set<ReadStatus>
+) -> Bool {
+  if !include.isEmpty, !include.contains(status) {
+    return false
+  }
+  if exclude.contains(status) {
+    return false
+  }
+  return true
+}
+
 func buildReadStatusLabel(include: Set<ReadStatus>, exclude: Set<ReadStatus>) -> String? {
   let includeNames = include.map { $0.displayName }.sorted()
   let excludeNames = exclude.map { $0.displayName }.sorted()

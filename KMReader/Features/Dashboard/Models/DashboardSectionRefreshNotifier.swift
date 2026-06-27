@@ -34,6 +34,10 @@ nonisolated enum DashboardSectionRefreshNotifier {
     .recentlyReadBooks,
   ]
 
+  static let readStatusSections: Set<DashboardSection> =
+    readingProgressSections
+    .union(seriesContentSections)
+
   static func postBookContentChanged(source: DashboardRefreshSource, reason: String) async {
     await post(sections: bookContentSections, source: source, reason: reason)
   }
@@ -47,7 +51,7 @@ nonisolated enum DashboardSectionRefreshNotifier {
   }
 
   static func postReadStatusChanged(source: DashboardRefreshSource, reason: String) async {
-    await post(sections: readingProgressSections, source: source, reason: reason)
+    await post(sections: readStatusSections, source: source, reason: reason)
   }
 
   static func postCollectionContentChanged(source: DashboardRefreshSource, reason: String) async {
