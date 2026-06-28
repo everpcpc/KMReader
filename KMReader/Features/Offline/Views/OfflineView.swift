@@ -233,6 +233,7 @@ struct OfflineView: View {
     .task(id: current.instanceId) {
       guard !authViewModel.isSwitching else { return }
       latestReadHistoryTime = AppConfig.recentlyReadRecordTime(instanceId: current.instanceId)
+      await coverSyncViewModel.loadLibraryScopeOptions(instanceId: current.instanceId)
       await loadSyncInfo()
     }
     .onChange(of: resolvedLibraryIdsKey) { _, _ in
@@ -362,6 +363,12 @@ struct OfflineView: View {
         !coverSyncViewModel.isSyncing
           && (syncViewModel.isSyncing || isOffline || current.instanceId.isEmpty))
 
+      OfflineCoverSyncScopeMenu(
+        viewModel: coverSyncViewModel,
+        isDisabled: coverSyncViewModel.isSyncing || syncViewModel.isSyncing || isOffline
+          || current.instanceId.isEmpty
+      )
+
       if coverSyncViewModel.isSyncing {
         if let coverSyncProgress = coverSyncViewModel.progress,
           coverSyncProgress.totalCount > 0
@@ -412,6 +419,7 @@ struct OfflineView: View {
     guard !authViewModel.isSwitching else { return }
     latestReadHistoryTime = AppConfig.recentlyReadRecordTime(instanceId: current.instanceId)
     refreshBrowse()
+    await coverSyncViewModel.loadLibraryScopeOptions(instanceId: current.instanceId)
     await loadSyncInfo()
   }
 
@@ -461,6 +469,7 @@ struct OfflineView: View {
       return
     }
 
-    coverSyncViewModel.startSyncMissingCovers(instanceId: instanceId)
+    let libraryIds = coverSyncViewModel.selectedLibraryIdsForSync(instanceId: instanceId)
+    coverSyncViewModel.startSyncMissingCovers(instanceId: instanceId, libraryIds: libraryIds)
   }
 }

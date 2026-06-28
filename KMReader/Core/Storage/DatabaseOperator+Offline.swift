@@ -90,36 +90,55 @@ extension DatabaseOperator {
     }
   }
 
-  func fetchOfflineCoverSyncTargets(instanceId: String) throws -> [OfflineCoverSyncTarget] {
+  func fetchOfflineCoverSyncTargets(
+    instanceId: String,
+    libraryIds: [String] = []
+  ) throws -> [OfflineCoverSyncTarget] {
     guard !instanceId.isEmpty else { return [] }
     return try read { db in
       var targets: [OfflineCoverSyncTarget] = []
 
+      var seriesSQL = """
+        SELECT series_id
+        FROM \(KomgaSeries.databaseTableName)
+        WHERE instance_id = ?
+        AND is_unavailable = 0
+        """
+      var seriesArguments: StatementArguments = [instanceId]
+      Self.appendSQLInFilter(
+        column: "library_id",
+        values: libraryIds,
+        sql: &seriesSQL,
+        arguments: &seriesArguments
+      )
+      seriesSQL += "\nORDER BY id ASC"
       let seriesIds = try String.fetchAll(
         db,
-        sql: """
-          SELECT series_id
-          FROM \(KomgaSeries.databaseTableName)
-          WHERE instance_id = ?
-          AND is_unavailable = 0
-          ORDER BY id ASC
-          """,
-        arguments: [instanceId]
+        sql: seriesSQL,
+        arguments: seriesArguments
       )
       targets.append(
         contentsOf: seriesIds.map { OfflineCoverSyncTarget(thumbnailId: $0, type: .series) }
       )
 
+      var bookSQL = """
+        SELECT book_id
+        FROM \(KomgaBook.databaseTableName)
+        WHERE instance_id = ?
+        AND is_unavailable = 0
+        """
+      var bookArguments: StatementArguments = [instanceId]
+      Self.appendSQLInFilter(
+        column: "library_id",
+        values: libraryIds,
+        sql: &bookSQL,
+        arguments: &bookArguments
+      )
+      bookSQL += "\nORDER BY id ASC"
       let bookIds = try String.fetchAll(
         db,
-        sql: """
-          SELECT book_id
-          FROM \(KomgaBook.databaseTableName)
-          WHERE instance_id = ?
-          AND is_unavailable = 0
-          ORDER BY id ASC
-          """,
-        arguments: [instanceId]
+        sql: bookSQL,
+        arguments: bookArguments
       )
       targets.append(
         contentsOf: bookIds.map { OfflineCoverSyncTarget(thumbnailId: $0, type: .book) }

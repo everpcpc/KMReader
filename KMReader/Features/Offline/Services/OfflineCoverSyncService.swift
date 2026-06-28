@@ -17,6 +17,7 @@ actor OfflineCoverSyncService {
 
   func syncMissingCovers(
     instanceId: String,
+    libraryIds: [String] = [],
     onProgress: OfflineCoverSyncProgressHandler? = nil
   ) async throws -> OfflineCoverSyncSummary {
     guard !instanceId.isEmpty else { return OfflineCoverSyncSummary() }
@@ -28,7 +29,10 @@ actor OfflineCoverSyncService {
     defer { isRunning = false }
 
     let database = try await DatabaseOperator.database()
-    let targets = try await database.fetchOfflineCoverSyncTargets(instanceId: instanceId)
+    let targets = try await database.fetchOfflineCoverSyncTargets(
+      instanceId: instanceId,
+      libraryIds: libraryIds
+    )
     var summary = OfflineCoverSyncSummary()
     summary.totalCount = targets.count
     await reportProgress(summary: summary, onProgress: onProgress)
