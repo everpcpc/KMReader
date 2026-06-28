@@ -9,10 +9,6 @@ struct DashboardView: View {
   let authViewModel: AuthViewModel
   let readerPresentation: ReaderPresentationManager
 
-  #if os(iOS)
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-  #endif
-
   @State private var isRefreshing = false
   @State private var showLibraryPicker = false
   @State private var isCheckingConnection = false
@@ -44,7 +40,7 @@ struct DashboardView: View {
     #if os(macOS)
       return true
     #elseif os(iOS)
-      return horizontalSizeClass == .regular
+      return PlatformHelper.isPad
     #else
       return false
     #endif
@@ -53,7 +49,7 @@ struct DashboardView: View {
   @ViewBuilder
   private var browseSearchButton: some View {
     if showsBrowseSearchButton {
-      NavigationLink(value: NavDestination.browse) {
+      NavigationLink(value: NavDestination.browseSearch) {
         Image(systemName: "magnifyingglass")
       }
       .help(String(localized: "Search"))
