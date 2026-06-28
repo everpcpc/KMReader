@@ -8,6 +8,7 @@ import SwiftUI
 
 #if os(iOS) || os(tvOS)
   import UIKit
+  public typealias PlatformFont = UIFont
   public typealias PlatformImage = UIImage
   #if os(iOS)
     /// Pasteboard type for iOS platforms
@@ -15,6 +16,7 @@ import SwiftUI
   #endif
 #elseif os(macOS)
   import AppKit
+  public typealias PlatformFont = NSFont
   public typealias PlatformImage = NSImage
   /// Pasteboard type for macOS platforms
   public typealias PlatformPasteboard = NSPasteboard
