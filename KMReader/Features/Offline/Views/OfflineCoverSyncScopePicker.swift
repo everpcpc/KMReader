@@ -1,40 +1,18 @@
 //
-// OfflineCoverSyncScopeMenu.swift
+// OfflineCoverSyncScopePicker.swift
 //
 //
 
 import SwiftUI
 
-struct OfflineCoverSyncScopeMenu: View {
+struct OfflineCoverSyncScopePicker: View {
   let viewModel: OfflineCoverSyncViewModel
   let isDisabled: Bool
+  @State private var isPickerPresented = false
 
   var body: some View {
-    Menu {
-      Button {
-        viewModel.selectAllLibraries()
-      } label: {
-        Label(
-          String(localized: "offline.coverSync.scope.all", defaultValue: "All Libraries"),
-          systemImage: viewModel.syncsAllLibraries ? "checkmark.circle.fill" : "circle"
-        )
-      }
-
-      if !viewModel.libraries.isEmpty {
-        Divider()
-
-        ForEach(viewModel.libraries) { library in
-          Button {
-            viewModel.toggleLibrarySelection(library.id)
-          } label: {
-            Label(
-              library.name,
-              systemImage: viewModel.selectedLibraryIds.contains(library.id)
-                ? "checkmark.circle.fill" : "circle"
-            )
-          }
-        }
-      }
+    Button {
+      isPickerPresented = true
     } label: {
       HStack(spacing: 12) {
         Image(systemName: "square.stack.3d.up")
@@ -54,7 +32,16 @@ struct OfflineCoverSyncScopeMenu: View {
       }
       .contentShape(Rectangle())
     }
+    .buttonStyle(.plain)
     .disabled(isDisabled)
+    .sheet(isPresented: $isPickerPresented) {
+      OfflineCoverSyncLibraryPickerSheet(
+        libraries: viewModel.libraries,
+        selectedLibraryIds: viewModel.selectedLibraryIds
+      ) { libraryIds in
+        viewModel.selectLibraries(libraryIds)
+      }
+    }
     .accessibilityLabel(
       Text(
         String(

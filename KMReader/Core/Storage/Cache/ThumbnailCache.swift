@@ -37,7 +37,7 @@ actor ThumbnailCache {
   private let logger = AppLogger(.cache)
   private let diskCacheURL: URL = CacheNamespace.directory(for: "KomgaThumbnailCache")
   private let fileManager = FileManager.default
-  private var downloadTasks: [String: Task<URL, Error>] = [:]
+  private var downloadTasks: [String: DownloadTaskEntry] = [:]
 
   // Cached disk cache size (static for shared access)
   private static let cacheSizeActor = CacheSizeActor()
@@ -46,6 +46,12 @@ actor ThumbnailCache {
   private static let cleanupThrottleInterval: TimeInterval = 5
 
   private struct DiskCacheLimitReachedError: Error {}
+
+  private struct DownloadTaskEntry {
+    let id = UUID()
+    let task: Task<URL, Error>
+    let stopWhenCacheFull: Bool
+  }
 
   private static nonisolated func getMaxDiskCacheSize() -> Int {
     AppConfig.maxCoverCacheSize
@@ -104,8 +110,33 @@ actor ThumbnailCache {
       page: page,
       force: force
     )
-    if let existingTask = downloadTasks[cacheKey] {
-      return try await existingTask.value
+    if let existingEntry = downloadTasks[cacheKey] {
+      do {
+        return try await awaitDownloadTask(
+          existingEntry.task,
+          cancelOnCancellation: false
+        )
+      } catch {
+        if shouldRetryStandardDownload(
+          after: error,
+          existingEntry: existingEntry,
+          stopWhenCacheFull: stopWhenCacheFull
+        ) {
+          logger.debug(
+            "↪️ Retrying standard thumbnail download for \(type.rawValue) \(id) after limited task ended"
+          )
+          removeDownloadTask(cacheKey: cacheKey, matching: existingEntry)
+          return try await ensureThumbnail(
+            id: id,
+            type: type,
+            page: page,
+            force: force,
+            refreshExpired: refreshExpired,
+            stopWhenCacheFull: false
+          )
+        }
+        throw error
+      }
     }
 
     let task = Task<URL, Error> {
@@ -190,14 +221,18 @@ actor ThumbnailCache {
       return fileURL
     }
 
-    downloadTasks[cacheKey] = task
+    let entry = DownloadTaskEntry(task: task, stopWhenCacheFull: stopWhenCacheFull)
+    downloadTasks[cacheKey] = entry
 
     do {
-      let url = try await task.value
-      downloadTasks[cacheKey] = nil
+      let url = try await awaitDownloadTask(
+        task,
+        cancelOnCancellation: stopWhenCacheFull
+      )
+      removeDownloadTask(cacheKey: cacheKey, matching: entry)
       return url
     } catch {
-      downloadTasks[cacheKey] = nil
+      removeDownloadTask(cacheKey: cacheKey, matching: entry)
       if error is DiskCacheLimitReachedError {
         logger.debug("⏸️ Skipped thumbnail download for \(type.rawValue) \(id): cover cache is full")
       } else {
@@ -206,6 +241,36 @@ actor ThumbnailCache {
       }
       throw error
     }
+  }
+
+  private nonisolated func awaitDownloadTask(
+    _ task: Task<URL, Error>,
+    cancelOnCancellation: Bool
+  ) async throws -> URL {
+    try await withTaskCancellationHandler {
+      try await task.value
+    } onCancel: {
+      if cancelOnCancellation {
+        task.cancel()
+      }
+    }
+  }
+
+  private func shouldRetryStandardDownload(
+    after error: Error,
+    existingEntry: DownloadTaskEntry,
+    stopWhenCacheFull: Bool
+  ) -> Bool {
+    guard !Task.isCancelled, !stopWhenCacheFull, existingEntry.stopWhenCacheFull else {
+      return false
+    }
+
+    return error is DiskCacheLimitReachedError || error is CancellationError
+  }
+
+  private func removeDownloadTask(cacheKey: String, matching entry: DownloadTaskEntry) {
+    guard downloadTasks[cacheKey]?.id == entry.id else { return }
+    downloadTasks[cacheKey] = nil
   }
 
   /// Ensures a missing thumbnail exists without refreshing an already-cached file.

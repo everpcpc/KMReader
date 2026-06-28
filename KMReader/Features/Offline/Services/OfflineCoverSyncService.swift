@@ -64,6 +64,8 @@ actor OfflineCoverSyncService {
         return await stopSync(summary: summary, onProgress: onProgress)
       } catch APIError.offline {
         return await stopSync(summary: summary, onProgress: onProgress)
+      } catch APIError.networkError(_, _) {
+        return await stopSync(summary: summary, onProgress: onProgress)
       } catch {
         if shouldStopSync(instanceId: instanceId) {
           return await stopSync(summary: summary, onProgress: onProgress)

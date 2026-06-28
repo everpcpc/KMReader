@@ -30,7 +30,7 @@ struct OfflineCoverSyncSection: View {
       }
       .disabled(isStartDisabled)
 
-      OfflineCoverSyncScopeMenu(
+      OfflineCoverSyncScopePicker(
         viewModel: viewModel,
         isDisabled: viewModel.isSyncing || isOffline || instanceId.isEmpty
       )

@@ -55,19 +55,8 @@ final class OfflineCoverSyncViewModel {
     return selectedLibraryIds.sorted()
   }
 
-  func selectAllLibraries() {
-    selectedLibraryIds = []
-  }
-
-  func toggleLibrarySelection(_ libraryId: String) {
-    guard !libraryId.isEmpty else { return }
-
-    if selectedLibraryIds.contains(libraryId) {
-      selectedLibraryIds.remove(libraryId)
-    } else {
-      selectedLibraryIds.insert(libraryId)
-    }
-
+  func selectLibraries(_ libraryIds: Set<String>) {
+    selectedLibraryIds = libraryIds
     normalizeSelectedLibraryIds()
   }
 
