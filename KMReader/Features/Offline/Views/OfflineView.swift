@@ -30,6 +30,10 @@ struct OfflineView: View {
     SyncViewModel.shared
   }
 
+  private var coverSyncViewModel: OfflineCoverSyncViewModel {
+    OfflineCoverSyncViewModel.shared
+  }
+
   private var lastSyncTimeText: String {
     guard let syncInfo else {
       return String(localized: "settings.sync_data.never")
@@ -282,7 +286,7 @@ struct OfflineView: View {
           }
         }
       }
-      .disabled(syncViewModel.isSyncing || isOffline)
+      .disabled(syncViewModel.isSyncing || coverSyncViewModel.isSyncing || isOffline)
 
       Text(String(localized: "settings.sync_data.description"))
         .font(.caption)
@@ -326,6 +330,49 @@ struct OfflineView: View {
         }
       }
       .disabled(isOffline)
+
+      Divider()
+
+      Button(role: coverSyncViewModel.isSyncing ? .destructive : nil) {
+        handleCoverSyncButton()
+      } label: {
+        HStack {
+          Image(
+            systemName: coverSyncViewModel.isSyncing
+              ? "xmark.circle" : "photo.on.rectangle.angled"
+          )
+          .imageScale(.small)
+          Text(
+            coverSyncViewModel.isSyncing
+              ? String(localized: "offline.coverSync.cancel", defaultValue: "Cancel Cover Sync")
+              : String(
+                localized: "offline.coverSync.action",
+                defaultValue: "Sync Missing Covers"
+              )
+          )
+          .font(.caption)
+          Spacer()
+          if coverSyncViewModel.isSyncing {
+            ProgressView()
+              .controlSize(.small)
+          }
+        }
+      }
+      .disabled(
+        !coverSyncViewModel.isSyncing
+          && (syncViewModel.isSyncing || isOffline || current.instanceId.isEmpty))
+
+      if coverSyncViewModel.isSyncing {
+        if let coverSyncProgress = coverSyncViewModel.progress,
+          coverSyncProgress.totalCount > 0
+        {
+          OfflineCoverSyncProgressView(progress: coverSyncProgress)
+        } else {
+          Text(String(localized: "offline.coverSync.checking", defaultValue: "Checking covers…"))
+            .font(.caption2)
+            .foregroundColor(.secondary)
+        }
+      }
     }
     .padding(12)
     .background(.thinMaterial)
@@ -396,5 +443,24 @@ struct OfflineView: View {
         latestReadHistoryTime = AppConfig.recentlyReadRecordTime(instanceId: current.instanceId)
       }
     }
+  }
+
+  private func handleCoverSyncButton() {
+    if coverSyncViewModel.isSyncing {
+      coverSyncViewModel.cancelSync()
+      return
+    }
+
+    let instanceId = current.instanceId
+    guard
+      !syncViewModel.isSyncing,
+      !coverSyncViewModel.isSyncing,
+      !isOffline,
+      !instanceId.isEmpty
+    else {
+      return
+    }
+
+    coverSyncViewModel.startSyncMissingCovers(instanceId: instanceId)
   }
 }

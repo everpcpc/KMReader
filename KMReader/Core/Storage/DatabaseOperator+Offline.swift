@@ -90,6 +90,75 @@ extension DatabaseOperator {
     }
   }
 
+  func fetchOfflineCoverSyncTargets(instanceId: String) throws -> [OfflineCoverSyncTarget] {
+    guard !instanceId.isEmpty else { return [] }
+    return try read { db in
+      var targets: [OfflineCoverSyncTarget] = []
+
+      let seriesIds = try String.fetchAll(
+        db,
+        sql: """
+          SELECT series_id
+          FROM \(KomgaSeries.databaseTableName)
+          WHERE instance_id = ?
+          AND is_unavailable = 0
+          ORDER BY id ASC
+          """,
+        arguments: [instanceId]
+      )
+      targets.append(
+        contentsOf: seriesIds.map { OfflineCoverSyncTarget(thumbnailId: $0, type: .series) }
+      )
+
+      let bookIds = try String.fetchAll(
+        db,
+        sql: """
+          SELECT book_id
+          FROM \(KomgaBook.databaseTableName)
+          WHERE instance_id = ?
+          AND is_unavailable = 0
+          ORDER BY id ASC
+          """,
+        arguments: [instanceId]
+      )
+      targets.append(
+        contentsOf: bookIds.map { OfflineCoverSyncTarget(thumbnailId: $0, type: .book) }
+      )
+
+      let readListIds = try String.fetchAll(
+        db,
+        sql: """
+          SELECT read_list_id
+          FROM \(KomgaReadList.databaseTableName)
+          WHERE instance_id = ?
+          ORDER BY id ASC
+          """,
+        arguments: [instanceId]
+      )
+      targets.append(
+        contentsOf: readListIds.map { OfflineCoverSyncTarget(thumbnailId: $0, type: .readlist) }
+      )
+
+      let collectionIds = try String.fetchAll(
+        db,
+        sql: """
+          SELECT collection_id
+          FROM \(KomgaCollection.databaseTableName)
+          WHERE instance_id = ?
+          ORDER BY id ASC
+          """,
+        arguments: [instanceId]
+      )
+      targets.append(
+        contentsOf: collectionIds.map {
+          OfflineCoverSyncTarget(thumbnailId: $0, type: .collection)
+        }
+      )
+
+      return targets
+    }
+  }
+
   func updateBookDownloadStatus(
     bookId: String,
     instanceId: String,

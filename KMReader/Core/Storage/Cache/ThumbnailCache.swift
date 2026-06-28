@@ -45,7 +45,9 @@ actor ThumbnailCache {
   private static let cleanupTargetPercent: Int64 = 80
   private static let cleanupThrottleInterval: TimeInterval = 5
 
-  private static func getMaxDiskCacheSize() -> Int {
+  private struct DiskCacheLimitReachedError: Error {}
+
+  private static nonisolated func getMaxDiskCacheSize() -> Int {
     AppConfig.maxCoverCacheSize
   }
 
@@ -65,12 +67,20 @@ actor ThumbnailCache {
   /// Ensures the thumbnail exists locally, downloading it if necessary.
   /// For page thumbnails, will attempt to generate from offline downloaded pages first.
   /// Returns the local file:// URL.
-  func ensureThumbnail(id: String, type: ThumbnailType, page: Int? = nil, force: Bool = false)
+  func ensureThumbnail(
+    id: String,
+    type: ThumbnailType,
+    page: Int? = nil,
+    force: Bool = false,
+    refreshExpired: Bool = true,
+    stopWhenCacheFull: Bool = false
+  )
     async throws -> URL
   {
     let fileURL = Self.getThumbnailFileURL(id: id, type: type, page: page)
 
     if !force && fileManager.fileExists(atPath: fileURL.path) {
+      guard refreshExpired else { return fileURL }
       return await cachedThumbnailOrRefreshedURL(id: id, type: type, page: page, fileURL: fileURL)
     }
 
@@ -83,7 +93,17 @@ actor ThumbnailCache {
       }
     }
 
-    let cacheKey = Self.taskCacheKey(id: id, type: type, page: page, force: force)
+    if stopWhenCacheFull, await Self.cacheSizeHasReachedMaxSize() {
+      throw DiskCacheLimitReachedError()
+    }
+
+    let cacheKey = Self.taskCacheKey(
+      id: id,
+      type: type,
+      page: page,
+      force: force,
+      stopWhenCacheFull: stopWhenCacheFull
+    )
     if let existingTask = downloadTasks[cacheKey] {
       return try await existingTask.value
     }
@@ -119,7 +139,13 @@ actor ThumbnailCache {
         oldFileSize = nil
       }
 
-      let maxSize = Int64(Self.getMaxDiskCacheSize()) * 1024 * 1024
+      if stopWhenCacheFull,
+        await Self.cacheSizeWouldExceedMaxSize(replacing: oldFileSize, with: Int64(data.count))
+      {
+        throw DiskCacheLimitReachedError()
+      }
+
+      let maxSize = Self.maxDiskCacheSizeBytes()
       let highWatermark = maxSize * Self.cleanupHighWatermarkPercent / 100
       let newFileSize = Int64(data.count)
       let (currentSize, _, isValid) = await Self.cacheSizeActor.get()
@@ -165,9 +191,38 @@ actor ThumbnailCache {
       return url
     } catch {
       downloadTasks[cacheKey] = nil
-      logger.error(
-        "❌ Failed to download thumbnail for \(type.rawValue) \(id): \(error.localizedDescription)")
+      if error is DiskCacheLimitReachedError {
+        logger.debug("⏸️ Skipped thumbnail download for \(type.rawValue) \(id): cover cache is full")
+      } else {
+        logger.error(
+          "❌ Failed to download thumbnail for \(type.rawValue) \(id): \(error.localizedDescription)")
+      }
       throw error
+    }
+  }
+
+  /// Ensures a missing thumbnail exists without refreshing an already-cached file.
+  /// This is intended for background offline cover sync where staleness does not matter.
+  func ensureMissingThumbnail(id: String, type: ThumbnailType) async throws
+    -> ThumbnailCacheMissingResult
+  {
+    let fileURL = Self.getThumbnailFileURL(id: id, type: type)
+    if fileManager.fileExists(atPath: fileURL.path) {
+      return .cached
+    }
+
+    do {
+      _ = try await ensureThumbnail(
+        id: id,
+        type: type,
+        force: false,
+        refreshExpired: false,
+        stopWhenCacheFull: true
+      )
+      await Self.postThumbnailDidRefresh(id: id, type: type)
+      return .stored
+    } catch is DiskCacheLimitReachedError {
+      return .cacheLimitReached
     }
   }
 
@@ -175,10 +230,13 @@ actor ThumbnailCache {
     id: String,
     type: ThumbnailType,
     page: Int?,
-    force: Bool
+    force: Bool,
+    stopWhenCacheFull: Bool
   ) -> String {
-    page != nil
-      ? "\(type.rawValue)#\(id)#\(page!)#\(force)" : "\(type.rawValue)#\(id)#\(force)"
+    let cachePolicy = stopWhenCacheFull ? "limited" : "standard"
+    return page != nil
+      ? "\(type.rawValue)#\(id)#\(page!)#\(force)#\(cachePolicy)"
+      : "\(type.rawValue)#\(id)#\(force)#\(cachePolicy)"
   }
 
   private func cachedThumbnailOrRefreshedURL(
@@ -403,6 +461,11 @@ actor ThumbnailCache {
     return count
   }
 
+  static func cacheSizeHasReachedMaxSize() async -> Bool {
+    let (size, _, _) = await getDiskCacheInfo()
+    return size >= maxDiskCacheSizeBytes()
+  }
+
   /// Cleanup disk cache if needed
   static func cleanupDiskCacheIfNeeded() async {
     let fileManager = FileManager.default
@@ -458,6 +521,19 @@ actor ThumbnailCache {
   }
 
   // MARK: - Private Management Helpers
+
+  private static nonisolated func maxDiskCacheSizeBytes() -> Int64 {
+    Int64(getMaxDiskCacheSize()) * 1024 * 1024
+  }
+
+  private static func cacheSizeWouldExceedMaxSize(
+    replacing oldFileSize: Int64?,
+    with newFileSize: Int64
+  ) async -> Bool {
+    let (currentSize, _, _) = await getDiskCacheInfo()
+    let sizeAfterStore = currentSize - (oldFileSize ?? 0) + newFileSize
+    return sizeAfterStore > maxDiskCacheSizeBytes()
+  }
 
   private static func getDiskCacheInfo() async -> (size: Int64, count: Int, isValid: Bool) {
     let cacheInfo = await cacheSizeActor.get()
