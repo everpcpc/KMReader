@@ -30,6 +30,10 @@ struct OfflineView: View {
     SyncViewModel.shared
   }
 
+  private var coverSyncViewModel: OfflineCoverSyncViewModel {
+    OfflineCoverSyncViewModel.shared
+  }
+
   private var lastSyncTimeText: String {
     guard let syncInfo else {
       return String(localized: "settings.sync_data.never")
@@ -221,10 +225,24 @@ struct OfflineView: View {
       }
     }
     .onChange(of: authViewModel.isSwitching) { oldValue, newValue in
+      if newValue {
+        coverSyncViewModel.cancelSync()
+        return
+      }
+
       guard librarySelection == nil else { return }
       if oldValue && !newValue {
         refreshBrowse()
       }
+    }
+    .onChange(of: current.instanceId) { _, newValue in
+      coverSyncViewModel.cancelSyncIfContextChanged(instanceId: newValue, isOffline: isOffline)
+    }
+    .onChange(of: isOffline) { _, newValue in
+      coverSyncViewModel.cancelSyncIfContextChanged(
+        instanceId: current.instanceId,
+        isOffline: newValue
+      )
     }
     .task(id: current.instanceId) {
       guard !authViewModel.isSwitching else { return }
@@ -326,6 +344,7 @@ struct OfflineView: View {
         }
       }
       .disabled(isOffline)
+
     }
     .padding(12)
     .background(.thinMaterial)

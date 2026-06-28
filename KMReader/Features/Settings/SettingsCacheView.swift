@@ -67,7 +67,7 @@ struct SettingsCacheView: View {
         },
         set: { newValue in
           coverCacheSizeText = newValue
-          if let value = Int(newValue), value >= 128, value <= 2048 {
+          if let value = Int(newValue), value >= 128, value <= 8192 {
             maxCoverCacheSize = value
           }
         }
@@ -184,7 +184,7 @@ struct SettingsCacheView: View {
             }
             Slider(
               value: maxCoverCacheSizeBinding,
-              in: 128...2048,
+              in: 128...8192,
               step: 128
             ) { editing in
               isEditingCoverCacheSlider = editing

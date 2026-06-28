@@ -37,7 +37,7 @@ actor ThumbnailCache {
   private let logger = AppLogger(.cache)
   private let diskCacheURL: URL = CacheNamespace.directory(for: "KomgaThumbnailCache")
   private let fileManager = FileManager.default
-  private var downloadTasks: [String: Task<URL, Error>] = [:]
+  private var downloadTasks: [String: DownloadTaskEntry] = [:]
 
   // Cached disk cache size (static for shared access)
   private static let cacheSizeActor = CacheSizeActor()
@@ -45,7 +45,15 @@ actor ThumbnailCache {
   private static let cleanupTargetPercent: Int64 = 80
   private static let cleanupThrottleInterval: TimeInterval = 5
 
-  private static func getMaxDiskCacheSize() -> Int {
+  private struct DiskCacheLimitReachedError: Error {}
+
+  private struct DownloadTaskEntry {
+    let id = UUID()
+    let task: Task<URL, Error>
+    let stopWhenCacheFull: Bool
+  }
+
+  private static nonisolated func getMaxDiskCacheSize() -> Int {
     AppConfig.maxCoverCacheSize
   }
 
@@ -65,12 +73,21 @@ actor ThumbnailCache {
   /// Ensures the thumbnail exists locally, downloading it if necessary.
   /// For page thumbnails, will attempt to generate from offline downloaded pages first.
   /// Returns the local file:// URL.
-  func ensureThumbnail(id: String, type: ThumbnailType, page: Int? = nil, force: Bool = false)
+  func ensureThumbnail(
+    id: String,
+    type: ThumbnailType,
+    page: Int? = nil,
+    force: Bool = false,
+    refreshExpired: Bool = true,
+    stopWhenCacheFull: Bool = false
+  )
     async throws -> URL
   {
     let fileURL = Self.getThumbnailFileURL(id: id, type: type, page: page)
+    let cacheNamespaceId = Self.currentCacheNamespaceId()
 
     if !force && fileManager.fileExists(atPath: fileURL.path) {
+      guard refreshExpired else { return fileURL }
       return await cachedThumbnailOrRefreshedURL(id: id, type: type, page: page, fileURL: fileURL)
     }
 
@@ -83,9 +100,43 @@ actor ThumbnailCache {
       }
     }
 
-    let cacheKey = Self.taskCacheKey(id: id, type: type, page: page, force: force)
-    if let existingTask = downloadTasks[cacheKey] {
-      return try await existingTask.value
+    if stopWhenCacheFull, await Self.cacheSizeHasReachedMaxSize() {
+      throw DiskCacheLimitReachedError()
+    }
+
+    let cacheKey = Self.taskCacheKey(
+      id: id,
+      type: type,
+      page: page,
+      force: force
+    )
+    if let existingEntry = downloadTasks[cacheKey] {
+      do {
+        return try await awaitDownloadTask(
+          existingEntry.task,
+          cancelOnCancellation: false
+        )
+      } catch {
+        if shouldRetryStandardDownload(
+          after: error,
+          existingEntry: existingEntry,
+          stopWhenCacheFull: stopWhenCacheFull
+        ) {
+          logger.debug(
+            "↪️ Retrying standard thumbnail download for \(type.rawValue) \(id) after limited task ended"
+          )
+          removeDownloadTask(cacheKey: cacheKey, matching: existingEntry)
+          return try await ensureThumbnail(
+            id: id,
+            type: type,
+            page: page,
+            force: force,
+            refreshExpired: refreshExpired,
+            stopWhenCacheFull: false
+          )
+        }
+        throw error
+      }
     }
 
     let task = Task<URL, Error> {
@@ -119,10 +170,18 @@ actor ThumbnailCache {
         oldFileSize = nil
       }
 
-      let maxSize = Int64(Self.getMaxDiskCacheSize()) * 1024 * 1024
+      if stopWhenCacheFull,
+        await Self.cacheSizeWouldExceedMaxSize(replacing: oldFileSize, with: Int64(data.count))
+      {
+        throw DiskCacheLimitReachedError()
+      }
+
+      let maxSize = Self.maxDiskCacheSizeBytes()
       let highWatermark = maxSize * Self.cleanupHighWatermarkPercent / 100
       let newFileSize = Int64(data.count)
-      let (currentSize, _, isValid) = await Self.cacheSizeActor.get()
+      let (currentSize, _, isValid) = await Self.cacheSizeActor.get(
+        namespace: cacheNamespaceId
+      )
 
       func triggerCleanupIfNeeded() {
         Task.detached(priority: .utility) {
@@ -144,12 +203,17 @@ actor ThumbnailCache {
 
       logger.info("✅ Saved thumbnail for \(type.rawValue) \(id)")
 
-      await Self.cacheSizeActor.updateSize(delta: newFileSize - (oldFileSize ?? 0))
+      await Self.cacheSizeActor.updateSize(
+        delta: newFileSize - (oldFileSize ?? 0),
+        namespace: cacheNamespaceId
+      )
       if !fileExisted {
-        await Self.cacheSizeActor.updateCount(delta: 1)
+        await Self.cacheSizeActor.updateCount(delta: 1, namespace: cacheNamespaceId)
       }
 
-      let (sizeAfterStore, _, isValidAfter) = await Self.cacheSizeActor.get()
+      let (sizeAfterStore, _, isValidAfter) = await Self.cacheSizeActor.get(
+        namespace: cacheNamespaceId
+      )
       if isValidAfter, let size = sizeAfterStore, size > highWatermark {
         triggerCleanupIfNeeded()
       }
@@ -157,17 +221,80 @@ actor ThumbnailCache {
       return fileURL
     }
 
-    downloadTasks[cacheKey] = task
+    let entry = DownloadTaskEntry(task: task, stopWhenCacheFull: stopWhenCacheFull)
+    downloadTasks[cacheKey] = entry
 
     do {
-      let url = try await task.value
-      downloadTasks[cacheKey] = nil
+      let url = try await awaitDownloadTask(
+        task,
+        cancelOnCancellation: stopWhenCacheFull
+      )
+      removeDownloadTask(cacheKey: cacheKey, matching: entry)
       return url
     } catch {
-      downloadTasks[cacheKey] = nil
-      logger.error(
-        "❌ Failed to download thumbnail for \(type.rawValue) \(id): \(error.localizedDescription)")
+      removeDownloadTask(cacheKey: cacheKey, matching: entry)
+      if error is DiskCacheLimitReachedError {
+        logger.debug("⏸️ Skipped thumbnail download for \(type.rawValue) \(id): cover cache is full")
+      } else {
+        logger.error(
+          "❌ Failed to download thumbnail for \(type.rawValue) \(id): \(error.localizedDescription)")
+      }
       throw error
+    }
+  }
+
+  private nonisolated func awaitDownloadTask(
+    _ task: Task<URL, Error>,
+    cancelOnCancellation: Bool
+  ) async throws -> URL {
+    try await withTaskCancellationHandler {
+      try await task.value
+    } onCancel: {
+      if cancelOnCancellation {
+        task.cancel()
+      }
+    }
+  }
+
+  private func shouldRetryStandardDownload(
+    after error: Error,
+    existingEntry: DownloadTaskEntry,
+    stopWhenCacheFull: Bool
+  ) -> Bool {
+    guard !Task.isCancelled, !stopWhenCacheFull, existingEntry.stopWhenCacheFull else {
+      return false
+    }
+
+    return error is DiskCacheLimitReachedError || error is CancellationError
+  }
+
+  private func removeDownloadTask(cacheKey: String, matching entry: DownloadTaskEntry) {
+    guard downloadTasks[cacheKey]?.id == entry.id else { return }
+    downloadTasks[cacheKey] = nil
+  }
+
+  /// Ensures a missing thumbnail exists without refreshing an already-cached file.
+  /// This is intended for background offline cover sync where staleness does not matter.
+  func ensureMissingThumbnail(id: String, type: ThumbnailType) async throws
+    -> ThumbnailCacheMissingResult
+  {
+    let fileURL = Self.getThumbnailFileURL(id: id, type: type)
+    if fileManager.fileExists(atPath: fileURL.path) {
+      return .cached
+    }
+
+    do {
+      _ = try await ensureThumbnail(
+        id: id,
+        type: type,
+        force: false,
+        refreshExpired: false,
+        stopWhenCacheFull: true
+      )
+      await Self.postThumbnailDidRefresh(id: id, type: type)
+      return .stored
+    } catch is DiskCacheLimitReachedError {
+      return .cacheLimitReached
     }
   }
 
@@ -177,8 +304,9 @@ actor ThumbnailCache {
     page: Int?,
     force: Bool
   ) -> String {
-    page != nil
-      ? "\(type.rawValue)#\(id)#\(page!)#\(force)" : "\(type.rawValue)#\(id)#\(force)"
+    return page != nil
+      ? "\(type.rawValue)#\(id)#\(page!)#\(force)"
+      : "\(type.rawValue)#\(id)#\(force)"
   }
 
   private func cachedThumbnailOrRefreshedURL(
@@ -230,6 +358,8 @@ actor ThumbnailCache {
   private func generateThumbnailFromOfflinePage(
     bookId: String, pageNumber: Int, thumbnailURL: URL
   ) async -> URL? {
+    let cacheNamespaceId = Self.currentCacheNamespaceId()
+
     // Check if book is downloaded offline
     guard await OfflineManager.shared.isBookDownloaded(bookId: bookId) else {
       return nil
@@ -281,7 +411,9 @@ actor ThumbnailCache {
       let maxSize = Int64(Self.getMaxDiskCacheSize()) * 1024 * 1024
       let highWatermark = maxSize * Self.cleanupHighWatermarkPercent / 100
       let newFileSize = Int64(thumbnailData.count)
-      let (currentSize, _, isValid) = await Self.cacheSizeActor.get()
+      let (currentSize, _, isValid) = await Self.cacheSizeActor.get(
+        namespace: cacheNamespaceId
+      )
 
       func triggerCleanupIfNeeded() {
         Task.detached(priority: .utility) {
@@ -302,12 +434,17 @@ actor ThumbnailCache {
       try thumbnailData.write(to: thumbnailURL, options: [.atomic])
       logger.info("✅ Generated thumbnail from offline page for book \(bookId) page \(pageNumber)")
 
-      await Self.cacheSizeActor.updateSize(delta: newFileSize - (oldFileSize ?? 0))
+      await Self.cacheSizeActor.updateSize(
+        delta: newFileSize - (oldFileSize ?? 0),
+        namespace: cacheNamespaceId
+      )
       if !fileExisted {
-        await Self.cacheSizeActor.updateCount(delta: 1)
+        await Self.cacheSizeActor.updateCount(delta: 1, namespace: cacheNamespaceId)
       }
 
-      let (sizeAfterStore, _, isValidAfter) = await Self.cacheSizeActor.get()
+      let (sizeAfterStore, _, isValidAfter) = await Self.cacheSizeActor.get(
+        namespace: cacheNamespaceId
+      )
       if isValidAfter, let size = sizeAfterStore, size > highWatermark {
         triggerCleanupIfNeeded()
       }
@@ -366,14 +503,15 @@ actor ThumbnailCache {
   /// Clear disk cache for the current instance only
   static func clearCurrentInstanceDiskCache() async {
     let fileManager = FileManager.default
-    let diskCacheURL = await namespacedDiskCacheURL()
+    let cacheNamespaceId = currentCacheNamespaceId()
+    let diskCacheURL = await namespacedDiskCacheURL(namespaceId: cacheNamespaceId)
 
     await Task.detached(priority: .userInitiated) {
       try? fileManager.removeItem(at: diskCacheURL)
       try? fileManager.createDirectory(at: diskCacheURL, withIntermediateDirectories: true)
     }.value
 
-    await cacheSizeActor.set(size: 0, count: 0)
+    await cacheSizeActor.set(size: 0, count: 0, namespace: cacheNamespaceId)
   }
 
   /// Clear all disk cache for thumbnails
@@ -387,8 +525,8 @@ actor ThumbnailCache {
       try? fileManager.createDirectory(at: diskCacheURL, withIntermediateDirectories: true)
     }.value
 
-    // Reset cached size and count
-    await cacheSizeActor.set(size: 0, count: 0)
+    // Reset cached size and count for every namespace.
+    await cacheSizeActor.removeAll()
   }
 
   /// Get disk cache size in bytes
@@ -403,13 +541,19 @@ actor ThumbnailCache {
     return count
   }
 
+  static func cacheSizeHasReachedMaxSize() async -> Bool {
+    let (size, _, _) = await getDiskCacheInfo()
+    return size >= maxDiskCacheSizeBytes()
+  }
+
   /// Cleanup disk cache if needed
   static func cleanupDiskCacheIfNeeded() async {
     let fileManager = FileManager.default
+    let cacheNamespaceId = currentCacheNamespaceId()
     let maxCacheSize = getMaxDiskCacheSize()
     let maxSize = Int64(maxCacheSize) * 1024 * 1024
     let highWatermark = maxSize * cleanupHighWatermarkPercent / 100
-    let (cachedSize, _, isValid) = await cacheSizeActor.get()
+    let (cachedSize, _, isValid) = await cacheSizeActor.get(namespace: cacheNamespaceId)
 
     if isValid, let cachedSize, cachedSize <= highWatermark {
       return
@@ -418,23 +562,25 @@ actor ThumbnailCache {
     guard
       await cacheSizeActor.tryBeginCleanup(
         minInterval: cleanupThrottleInterval,
-        force: !isValid
+        force: !isValid,
+        namespace: cacheNamespaceId
       )
     else {
       return
     }
 
-    let diskCacheURL = await namespacedDiskCacheURL()
+    let diskCacheURL = await namespacedDiskCacheURL(namespaceId: cacheNamespaceId)
 
     await Task.detached(priority: .utility) {
       await performDiskCacheCleanup(
         diskCacheURL: diskCacheURL,
         fileManager: fileManager,
-        maxCacheSize: maxCacheSize
+        maxCacheSize: maxCacheSize,
+        cacheNamespaceId: cacheNamespaceId
       )
     }.value
 
-    await cacheSizeActor.endCleanup()
+    await cacheSizeActor.endCleanup(namespace: cacheNamespaceId)
   }
 
   /// Refresh thumbnail by re-downloading from server
@@ -459,14 +605,28 @@ actor ThumbnailCache {
 
   // MARK: - Private Management Helpers
 
+  private static nonisolated func maxDiskCacheSizeBytes() -> Int64 {
+    Int64(getMaxDiskCacheSize()) * 1024 * 1024
+  }
+
+  private static func cacheSizeWouldExceedMaxSize(
+    replacing oldFileSize: Int64?,
+    with newFileSize: Int64
+  ) async -> Bool {
+    let (currentSize, _, _) = await getDiskCacheInfo()
+    let sizeAfterStore = currentSize - (oldFileSize ?? 0) + newFileSize
+    return sizeAfterStore > maxDiskCacheSizeBytes()
+  }
+
   private static func getDiskCacheInfo() async -> (size: Int64, count: Int, isValid: Bool) {
-    let cacheInfo = await cacheSizeActor.get()
+    let cacheNamespaceId = currentCacheNamespaceId()
+    let cacheInfo = await cacheSizeActor.get(namespace: cacheNamespaceId)
     if cacheInfo.isValid, let size = cacheInfo.size, let count = cacheInfo.count {
       return (size, count, true)
     }
 
     let fileManager = FileManager.default
-    let diskCacheURL = await namespacedDiskCacheURL()
+    let diskCacheURL = await namespacedDiskCacheURL(namespaceId: cacheNamespaceId)
 
     let result: (size: Int64, count: Int) = await Task.detached(priority: .utility) {
       guard fileManager.fileExists(atPath: diskCacheURL.path) else {
@@ -482,13 +642,17 @@ actor ThumbnailCache {
       return (totalSize, fileInfo.count)
     }.value
 
-    await cacheSizeActor.set(size: result.size, count: result.count)
+    await cacheSizeActor.set(size: result.size, count: result.count, namespace: cacheNamespaceId)
     return (result.size, result.count, true)
   }
 
-  nonisolated private static func namespacedDiskCacheURL() async -> URL {
+  nonisolated private static func currentCacheNamespaceId() -> String {
+    CacheNamespace.identifier()
+  }
+
+  nonisolated private static func namespacedDiskCacheURL(namespaceId: String) async -> URL {
     await MainActor.run {
-      CacheNamespace.directory(for: "KomgaThumbnailCache")
+      CacheNamespace.directory(for: "KomgaThumbnailCache", instanceId: namespaceId)
     }
   }
 
@@ -538,7 +702,8 @@ actor ThumbnailCache {
   private static func performDiskCacheCleanup(
     diskCacheURL: URL,
     fileManager: FileManager,
-    maxCacheSize: Int
+    maxCacheSize: Int,
+    cacheNamespaceId: String
   ) async {
     let logger = AppLogger(.cache)
     let maxSize = Int64(maxCacheSize) * 1024 * 1024
@@ -551,7 +716,7 @@ actor ThumbnailCache {
     )
 
     // Check validity state BEFORE deleting to decide strategy
-    let (_, _, isValid) = await cacheSizeActor.get()
+    let (_, _, isValid) = await cacheSizeActor.get(namespace: cacheNamespaceId)
 
     if totalSize > highWatermark {
       logger.debug(
@@ -580,12 +745,16 @@ actor ThumbnailCache {
       }
 
       if isValid {
-        await cacheSizeActor.updateSize(delta: -bytesDeleted)
-        await cacheSizeActor.updateCount(delta: -filesDeleted)
+        await cacheSizeActor.updateSize(delta: -bytesDeleted, namespace: cacheNamespaceId)
+        await cacheSizeActor.updateCount(delta: -filesDeleted, namespace: cacheNamespaceId)
       } else {
         // If invalid, we must set the absolute value.
         // We use our scanned values minus what WE deleted.
-        await cacheSizeActor.set(size: totalSize - bytesDeleted, count: fileInfo.count - filesDeleted)
+        await cacheSizeActor.set(
+          size: totalSize - bytesDeleted,
+          count: fileInfo.count - filesDeleted,
+          namespace: cacheNamespaceId
+        )
       }
 
       logger.debug(
@@ -596,7 +765,7 @@ actor ThumbnailCache {
       // IF cache was valid, we do NOTHING (to avoid overwriting concurrent writes).
       // IF cache was invalid, we set it (sync).
       if !isValid {
-        await cacheSizeActor.set(size: totalSize, count: fileInfo.count)
+        await cacheSizeActor.set(size: totalSize, count: fileInfo.count, namespace: cacheNamespaceId)
       }
     }
   }
