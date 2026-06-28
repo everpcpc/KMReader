@@ -10193,7 +10193,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dernier"
+            "value" : "Liste"
           }
         },
         "it" : {
@@ -10205,7 +10205,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "最後"
+            "value" : "リスト"
           }
         },
         "ko" : {
