@@ -383,6 +383,12 @@
         return parent.viewModel.viewItem(for: target.pageID)
       }
 
+      private func clearNavigationTargetIfConsumed(_ consumedItem: ReaderViewItem) {
+        guard let navigationTarget = parent.viewModel.navigationTarget else { return }
+        guard resolveNavigationTarget(navigationTarget) == consumedItem else { return }
+        parent.viewModel.clearNavigationTarget()
+      }
+
       private func handleNavigationTarget(_ target: ReaderViewItem) {
         guard let targetItem = resolveNavigationTarget(target) else {
           parent.viewModel.clearNavigationTarget()
@@ -394,7 +400,7 @@
           syncSlotContent()
           updateSlotLayout()
           applyCurrentItem(targetItem)
-          parent.viewModel.clearNavigationTarget()
+          clearNavigationTargetIfConsumed(targetItem)
           return
         }
 
@@ -420,9 +426,8 @@
           syncSlotContent()
           updateSlotLayout()
           applyCurrentItem(targetItem)
+          clearNavigationTargetIfConsumed(targetItem)
         }
-
-        parent.viewModel.clearNavigationTarget()
       }
 
       private func handlePanChanged(translation: CGPoint) {
@@ -547,6 +552,7 @@
         syncSlotContent()
         updateSlotLayout()
         applyCurrentItem(targetItem)
+        clearNavigationTargetIfConsumed(targetItem)
         applyPanRecognizerState()
         // A freshly committed page is never zoomed. Clear any stale scale left on
         // a slot that was zoomed while the transition animation was in flight

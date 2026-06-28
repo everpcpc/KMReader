@@ -392,14 +392,35 @@ struct DivinaReaderView: View {
         && viewModel.hasPages
     }
 
-    private func isBackwardTVMove(_ direction: MoveCommandDirection) -> Bool {
+    private func readerNavigationStep(forTVMove direction: MoveCommandDirection) -> ReaderNavigationStep? {
       switch readingDirection {
       case .ltr:
-        return direction == .left
+        switch direction {
+        case .left:
+          return .previous
+        case .right:
+          return .next
+        default:
+          return nil
+        }
       case .rtl:
-        return direction == .right
+        switch direction {
+        case .left:
+          return .next
+        case .right:
+          return .previous
+        default:
+          return nil
+        }
       case .vertical, .webtoon:
-        return direction == .up
+        switch direction {
+        case .up:
+          return .previous
+        case .down:
+          return .next
+        default:
+          return nil
+        }
       }
     }
 
@@ -446,59 +467,21 @@ struct DivinaReaderView: View {
       }
 
       if isShowingEndPage {
-        if isBackwardTVMove(direction) {
-          logger.debug("📺 \(source) move on end page: go to previous page")
-          goToReaderPosition(.previous)
+        if let step = readerNavigationStep(forTVMove: direction) {
+          logger.debug("📺 \(source) move on end page: go to \(String(describing: step)) page")
+          goToReaderPosition(step)
           return true
         }
 
-        logger.debug("📺 \(source) move ignored on end page: non-backward direction")
+        logger.debug("📺 \(source) move ignored on end page: unsupported direction")
         return false
       }
 
-      switch readingDirection {
-      case .ltr, .rtl:
-        switch direction {
-        case .left:
-          if readingDirection == .rtl {
-            goToReaderPosition(.next)
-          } else {
-            goToReaderPosition(.previous)
-          }
-          return true
-        case .right:
-          if readingDirection == .rtl {
-            goToReaderPosition(.previous)
-          } else {
-            goToReaderPosition(.next)
-          }
-          return true
-        default:
-          return false
-        }
-      case .vertical:
-        switch direction {
-        case .up:
-          goToReaderPosition(.previous)
-          return true
-        case .down:
-          goToReaderPosition(.next)
-          return true
-        default:
-          return false
-        }
-      case .webtoon:
-        switch direction {
-        case .up:
-          goToReaderPosition(.previous)
-          return true
-        case .down:
-          goToReaderPosition(.next)
-          return true
-        default:
-          return false
-        }
+      guard let step = readerNavigationStep(forTVMove: direction) else {
+        return false
       }
+      goToReaderPosition(step)
+      return true
     }
 
     private func handleTVSelectCommand(source: String) -> Bool {
