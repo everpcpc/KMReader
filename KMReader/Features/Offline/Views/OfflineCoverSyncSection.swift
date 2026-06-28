@@ -21,42 +21,51 @@ struct OfflineCoverSyncSection: View {
 
   var body: some View {
     Section {
-      HStack(spacing: 12) {
-        Button {
-          guard !isPickerDisabled else { return }
-          isPickerPresented = true
-        } label: {
-          HStack(spacing: 12) {
-            Image(systemName: "photo.on.rectangle.angled")
-              .foregroundStyle(.secondary)
-            VStack(alignment: .leading, spacing: 3) {
-              Text(String(localized: "offline.coverSync.section", defaultValue: "Cover Sync"))
-                .foregroundStyle(.primary)
-              statusLine
+      VStack(alignment: .leading, spacing: 6) {
+        HStack(spacing: 12) {
+          Button {
+            guard !isPickerDisabled else { return }
+            isPickerPresented = true
+          } label: {
+            HStack(spacing: 12) {
+              Image(systemName: "photo.on.rectangle.angled")
+                .foregroundStyle(.secondary)
+              VStack(alignment: .leading, spacing: 3) {
+                Text(String(localized: "offline.coverSync.section", defaultValue: "Cover Sync"))
+                  .foregroundStyle(.primary)
+                if !viewModel.isSyncing {
+                  scopeLine
+                }
+              }
+              Spacer(minLength: 0)
             }
-            Spacer(minLength: 0)
+            .contentShape(Rectangle())
           }
-          .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .disabled(isPickerDisabled && !viewModel.isSyncing)
-        .accessibilityLabel(
-          Text(
-            String(
-              localized: "offline.coverSync.scope.label",
-              defaultValue: "Cover Sync Libraries"
+          .buttonStyle(.plain)
+          .disabled(isPickerDisabled && !viewModel.isSyncing)
+          .accessibilityLabel(
+            Text(
+              String(
+                localized: "offline.coverSync.scope.label",
+                defaultValue: "Cover Sync Libraries"
+              )
             )
           )
-        )
 
-        Button(role: viewModel.isSyncing ? .destructive : nil) {
-          handleCoverSyncButton()
-        } label: {
-          actionLabel
+          Button(role: viewModel.isSyncing ? .destructive : nil) {
+            handleCoverSyncButton()
+          } label: {
+            actionLabel
+          }
+          .buttonStyle(.plain)
+          .disabled(isStartDisabled)
+          .accessibilityLabel(Text(actionAccessibilityLabel))
+          .help(actionAccessibilityLabel)
         }
-        .buttonStyle(.bordered)
-        .disabled(isStartDisabled)
-        .accessibilityLabel(Text(actionAccessibilityLabel))
+
+        if viewModel.isSyncing {
+          syncProgressLine
+        }
       }
     }
     .sheet(isPresented: $isPickerPresented) {
@@ -79,38 +88,41 @@ struct OfflineCoverSyncSection: View {
   }
 
   @ViewBuilder
-  private var statusLine: some View {
-    if viewModel.isSyncing {
-      if let progress = viewModel.progress, progress.totalCount > 0 {
-        OfflineCoverSyncProgressView(progress: progress)
-      } else {
-        Text(String(localized: "offline.coverSync.checking", defaultValue: "Checking covers…"))
-          .font(.caption)
-          .foregroundStyle(.secondary)
-      }
-    } else {
-      HStack(spacing: 4) {
-        Text(scopeTitle)
-          .font(.caption)
-          .foregroundStyle(.secondary)
-          .lineLimit(1)
-        Image(systemName: "chevron.right")
-          .font(.caption2)
-          .foregroundStyle(.tertiary)
-      }
+  private var scopeLine: some View {
+    HStack(spacing: 4) {
+      Text(scopeTitle)
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
+      Image(systemName: "chevron.right")
+        .font(.caption2)
+        .foregroundStyle(.tertiary)
     }
   }
 
   @ViewBuilder
-  private var actionLabel: some View {
-    if viewModel.isSyncing {
-      Label(String(localized: "Cancel"), systemImage: "xmark.circle")
+  private var syncProgressLine: some View {
+    if let progress = viewModel.progress, progress.totalCount > 0 {
+      OfflineCoverSyncProgressView(progress: progress)
     } else {
-      Label(
-        String(localized: "offline.sync.confirm.action", defaultValue: "Sync Now"),
-        systemImage: "arrow.triangle.2.circlepath"
-      )
+      Text(String(localized: "offline.coverSync.checking", defaultValue: "Checking covers…"))
+        .font(.caption)
+        .foregroundStyle(.secondary)
     }
+  }
+
+  private var actionLabel: some View {
+    Image(systemName: actionIcon)
+      .foregroundStyle(actionColor)
+      .contentShape(Rectangle())
+  }
+
+  private var actionIcon: String {
+    viewModel.isSyncing ? "xmark.circle.fill" : "arrow.triangle.2.circlepath.circle.fill"
+  }
+
+  private var actionColor: Color {
+    viewModel.isSyncing ? .red : .accentColor
   }
 
   private var actionAccessibilityLabel: String {
