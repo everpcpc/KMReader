@@ -44,15 +44,7 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
   }
 
   @ViewBuilder
-  private var borderOverlay: some View {
-    if !thumbnailShowShadow {
-      RoundedRectangle(cornerRadius: cornerRadius)
-        .stroke(Color.primary.opacity(0.15), lineWidth: 0.5)
-    }
-  }
-
-  @ViewBuilder
-  private func thumbnailBase<Content: View>(
+  private func interactiveThumbnailBase<Content: View>(
     @ViewBuilder content: () -> Content
   ) -> some View {
     content()
@@ -60,6 +52,7 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
       #if os(iOS)
         .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: cornerRadius))
       #endif
+      .contentShape(RoundedRectangle(cornerRadius: cornerRadius))
       .withNavigationLink(navigationLink, cornerRadius: cornerRadius)
       .withButtonAction(onAction, cornerRadius: cornerRadius)
       .contextMenu {
@@ -67,7 +60,14 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
           menu()
         }
       }
-      .transition(.opacity.combined(with: .scale(scale: 0.98)))
+  }
+
+  @ViewBuilder
+  private var borderOverlay: some View {
+    if !thumbnailShowShadow {
+      RoundedRectangle(cornerRadius: cornerRadius)
+        .stroke(Color.primary.opacity(0.15), lineWidth: 0.5)
+    }
   }
 
   init(
@@ -133,56 +133,94 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
   }
 
   var body: some View {
-    ZStack(alignment: alignment) {
-      Color.clear
-
-      if image != nil {
-        thumbnailBase {
-          imageCard
+    thumbnailSurface
+      .onReceive(NotificationCenter.default.publisher(for: .thumbnailDidRefresh)) { notification in
+        guard let userInfo = notification.userInfo,
+          let notificationId = userInfo["id"] as? String,
+          let notificationType = userInfo["type"] as? String,
+          notificationId == id,
+          notificationType == type.rawValue
+        else {
+          return
         }
-      } else if shouldShowPlaceholder {
-        thumbnailBase {
-          placeholderCard
+        refreshTrigger = UUID()
+      }
+      .task(id: loadTaskKey) {
+        isLoading = true
+        if currentBaseKey != baseKey {
+          currentBaseKey = baseKey
+          image = nil
+          loadedImageSize = nil
+        }
+
+        let loaded = await loadThumbnail(id: id, type: type)
+        guard !Task.isCancelled, currentBaseKey == baseKey else { return }
+        if let loaded = loaded {
+          loadedImageSize = loaded.size
+          image = loaded
+        }
+        isLoading = false
+      }
+  }
+
+  private var thumbnailSurface: some View {
+    thumbnailSlot
+      .overlay {
+        GeometryReader { proxy in
+          thumbnailContent(in: proxy.size)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
         }
       }
-    }
-    .animation(.easeInOut(duration: 0.18), value: image != nil)
-    .animation(.easeInOut(duration: 0.18), value: shouldShowPlaceholder)
-    .animation(.easeInOut(duration: 0.18), value: contentBlurRadius)
-    .aspectRatio(CoverAspectRatio.widthToHeight, contentMode: .fit)
-    .frame(width: width)
-    .overlay {
-      if isAbnormalSize, let overlay = overlay {
-        overlay()
+      .animation(.easeInOut(duration: 0.18), value: image != nil)
+      .animation(.easeInOut(duration: 0.18), value: shouldShowPlaceholder)
+      .animation(.easeInOut(duration: 0.18), value: contentBlurRadius)
+      .overlay {
+        if isAbnormalSize, let overlay = overlay {
+          overlay()
+        }
       }
-    }
-    .onReceive(NotificationCenter.default.publisher(for: .thumbnailDidRefresh)) { notification in
-      guard let userInfo = notification.userInfo,
-        let notificationId = userInfo["id"] as? String,
-        let notificationType = userInfo["type"] as? String,
-        notificationId == id,
-        notificationType == type.rawValue
-      else {
-        return
-      }
-      refreshTrigger = UUID()
-    }
-    .task(id: loadTaskKey) {
-      isLoading = true
-      if currentBaseKey != baseKey {
-        currentBaseKey = baseKey
-        image = nil
-        loadedImageSize = nil
-      }
+  }
 
-      let loaded = await loadThumbnail(id: id, type: type)
-      guard !Task.isCancelled, currentBaseKey == baseKey else { return }
-      if let loaded = loaded {
-        loadedImageSize = loaded.size
-        image = loaded
+  private var thumbnailSlot: some View {
+    Color.clear
+      .aspectRatio(CoverAspectRatio.widthToHeight, contentMode: .fit)
+      .frame(width: width)
+  }
+
+  @ViewBuilder
+  private func thumbnailContent(in slotSize: CGSize) -> some View {
+    let displaySize = displayedContentSize(in: slotSize)
+
+    if image != nil {
+      interactiveThumbnailBase {
+        imageCard
+          .frame(width: displaySize.width, height: displaySize.height)
       }
-      isLoading = false
+      .transition(.opacity.combined(with: .scale(scale: 0.98)))
+    } else if shouldShowPlaceholder {
+      interactiveThumbnailBase {
+        placeholderCard
+          .frame(width: displaySize.width, height: displaySize.height)
+      }
+      .transition(.opacity.combined(with: .scale(scale: 0.98)))
     }
+  }
+
+  private func displayedContentSize(in slotSize: CGSize) -> CGSize {
+    guard slotSize.width.isFinite, slotSize.height.isFinite, slotSize.width > 0, slotSize.height > 0
+    else {
+      return .zero
+    }
+    guard image != nil, effectivePreserveAspectRatio else {
+      return slotSize
+    }
+
+    let aspectRatio = max(imageAspectRatio, CGFloat.leastNonzeroMagnitude)
+    let slotAspectRatio = slotSize.width / slotSize.height
+    if aspectRatio > slotAspectRatio {
+      return CGSize(width: slotSize.width, height: slotSize.width / aspectRatio)
+    }
+    return CGSize(width: slotSize.height * aspectRatio, height: slotSize.height)
   }
 
   @ViewBuilder
