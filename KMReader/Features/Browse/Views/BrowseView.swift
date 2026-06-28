@@ -9,6 +9,7 @@ struct BrowseView: View {
   let authViewModel: AuthViewModel
   let fixedContent: BrowseContentType?
   let metadataFilter: MetadataFilterConfig?
+  let focusesSearchOnAppear: Bool
 
   @Environment(\.browseLibrarySelection) private var librarySelection
 
@@ -30,6 +31,7 @@ struct BrowseView: View {
   @State private var showLibraryPicker = false
   @State private var showFilterSheet = false
   @State private var showSavedFilters = false
+  @FocusState private var isSearchFocused: Bool
 
   private var effectiveContent: BrowseContentType {
     fixedContent ?? browseContent
@@ -52,11 +54,13 @@ struct BrowseView: View {
   init(
     authViewModel: AuthViewModel,
     fixedContent: BrowseContentType? = nil,
-    metadataFilter: MetadataFilterConfig? = nil
+    metadataFilter: MetadataFilterConfig? = nil,
+    focusesSearchOnAppear: Bool = false
   ) {
     self.authViewModel = authViewModel
     self.fixedContent = fixedContent
     self.metadataFilter = metadataFilter
+    self.focusesSearchOnAppear = focusesSearchOnAppear
   }
 
   var title: String {
@@ -148,6 +152,7 @@ struct BrowseView: View {
     }
     .inlineNavigationBarTitle(title)
     .searchable(text: $searchQuery)
+    .browseSearchFocus($isSearchFocused, when: focusesSearchOnAppear)
     #if os(iOS) || os(macOS)
       .toolbar {
         if librarySelection == nil {
@@ -170,30 +175,28 @@ struct BrowseView: View {
           #endif
         }
 
-        ToolbarItem(placement: .confirmationAction) {
-          HStack {
-            if effectiveContent == .series || effectiveContent == .books {
-              Button {
-                showSavedFilters = true
-              } label: {
-                Image(systemName: "bookmark")
-              }
-            }
-
+        ToolbarItemGroup(placement: .confirmationAction) {
+          if effectiveContent == .series || effectiveContent == .books {
             Button {
-              showFilterSheet = true
+              showSavedFilters = true
             } label: {
-              Image(systemName: "line.3.horizontal.decrease.circle")
+              Image(systemName: "bookmark")
             }
+          }
 
-            Menu {
-              LayoutModePicker(
-                selection: layoutModeBinding,
-                showGridDensity: true
-              )
-            } label: {
-              Image(systemName: "ellipsis")
-            }
+          Button {
+            showFilterSheet = true
+          } label: {
+            Image(systemName: "line.3.horizontal.decrease.circle")
+          }
+
+          Menu {
+            LayoutModePicker(
+              selection: layoutModeBinding,
+              showGridDensity: true
+            )
+          } label: {
+            Image(systemName: "ellipsis")
           }
         }
       }

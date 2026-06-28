@@ -162,28 +162,26 @@ struct OfflineView: View {
           #endif
         }
 
-        ToolbarItem(placement: .confirmationAction) {
-          HStack {
-            Button {
-              showSavedFilters = true
-            } label: {
-              Image(systemName: "bookmark")
-            }
+        ToolbarItemGroup(placement: .confirmationAction) {
+          Button {
+            showSavedFilters = true
+          } label: {
+            Image(systemName: "bookmark")
+          }
 
-            Button {
-              showFilterSheet = true
-            } label: {
-              Image(systemName: "line.3.horizontal.decrease.circle")
-            }
+          Button {
+            showFilterSheet = true
+          } label: {
+            Image(systemName: "line.3.horizontal.decrease.circle")
+          }
 
-            Menu {
-              LayoutModePicker(
-                selection: layoutModeBinding,
-                showGridDensity: true
-              )
-            } label: {
-              Image(systemName: "ellipsis")
-            }
+          Menu {
+            LayoutModePicker(
+              selection: layoutModeBinding,
+              showGridDensity: true
+            )
+          } label: {
+            Image(systemName: "ellipsis")
           }
         }
       }

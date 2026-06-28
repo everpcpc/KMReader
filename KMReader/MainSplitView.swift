@@ -78,7 +78,7 @@ import SwiftUI
           detailPath.append(NavDestination.seriesDetail(seriesId: seriesId))
         }
       case .search:
-        nav = .browseSeries
+        nav = .browseSearch
       case .downloads:
         nav = .offline
       }
