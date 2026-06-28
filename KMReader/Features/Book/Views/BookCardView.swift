@@ -9,6 +9,7 @@ struct BookCardView: View {
   let item: BookDisplayItem
   var onReadBook: ((Bool) -> Void)? = nil
   var onMutationCompleted: (() -> Void)? = nil
+  var onDeleteRequested: (() -> Void)? = nil
   var showSeriesTitle: Bool = false
   var showSeriesNavigation: Bool = true
 
@@ -19,7 +20,6 @@ struct BookCardView: View {
   @AppStorage("thumbnailShowProgressBar") private var thumbnailShowProgressBar: Bool = true
   @AppStorage("thumbnailBlurUnreadCovers") private var thumbnailBlurUnreadCovers: Bool = false
   @State private var showReadListPicker = false
-  @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
 
   private var progress: Double {
@@ -92,9 +92,7 @@ struct BookCardView: View {
           onShowReadListPicker: {
             showReadListPicker = true
           },
-          onDeleteRequested: {
-            showDeleteConfirmation = true
-          },
+          onDeleteRequested: onDeleteRequested,
           onEditRequested: {
             showEditSheet = true
           },
@@ -159,14 +157,6 @@ struct BookCardView: View {
       }
     }
     .frame(maxHeight: .infinity, alignment: .top)
-    .alert("Delete Book", isPresented: $showDeleteConfirmation) {
-      Button("Cancel", role: .cancel) {}
-      Button("Delete", role: .destructive) {
-        deleteBook()
-      }
-    } message: {
-      Text("Are you sure you want to delete this book? This action cannot be undone.")
-    }
     .sheet(isPresented: $showReadListPicker) {
       ReadListPickerSheet(
         bookId: item.bookId,
@@ -253,15 +243,4 @@ struct BookCardView: View {
     }
   }
 
-  private func deleteBook() {
-    Task {
-      do {
-        try await BookDeletionService.deleteBook(item)
-        ErrorManager.shared.notify(message: String(localized: "notification.book.deleted"))
-        onMutationCompleted?()
-      } catch {
-        ErrorManager.shared.alert(error: error)
-      }
-    }
-  }
 }

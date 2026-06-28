@@ -157,16 +157,16 @@ extension DatabaseOperator {
     }
   }
 
-  func deleteCollectionsNotIn(_ collectionIds: Set<String>, instanceId: String) -> Int {
+  func deleteCollectionsNotIn(_ collectionIds: Set<String>, instanceId: String) -> [String] {
     (try? write { db in
       let existingCollections = try fetchCollections(db: db, instanceId: instanceId)
-      var deletedCount = 0
+      var deletedIds: [String] = []
       for collection in existingCollections where !collectionIds.contains(collection.collectionId) {
         try KomgaCollection.deleteOne(db, key: collection.id)
-        deletedCount += 1
+        deletedIds.append(collection.collectionId)
       }
-      return deletedCount
-    }) ?? 0
+      return deletedIds
+    }) ?? []
   }
 }
 
@@ -349,17 +349,17 @@ extension DatabaseOperator {
     return automaticPolicyReadListIds.sorted()
   }
 
-  func deleteReadListsNotIn(_ readListIds: Set<String>, instanceId: String) -> Int {
+  func deleteReadListsNotIn(_ readListIds: Set<String>, instanceId: String) -> [String] {
     (try? write { db in
       let existingReadLists = try fetchReadLists(db: db, instanceId: instanceId)
-      var deletedCount = 0
+      var deletedIds: [String] = []
       for readList in existingReadLists where !readListIds.contains(readList.readListId) {
         try deleteReadListBookMemberships(db: db, readListId: readList.readListId, instanceId: instanceId)
         try KomgaReadList.deleteOne(db, key: readList.id)
-        deletedCount += 1
+        deletedIds.append(readList.readListId)
       }
-      return deletedCount
-    }) ?? 0
+      return deletedIds
+    }) ?? []
   }
 }
 

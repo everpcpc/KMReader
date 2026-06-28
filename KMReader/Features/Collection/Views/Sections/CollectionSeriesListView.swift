@@ -137,6 +137,7 @@ struct CollectionSeriesListView: View {
 
   private func refreshSeries() async {
     await loadCollection()
+    guard collectionItem != nil else { return }
     await seriesViewModel.loadCollectionSeries(
       collectionId: collectionId,
       browseOpts: browseOpts,

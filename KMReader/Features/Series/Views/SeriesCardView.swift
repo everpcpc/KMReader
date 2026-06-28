@@ -8,6 +8,7 @@ import SwiftUI
 struct SeriesCardView: View {
   let item: SeriesDisplayItem
   var onMutationCompleted: (() -> Void)? = nil
+  var onDeleteRequested: (() -> Void)? = nil
 
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
   @AppStorage("cardTextOverlayMode") private var cardTextOverlayMode: Bool = false
@@ -15,7 +16,6 @@ struct SeriesCardView: View {
   @AppStorage("thumbnailBlurUnreadCovers") private var thumbnailBlurUnreadCovers: Bool = false
 
   @State private var showCollectionPicker = false
-  @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
 
   var navDestination: NavDestination {
@@ -76,9 +76,7 @@ struct SeriesCardView: View {
           onShowCollectionPicker: {
             showCollectionPicker = true
           },
-          onDeleteRequested: {
-            showDeleteConfirmation = true
-          },
+          onDeleteRequested: onDeleteRequested,
           onEditRequested: {
             showEditSheet = true
           },
@@ -122,14 +120,6 @@ struct SeriesCardView: View {
     }
     .frame(maxWidth: .infinity, alignment: .leading)
     .frame(maxHeight: .infinity, alignment: .top)
-    .alert("Delete Series", isPresented: $showDeleteConfirmation) {
-      Button("Cancel", role: .cancel) {}
-      Button("Delete", role: .destructive) {
-        deleteSeries()
-      }
-    } message: {
-      Text("Are you sure you want to delete this series? This action cannot be undone.")
-    }
     .sheet(isPresented: $showCollectionPicker) {
       CollectionPickerSheet(
         seriesId: item.seriesId,
@@ -191,15 +181,4 @@ struct SeriesCardView: View {
     }
   }
 
-  private func deleteSeries() {
-    Task {
-      do {
-        try await SeriesDeletionService.deleteSeries(item)
-        ErrorManager.shared.notify(message: String(localized: "notification.series.deleted"))
-        onMutationCompleted?()
-      } catch {
-        ErrorManager.shared.alert(error: error)
-      }
-    }
-  }
 }

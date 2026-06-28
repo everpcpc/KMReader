@@ -12,6 +12,7 @@ struct SeriesQueryItemView: View {
 
   @AppStorage("currentAccount") private var current: Current = .init()
   @State private var item: SeriesDisplayItem?
+  @State private var showDeleteConfirmation = false
 
   init(
     seriesId: String,
@@ -29,12 +30,18 @@ struct SeriesQueryItemView: View {
         case .grid:
           SeriesCardView(
             item: item,
-            onMutationCompleted: reloadItem
+            onMutationCompleted: reloadItem,
+            onDeleteRequested: {
+              showDeleteConfirmation = true
+            }
           )
         case .list:
           SeriesRowView(
             item: item,
-            onMutationCompleted: reloadItem
+            onMutationCompleted: reloadItem,
+            onDeleteRequested: {
+              showDeleteConfirmation = true
+            }
           )
         }
       } else {
@@ -48,6 +55,14 @@ struct SeriesQueryItemView: View {
       notification in
       guard shouldReload(for: notification) else { return }
       reloadItem()
+    }
+    .alert("Delete Series", isPresented: $showDeleteConfirmation) {
+      Button("Cancel", role: .cancel) {}
+      Button("Delete", role: .destructive) {
+        deleteSeries()
+      }
+    } message: {
+      Text("Are you sure you want to delete this series? This action cannot be undone.")
     }
   }
 
@@ -73,6 +88,22 @@ struct SeriesQueryItemView: View {
   private func reloadItem() {
     Task {
       await loadItem()
+    }
+  }
+
+  private func deleteSeries() {
+    Task {
+      do {
+        if let item {
+          try await SeriesDeletionService.deleteSeries(item)
+        } else {
+          try await SeriesDeletionService.deleteSeries(seriesId: seriesId, instanceId: current.instanceId)
+        }
+        ErrorManager.shared.notify(message: String(localized: "notification.series.deleted"))
+        await loadItem()
+      } catch {
+        ErrorManager.shared.alert(error: error)
+      }
     }
   }
 

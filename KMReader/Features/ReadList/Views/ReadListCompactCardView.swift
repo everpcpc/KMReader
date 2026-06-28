@@ -10,9 +10,9 @@ struct ReadListCompactCardView: View {
   let item: ReadListDisplayItem
   var coverWidth: CGFloat = 80
   var onChanged: () -> Void = {}
+  let onDeleteRequested: () -> Void
 
   @State private var showEditSheet = false
-  @State private var showDeleteConfirmation = false
 
   var body: some View {
     NavigationLink(value: NavDestination.readListDetail(readListId: item.readListId)) {
@@ -60,7 +60,7 @@ struct ReadListCompactCardView: View {
         offlinePolicyLimit: item.offlinePolicyLimit,
         isPinned: item.isPinned,
         onDeleteRequested: {
-          showDeleteConfirmation = true
+          onDeleteRequested()
         },
         onEditRequested: {
           showEditSheet = true
@@ -71,28 +71,8 @@ struct ReadListCompactCardView: View {
         onMutationCompleted: onChanged
       )
     }
-    .alert("Delete Read List", isPresented: $showDeleteConfirmation) {
-      Button("Cancel", role: .cancel) {}
-      Button("Delete", role: .destructive) {
-        deleteReadList()
-      }
-    } message: {
-      Text("Are you sure you want to delete this read list? This action cannot be undone.")
-    }
     .sheet(isPresented: $showEditSheet, onDismiss: onChanged) {
       ReadListEditSheet(readList: item.readList)
-    }
-  }
-
-  private func deleteReadList() {
-    Task {
-      do {
-        try await ReadListService.deleteReadList(readListId: item.readListId)
-        ErrorManager.shared.notify(message: String(localized: "notification.readList.deleted"))
-        onChanged()
-      } catch {
-        ErrorManager.shared.alert(error: error)
-      }
     }
   }
 

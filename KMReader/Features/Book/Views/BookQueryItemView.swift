@@ -16,6 +16,7 @@ struct BookQueryItemView: View {
   @AppStorage("currentAccount") private var current: Current = .init()
   @Environment(\.readerActions) private var readerActions
   @State private var item: BookDisplayItem?
+  @State private var showDeleteConfirmation = false
 
   init(
     bookId: String,
@@ -47,6 +48,9 @@ struct BookQueryItemView: View {
               )
             },
             onMutationCompleted: reloadItem,
+            onDeleteRequested: {
+              showDeleteConfirmation = true
+            },
             showSeriesTitle: showSeriesTitle,
             showSeriesNavigation: showSeriesNavigation
           )
@@ -61,6 +65,9 @@ struct BookQueryItemView: View {
               )
             },
             onMutationCompleted: reloadItem,
+            onDeleteRequested: {
+              showDeleteConfirmation = true
+            },
             showSeriesTitle: showSeriesTitle,
             showSeriesNavigation: showSeriesNavigation
           )
@@ -81,6 +88,14 @@ struct BookQueryItemView: View {
       guard shouldReload(for: notification) else { return }
       reloadItem()
     }
+    .alert("Delete Book", isPresented: $showDeleteConfirmation) {
+      Button("Cancel", role: .cancel) {}
+      Button("Delete", role: .destructive) {
+        deleteBook()
+      }
+    } message: {
+      Text("Are you sure you want to delete this book? This action cannot be undone.")
+    }
   }
 
   private func shouldReload(for notification: Notification) -> Bool {
@@ -99,6 +114,22 @@ struct BookQueryItemView: View {
   private func reloadItem() {
     Task {
       await loadItem()
+    }
+  }
+
+  private func deleteBook() {
+    Task {
+      do {
+        if let item {
+          try await BookDeletionService.deleteBook(item)
+        } else {
+          try await BookDeletionService.deleteBook(bookId: bookId, instanceId: current.instanceId)
+        }
+        ErrorManager.shared.notify(message: String(localized: "notification.book.deleted"))
+        await loadItem()
+      } catch {
+        ErrorManager.shared.alert(error: error)
+      }
     }
   }
 

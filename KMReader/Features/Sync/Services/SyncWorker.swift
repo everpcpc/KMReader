@@ -251,12 +251,13 @@ actor SyncWorker {
         )
       }
 
-      let deletedCount = await database.deleteCollectionsNotIn(
+      let deletedCollectionIds = await database.deleteCollectionsNotIn(
         remoteCollectionIds,
         instanceId: instanceId
       )
-      if deletedCount > 0 {
-        logger.info("🧹 Removed \(deletedCount) stale collections")
+      await ContentProjectionNotifier.postCollectionsDidChange(collectionIds: deletedCollectionIds)
+      if !deletedCollectionIds.isEmpty {
+        logger.info("🧹 Removed \(deletedCollectionIds.count) stale collections")
       }
       await SyncService.postSidebarProjectionDidChange(instanceId: instanceId)
       logger.info("📂 Synced collections")
@@ -416,12 +417,13 @@ actor SyncWorker {
       }
 
       await SyncService.syncAutomaticReadListBooks(Array(automaticPolicyReadListIds), instanceId: instanceId)
-      let deletedCount = await database.deleteReadListsNotIn(
+      let deletedReadListIds = await database.deleteReadListsNotIn(
         remoteReadListIds,
         instanceId: instanceId
       )
-      if deletedCount > 0 {
-        logger.info("🧹 Removed \(deletedCount) stale read lists")
+      await ContentProjectionNotifier.postReadListsDidChange(readListIds: deletedReadListIds)
+      if !deletedReadListIds.isEmpty {
+        logger.info("🧹 Removed \(deletedReadListIds.count) stale read lists")
       }
       await SyncService.postSidebarProjectionDidChange(instanceId: instanceId)
       logger.info("📖 Synced read lists")

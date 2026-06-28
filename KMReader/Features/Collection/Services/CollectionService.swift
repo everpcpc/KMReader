@@ -146,6 +146,7 @@ nonisolated enum CollectionService {
     // Delete from local database
     let instanceId = AppConfig.current.instanceId
     try await DatabaseOperator.database().deleteCollection(id: collectionId, instanceId: instanceId)
+    await ContentProjectionNotifier.postCollectionDidChange(collectionId: collectionId, refreshDelay: 0)
   }
 
   static func removeSeriesFromCollection(collectionId: String, seriesIds: [String]) async throws {

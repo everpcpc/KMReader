@@ -159,6 +159,7 @@ struct BooksListViewForReadList: View {
 
   private func refreshBooks() async {
     await loadReadList()
+    guard readListItem != nil else { return }
     await bookViewModel.loadReadListBooks(
       readListId: readListId,
       browseOpts: browseOpts,

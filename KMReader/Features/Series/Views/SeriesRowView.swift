@@ -8,11 +8,11 @@ import SwiftUI
 struct SeriesRowView: View {
   let item: SeriesDisplayItem
   var onMutationCompleted: (() -> Void)? = nil
+  var onDeleteRequested: (() -> Void)? = nil
 
   @AppStorage("thumbnailBlurUnreadCovers") private var thumbnailBlurUnreadCovers: Bool = false
 
   @State private var showCollectionPicker = false
-  @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
 
   var series: Series {
@@ -113,9 +113,7 @@ struct SeriesRowView: View {
               onShowCollectionPicker: {
                 showCollectionPicker = true
               },
-              onDeleteRequested: {
-                showDeleteConfirmation = true
-              },
+              onDeleteRequested: onDeleteRequested,
               onEditRequested: {
                 showEditSheet = true
               },
@@ -125,14 +123,6 @@ struct SeriesRowView: View {
           }
         }
       }
-    }
-    .alert("Delete Series", isPresented: $showDeleteConfirmation) {
-      Button("Cancel", role: .cancel) {}
-      Button("Delete", role: .destructive) {
-        deleteSeries()
-      }
-    } message: {
-      Text("Are you sure you want to delete this series? This action cannot be undone.")
     }
     .sheet(isPresented: $showCollectionPicker) {
       CollectionPickerSheet(
@@ -191,15 +181,4 @@ struct SeriesRowView: View {
     }
   }
 
-  private func deleteSeries() {
-    Task {
-      do {
-        try await SeriesDeletionService.deleteSeries(series, instanceId: item.instanceId)
-        ErrorManager.shared.notify(message: String(localized: "notification.series.deleted"))
-        onMutationCompleted?()
-      } catch {
-        ErrorManager.shared.alert(error: error)
-      }
-    }
-  }
 }

@@ -109,6 +109,18 @@ nonisolated enum ContentProjectionNotifier {
     }
   }
 
+  static func postCollectionsDidChange(
+    collectionIds: [String],
+    refreshDelay: UInt64 = localRefreshDelay
+  ) async {
+    let ids = Set(collectionIds.filter { !$0.isEmpty })
+    guard !ids.isEmpty else { return }
+
+    await MainActor.run {
+      enqueueCollectionIds(ids, refreshDelay: refreshDelay)
+    }
+  }
+
   static func postReadListDidChange(
     readListId: String,
     refreshDelay: UInt64 = localRefreshDelay
@@ -117,6 +129,18 @@ nonisolated enum ContentProjectionNotifier {
 
     await MainActor.run {
       enqueueReadListIds([readListId], refreshDelay: refreshDelay)
+    }
+  }
+
+  static func postReadListsDidChange(
+    readListIds: [String],
+    refreshDelay: UInt64 = localRefreshDelay
+  ) async {
+    let ids = Set(readListIds.filter { !$0.isEmpty })
+    guard !ids.isEmpty else { return }
+
+    await MainActor.run {
+      enqueueReadListIds(ids, refreshDelay: refreshDelay)
     }
   }
 

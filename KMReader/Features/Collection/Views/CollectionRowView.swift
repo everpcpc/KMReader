@@ -8,9 +8,9 @@ import SwiftUI
 struct CollectionRowView: View {
   let item: CollectionDisplayItem
   var onMutationCompleted: (() -> Void)? = nil
+  let onDeleteRequested: () -> Void
 
   @State private var showEditSheet = false
-  @State private var showDeleteConfirmation = false
 
   var body: some View {
     HStack(spacing: 12) {
@@ -59,7 +59,7 @@ struct CollectionRowView: View {
               menuTitle: item.name,
               isPinned: item.isPinned,
               onDeleteRequested: {
-                showDeleteConfirmation = true
+                onDeleteRequested()
               },
               onEditRequested: {
                 showEditSheet = true
@@ -73,29 +73,8 @@ struct CollectionRowView: View {
         }
       }
     }
-    .alert("Delete Collection", isPresented: $showDeleteConfirmation) {
-      Button("Cancel", role: .cancel) {}
-      Button("Delete", role: .destructive) {
-        deleteCollection()
-      }
-    } message: {
-      Text("Are you sure you want to delete this collection? This action cannot be undone.")
-    }
     .sheet(isPresented: $showEditSheet) {
       CollectionEditSheet(collection: item.collection)
-    }
-  }
-
-  private func deleteCollection() {
-    Task {
-      do {
-        try await CollectionService.deleteCollection(
-          collectionId: item.collectionId)
-        ErrorManager.shared.notify(message: String(localized: "notification.collection.deleted"))
-        onMutationCompleted?()
-      } catch {
-        ErrorManager.shared.alert(error: error)
-      }
     }
   }
 
