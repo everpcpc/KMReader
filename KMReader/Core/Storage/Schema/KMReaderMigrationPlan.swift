@@ -40,18 +40,15 @@ nonisolated private enum MigrationSnapshotStore {
   private static let rawSeriesPrefix = "raw-series"
 
   private static var directoryURL: URL {
-    let baseURL =
-      FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-      ?? FileManager.default.temporaryDirectory
+    let baseURL = (try? AppStorageDirectory.supportDirectory()) ?? FileManager.default.temporaryDirectory
     return baseURL.appendingPathComponent(directoryName, isDirectory: true)
   }
 
   static func prepare() throws {
     clear()
-    try FileManager.default.createDirectory(
+    try AppStorageDirectory.ensureDirectoryExists(
       at: directoryURL,
-      withIntermediateDirectories: true,
-      attributes: nil
+      fileManager: .default
     )
   }
 

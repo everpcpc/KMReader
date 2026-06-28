@@ -37,14 +37,7 @@ enum LocalDataResetService {
   }
 
   private static func resetDirectories(fileManager: FileManager) -> [URL] {
-    var directories: [URL] = []
-
-    if let applicationSupport = fileManager.urls(
-      for: .applicationSupportDirectory,
-      in: .userDomainMask
-    ).first {
-      directories.append(applicationSupport)
-    }
+    var directories = AppStorageDirectory.supportDirectoryCandidates(fileManager: fileManager)
 
     if let caches = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first {
       directories.append(caches)
@@ -97,14 +90,7 @@ enum LocalDataResetService {
   }
 
   private static func persistentStoreFileCandidates(fileManager: FileManager) -> [URL] {
-    var storeDirectories: [URL] = []
-
-    if let applicationSupport = fileManager.urls(
-      for: .applicationSupportDirectory,
-      in: .userDomainMask
-    ).first {
-      storeDirectories.append(applicationSupport)
-    }
+    var storeDirectories = AppStorageDirectory.supportDirectoryCandidates(fileManager: fileManager)
 
     if let sharedContainer = WidgetDataStore.sharedContainerURL {
       storeDirectories.append(sharedContainer.appendingPathComponent("Library/Application Support", isDirectory: true))

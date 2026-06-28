@@ -5,15 +5,12 @@
 
 import Foundation
 
-/// Manages font file storage in Application Support directory
+/// Manages font file storage in the app support directory.
 enum FontFileManager {
   /// Returns the base directory for custom fonts
   static func fontsDirectory() -> URL? {
-    guard let appSupportURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-    else {
-      return nil
-    }
-    let fontsDir = appSupportURL.appendingPathComponent("CustomFonts", isDirectory: true)
+    guard let supportDirectory = try? AppStorageDirectory.supportDirectory() else { return nil }
+    let fontsDir = supportDirectory.appendingPathComponent("CustomFonts", isDirectory: true)
     ensureDirectoryExists(at: fontsDir)
     return fontsDir
   }
@@ -22,11 +19,8 @@ enum FontFileManager {
   /// - Parameter relativePath: Relative path like "CustomFonts/font.ttf"
   /// - Returns: Absolute file path, or nil if resolution fails
   static func resolvePath(_ relativePath: String) -> String? {
-    guard let appSupportURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-    else {
-      return nil
-    }
-    return appSupportURL.appendingPathComponent(relativePath).path
+    guard let supportDirectory = try? AppStorageDirectory.supportDirectory() else { return nil }
+    return supportDirectory.appendingPathComponent(relativePath).path
   }
 
   /// Resolves a font file by its stored file name.
@@ -84,13 +78,7 @@ enum FontFileManager {
   // MARK: - Helpers
 
   private static func ensureDirectoryExists(at url: URL) {
-    var isDirectory: ObjCBool = false
-    if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory),
-      isDirectory.boolValue
-    {
-      return
-    }
-    try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+    try? AppStorageDirectory.ensureDirectoryExists(at: url)
   }
 }
 

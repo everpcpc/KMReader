@@ -51,17 +51,9 @@ actor LogStore {
   }
 
   nonisolated private static func openDatabaseQueue(fileManager: FileManager = .default) throws -> DatabaseQueue {
-    guard
-      let appSupport = fileManager.urls(
-        for: .applicationSupportDirectory,
-        in: .userDomainMask
-      ).first
-    else {
-      throw AppErrorType.storageNotConfigured(message: "Application Support directory is unavailable")
-    }
-
-    let logsDir = appSupport.appendingPathComponent("Logs", isDirectory: true)
-    try fileManager.createDirectory(at: logsDir, withIntermediateDirectories: true)
+    let supportDirectory = try AppStorageDirectory.supportDirectory(fileManager: fileManager)
+    let logsDir = supportDirectory.appendingPathComponent("Logs", isDirectory: true)
+    try AppStorageDirectory.ensureDirectoryExists(at: logsDir, fileManager: fileManager)
     let url = logsDir.appendingPathComponent(fileName)
 
     let queue = try DatabaseQueue(path: url.path)

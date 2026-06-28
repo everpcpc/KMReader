@@ -98,31 +98,12 @@ nonisolated enum LocalDatabase {
   }
 
   static func databaseURL(fileManager: FileManager = .default) throws -> URL {
-    guard
-      let applicationSupport = fileManager.urls(
-        for: .applicationSupportDirectory,
-        in: .userDomainMask
-      ).first
-    else {
-      throw AppErrorType.storageNotConfigured(message: "Application Support directory is unavailable")
-    }
-
-    try fileManager.createDirectory(
-      at: applicationSupport,
-      withIntermediateDirectories: true
-    )
-    return applicationSupport.appendingPathComponent(fileName)
+    let supportDirectory = try AppStorageDirectory.supportDirectory(fileManager: fileManager)
+    return supportDirectory.appendingPathComponent(fileName)
   }
 
   static func legacyStoreCandidates(fileManager: FileManager = .default) -> [URL] {
-    var storeDirectories: [URL] = []
-
-    if let applicationSupport = fileManager.urls(
-      for: .applicationSupportDirectory,
-      in: .userDomainMask
-    ).first {
-      storeDirectories.append(applicationSupport)
-    }
+    var storeDirectories = AppStorageDirectory.supportDirectoryCandidates(fileManager: fileManager)
 
     if let sharedContainer = WidgetDataStore.sharedContainerURL {
       storeDirectories.append(sharedContainer.appendingPathComponent("Library/Application Support", isDirectory: true))
