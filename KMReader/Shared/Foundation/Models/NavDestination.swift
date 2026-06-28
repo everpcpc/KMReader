@@ -8,6 +8,7 @@ import SwiftUI
 
 enum NavDestination: Hashable {
   case home
+  case browse
   case browseSeries
   case browseBooks
   case browseCollections
@@ -80,6 +81,8 @@ enum NavDestination: Hashable {
         authViewModel: context.authViewModel,
         readerPresentation: context.readerPresentation
       )
+    case .browse:
+      BrowseView(authViewModel: context.authViewModel)
     case .browseSeries:
       BrowseView(
         authViewModel: context.authViewModel,

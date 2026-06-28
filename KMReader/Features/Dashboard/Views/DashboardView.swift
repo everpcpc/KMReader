@@ -8,6 +8,11 @@ import SwiftUI
 struct DashboardView: View {
   let authViewModel: AuthViewModel
   let readerPresentation: ReaderPresentationManager
+
+  #if os(iOS)
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+  #endif
+
   @State private var isRefreshing = false
   @State private var showLibraryPicker = false
   @State private var isCheckingConnection = false
@@ -33,6 +38,27 @@ struct DashboardView: View {
 
   private var isQueueingDashboardOffline: Bool {
     !offlineQueueingSections.isEmpty
+  }
+
+  private var showsBrowseSearchButton: Bool {
+    #if os(macOS)
+      return true
+    #elseif os(iOS)
+      return horizontalSizeClass == .regular
+    #else
+      return false
+    #endif
+  }
+
+  @ViewBuilder
+  private var browseSearchButton: some View {
+    if showsBrowseSearchButton {
+      NavigationLink(value: NavDestination.browse) {
+        Image(systemName: "magnifyingglass")
+      }
+      .help(String(localized: "Search"))
+      .accessibilityLabel(String(localized: "Search"))
+    }
   }
 
   @ViewBuilder
@@ -188,7 +214,9 @@ struct DashboardView: View {
           }
         #endif
 
-        ToolbarItem(placement: .confirmationAction) {
+        ToolbarItemGroup(placement: .confirmationAction) {
+          browseSearchButton
+
           if isOffline {
             Button {
               Task {

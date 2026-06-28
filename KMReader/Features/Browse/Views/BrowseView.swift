@@ -170,30 +170,28 @@ struct BrowseView: View {
           #endif
         }
 
-        ToolbarItem(placement: .confirmationAction) {
-          HStack {
-            if effectiveContent == .series || effectiveContent == .books {
-              Button {
-                showSavedFilters = true
-              } label: {
-                Image(systemName: "bookmark")
-              }
-            }
-
+        ToolbarItemGroup(placement: .confirmationAction) {
+          if effectiveContent == .series || effectiveContent == .books {
             Button {
-              showFilterSheet = true
+              showSavedFilters = true
             } label: {
-              Image(systemName: "line.3.horizontal.decrease.circle")
+              Image(systemName: "bookmark")
             }
+          }
 
-            Menu {
-              LayoutModePicker(
-                selection: layoutModeBinding,
-                showGridDensity: true
-              )
-            } label: {
-              Image(systemName: "ellipsis")
-            }
+          Button {
+            showFilterSheet = true
+          } label: {
+            Image(systemName: "line.3.horizontal.decrease.circle")
+          }
+
+          Menu {
+            LayoutModePicker(
+              selection: layoutModeBinding,
+              showGridDensity: true
+            )
+          } label: {
+            Image(systemName: "ellipsis")
           }
         }
       }
