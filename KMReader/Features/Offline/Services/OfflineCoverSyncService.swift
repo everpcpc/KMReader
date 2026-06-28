@@ -66,6 +66,10 @@ actor OfflineCoverSyncService {
         return await stopSync(summary: summary, onProgress: onProgress)
       } catch APIError.networkError(_, _) {
         return await stopSync(summary: summary, onProgress: onProgress)
+      } catch let error as APIError where shouldStopAfterAPIWideFailure(error) {
+        await reportProgress(summary: summary, onProgress: onProgress)
+        logger.warning("⏹️ Offline cover sync stopped by API-wide failure: \(error.description)")
+        throw error
       } catch {
         if shouldStopSync(instanceId: instanceId) {
           return await stopSync(summary: summary, onProgress: onProgress)
@@ -88,6 +92,15 @@ actor OfflineCoverSyncService {
 
   private func shouldStopSync(instanceId: String) -> Bool {
     Task.isCancelled || AppConfig.isOffline || AppConfig.current.instanceId != instanceId
+  }
+
+  private func shouldStopAfterAPIWideFailure(_ error: APIError) -> Bool {
+    switch error {
+    case .unauthorized, .forbidden, .tooManyRequests, .serverError:
+      return true
+    default:
+      return false
+    }
   }
 
   private func stopSync(
