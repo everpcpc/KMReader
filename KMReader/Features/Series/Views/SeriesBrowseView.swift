@@ -16,6 +16,7 @@ struct SeriesBrowseView: View {
   @AppStorage("seriesBrowseOptions") private var storedBrowseOpts: SeriesBrowseOptions = SeriesBrowseOptions()
   @AppStorage("seriesBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
   @AppStorage("searchIgnoreFilters") private var searchIgnoreFilters: Bool = false
+  @AppStorage("isOffline") private var isOffline: Bool = false
 
   @State private var browseOpts: SeriesBrowseOptions = SeriesBrowseOptions()
   @State private var viewModel = SeriesViewModel()
@@ -85,7 +86,7 @@ struct SeriesBrowseView: View {
   }
 
   private var usesRelevanceSort: Bool {
-    !searchText.isEmpty
+    !isOffline && !searchText.isEmpty
   }
 
   private var ignoresFiltersForSearch: Bool {

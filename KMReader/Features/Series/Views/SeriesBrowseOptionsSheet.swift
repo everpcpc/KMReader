@@ -205,7 +205,13 @@ struct SeriesBrowseOptionsSheet: View {
 
   private func resetOptions() {
     withAnimation {
+      let sortField = tempOpts.sortField
+      let sortDirection = tempOpts.sortDirection
       tempOpts = defaultOptions
+      if usesRelevanceSort {
+        tempOpts.sortField = sortField
+        tempOpts.sortDirection = sortDirection
+      }
     }
   }
 

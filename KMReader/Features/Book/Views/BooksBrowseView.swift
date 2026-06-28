@@ -17,6 +17,7 @@ struct BooksBrowseView: View {
   @State private var browseOpts: BookBrowseOptions = BookBrowseOptions()
   @AppStorage("bookBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
   @AppStorage("searchIgnoreFilters") private var searchIgnoreFilters: Bool = false
+  @AppStorage("isOffline") private var isOffline: Bool = false
 
   @State private var viewModel = BookViewModel()
   @State private var initializedKey: String?
@@ -86,7 +87,7 @@ struct BooksBrowseView: View {
   }
 
   private var usesRelevanceSort: Bool {
-    !searchText.isEmpty
+    !isOffline && !searchText.isEmpty
   }
 
   private var ignoresFiltersForSearch: Bool {

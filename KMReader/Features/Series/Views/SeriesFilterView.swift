@@ -58,7 +58,6 @@ struct SeriesFilterView: View {
         FilterChip(
           label: sortString,
           systemImage: sortIcon,
-          isEnabled: !usesRelevanceSort,
           openSheet: $showFilterSheet
         )
 
