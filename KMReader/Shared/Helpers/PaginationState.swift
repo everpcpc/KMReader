@@ -52,4 +52,11 @@ struct PaginationState<Item: Identifiable & Equatable> {
     return true
   }
 
+  mutating func removeItems(withIDs ids: Set<Item.ID>) -> Bool {
+    guard !ids.isEmpty else { return false }
+    let originalCount = items.count
+    items.removeAll { ids.contains($0.id) }
+    return items.count != originalCount
+  }
+
 }

@@ -12,23 +12,27 @@ struct BookQueryItemView: View {
   var showSeriesTitle: Bool = true
   var showSeriesNavigation: Bool = true
   var readListContext: ReaderReadListContext? = nil
+  var onItemMissing: (() -> Void)? = nil
 
   @AppStorage("currentAccount") private var current: Current = .init()
   @Environment(\.readerActions) private var readerActions
   @State private var item: BookDisplayItem?
+  @State private var showDeleteConfirmation = false
 
   init(
     bookId: String,
     layout: BrowseLayoutMode,
     showSeriesTitle: Bool = true,
     showSeriesNavigation: Bool = true,
-    readListContext: ReaderReadListContext? = nil
+    readListContext: ReaderReadListContext? = nil,
+    onItemMissing: (() -> Void)? = nil
   ) {
     self.bookId = bookId
     self.layout = layout
     self.showSeriesTitle = showSeriesTitle
     self.showSeriesNavigation = showSeriesNavigation
     self.readListContext = readListContext
+    self.onItemMissing = onItemMissing
 
   }
 
@@ -47,6 +51,9 @@ struct BookQueryItemView: View {
               )
             },
             onMutationCompleted: reloadItem,
+            onDeleteRequested: {
+              showDeleteConfirmation = true
+            },
             showSeriesTitle: showSeriesTitle,
             showSeriesNavigation: showSeriesNavigation
           )
@@ -61,6 +68,9 @@ struct BookQueryItemView: View {
               )
             },
             onMutationCompleted: reloadItem,
+            onDeleteRequested: {
+              showDeleteConfirmation = true
+            },
             showSeriesTitle: showSeriesTitle,
             showSeriesNavigation: showSeriesNavigation
           )
@@ -80,6 +90,14 @@ struct BookQueryItemView: View {
       notification in
       guard shouldReload(for: notification) else { return }
       reloadItem()
+    }
+    .alert("Delete Book", isPresented: $showDeleteConfirmation) {
+      Button("Cancel", role: .cancel) {}
+      Button("Delete", role: .destructive) {
+        deleteBook()
+      }
+    } message: {
+      Text("Are you sure you want to delete this book? This action cannot be undone.")
     }
   }
 
@@ -102,14 +120,34 @@ struct BookQueryItemView: View {
     }
   }
 
+  private func deleteBook() {
+    Task {
+      do {
+        if let item {
+          try await BookDeletionService.deleteBook(item)
+        } else {
+          try await BookDeletionService.deleteBook(bookId: bookId, instanceId: current.instanceId)
+        }
+        ErrorManager.shared.notify(message: String(localized: "notification.book.deleted"))
+        await loadItem()
+      } catch {
+        ErrorManager.shared.alert(error: error)
+      }
+    }
+  }
+
   private func loadItem() async {
     guard let database = try? await DatabaseOperator.database() else {
       item = nil
       return
     }
-    item = try? await database.fetchBookDisplayItem(
+    let loadedItem = try? await database.fetchBookDisplayItem(
       bookId: bookId,
       instanceId: current.instanceId
     )
+    item = loadedItem
+    if loadedItem == nil {
+      onItemMissing?()
+    }
   }
 }

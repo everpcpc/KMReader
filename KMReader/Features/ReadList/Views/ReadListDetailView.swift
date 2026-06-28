@@ -120,6 +120,16 @@ struct ReadListDetailView: View {
     .task {
       await loadReadListDetails()
     }
+    .onReceive(NotificationCenter.default.publisher(for: .readListProjectionDidChange)) {
+      notification in
+      guard shouldHandleReadListProjectionChange(notification) else { return }
+      Task {
+        await loadLocalReadList()
+        if item == nil {
+          dismiss()
+        }
+      }
+    }
   }
 }
 
@@ -148,6 +158,25 @@ extension ReadListDetailView {
       readListId: readListId,
       instanceId: current.instanceId
     )
+  }
+
+  private func shouldHandleReadListProjectionChange(_ notification: Notification) -> Bool {
+    let changedIds = changedReadListIds(from: notification)
+    guard !changedIds.isEmpty else { return true }
+    return changedIds.contains(readListId)
+  }
+
+  private func changedReadListIds(from notification: Notification) -> Set<String> {
+    if let ids = notification.userInfo?["readListIds"] as? Set<String> {
+      return ids
+    }
+    if let ids = notification.userInfo?["readListIds"] as? [String] {
+      return Set(ids)
+    }
+    if let id = notification.userInfo?["readListId"] as? String {
+      return [id]
+    }
+    return []
   }
 
   @MainActor

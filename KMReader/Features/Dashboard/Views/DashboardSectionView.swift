@@ -131,12 +131,18 @@ struct DashboardSectionView: View {
       BookQueryItemView(
         bookId: itemId,
         layout: .grid,
-        showSeriesTitle: true
+        showSeriesTitle: true,
+        onItemMissing: {
+          removeItem(id: itemId)
+        }
       )
     case .series:
       SeriesQueryItemView(
         seriesId: itemId,
-        layout: .grid
+        layout: .grid,
+        onItemMissing: {
+          removeItem(id: itemId)
+        }
       )
     case .collections, .readLists:
       EmptyView()
@@ -268,5 +274,11 @@ struct DashboardSectionView: View {
     }
 
     pagination.advance(moreAvailable: moreAvailable)
+  }
+
+  private func removeItem(id: String) {
+    withAnimation {
+      _ = pagination.removeItems(withIDs: [id])
+    }
   }
 }

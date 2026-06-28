@@ -54,7 +54,10 @@ struct ReadListsBrowseView: View {
             ForEach(items) { readList in
               ReadListQueryItemView(
                 readListId: readList.id,
-                layout: .grid
+                layout: .grid,
+                onItemMissing: {
+                  removeReadList(id: readList.id)
+                }
               )
               .padding(.bottom)
             }
@@ -65,7 +68,10 @@ struct ReadListsBrowseView: View {
             ForEach(items) { readList in
               ReadListQueryItemView(
                 readListId: readList.id,
-                layout: .list
+                layout: .list,
+                onItemMissing: {
+                  removeReadList(id: readList.id)
+                }
               )
               if items.last != readList {
                 Divider()
@@ -123,6 +129,12 @@ struct ReadListsBrowseView: View {
     guard loadID == currentLoadID else { return }
     withAnimation {
       isLoading = false
+    }
+  }
+
+  private func removeReadList(id: String) {
+    withAnimation {
+      items.removeAll { $0.id == id }
     }
   }
 

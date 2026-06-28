@@ -102,6 +102,16 @@ struct CollectionDetailView: View {
     .task {
       await loadCollectionDetails()
     }
+    .onReceive(NotificationCenter.default.publisher(for: .collectionProjectionDidChange)) {
+      notification in
+      guard shouldHandleCollectionProjectionChange(notification) else { return }
+      Task {
+        await loadLocalCollection()
+        if item == nil {
+          dismiss()
+        }
+      }
+    }
   }
 }
 
@@ -130,6 +140,25 @@ extension CollectionDetailView {
       collectionId: collectionId,
       instanceId: current.instanceId
     )
+  }
+
+  private func shouldHandleCollectionProjectionChange(_ notification: Notification) -> Bool {
+    let changedIds = changedCollectionIds(from: notification)
+    guard !changedIds.isEmpty else { return true }
+    return changedIds.contains(collectionId)
+  }
+
+  private func changedCollectionIds(from notification: Notification) -> Set<String> {
+    if let ids = notification.userInfo?["collectionIds"] as? Set<String> {
+      return ids
+    }
+    if let ids = notification.userInfo?["collectionIds"] as? [String] {
+      return Set(ids)
+    }
+    if let id = notification.userInfo?["collectionId"] as? String {
+      return [id]
+    }
+    return []
   }
 
   @MainActor

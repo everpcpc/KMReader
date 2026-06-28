@@ -137,7 +137,10 @@ struct DashboardSectionDetailView: View {
           BookQueryItemView(
             bookId: book.id,
             layout: .grid,
-            showSeriesTitle: true
+            showSeriesTitle: true,
+            onItemMissing: {
+              removeItem(id: book.id)
+            }
           )
           .padding(.bottom)
           .onAppear {
@@ -153,7 +156,10 @@ struct DashboardSectionDetailView: View {
           BookQueryItemView(
             bookId: book.id,
             layout: .list,
-            showSeriesTitle: true
+            showSeriesTitle: true,
+            onItemMissing: {
+              removeItem(id: book.id)
+            }
           )
           .onAppear {
             if pagination.shouldLoadMore(after: book) {
@@ -176,7 +182,10 @@ struct DashboardSectionDetailView: View {
         ForEach(pagination.items) { series in
           SeriesQueryItemView(
             seriesId: series.id,
-            layout: .grid
+            layout: .grid,
+            onItemMissing: {
+              removeItem(id: series.id)
+            }
           )
           .padding(.bottom)
           .onAppear {
@@ -191,7 +200,10 @@ struct DashboardSectionDetailView: View {
         ForEach(pagination.items) { series in
           SeriesQueryItemView(
             seriesId: series.id,
-            layout: .list
+            layout: .list,
+            onItemMissing: {
+              removeItem(id: series.id)
+            }
           )
           .onAppear {
             if pagination.shouldLoadMore(after: series) {
@@ -288,6 +300,12 @@ struct DashboardSectionDetailView: View {
     needsRefreshAfterCurrentLoad = false
     Task {
       await loadItems(refresh: true)
+    }
+  }
+
+  private func removeItem(id: String) {
+    withAnimation {
+      _ = pagination.removeItems(withIDs: [id])
     }
   }
 

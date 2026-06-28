@@ -8,11 +8,11 @@ import SwiftUI
 struct ReadListCardView: View {
   let item: ReadListDisplayItem
   var onMutationCompleted: (() -> Void)? = nil
+  let onDeleteRequested: () -> Void
 
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
   @AppStorage("cardTextOverlayMode") private var cardTextOverlayMode: Bool = false
   @State private var showEditSheet = false
-  @State private var showDeleteConfirmation = false
 
   private var contentSpacing: CGFloat {
     cardTextOverlayMode ? 0 : 12
@@ -42,7 +42,7 @@ struct ReadListCardView: View {
           offlinePolicyLimit: item.offlinePolicyLimit,
           isPinned: item.isPinned,
           onDeleteRequested: {
-            showDeleteConfirmation = true
+            onDeleteRequested()
           },
           onEditRequested: {
             showEditSheet = true
@@ -73,14 +73,6 @@ struct ReadListCardView: View {
     }
     .frame(maxWidth: .infinity, alignment: .leading)
     .frame(maxHeight: .infinity, alignment: .top)
-    .alert("Delete Read List", isPresented: $showDeleteConfirmation) {
-      Button("Cancel", role: .cancel) {}
-      Button("Delete", role: .destructive) {
-        deleteReadList()
-      }
-    } message: {
-      Text("Are you sure you want to delete this read list? This action cannot be undone.")
-    }
     .sheet(isPresented: $showEditSheet) {
       ReadListEditSheet(readList: item.readList)
     }
@@ -94,18 +86,6 @@ struct ReadListCardView: View {
     ) {
       HStack(spacing: 4) {
         Text("\(item.bookCount) books")
-      }
-    }
-  }
-
-  private func deleteReadList() {
-    Task {
-      do {
-        try await ReadListService.deleteReadList(readListId: item.readListId)
-        ErrorManager.shared.notify(message: String(localized: "notification.readList.deleted"))
-        onMutationCompleted?()
-      } catch {
-        ErrorManager.shared.alert(error: error)
       }
     }
   }

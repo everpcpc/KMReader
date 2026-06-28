@@ -61,13 +61,14 @@ nonisolated enum SyncService {
         hasMore = !result.last
         page += 1
       }
-      let deletedCount = await database.deleteCollectionsNotIn(
+      let deletedCollectionIds = await database.deleteCollectionsNotIn(
         remoteCollectionIds,
         instanceId: instanceId
       )
+      await ContentProjectionNotifier.postCollectionsDidChange(collectionIds: deletedCollectionIds)
       await postSidebarProjectionDidChange(instanceId: instanceId)
-      if deletedCount > 0 {
-        logger.info("🧹 Removed \(deletedCount) stale collections")
+      if !deletedCollectionIds.isEmpty {
+        logger.info("🧹 Removed \(deletedCollectionIds.count) stale collections")
       }
       logger.info("📂 Synced collections")
     } catch {
@@ -92,13 +93,14 @@ nonisolated enum SyncService {
         page += 1
       }
       await syncAutomaticReadListBooks(Array(automaticPolicyReadListIds), instanceId: instanceId)
-      let deletedCount = await database.deleteReadListsNotIn(
+      let deletedReadListIds = await database.deleteReadListsNotIn(
         remoteReadListIds,
         instanceId: instanceId
       )
+      await ContentProjectionNotifier.postReadListsDidChange(readListIds: deletedReadListIds)
       await postSidebarProjectionDidChange(instanceId: instanceId)
-      if deletedCount > 0 {
-        logger.info("🧹 Removed \(deletedCount) stale read lists")
+      if !deletedReadListIds.isEmpty {
+        logger.info("🧹 Removed \(deletedReadListIds.count) stale read lists")
       }
       logger.info("📖 Synced readlists")
     } catch {
@@ -158,7 +160,13 @@ nonisolated enum SyncService {
       return series
     } catch APIError.notFound {
       let instanceId = AppConfig.current.instanceId
+      let item = try? await database.fetchSeriesDisplayItem(seriesId: seriesId, instanceId: instanceId)
       await database.deleteSeries(id: seriesId, instanceId: instanceId)
+      await ContentProjectionNotifier.postSeriesDidChange(
+        seriesId: seriesId,
+        libraryId: item?.series.libraryId,
+        refreshDelay: 0
+      )
       throw APIError.notFound(message: "Series not found", url: nil, response: nil, request: nil)
     }
   }
@@ -335,7 +343,15 @@ nonisolated enum SyncService {
       return book
     } catch APIError.notFound {
       let instanceId = AppConfig.current.instanceId
+      let item = try? await database.fetchBookDisplayItem(bookId: bookId, instanceId: instanceId)
       await database.deleteBook(id: bookId, instanceId: instanceId)
+      await ContentProjectionNotifier.postBookAndSeriesDidChange(
+        bookId: bookId,
+        instanceId: instanceId,
+        seriesId: item?.seriesId,
+        libraryId: item?.book.libraryId,
+        refreshDelay: 0
+      )
       throw APIError.notFound(message: "Book not found", url: nil, response: nil, request: nil)
     }
   }
@@ -453,6 +469,7 @@ nonisolated enum SyncService {
     } catch APIError.notFound {
       let instanceId = AppConfig.current.instanceId
       await database.deleteCollection(id: id, instanceId: instanceId)
+      await ContentProjectionNotifier.postCollectionDidChange(collectionId: id, refreshDelay: 0)
       throw APIError.notFound(message: "Collection not found", url: nil, response: nil, request: nil)
     }
   }
@@ -527,6 +544,7 @@ nonisolated enum SyncService {
     } catch APIError.notFound {
       let instanceId = AppConfig.current.instanceId
       await database.deleteReadList(id: id, instanceId: instanceId)
+      await ContentProjectionNotifier.postReadListDidChange(readListId: id, refreshDelay: 0)
       throw APIError.notFound(message: "Read list not found", url: nil, response: nil, request: nil)
     }
   }

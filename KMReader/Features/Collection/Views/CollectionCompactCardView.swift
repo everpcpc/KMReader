@@ -10,9 +10,9 @@ struct CollectionCompactCardView: View {
   let item: CollectionDisplayItem
   var coverWidth: CGFloat = 80
   var onChanged: () -> Void = {}
+  let onDeleteRequested: () -> Void
 
   @State private var showEditSheet = false
-  @State private var showDeleteConfirmation = false
 
   var body: some View {
     NavigationLink(
@@ -59,7 +59,7 @@ struct CollectionCompactCardView: View {
         menuTitle: item.name,
         isPinned: item.isPinned,
         onDeleteRequested: {
-          showDeleteConfirmation = true
+          onDeleteRequested()
         },
         onEditRequested: {
           showEditSheet = true
@@ -69,29 +69,8 @@ struct CollectionCompactCardView: View {
         }
       )
     }
-    .alert("Delete Collection", isPresented: $showDeleteConfirmation) {
-      Button("Cancel", role: .cancel) {}
-      Button("Delete", role: .destructive) {
-        deleteCollection()
-      }
-    } message: {
-      Text("Are you sure you want to delete this collection? This action cannot be undone.")
-    }
     .sheet(isPresented: $showEditSheet, onDismiss: onChanged) {
       CollectionEditSheet(collection: item.collection)
-    }
-  }
-
-  private func deleteCollection() {
-    Task {
-      do {
-        try await CollectionService.deleteCollection(
-          collectionId: item.collectionId)
-        ErrorManager.shared.notify(message: String(localized: "notification.collection.deleted"))
-        onChanged()
-      } catch {
-        ErrorManager.shared.alert(error: error)
-      }
     }
   }
 

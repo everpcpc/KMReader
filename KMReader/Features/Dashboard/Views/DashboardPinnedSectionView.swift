@@ -20,6 +20,10 @@ struct DashboardPinnedSectionView: View {
   @State private var isLoading = false
   @State private var pinnedCollections: [CollectionDisplayItem] = []
   @State private var pinnedReadLists: [ReadListDisplayItem] = []
+  @State private var collectionPendingDelete: CollectionDisplayItem?
+  @State private var readListPendingDelete: ReadListDisplayItem?
+  @State private var showCollectionDeleteConfirmation = false
+  @State private var showReadListDeleteConfirmation = false
 
   private var isSupportedSection: Bool {
     switch section.contentKind {
@@ -134,7 +138,11 @@ struct DashboardPinnedSectionView: View {
                     CollectionCompactCardView(
                       item: collection,
                       coverWidth: compactCoverWidth,
-                      onChanged: schedulePinnedItemsReload
+                      onChanged: schedulePinnedItemsReload,
+                      onDeleteRequested: {
+                        collectionPendingDelete = collection
+                        showCollectionDeleteConfirmation = true
+                      }
                     )
                     .id(collection.collectionId)
                     .frame(width: compactCardWidth)
@@ -144,7 +152,11 @@ struct DashboardPinnedSectionView: View {
                     ReadListCompactCardView(
                       item: readList,
                       coverWidth: compactCoverWidth,
-                      onChanged: schedulePinnedItemsReload
+                      onChanged: schedulePinnedItemsReload,
+                      onDeleteRequested: {
+                        readListPendingDelete = readList
+                        showReadListDeleteConfirmation = true
+                      }
                     )
                     .id(readList.readListId)
                     .frame(width: compactCardWidth)
@@ -171,6 +183,26 @@ struct DashboardPinnedSectionView: View {
       }
       .opacity(hasItems ? 1 : 0)
       .frame(height: hasItems ? nil : 0)
+      .alert("Delete Collection", isPresented: $showCollectionDeleteConfirmation) {
+        Button("Cancel", role: .cancel) {
+          collectionPendingDelete = nil
+        }
+        Button("Delete", role: .destructive) {
+          deletePendingCollection()
+        }
+      } message: {
+        Text("Are you sure you want to delete this collection? This action cannot be undone.")
+      }
+      .alert("Delete Read List", isPresented: $showReadListDeleteConfirmation) {
+        Button("Cancel", role: .cancel) {
+          readListPendingDelete = nil
+        }
+        Button("Delete", role: .destructive) {
+          deletePendingReadList()
+        }
+      } message: {
+        Text("Are you sure you want to delete this read list? This action cannot be undone.")
+      }
       .onReceive(NotificationCenter.default.publisher(for: .dashboardSectionsShouldReload)) {
         notification in
         guard
@@ -221,6 +253,34 @@ struct DashboardPinnedSectionView: View {
   private func schedulePinnedItemsReload() {
     Task {
       await loadPinnedItems()
+    }
+  }
+
+  private func deletePendingCollection() {
+    guard let collection = collectionPendingDelete else { return }
+    Task {
+      defer { collectionPendingDelete = nil }
+      do {
+        try await CollectionService.deleteCollection(collectionId: collection.collectionId)
+        ErrorManager.shared.notify(message: String(localized: "notification.collection.deleted"))
+        await loadPinnedItems()
+      } catch {
+        ErrorManager.shared.alert(error: error)
+      }
+    }
+  }
+
+  private func deletePendingReadList() {
+    guard let readList = readListPendingDelete else { return }
+    Task {
+      defer { readListPendingDelete = nil }
+      do {
+        try await ReadListService.deleteReadList(readListId: readList.readListId)
+        ErrorManager.shared.notify(message: String(localized: "notification.readList.deleted"))
+        await loadPinnedItems()
+      } catch {
+        ErrorManager.shared.alert(error: error)
+      }
     }
   }
 

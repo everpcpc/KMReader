@@ -48,7 +48,10 @@ struct SeriesBooksQueryView: View {
                 bookId: book.id,
                 layout: .grid,
                 showSeriesTitle: false,
-                showSeriesNavigation: false
+                showSeriesNavigation: false,
+                onItemMissing: {
+                  bookViewModel.removeBook(id: book.id)
+                }
               )
               .padding(.bottom)
               .onAppear {
@@ -66,7 +69,10 @@ struct SeriesBooksQueryView: View {
                 bookId: book.id,
                 layout: .list,
                 showSeriesTitle: false,
-                showSeriesNavigation: false
+                showSeriesNavigation: false,
+                onItemMissing: {
+                  bookViewModel.removeBook(id: book.id)
+                }
               )
               .onAppear {
                 if bookViewModel.pagination.shouldLoadMore(after: book) {

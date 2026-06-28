@@ -53,7 +53,10 @@ struct CollectionsBrowseView: View {
           LazyVGrid(columns: columns, spacing: spacing) {
             ForEach(items) { collection in
               CollectionQueryItemView(
-                collectionId: collection.id
+                collectionId: collection.id,
+                onItemMissing: {
+                  removeCollection(id: collection.id)
+                }
               )
               .padding(.bottom)
             }
@@ -64,7 +67,10 @@ struct CollectionsBrowseView: View {
             ForEach(items) { collection in
               CollectionQueryItemView(
                 collectionId: collection.id,
-                layout: .list
+                layout: .list,
+                onItemMissing: {
+                  removeCollection(id: collection.id)
+                }
               )
               if items.last != collection {
                 Divider()
@@ -122,6 +128,12 @@ struct CollectionsBrowseView: View {
     guard loadID == currentLoadID else { return }
     withAnimation {
       isLoading = false
+    }
+  }
+
+  private func removeCollection(id: String) {
+    withAnimation {
+      items.removeAll { $0.id == id }
     }
   }
 
