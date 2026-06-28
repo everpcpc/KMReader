@@ -191,12 +191,8 @@ actor OfflineManager {
 
   /// Base directory for all offline books.
   private static func baseDirectory() -> URL {
-    let appSupport =
-      FileManager.default.urls(
-        for: .applicationSupportDirectory, in: .userDomainMask
-      ).first ?? FileManager.default.temporaryDirectory
-    ensureDirectoryExists(at: appSupport)
-    let base = appSupport.appendingPathComponent(directoryName, isDirectory: true)
+    let supportDirectory = (try? AppStorageDirectory.supportDirectory()) ?? FileManager.default.temporaryDirectory
+    let base = supportDirectory.appendingPathComponent(directoryName, isDirectory: true)
     migrateLegacyDirectoryIfNeeded(to: base)
     ensureDirectoryExists(at: base)
     excludeFromBackupIfNeeded(at: base)
@@ -2874,13 +2870,7 @@ actor OfflineManager {
   // MARK: - File System Helpers
 
   private static func ensureDirectoryExists(at url: URL) {
-    var isDirectory: ObjCBool = false
-    if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory),
-      isDirectory.boolValue
-    {
-      return
-    }
-    try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+    try? AppStorageDirectory.ensureDirectoryExists(at: url)
   }
 
   private static func excludeFromBackupIfNeeded(at url: URL) {
