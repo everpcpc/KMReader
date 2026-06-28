@@ -114,7 +114,7 @@
       @objc
       private func handleSwipeGesture(_ gesture: UISwipeGestureRecognizer) {
         guard gesture.state == .ended else { return }
-        guard let direction = moveDirection(for: gesture.direction) else { return }
+        guard let direction = moveDirection(forGestureDirection: gesture.direction) else { return }
         _ = dispatchMoveCommand(direction, source: "swipe")
       }
 
@@ -130,24 +130,26 @@
 
         let direction: MoveCommandDirection
         if absoluteX >= absoluteY {
-          direction = translation.x > 0 ? .right : .left
+          direction = translation.x > 0 ? .left : .right
         } else {
-          direction = translation.y > 0 ? .down : .up
+          direction = translation.y > 0 ? .up : .down
         }
 
         _ = dispatchMoveCommand(direction, source: "pan")
       }
 
-      private func moveDirection(for direction: UISwipeGestureRecognizer.Direction) -> MoveCommandDirection? {
+      private func moveDirection(forGestureDirection direction: UISwipeGestureRecognizer.Direction)
+        -> MoveCommandDirection?
+      {
         switch direction {
         case .left:
-          return .left
-        case .right:
           return .right
+        case .right:
+          return .left
         case .up:
-          return .up
-        case .down:
           return .down
+        case .down:
+          return .up
         default:
           return nil
         }

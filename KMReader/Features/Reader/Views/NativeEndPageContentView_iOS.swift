@@ -129,26 +129,31 @@
       previousBadgeLabel.numberOfLines = 1
       previousBadgeLabel.textAlignment = .center
       previousBadgeLabel.adjustsFontForContentSizeCategory = true
+      NativeEndPageLayoutMetrics.protectVerticalText(previousBadgeLabel)
       previousStack.addArrangedSubview(previousBadgeLabel)
 
       previousCoverView.translatesAutoresizingMaskIntoConstraints = false
+      NativeEndPageLayoutMetrics.allowCoverToYieldVerticalSpace(previousCoverView)
       previousStack.addArrangedSubview(previousCoverView)
 
       previousMetadataStack.axis = .vertical
       previousMetadataStack.alignment = .fill
       previousMetadataStack.spacing = 4
+      previousMetadataStack.setContentCompressionResistancePriority(.required, for: .vertical)
       previousStack.addArrangedSubview(previousMetadataStack)
 
       previousTitleLabel.numberOfLines = 2
       previousTitleLabel.textAlignment = .center
       previousTitleLabel.adjustsFontForContentSizeCategory = true
       previousTitleLabel.lineBreakMode = .byTruncatingTail
+      NativeEndPageLayoutMetrics.protectVerticalText(previousTitleLabel)
       previousMetadataStack.addArrangedSubview(previousTitleLabel)
 
       previousDetailLabel.numberOfLines = 1
       previousDetailLabel.textAlignment = .center
       previousDetailLabel.adjustsFontForContentSizeCategory = true
       previousDetailLabel.lineBreakMode = .byTruncatingTail
+      NativeEndPageLayoutMetrics.protectVerticalText(previousDetailLabel)
       previousMetadataStack.addArrangedSubview(previousDetailLabel)
 
       nextContainer.translatesAutoresizingMaskIntoConstraints = false
@@ -161,26 +166,31 @@
       nextBadgeLabel.numberOfLines = 1
       nextBadgeLabel.textAlignment = .center
       nextBadgeLabel.adjustsFontForContentSizeCategory = true
+      NativeEndPageLayoutMetrics.protectVerticalText(nextBadgeLabel)
       nextStack.addArrangedSubview(nextBadgeLabel)
 
       nextCoverView.translatesAutoresizingMaskIntoConstraints = false
+      NativeEndPageLayoutMetrics.allowCoverToYieldVerticalSpace(nextCoverView)
       nextStack.addArrangedSubview(nextCoverView)
 
       nextMetadataStack.axis = .vertical
       nextMetadataStack.alignment = .fill
       nextMetadataStack.spacing = 4
+      nextMetadataStack.setContentCompressionResistancePriority(.required, for: .vertical)
       nextStack.addArrangedSubview(nextMetadataStack)
 
       nextTitleLabel.numberOfLines = 2
       nextTitleLabel.textAlignment = .center
       nextTitleLabel.adjustsFontForContentSizeCategory = true
       nextTitleLabel.lineBreakMode = .byTruncatingTail
+      NativeEndPageLayoutMetrics.protectVerticalText(nextTitleLabel)
       nextMetadataStack.addArrangedSubview(nextTitleLabel)
 
       nextDetailLabel.numberOfLines = 1
       nextDetailLabel.textAlignment = .center
       nextDetailLabel.adjustsFontForContentSizeCategory = true
       nextDetailLabel.lineBreakMode = .byTruncatingTail
+      NativeEndPageLayoutMetrics.protectVerticalText(nextDetailLabel)
       nextMetadataStack.addArrangedSubview(nextDetailLabel)
 
       caughtUpStack.axis = .horizontal
@@ -195,6 +205,7 @@
       caughtUpLabel.numberOfLines = 1
       caughtUpLabel.textAlignment = .center
       caughtUpLabel.adjustsFontForContentSizeCategory = true
+      NativeEndPageLayoutMetrics.protectVerticalText(caughtUpLabel)
       caughtUpStack.addArrangedSubview(caughtUpLabel)
 
       horizontalDividerStack.axis = .horizontal
@@ -269,6 +280,8 @@
       previousCoverHeightConstraint = previousCoverView.heightAnchor.constraint(equalToConstant: 160)
       nextCoverWidthConstraint = nextCoverView.widthAnchor.constraint(equalToConstant: 120)
       nextCoverHeightConstraint = nextCoverView.heightAnchor.constraint(equalToConstant: 160)
+      previousCoverHeightConstraint?.priority = NativeEndPageLayoutMetrics.coverHeightConstraintPriority
+      nextCoverHeightConstraint?.priority = NativeEndPageLayoutMetrics.coverHeightConstraintPriority
 
       NSLayoutConstraint.activate([
         contentLeading,
@@ -319,12 +332,13 @@
       dividerTitleLabel.text = relationTitle
       dividerTitleLabel.isHidden = relationTitle.isEmpty
 
-      previousBadgeLabel.font = preferredFont(textStyle: .caption1, weight: .semibold)
-      previousTitleLabel.font = preferredFont(textStyle: .title3, design: .serif, weight: .bold)
-      previousDetailLabel.font = .preferredFont(forTextStyle: .caption1)
-      nextBadgeLabel.font = preferredFont(textStyle: .caption1, weight: .semibold)
-      nextTitleLabel.font = preferredFont(textStyle: .title3, design: .serif, weight: .bold)
-      nextDetailLabel.font = .preferredFont(forTextStyle: .caption1)
+      let metrics = NativeEndPageLayoutMetrics.resolve(for: bounds)
+      previousBadgeLabel.font = metrics.badgeFont
+      previousTitleLabel.font = metrics.titleFont
+      previousDetailLabel.font = metrics.detailFont
+      nextBadgeLabel.font = metrics.badgeFont
+      nextTitleLabel.font = metrics.titleFont
+      nextDetailLabel.font = metrics.detailFont
       caughtUpLabel.font = .preferredFont(forTextStyle: .headline)
       dividerTitleLabel.font = .preferredFont(forTextStyle: .caption1)
 
@@ -513,37 +527,28 @@
       guard bounds.width > 0, bounds.height > 0 else { return }
 
       let isPortrait = bounds.height >= bounds.width
-      let minDimension = min(bounds.width, bounds.height)
-      let maxDimension = max(bounds.width, bounds.height)
-      let outerPadding = clamped(minDimension * 0.08, lower: 20, upper: 56)
-      let innerPadding = clamped(minDimension * 0.045, lower: 16, upper: 32)
-      let stackSpacing = clamped(minDimension * 0.034, lower: 12, upper: 22)
-      let portraitSectionSpacing = stackSpacing + clamped(stackSpacing * 0.5, lower: 6, upper: 12)
-      let horizontalDividerWidth = clamped(bounds.width * 0.78, lower: 260, upper: 680)
-      let coverWidth = clamped(minDimension * 0.24, lower: 96, upper: 190)
-      let coverHeight = coverWidth / CoverAspectRatio.widthToHeight
-      let dividerHeight = clamped(maxDimension * 0.32, lower: 140, upper: 320)
+      let metrics = NativeEndPageLayoutMetrics.resolve(for: bounds)
 
-      contentStack.spacing = stackSpacing
-      sectionsStack.spacing = isPortrait ? portraitSectionSpacing : stackSpacing
+      contentStack.spacing = metrics.stackSpacing
+      sectionsStack.spacing = isPortrait ? metrics.portraitSectionSpacing : metrics.stackSpacing
       contentStack.layoutMargins = UIEdgeInsets(
-        top: innerPadding,
-        left: innerPadding,
-        bottom: innerPadding,
-        right: innerPadding
+        top: metrics.innerPadding,
+        left: metrics.innerPadding,
+        bottom: metrics.innerPadding,
+        right: metrics.innerPadding
       )
 
-      contentLeadingConstraint?.constant = outerPadding
-      contentTrailingConstraint?.constant = -outerPadding
-      contentTopConstraint?.constant = outerPadding
-      contentBottomConstraint?.constant = -outerPadding
-      contentMaxWidthConstraint?.constant = -outerPadding * 2
-      horizontalDividerWidthConstraint?.constant = horizontalDividerWidth
-      previousCoverWidthConstraint?.constant = coverWidth
-      previousCoverHeightConstraint?.constant = coverHeight
-      nextCoverWidthConstraint?.constant = coverWidth
-      nextCoverHeightConstraint?.constant = coverHeight
-      verticalDividerHeightConstraint?.constant = dividerHeight
+      contentLeadingConstraint?.constant = metrics.outerPadding
+      contentTrailingConstraint?.constant = -metrics.outerPadding
+      contentTopConstraint?.constant = metrics.outerPadding
+      contentBottomConstraint?.constant = -metrics.outerPadding
+      contentMaxWidthConstraint?.constant = -metrics.outerPadding * 2
+      horizontalDividerWidthConstraint?.constant = metrics.horizontalDividerWidth
+      previousCoverWidthConstraint?.constant = metrics.coverWidth
+      previousCoverHeightConstraint?.constant = metrics.coverHeight
+      nextCoverWidthConstraint?.constant = metrics.coverWidth
+      nextCoverHeightConstraint?.constant = metrics.coverHeight
+      verticalDividerHeightConstraint?.constant = metrics.dividerHeight
     }
 
     private var contentColor: UIColor {
@@ -574,27 +579,6 @@
       renderConfig.readerBackground.appliesImageMultiplyBlend
         ? UIColor(renderConfig.readerBackground.color)
         : nil
-    }
-
-    private func clamped(_ value: CGFloat, lower: CGFloat, upper: CGFloat) -> CGFloat {
-      Swift.min(Swift.max(value, lower), upper)
-    }
-
-    private func preferredFont(
-      textStyle: UIFont.TextStyle,
-      design: UIFontDescriptor.SystemDesign? = nil,
-      weight: UIFont.Weight? = nil
-    ) -> UIFont {
-      var descriptor = UIFontDescriptor.preferredFontDescriptor(withTextStyle: textStyle)
-      if let design, let designedDescriptor = descriptor.withDesign(design) {
-        descriptor = designedDescriptor
-      }
-      if let weight {
-        descriptor = descriptor.addingAttributes([
-          UIFontDescriptor.AttributeName.traits: [UIFontDescriptor.TraitKey.weight: weight]
-        ])
-      }
-      return UIFont(descriptor: descriptor, size: 0)
     }
 
     @objc private func handleClose() {
