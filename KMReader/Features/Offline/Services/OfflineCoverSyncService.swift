@@ -38,11 +38,8 @@ actor OfflineCoverSyncService {
     await reportProgress(summary: summary, onProgress: onProgress)
 
     for target in targets {
-      if Task.isCancelled {
-        summary.wasCancelled = true
-        await reportProgress(summary: summary, onProgress: onProgress)
-        logger.info("⏹️ Offline cover sync cancelled")
-        return summary
+      if shouldStopSync(instanceId: instanceId) {
+        return await stopSync(summary: summary, onProgress: onProgress)
       }
 
       do {
@@ -64,11 +61,14 @@ actor OfflineCoverSyncService {
         }
         summary.checkedCount += 1
       } catch is CancellationError {
-        summary.wasCancelled = true
-        await reportProgress(summary: summary, onProgress: onProgress)
-        logger.info("⏹️ Offline cover sync cancelled")
-        return summary
+        return await stopSync(summary: summary, onProgress: onProgress)
+      } catch APIError.offline {
+        return await stopSync(summary: summary, onProgress: onProgress)
       } catch {
+        if shouldStopSync(instanceId: instanceId) {
+          return await stopSync(summary: summary, onProgress: onProgress)
+        }
+
         summary.checkedCount += 1
         summary.failedCount += 1
         logger.warning(
@@ -81,6 +81,21 @@ actor OfflineCoverSyncService {
     logger.info(
       "✅ Offline cover sync finished: checked=\(summary.checkedCount), existing=\(summary.existingCount), stored=\(summary.storedCount), failed=\(summary.failedCount)"
     )
+    return summary
+  }
+
+  private func shouldStopSync(instanceId: String) -> Bool {
+    Task.isCancelled || AppConfig.isOffline || AppConfig.current.instanceId != instanceId
+  }
+
+  private func stopSync(
+    summary: OfflineCoverSyncSummary,
+    onProgress: OfflineCoverSyncProgressHandler?
+  ) async -> OfflineCoverSyncSummary {
+    var summary = summary
+    summary.wasCancelled = true
+    await reportProgress(summary: summary, onProgress: onProgress)
+    logger.info("⏹️ Offline cover sync cancelled")
     return summary
   }
 

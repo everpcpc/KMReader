@@ -8,6 +8,7 @@ import SwiftUI
 struct OfflineTasksView: View {
   @AppStorage("currentAccount") private var current: Current = .init()
   private var instanceId: String { current.instanceId }
+  @AppStorage("isOffline") private var isOffline: Bool = false
   @AppStorage("offlinePaused") private var isPaused: Bool = false
   @AppStorage("offlineAutoDeleteRead") private var autoDeleteRead: Bool = false
   @AppStorage("offlineFirstReading") private var offlineFirstReading: Bool = false
@@ -16,6 +17,10 @@ struct OfflineTasksView: View {
   @State private var pendingBulkAction: BulkAction?
   @State private var tasks: [OfflineTaskItem] = []
   @State private var progressTracker = DownloadProgressTracker.shared
+
+  private var coverSyncViewModel: OfflineCoverSyncViewModel {
+    OfflineCoverSyncViewModel.shared
+  }
 
   enum BulkAction {
     case retryAll, cancelAll
@@ -110,6 +115,12 @@ struct OfflineTasksView: View {
             .foregroundColor(currentStatus.color)
         }
       }
+
+      OfflineCoverSyncSection(
+        viewModel: coverSyncViewModel,
+        instanceId: instanceId,
+        isOffline: isOffline
+      )
 
       if !downloadingTasks.isEmpty {
         Section("Downloading") {

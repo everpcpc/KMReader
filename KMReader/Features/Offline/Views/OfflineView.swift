@@ -225,15 +225,28 @@ struct OfflineView: View {
       }
     }
     .onChange(of: authViewModel.isSwitching) { oldValue, newValue in
+      if newValue {
+        coverSyncViewModel.cancelSync()
+        return
+      }
+
       guard librarySelection == nil else { return }
       if oldValue && !newValue {
         refreshBrowse()
       }
     }
+    .onChange(of: current.instanceId) { _, newValue in
+      coverSyncViewModel.cancelSyncIfContextChanged(instanceId: newValue, isOffline: isOffline)
+    }
+    .onChange(of: isOffline) { _, newValue in
+      coverSyncViewModel.cancelSyncIfContextChanged(
+        instanceId: current.instanceId,
+        isOffline: newValue
+      )
+    }
     .task(id: current.instanceId) {
       guard !authViewModel.isSwitching else { return }
       latestReadHistoryTime = AppConfig.recentlyReadRecordTime(instanceId: current.instanceId)
-      await coverSyncViewModel.loadLibraryScopeOptions(instanceId: current.instanceId)
       await loadSyncInfo()
     }
     .onChange(of: resolvedLibraryIdsKey) { _, _ in
@@ -287,7 +300,7 @@ struct OfflineView: View {
           }
         }
       }
-      .disabled(syncViewModel.isSyncing || coverSyncViewModel.isSyncing || isOffline)
+      .disabled(syncViewModel.isSyncing || isOffline)
 
       Text(String(localized: "settings.sync_data.description"))
         .font(.caption)
@@ -332,54 +345,6 @@ struct OfflineView: View {
       }
       .disabled(isOffline)
 
-      Divider()
-
-      Button(role: coverSyncViewModel.isSyncing ? .destructive : nil) {
-        handleCoverSyncButton()
-      } label: {
-        HStack {
-          Image(
-            systemName: coverSyncViewModel.isSyncing
-              ? "xmark.circle" : "photo.on.rectangle.angled"
-          )
-          .imageScale(.small)
-          Text(
-            coverSyncViewModel.isSyncing
-              ? String(localized: "offline.coverSync.cancel", defaultValue: "Cancel Cover Sync")
-              : String(
-                localized: "offline.coverSync.action",
-                defaultValue: "Sync Missing Covers"
-              )
-          )
-          .font(.caption)
-          Spacer()
-          if coverSyncViewModel.isSyncing {
-            ProgressView()
-              .controlSize(.small)
-          }
-        }
-      }
-      .disabled(
-        !coverSyncViewModel.isSyncing
-          && (syncViewModel.isSyncing || isOffline || current.instanceId.isEmpty))
-
-      OfflineCoverSyncScopeMenu(
-        viewModel: coverSyncViewModel,
-        isDisabled: coverSyncViewModel.isSyncing || syncViewModel.isSyncing || isOffline
-          || current.instanceId.isEmpty
-      )
-
-      if coverSyncViewModel.isSyncing {
-        if let coverSyncProgress = coverSyncViewModel.progress,
-          coverSyncProgress.totalCount > 0
-        {
-          OfflineCoverSyncProgressView(progress: coverSyncProgress)
-        } else {
-          Text(String(localized: "offline.coverSync.checking", defaultValue: "Checking covers…"))
-            .font(.caption2)
-            .foregroundColor(.secondary)
-        }
-      }
     }
     .padding(12)
     .background(.thinMaterial)
@@ -419,7 +384,6 @@ struct OfflineView: View {
     guard !authViewModel.isSwitching else { return }
     latestReadHistoryTime = AppConfig.recentlyReadRecordTime(instanceId: current.instanceId)
     refreshBrowse()
-    await coverSyncViewModel.loadLibraryScopeOptions(instanceId: current.instanceId)
     await loadSyncInfo()
   }
 
@@ -451,25 +415,5 @@ struct OfflineView: View {
         latestReadHistoryTime = AppConfig.recentlyReadRecordTime(instanceId: current.instanceId)
       }
     }
-  }
-
-  private func handleCoverSyncButton() {
-    if coverSyncViewModel.isSyncing {
-      coverSyncViewModel.cancelSync()
-      return
-    }
-
-    let instanceId = current.instanceId
-    guard
-      !syncViewModel.isSyncing,
-      !coverSyncViewModel.isSyncing,
-      !isOffline,
-      !instanceId.isEmpty
-    else {
-      return
-    }
-
-    let libraryIds = coverSyncViewModel.selectedLibraryIdsForSync(instanceId: instanceId)
-    coverSyncViewModel.startSyncMissingCovers(instanceId: instanceId, libraryIds: libraryIds)
   }
 }

@@ -86,6 +86,13 @@ final class OfflineCoverSyncViewModel {
     syncTask?.cancel()
   }
 
+  func cancelSyncIfContextChanged(instanceId: String, isOffline: Bool) {
+    guard isSyncing else { return }
+    if isOffline || activeInstanceId != instanceId {
+      cancelSync()
+    }
+  }
+
   private func runSyncMissingCovers(instanceId: String, libraryIds: [String]) async {
     defer {
       isSyncing = false

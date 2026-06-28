@@ -36,18 +36,22 @@ struct OfflineCoverSyncScopeMenu: View {
         }
       }
     } label: {
-      HStack(spacing: 8) {
+      HStack(spacing: 12) {
         Image(systemName: "square.stack.3d.up")
-          .imageScale(.small)
-        Text(scopeTitle)
-          .lineLimit(1)
+          .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 2) {
+          Text(String(localized: "Libraries"))
+            .foregroundStyle(.primary)
+          Text(scopeTitle)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+        }
         Spacer()
         Image(systemName: "chevron.up.chevron.down")
           .font(.caption2)
           .foregroundStyle(.secondary)
       }
-      .font(.caption2)
-      .foregroundStyle(.secondary)
       .contentShape(Rectangle())
     }
     .disabled(isDisabled)
