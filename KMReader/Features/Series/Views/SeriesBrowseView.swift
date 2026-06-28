@@ -27,7 +27,9 @@ struct SeriesBrowseView: View {
         browseOpts: $browseOpts,
         showFilterSheet: $showFilterSheet,
         showSavedFilters: $showSavedFilters,
-        libraryIds: libraryIds
+        libraryIds: libraryIds,
+        usesRelevanceSort: usesRelevanceSort,
+        ignoresFiltersForSearch: ignoresFiltersForSearch
       ).padding(.horizontal)
 
       SeriesQueryView(
@@ -79,7 +81,15 @@ struct SeriesBrowseView: View {
   }
 
   private var effectiveBrowseOpts: SeriesBrowseOptions {
-    (searchIgnoreFilters && !searchText.isEmpty) ? SeriesBrowseOptions() : browseOpts
+    ignoresFiltersForSearch ? browseOpts.filtersCleared : browseOpts
+  }
+
+  private var usesRelevanceSort: Bool {
+    !searchText.isEmpty
+  }
+
+  private var ignoresFiltersForSearch: Bool {
+    searchIgnoreFilters && !searchText.isEmpty
   }
 
   private var initializationKey: String {

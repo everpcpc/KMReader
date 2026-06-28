@@ -15,7 +15,7 @@ nonisolated enum SeriesService {
     browseOpts: SeriesBrowseOptions,
     searchTerm: String? = nil
   ) async throws -> Page<Series> {
-    let sort = browseOpts.sortString
+    let sort = searchTerm?.isEmpty == false ? nil : browseOpts.sortString
     let effectiveMetadataFilter = browseOpts.metadataFilter
 
     let condition = SeriesSearch.buildCondition(

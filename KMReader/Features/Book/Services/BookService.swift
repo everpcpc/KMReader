@@ -222,7 +222,7 @@ nonisolated enum BookService {
     browseOpts: BookBrowseOptions,
     searchTerm: String? = nil
   ) async throws -> Page<Book> {
-    let sort = browseOpts.sortString
+    let sort = searchTerm?.isEmpty == false ? nil : browseOpts.sortString
     let filters = BookSearchFilters(
       libraryIds: libraryIds,
       includeReadStatuses: Array(browseOpts.includeReadStatuses),

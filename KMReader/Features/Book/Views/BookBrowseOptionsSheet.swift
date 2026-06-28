@@ -14,6 +14,8 @@ struct BookBrowseOptionsSheet: View {
   let seriesId: String?
   let libraryIds: [String]?
   let includeOfflineSorts: Bool
+  let usesRelevanceSort: Bool
+  let ignoresFiltersForSearch: Bool
 
   private var availableSortFields: [BookSortField] {
     includeOfflineSorts ? BookSortField.offlineCases : BookSortField.onlineCases
@@ -36,7 +38,9 @@ struct BookBrowseOptionsSheet: View {
     filterType: SavedFilterType = .books,
     seriesId: String? = nil,
     libraryIds: [String]? = nil,
-    includeOfflineSorts: Bool = false
+    includeOfflineSorts: Bool = false,
+    usesRelevanceSort: Bool = false,
+    ignoresFiltersForSearch: Bool = false
   ) {
     var initialOpts = browseOpts.wrappedValue
     let availableSortFields = includeOfflineSorts ? BookSortField.offlineCases : BookSortField.onlineCases
@@ -50,6 +54,8 @@ struct BookBrowseOptionsSheet: View {
     self.seriesId = seriesId
     self.libraryIds = libraryIds
     self.includeOfflineSorts = includeOfflineSorts
+    self.usesRelevanceSort = usesRelevanceSort
+    self.ignoresFiltersForSearch = ignoresFiltersForSearch
   }
 
   var body: some View {
@@ -58,11 +64,8 @@ struct BookBrowseOptionsSheet: View {
       applyFormStyle: true
     ) {
       Form {
-        SortOptionView(
-          sortField: $tempOpts.sortField,
-          sortDirection: $tempOpts.sortDirection,
-          sortFields: availableSortFields
-        )
+        sortSection
+        ignoredFiltersSection
 
         Section(String(localized: "Read Status")) {
           ForEach(ReadStatus.allCases, id: \.self) { filter in
@@ -138,6 +141,32 @@ struct BookBrowseOptionsSheet: View {
       SaveFilterSheet(
         filterType: filterType,
         bookOptions: tempOpts
+      )
+    }
+  }
+
+  @ViewBuilder
+  private var ignoredFiltersSection: some View {
+    if ignoresFiltersForSearch {
+      Section(String(localized: "Filters")) {
+        Label(String(localized: "filters.ignored"), systemImage: "line.3.horizontal.decrease.circle")
+          .foregroundStyle(.secondary)
+      }
+    }
+  }
+
+  @ViewBuilder
+  private var sortSection: some View {
+    if usesRelevanceSort {
+      Section(String(localized: "Sort")) {
+        Label(String(localized: "sort.relevance"), systemImage: "magnifyingglass")
+          .foregroundStyle(.secondary)
+      }
+    } else {
+      SortOptionView(
+        sortField: $tempOpts.sortField,
+        sortDirection: $tempOpts.sortDirection,
+        sortFields: availableSortFields
       )
     }
   }

@@ -21,6 +21,16 @@ nonisolated struct BookBrowseOptions: Equatable, RawRepresentable, Sendable {
     return "\(sortField.rawValue),\(sortDirection.rawValue)"
   }
 
+  var filtersCleared: BookBrowseOptions {
+    var options = self
+    options.includeReadStatuses = []
+    options.excludeReadStatuses = []
+    options.oneshotFilter = TriStateFilter()
+    options.deletedFilter = TriStateFilter()
+    options.metadataFilter = MetadataFilterConfig()
+    return options
+  }
+
   var rawValue: String {
     let dict: [String: String] = [
       "includeReadStatuses": includeReadStatuses.map { $0.rawValue }.sorted().joined(

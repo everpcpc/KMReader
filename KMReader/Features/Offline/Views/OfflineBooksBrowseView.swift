@@ -36,14 +36,15 @@ struct OfflineBooksBrowseView: View {
         showSavedFilters: $showSavedFilters,
         filterType: .books,
         libraryIds: libraryIds,
-        includeOfflineSorts: true
+        includeOfflineSorts: true,
+        ignoresFiltersForSearch: ignoresFiltersForSearch
       )
       .padding(.horizontal)
 
       BooksQueryView(
         libraryIds: libraryIds,
         searchText: searchText,
-        browseOpts: (searchIgnoreFilters && !searchText.isEmpty) ? BookBrowseOptions() : browseOpts,
+        browseOpts: ignoresFiltersForSearch ? browseOpts.filtersCleared : browseOpts,
         browseLayout: browseLayout,
         viewModel: viewModel,
         useLocalOnly: true,
@@ -86,8 +87,7 @@ struct OfflineBooksBrowseView: View {
   }
 
   private func loadBooks(refresh: Bool) async {
-    let effectiveBrowseOpts =
-      (searchIgnoreFilters && !searchText.isEmpty) ? BookBrowseOptions() : browseOpts
+    let effectiveBrowseOpts = ignoresFiltersForSearch ? browseOpts.filtersCleared : browseOpts
 
     await viewModel.loadBrowseBooks(
       browseOpts: effectiveBrowseOpts,
@@ -97,6 +97,10 @@ struct OfflineBooksBrowseView: View {
       useLocalOnly: true,
       offlineOnly: true
     )
+  }
+
+  private var ignoresFiltersForSearch: Bool {
+    searchIgnoreFilters && !searchText.isEmpty
   }
 
 }

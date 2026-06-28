@@ -28,7 +28,9 @@ struct BooksBrowseView: View {
         showFilterSheet: $showFilterSheet,
         showSavedFilters: $showSavedFilters,
         filterType: .books,
-        libraryIds: libraryIds
+        libraryIds: libraryIds,
+        usesRelevanceSort: usesRelevanceSort,
+        ignoresFiltersForSearch: ignoresFiltersForSearch
       ).padding(.horizontal)
 
       BooksQueryView(
@@ -80,7 +82,15 @@ struct BooksBrowseView: View {
   }
 
   private var effectiveBrowseOpts: BookBrowseOptions {
-    (searchIgnoreFilters && !searchText.isEmpty) ? BookBrowseOptions() : browseOpts
+    ignoresFiltersForSearch ? browseOpts.filtersCleared : browseOpts
+  }
+
+  private var usesRelevanceSort: Bool {
+    !searchText.isEmpty
+  }
+
+  private var ignoresFiltersForSearch: Bool {
+    searchIgnoreFilters && !searchText.isEmpty
   }
 
   private var initializationKey: String {

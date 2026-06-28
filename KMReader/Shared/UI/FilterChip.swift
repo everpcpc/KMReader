@@ -9,6 +9,7 @@ struct FilterChip: View {
   let label: String
   let systemImage: String
   var variant: FilterChipVariant = .normal
+  var isEnabled: Bool = true
 
   @Binding var openSheet: Bool
 
@@ -50,6 +51,7 @@ struct FilterChip: View {
     .adaptiveButtonStyle(buttonStyle)
     .optimizedControlSize()
     .tint(buttonColor)
+    .disabled(!isEnabled)
   }
 }
 

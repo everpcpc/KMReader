@@ -35,15 +35,15 @@ struct OfflineSeriesBrowseView: View {
         showFilterSheet: $showFilterSheet,
         showSavedFilters: $showSavedFilters,
         libraryIds: libraryIds,
-        includeOfflineSorts: true
+        includeOfflineSorts: true,
+        ignoresFiltersForSearch: ignoresFiltersForSearch
       )
       .padding(.horizontal)
 
       SeriesQueryView(
         libraryIds: libraryIds,
         searchText: searchText,
-        browseOpts: (searchIgnoreFilters && !searchText.isEmpty)
-          ? SeriesBrowseOptions() : browseOpts,
+        browseOpts: ignoresFiltersForSearch ? browseOpts.filtersCleared : browseOpts,
         browseLayout: browseLayout,
         viewModel: viewModel,
         useLocalOnly: true,
@@ -86,8 +86,7 @@ struct OfflineSeriesBrowseView: View {
   }
 
   private func loadSeries(refresh: Bool) async {
-    let effectiveBrowseOpts =
-      (searchIgnoreFilters && !searchText.isEmpty) ? SeriesBrowseOptions() : browseOpts
+    let effectiveBrowseOpts = ignoresFiltersForSearch ? browseOpts.filtersCleared : browseOpts
     await viewModel.loadSeries(
       browseOpts: effectiveBrowseOpts,
       searchText: searchText,
@@ -96,6 +95,10 @@ struct OfflineSeriesBrowseView: View {
       useLocalOnly: true,
       offlineOnly: true
     )
+  }
+
+  private var ignoresFiltersForSearch: Bool {
+    searchIgnoreFilters && !searchText.isEmpty
   }
 
 }

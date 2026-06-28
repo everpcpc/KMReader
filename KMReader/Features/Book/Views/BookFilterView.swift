@@ -13,6 +13,8 @@ struct BookFilterView: View {
   let seriesId: String?
   let libraryIds: [String]?
   let includeOfflineSorts: Bool
+  let usesRelevanceSort: Bool
+  let ignoresFiltersForSearch: Bool
 
   init(
     browseOpts: Binding<BookBrowseOptions>,
@@ -21,7 +23,9 @@ struct BookFilterView: View {
     filterType: SavedFilterType = .books,
     seriesId: String? = nil,
     libraryIds: [String]? = nil,
-    includeOfflineSorts: Bool = false
+    includeOfflineSorts: Bool = false,
+    usesRelevanceSort: Bool = false,
+    ignoresFiltersForSearch: Bool = false
   ) {
     self._browseOpts = browseOpts
     self._showFilterSheet = showFilterSheet
@@ -30,11 +34,20 @@ struct BookFilterView: View {
     self.seriesId = seriesId
     self.libraryIds = libraryIds
     self.includeOfflineSorts = includeOfflineSorts
+    self.usesRelevanceSort = usesRelevanceSort
+    self.ignoresFiltersForSearch = ignoresFiltersForSearch
   }
 
   var sortString: String {
+    if usesRelevanceSort {
+      return String(localized: "sort.relevance")
+    }
     return
       "\(browseOpts.sortField.displayName) \(browseOpts.sortDirection == .ascending ? "↑" : "↓")"
+  }
+
+  private var sortIcon: String {
+    usesRelevanceSort ? "magnifyingglass" : "arrow.up.arrow.down"
   }
 
   var body: some View {
@@ -44,68 +57,18 @@ struct BookFilterView: View {
           label: String(localized: "Presets"),
           systemImage: "bookmark",
           variant: .preset,
+          isEnabled: !ignoresFiltersForSearch,
           openSheet: $showSavedFilters
         )
 
         FilterChip(
           label: sortString,
-          systemImage: "arrow.up.arrow.down",
+          systemImage: sortIcon,
+          isEnabled: !usesRelevanceSort,
           openSheet: $showFilterSheet
         )
 
-        if let label = buildReadStatusLabel(
-          include: browseOpts.includeReadStatuses,
-          exclude: browseOpts.excludeReadStatuses
-        ) {
-          FilterChip(
-            label: label,
-            systemImage: "eye",
-            variant: label.contains("≠") ? .negative : .normal,
-            openSheet: $showFilterSheet
-          )
-        }
-
-        if browseOpts.oneshotFilter.isActive,
-          let label = browseOpts.oneshotFilter.displayLabel(using: { _ in FilterStrings.oneshot })
-        {
-          FilterChip(
-            label: label,
-            systemImage: "dot.circle",
-            variant: browseOpts.oneshotFilter.state == .exclude ? .negative : .normal,
-            openSheet: $showFilterSheet
-          )
-        }
-
-        if browseOpts.deletedFilter.isActive,
-          let label = browseOpts.deletedFilter.displayLabel(using: { _ in FilterStrings.deleted })
-        {
-          FilterChip(
-            label: label,
-            systemImage: "trash",
-            variant: browseOpts.deletedFilter.state == .exclude ? .negative : .normal,
-            openSheet: $showFilterSheet
-          )
-        }
-
-        if let authors = browseOpts.metadataFilter.authors, !authors.isEmpty {
-          let logicSymbol = browseOpts.metadataFilter.authorsLogic == .all ? "∧" : "∨"
-          let label = authors.joined(separator: " \(logicSymbol) ")
-          FilterChip(
-            label: label,
-            systemImage: "person",
-            openSheet: $showFilterSheet
-          )
-        }
-
-        if let tags = browseOpts.metadataFilter.tags, !tags.isEmpty {
-          let logicSymbol = browseOpts.metadataFilter.tagsLogic == .all ? "∧" : "∨"
-          let label = tags.joined(separator: " \(logicSymbol) ")
-          FilterChip(
-            label: label,
-            systemImage: "tag",
-            openSheet: $showFilterSheet
-          )
-        }
+        filterChips
 
       }
       .padding(4)
@@ -117,8 +80,75 @@ struct BookFilterView: View {
         filterType: filterType,
         seriesId: seriesId,
         libraryIds: libraryIds,
-        includeOfflineSorts: includeOfflineSorts
+        includeOfflineSorts: includeOfflineSorts,
+        usesRelevanceSort: usesRelevanceSort,
+        ignoresFiltersForSearch: ignoresFiltersForSearch
       )
+    }
+  }
+
+  @ViewBuilder
+  private var filterChips: some View {
+    if ignoresFiltersForSearch {
+      FilterChip(
+        label: String(localized: "filters.ignored"),
+        systemImage: "line.3.horizontal.decrease.circle",
+        openSheet: $showFilterSheet
+      )
+    } else {
+      if let label = buildReadStatusLabel(
+        include: browseOpts.includeReadStatuses,
+        exclude: browseOpts.excludeReadStatuses
+      ) {
+        FilterChip(
+          label: label,
+          systemImage: "eye",
+          variant: label.contains("≠") ? .negative : .normal,
+          openSheet: $showFilterSheet
+        )
+      }
+
+      if browseOpts.oneshotFilter.isActive,
+        let label = browseOpts.oneshotFilter.displayLabel(using: { _ in FilterStrings.oneshot })
+      {
+        FilterChip(
+          label: label,
+          systemImage: "dot.circle",
+          variant: browseOpts.oneshotFilter.state == .exclude ? .negative : .normal,
+          openSheet: $showFilterSheet
+        )
+      }
+
+      if browseOpts.deletedFilter.isActive,
+        let label = browseOpts.deletedFilter.displayLabel(using: { _ in FilterStrings.deleted })
+      {
+        FilterChip(
+          label: label,
+          systemImage: "trash",
+          variant: browseOpts.deletedFilter.state == .exclude ? .negative : .normal,
+          openSheet: $showFilterSheet
+        )
+      }
+
+      if let authors = browseOpts.metadataFilter.authors, !authors.isEmpty {
+        let logicSymbol = browseOpts.metadataFilter.authorsLogic == .all ? "∧" : "∨"
+        let label = authors.joined(separator: " \(logicSymbol) ")
+        FilterChip(
+          label: label,
+          systemImage: "person",
+          openSheet: $showFilterSheet
+        )
+      }
+
+      if let tags = browseOpts.metadataFilter.tags, !tags.isEmpty {
+        let logicSymbol = browseOpts.metadataFilter.tagsLogic == .all ? "∧" : "∨"
+        let label = tags.joined(separator: " \(logicSymbol) ")
+        FilterChip(
+          label: label,
+          systemImage: "tag",
+          openSheet: $showFilterSheet
+        )
+      }
     }
   }
 }
