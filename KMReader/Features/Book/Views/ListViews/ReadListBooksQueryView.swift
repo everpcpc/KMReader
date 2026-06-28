@@ -73,7 +73,10 @@ struct ReadListBooksQueryView: View {
                     bookId: book.id,
                     layout: .grid,
                     showSeriesTitle: true,
-                    readListContext: readListContext
+                    readListContext: readListContext,
+                    onItemMissing: {
+                      bookViewModel.removeBook(id: book.id)
+                    }
                   )
                 }
               }
@@ -103,7 +106,10 @@ struct ReadListBooksQueryView: View {
                     bookId: book.id,
                     layout: .list,
                     showSeriesTitle: true,
-                    readListContext: readListContext
+                    readListContext: readListContext,
+                    onItemMissing: {
+                      bookViewModel.removeBook(id: book.id)
+                    }
                   )
                 }
               }

@@ -9,6 +9,7 @@ import SwiftUI
 struct SeriesQueryItemView: View {
   let seriesId: String
   let layout: BrowseLayoutMode
+  var onItemMissing: (() -> Void)? = nil
 
   @AppStorage("currentAccount") private var current: Current = .init()
   @State private var item: SeriesDisplayItem?
@@ -16,10 +17,12 @@ struct SeriesQueryItemView: View {
 
   init(
     seriesId: String,
-    layout: BrowseLayoutMode
+    layout: BrowseLayoutMode,
+    onItemMissing: (() -> Void)? = nil
   ) {
     self.seriesId = seriesId
     self.layout = layout
+    self.onItemMissing = onItemMissing
 
   }
 
@@ -112,9 +115,13 @@ struct SeriesQueryItemView: View {
       item = nil
       return
     }
-    item = try? await database.fetchSeriesDisplayItem(
+    let loadedItem = try? await database.fetchSeriesDisplayItem(
       seriesId: seriesId,
       instanceId: current.instanceId
     )
+    item = loadedItem
+    if loadedItem == nil {
+      onItemMissing?()
+    }
   }
 }

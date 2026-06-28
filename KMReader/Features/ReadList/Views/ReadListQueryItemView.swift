@@ -9,6 +9,7 @@ import SwiftUI
 struct ReadListQueryItemView: View {
   let readListId: String
   var layout: BrowseLayoutMode = .grid
+  var onItemMissing: (() -> Void)? = nil
 
   @AppStorage("currentAccount") private var current: Current = .init()
   @State private var item: ReadListDisplayItem?
@@ -16,10 +17,12 @@ struct ReadListQueryItemView: View {
 
   init(
     readListId: String,
-    layout: BrowseLayoutMode = .grid
+    layout: BrowseLayoutMode = .grid,
+    onItemMissing: (() -> Void)? = nil
   ) {
     self.readListId = readListId
     self.layout = layout
+    self.onItemMissing = onItemMissing
 
   }
 
@@ -108,9 +111,13 @@ struct ReadListQueryItemView: View {
       item = nil
       return
     }
-    item = try? await database.fetchReadListDisplayItem(
+    let loadedItem = try? await database.fetchReadListDisplayItem(
       readListId: readListId,
       instanceId: current.instanceId
     )
+    item = loadedItem
+    if loadedItem == nil {
+      onItemMissing?()
+    }
   }
 }

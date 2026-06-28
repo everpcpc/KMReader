@@ -140,6 +140,12 @@ class SeriesViewModel {
     pagination.advance(moreAvailable: moreAvailable)
   }
 
+  func removeSeries(id: String) {
+    withAnimation {
+      _ = pagination.removeItems(withIDs: [id])
+    }
+  }
+
   private func beginLoad(refresh: Bool) -> UUID? {
     if refresh {
       withAnimation {

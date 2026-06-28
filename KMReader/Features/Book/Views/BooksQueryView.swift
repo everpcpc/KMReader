@@ -59,7 +59,10 @@ struct BooksQueryView: View {
           ForEach(viewModel.pagination.items) { book in
             BookQueryItemView(
               bookId: book.id,
-              layout: .grid
+              layout: .grid,
+              onItemMissing: {
+                viewModel.removeBook(id: book.id)
+              }
             )
             .padding(.bottom)
             .onAppear {
@@ -75,7 +78,10 @@ struct BooksQueryView: View {
           ForEach(viewModel.pagination.items) { book in
             BookQueryItemView(
               bookId: book.id,
-              layout: .list
+              layout: .list,
+              onItemMissing: {
+                viewModel.removeBook(id: book.id)
+              }
             )
             .onAppear {
               if viewModel.pagination.shouldLoadMore(after: book) {

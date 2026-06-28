@@ -9,6 +9,7 @@ import SwiftUI
 struct CollectionQueryItemView: View {
   let collectionId: String
   var layout: BrowseLayoutMode = .grid
+  var onItemMissing: (() -> Void)? = nil
 
   @AppStorage("currentAccount") private var current: Current = .init()
   @State private var item: CollectionDisplayItem?
@@ -16,10 +17,12 @@ struct CollectionQueryItemView: View {
 
   init(
     collectionId: String,
-    layout: BrowseLayoutMode = .grid
+    layout: BrowseLayoutMode = .grid,
+    onItemMissing: (() -> Void)? = nil
   ) {
     self.collectionId = collectionId
     self.layout = layout
+    self.onItemMissing = onItemMissing
 
   }
 
@@ -108,9 +111,13 @@ struct CollectionQueryItemView: View {
       item = nil
       return
     }
-    item = try? await database.fetchCollectionDisplayItem(
+    let loadedItem = try? await database.fetchCollectionDisplayItem(
       collectionId: collectionId,
       instanceId: current.instanceId
     )
+    item = loadedItem
+    if loadedItem == nil {
+      onItemMissing?()
+    }
   }
 }

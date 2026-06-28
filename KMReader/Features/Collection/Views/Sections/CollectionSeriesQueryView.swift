@@ -45,7 +45,10 @@ struct CollectionSeriesQueryView: View {
                 } else {
                   SeriesQueryItemView(
                     seriesId: series.id,
-                    layout: .grid
+                    layout: .grid,
+                    onItemMissing: {
+                      seriesViewModel.removeSeries(id: series.id)
+                    }
                   )
                 }
               }
@@ -71,7 +74,10 @@ struct CollectionSeriesQueryView: View {
                 } else {
                   SeriesQueryItemView(
                     seriesId: series.id,
-                    layout: .list
+                    layout: .list,
+                    onItemMissing: {
+                      seriesViewModel.removeSeries(id: series.id)
+                    }
                   )
                 }
               }

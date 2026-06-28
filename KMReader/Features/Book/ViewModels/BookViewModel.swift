@@ -70,6 +70,12 @@ class BookViewModel {
     pagination.advance(moreAvailable: moreAvailable)
   }
 
+  func removeBook(id: String) {
+    withAnimation {
+      _ = pagination.removeItems(withIDs: [id])
+    }
+  }
+
   private func beginLoad(refresh: Bool) -> UUID? {
     if refresh {
       withAnimation {

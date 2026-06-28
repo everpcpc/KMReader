@@ -59,7 +59,10 @@ struct SeriesQueryView: View {
           ForEach(viewModel.pagination.items) { series in
             SeriesQueryItemView(
               seriesId: series.id,
-              layout: .grid
+              layout: .grid,
+              onItemMissing: {
+                viewModel.removeSeries(id: series.id)
+              }
             )
             .padding(.bottom)
             .onAppear {
@@ -75,7 +78,10 @@ struct SeriesQueryView: View {
           ForEach(viewModel.pagination.items) { series in
             SeriesQueryItemView(
               seriesId: series.id,
-              layout: .list
+              layout: .list,
+              onItemMissing: {
+                viewModel.removeSeries(id: series.id)
+              }
             )
             .onAppear {
               if viewModel.pagination.shouldLoadMore(after: series) {

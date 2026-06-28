@@ -12,6 +12,7 @@ struct BookQueryItemView: View {
   var showSeriesTitle: Bool = true
   var showSeriesNavigation: Bool = true
   var readListContext: ReaderReadListContext? = nil
+  var onItemMissing: (() -> Void)? = nil
 
   @AppStorage("currentAccount") private var current: Current = .init()
   @Environment(\.readerActions) private var readerActions
@@ -23,13 +24,15 @@ struct BookQueryItemView: View {
     layout: BrowseLayoutMode,
     showSeriesTitle: Bool = true,
     showSeriesNavigation: Bool = true,
-    readListContext: ReaderReadListContext? = nil
+    readListContext: ReaderReadListContext? = nil,
+    onItemMissing: (() -> Void)? = nil
   ) {
     self.bookId = bookId
     self.layout = layout
     self.showSeriesTitle = showSeriesTitle
     self.showSeriesNavigation = showSeriesNavigation
     self.readListContext = readListContext
+    self.onItemMissing = onItemMissing
 
   }
 
@@ -138,9 +141,13 @@ struct BookQueryItemView: View {
       item = nil
       return
     }
-    item = try? await database.fetchBookDisplayItem(
+    let loadedItem = try? await database.fetchBookDisplayItem(
       bookId: bookId,
       instanceId: current.instanceId
     )
+    item = loadedItem
+    if loadedItem == nil {
+      onItemMissing?()
+    }
   }
 }
