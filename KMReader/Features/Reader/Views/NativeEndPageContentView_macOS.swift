@@ -299,12 +299,13 @@
       dividerTitleLabel.stringValue = relationTitle
       dividerTitleLabel.isHidden = relationTitle.isEmpty
 
-      previousBadgeLabel.font = NSFont.preferredFont(forTextStyle: .caption1)
-      previousTitleLabel.font = NSFont.preferredFont(forTextStyle: .title3)
-      previousDetailLabel.font = NSFont.preferredFont(forTextStyle: .caption1)
-      nextBadgeLabel.font = NSFont.preferredFont(forTextStyle: .caption1)
-      nextTitleLabel.font = NSFont.preferredFont(forTextStyle: .title3)
-      nextDetailLabel.font = NSFont.preferredFont(forTextStyle: .caption1)
+      let metrics = NativeEndPageLayoutMetrics.resolve(for: bounds)
+      previousBadgeLabel.font = metrics.badgeFont
+      previousTitleLabel.font = metrics.titleFont
+      previousDetailLabel.font = metrics.detailFont
+      nextBadgeLabel.font = metrics.badgeFont
+      nextTitleLabel.font = metrics.titleFont
+      nextDetailLabel.font = metrics.detailFont
       caughtUpLabel.font = NSFont.preferredFont(forTextStyle: .headline)
       dividerTitleLabel.font = NSFont.preferredFont(forTextStyle: .caption1)
 
@@ -459,30 +460,22 @@
       guard bounds.width > 0, bounds.height > 0 else { return }
 
       let isPortrait = bounds.height >= bounds.width
-      let minDimension = min(bounds.width, bounds.height)
-      let maxDimension = max(bounds.width, bounds.height)
-      let outerPadding = clamped(minDimension * 0.08, lower: 20, upper: 56)
-      let stackSpacing = clamped(minDimension * 0.034, lower: 12, upper: 22)
-      let portraitSectionSpacing = stackSpacing + clamped(stackSpacing * 0.5, lower: 6, upper: 12)
-      let horizontalDividerWidth = clamped(bounds.width * 0.78, lower: 260, upper: 680)
-      let coverWidth = clamped(minDimension * (isPortrait ? 0.28 : 0.22), lower: 96, upper: 190)
-      let coverHeight = coverWidth / CoverAspectRatio.widthToHeight
-      let dividerHeight = clamped(maxDimension * 0.32, lower: 140, upper: 320)
+      let metrics = NativeEndPageLayoutMetrics.resolve(for: bounds)
 
-      contentStack.spacing = stackSpacing
-      sectionsStack.spacing = isPortrait ? portraitSectionSpacing : stackSpacing
+      contentStack.spacing = metrics.stackSpacing
+      sectionsStack.spacing = isPortrait ? metrics.portraitSectionSpacing : metrics.stackSpacing
 
-      contentLeadingConstraint?.constant = outerPadding
-      contentTrailingConstraint?.constant = -outerPadding
-      contentTopConstraint?.constant = outerPadding
-      contentBottomConstraint?.constant = -outerPadding
-      contentMaxWidthConstraint?.constant = -outerPadding * 2
-      horizontalDividerWidthConstraint?.constant = horizontalDividerWidth
-      previousCoverWidthConstraint?.constant = coverWidth
-      previousCoverHeightConstraint?.constant = coverHeight
-      nextCoverWidthConstraint?.constant = coverWidth
-      nextCoverHeightConstraint?.constant = coverHeight
-      verticalDividerHeightConstraint?.constant = dividerHeight
+      contentLeadingConstraint?.constant = metrics.outerPadding
+      contentTrailingConstraint?.constant = -metrics.outerPadding
+      contentTopConstraint?.constant = metrics.outerPadding
+      contentBottomConstraint?.constant = -metrics.outerPadding
+      contentMaxWidthConstraint?.constant = -metrics.outerPadding * 2
+      horizontalDividerWidthConstraint?.constant = metrics.horizontalDividerWidth
+      previousCoverWidthConstraint?.constant = metrics.coverWidth
+      previousCoverHeightConstraint?.constant = metrics.coverHeight
+      nextCoverWidthConstraint?.constant = metrics.coverWidth
+      nextCoverHeightConstraint?.constant = metrics.coverHeight
+      verticalDividerHeightConstraint?.constant = metrics.dividerHeight
     }
 
     private var shouldUseLightCoverShadow: Bool {
@@ -499,10 +492,6 @@
 
     private var coverBlendTintColor: NSColor? {
       renderConfig.readerBackground.appliesImageMultiplyBlend ? NSColor(renderConfig.readerBackground.color) : nil
-    }
-
-    private func clamped(_ value: CGFloat, lower: CGFloat, upper: CGFloat) -> CGFloat {
-      Swift.min(Swift.max(value, lower), upper)
     }
 
     @objc private func handleClose() {
