@@ -239,6 +239,7 @@ struct DashboardSectionDetailView: View {
     }
 
     let libraryIds = dashboard.libraryIds
+    let instanceId = AppConfig.current.instanceId
 
     if AppConfig.isOffline {
       let ids: [String]
@@ -259,6 +260,12 @@ struct DashboardSectionDetailView: View {
         ids = []
       }
       applyPage(ids: ids, moreAvailable: ids.count == pagination.pageSize)
+      updateWidgetDataIfNeeded(
+        ids: ids,
+        refresh: refresh,
+        instanceId: instanceId,
+        libraryIds: libraryIds
+      )
     } else {
       do {
         switch section.contentKind {
@@ -270,6 +277,13 @@ struct DashboardSectionDetailView: View {
           ) {
             let ids = page.content.map { $0.id }
             applyPage(ids: ids, moreAvailable: !page.last)
+            if refresh {
+              updateWidgetDataIfNeeded(
+                books: page.content,
+                instanceId: instanceId,
+                libraryIds: libraryIds
+              )
+            }
           }
         case .series:
           if let page = try await section.fetchSeries(
@@ -279,6 +293,13 @@ struct DashboardSectionDetailView: View {
           ) {
             let ids = page.content.map { $0.id }
             applyPage(ids: ids, moreAvailable: !page.last)
+            if refresh {
+              updateWidgetDataIfNeeded(
+                series: page.content,
+                instanceId: instanceId,
+                libraryIds: libraryIds
+              )
+            }
           }
         case .collections, .readLists:
           applyPage(ids: [], moreAvailable: false)
@@ -306,6 +327,28 @@ struct DashboardSectionDetailView: View {
   private func removeItem(id: String) {
     withAnimation {
       _ = pagination.removeItems(withIDs: [id])
+    }
+  }
+
+  private func updateWidgetDataIfNeeded(books: [Book], instanceId: String, libraryIds: [String]) {
+    section.widgetDataTarget?.update(books: books, instanceId: instanceId, libraryIds: libraryIds)
+  }
+
+  private func updateWidgetDataIfNeeded(series: [Series], instanceId: String, libraryIds: [String]) {
+    section.widgetDataTarget?.update(series: series, instanceId: instanceId, libraryIds: libraryIds)
+  }
+
+  private func updateWidgetDataIfNeeded(
+    ids: [String],
+    refresh: Bool,
+    instanceId: String,
+    libraryIds: [String]
+  ) {
+    guard refresh, let target = section.widgetDataTarget else { return }
+    guard !instanceId.isEmpty else { return }
+
+    Task {
+      await target.update(ids: ids, instanceId: instanceId, libraryIds: libraryIds)
     }
   }
 

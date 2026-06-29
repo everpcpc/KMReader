@@ -715,6 +715,12 @@ extension DatabaseOperator {
     }) ?? []
   }
 
+  func fetchBooksForWidget(bookIds: [String], instanceId: String) -> [Book] {
+    (try? read { db in
+      try fetchBooksByIds(db: db, ids: bookIds, instanceId: instanceId).map { $0.toBook() }
+    }) ?? []
+  }
+
   func fetchRecentlyAddedBooksForWidget(
     instanceId: String,
     libraryIds: [String],
@@ -752,6 +758,12 @@ extension DatabaseOperator {
       sql += "\nLIMIT ?"
       arguments += StatementArguments([limit])
       return try KomgaSeries.fetchAll(db, sql: sql, arguments: arguments).map { $0.toSeries() }
+    }) ?? []
+  }
+
+  func fetchSeriesForWidget(seriesIds: [String], instanceId: String) -> [Series] {
+    (try? read { db in
+      try fetchSeriesByIds(db: db, ids: seriesIds, instanceId: instanceId).map { $0.toSeries() }
     }) ?? []
   }
 

@@ -17,12 +17,12 @@ struct KeepReadingProvider: TimelineProvider {
   }
 
   func getSnapshot(in context: Context, completion: @escaping (KeepReadingEntry) -> Void) {
-    let books = WidgetDataStore.loadEntries(forKey: WidgetDataStore.keepReadingKey)
+    let books = WidgetDataStore.loadEntries(forKey: WidgetDataStore.keepReading.storageKey)
     completion(KeepReadingEntry(date: .now, books: books))
   }
 
   func getTimeline(in context: Context, completion: @escaping (Timeline<KeepReadingEntry>) -> Void) {
-    let books = WidgetDataStore.loadEntries(forKey: WidgetDataStore.keepReadingKey)
+    let books = WidgetDataStore.loadEntries(forKey: WidgetDataStore.keepReading.storageKey)
     let entry = KeepReadingEntry(date: .now, books: books)
     let nextUpdate = Calendar.current.date(byAdding: .minute, value: 30, to: .now) ?? .now
     completion(Timeline(entries: [entry], policy: .after(nextUpdate)))
@@ -103,7 +103,7 @@ struct KeepReadingWidgetEntryView: View {
 }
 
 struct KeepReadingWidget: Widget {
-  let kind = "KeepReadingWidget"
+  let kind = WidgetDataStore.keepReading.kind
 
   var body: some WidgetConfiguration {
     StaticConfiguration(kind: kind, provider: KeepReadingProvider()) { entry in

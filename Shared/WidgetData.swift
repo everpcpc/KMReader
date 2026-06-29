@@ -31,9 +31,24 @@ struct WidgetSeriesEntry: Codable, Sendable {
 
 enum WidgetDataStore: Sendable {
   static nonisolated let suiteName = "group.com.everpcpc.Komga"
-  static nonisolated let keepReadingKey = "widget.keepReading"
-  static nonisolated let recentlyAddedKey = "widget.recentlyAdded"
-  static nonisolated let recentlyUpdatedSeriesKey = "widget.recentlyUpdatedSeries"
+  static nonisolated let keepReading = WidgetDescriptor(
+    kind: "KeepReadingWidget",
+    storageKey: "widget.keepReading"
+  )
+  static nonisolated let recentlyAdded = WidgetDescriptor(
+    kind: "RecentlyAddedWidget",
+    storageKey: "widget.recentlyAdded"
+  )
+  static nonisolated let recentlyUpdatedSeries = WidgetDescriptor(
+    kind: "RecentlyUpdatedSeriesWidget",
+    storageKey: "widget.recentlyUpdatedSeries"
+  )
+  static nonisolated var widgets: [WidgetDescriptor] {
+    [keepReading, recentlyAdded, recentlyUpdatedSeries]
+  }
+  static nonisolated var widgetKinds: [String] {
+    widgets.map(\.kind)
+  }
   private static nonisolated let thumbnailDirectoryName = "WidgetThumbnails"
 
   static nonisolated var sharedDefaults: UserDefaults? {
@@ -52,6 +67,10 @@ enum WidgetDataStore: Sendable {
     guard let defaults = sharedDefaults else { return }
     guard let data = try? JSONEncoder().encode(entries) else { return }
     defaults.set(data, forKey: key)
+  }
+
+  static nonisolated func clearEntries(for descriptor: WidgetDescriptor) {
+    sharedDefaults?.removeObject(forKey: descriptor.storageKey)
   }
 
   static nonisolated func loadEntries(forKey key: String) -> [WidgetBookEntry] {
@@ -87,9 +106,9 @@ enum WidgetDataStore: Sendable {
   }
 
   static nonisolated func clearAll() {
-    sharedDefaults?.removeObject(forKey: keepReadingKey)
-    sharedDefaults?.removeObject(forKey: recentlyAddedKey)
-    sharedDefaults?.removeObject(forKey: recentlyUpdatedSeriesKey)
+    for widget in widgets {
+      clearEntries(for: widget)
+    }
     if let dir = thumbnailDirectory {
       try? FileManager.default.removeItem(at: dir)
     }
