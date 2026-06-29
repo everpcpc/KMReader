@@ -30,11 +30,6 @@ struct WidgetSeriesEntry: Codable, Sendable {
 }
 
 enum WidgetDataStore: Sendable {
-  struct WidgetDescriptor: Sendable {
-    let kind: String
-    let storageKey: String
-  }
-
   static nonisolated let suiteName = "group.com.everpcpc.Komga"
   static nonisolated let keepReading = WidgetDescriptor(
     kind: "KeepReadingWidget",
@@ -48,8 +43,11 @@ enum WidgetDataStore: Sendable {
     kind: "RecentlyUpdatedSeriesWidget",
     storageKey: "widget.recentlyUpdatedSeries"
   )
+  static nonisolated var widgets: [WidgetDescriptor] {
+    [keepReading, recentlyAdded, recentlyUpdatedSeries]
+  }
   static nonisolated var widgetKinds: [String] {
-    [keepReading.kind, recentlyAdded.kind, recentlyUpdatedSeries.kind]
+    widgets.map(\.kind)
   }
   private static nonisolated let thumbnailDirectoryName = "WidgetThumbnails"
 
@@ -69,6 +67,10 @@ enum WidgetDataStore: Sendable {
     guard let defaults = sharedDefaults else { return }
     guard let data = try? JSONEncoder().encode(entries) else { return }
     defaults.set(data, forKey: key)
+  }
+
+  static nonisolated func clearEntries(for descriptor: WidgetDescriptor) {
+    sharedDefaults?.removeObject(forKey: descriptor.storageKey)
   }
 
   static nonisolated func loadEntries(forKey key: String) -> [WidgetBookEntry] {
@@ -104,9 +106,9 @@ enum WidgetDataStore: Sendable {
   }
 
   static nonisolated func clearAll() {
-    sharedDefaults?.removeObject(forKey: keepReading.storageKey)
-    sharedDefaults?.removeObject(forKey: recentlyAdded.storageKey)
-    sharedDefaults?.removeObject(forKey: recentlyUpdatedSeries.storageKey)
+    for widget in widgets {
+      clearEntries(for: widget)
+    }
     if let dir = thumbnailDirectory {
       try? FileManager.default.removeItem(at: dir)
     }

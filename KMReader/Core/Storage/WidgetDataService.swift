@@ -19,11 +19,22 @@ enum WidgetDataService {
     let libraryIds = AppConfig.dashboard.libraryIds
 
     Task.detached(priority: .utility) {
-      guard await Self.canWriteWidgetData(instanceId: instanceId) else { return }
+      guard await Self.canWriteWidgetData(instanceId: instanceId, libraryIds: libraryIds) else {
+        return
+      }
       let configuredWidgetKinds = await WidgetConfigurationService.shared.configuredWidgetKinds(
         matching: WidgetDataStore.widgetKinds
       )
-      guard !configuredWidgetKinds.isEmpty else { return }
+      guard Self.isCurrentWidgetContext(instanceId: instanceId, libraryIds: libraryIds) else {
+        return
+      }
+      Self.clearWidgetPayloads(
+        forKinds: Set(WidgetDataStore.widgetKinds).subtracting(configuredWidgetKinds)
+      )
+      guard !configuredWidgetKinds.isEmpty else {
+        Self.copyThumbnails(books: [], series: [], removingStaleFiles: true)
+        return
+      }
 
       var copiedBooks: [Book] = []
       var copiedSeries: [Series] = []
@@ -32,12 +43,16 @@ enum WidgetDataService {
       var recentlyAddedCount = 0
       var recentlyUpdatedSeriesCount = 0
 
-      guard AppConfig.current.instanceId == instanceId else { return }
+      guard Self.isCurrentWidgetContext(instanceId: instanceId, libraryIds: libraryIds) else {
+        return
+      }
       if configuredWidgetKinds.contains(WidgetDataStore.keepReading.kind) {
         let books =
           (try? await DatabaseOperator.database().fetchKeepReadingBooksForWidget(
             instanceId: instanceId, libraryIds: libraryIds, limit: 6)) ?? []
-        guard AppConfig.current.instanceId == instanceId else { return }
+        guard Self.isCurrentWidgetContext(instanceId: instanceId, libraryIds: libraryIds) else {
+          return
+        }
         WidgetDataStore.saveEntries(
           books.map { Self.bookToEntry($0) },
           forKey: WidgetDataStore.keepReading.storageKey
@@ -51,7 +66,9 @@ enum WidgetDataService {
         let books =
           (try? await DatabaseOperator.database().fetchRecentlyAddedBooksForWidget(
             instanceId: instanceId, libraryIds: libraryIds, limit: 6)) ?? []
-        guard AppConfig.current.instanceId == instanceId else { return }
+        guard Self.isCurrentWidgetContext(instanceId: instanceId, libraryIds: libraryIds) else {
+          return
+        }
         WidgetDataStore.saveEntries(
           books.map { Self.bookToEntry($0) },
           forKey: WidgetDataStore.recentlyAdded.storageKey
@@ -65,7 +82,9 @@ enum WidgetDataService {
         let series =
           (try? await DatabaseOperator.database().fetchRecentlyUpdatedSeriesForWidget(
             instanceId: instanceId, libraryIds: libraryIds, limit: 6)) ?? []
-        guard AppConfig.current.instanceId == instanceId else { return }
+        guard Self.isCurrentWidgetContext(instanceId: instanceId, libraryIds: libraryIds) else {
+          return
+        }
         WidgetDataStore.saveSeriesEntries(
           series.map { Self.seriesToEntry($0) },
           forKey: WidgetDataStore.recentlyUpdatedSeries.storageKey
@@ -88,17 +107,23 @@ enum WidgetDataService {
     }
   }
 
-  static func updateKeepReadingBooks(_ books: [Book], instanceId: String) {
+  static func updateKeepReadingBooks(_ books: [Book], instanceId: String, libraryIds: [String]) {
     let books = Array(books.prefix(6))
     Task.detached(priority: .utility) {
-      guard await Self.canWriteWidgetData(instanceId: instanceId) else { return }
-      guard AppConfig.current.instanceId == instanceId else { return }
+      guard await Self.canWriteWidgetData(instanceId: instanceId, libraryIds: libraryIds) else {
+        return
+      }
       guard
         await WidgetConfigurationService.shared.hasConfiguredWidget(
           kind: WidgetDataStore.keepReading.kind
         )
-      else { return }
-      guard AppConfig.current.instanceId == instanceId else { return }
+      else {
+        WidgetDataStore.clearEntries(for: WidgetDataStore.keepReading)
+        return
+      }
+      guard Self.isCurrentWidgetContext(instanceId: instanceId, libraryIds: libraryIds) else {
+        return
+      }
       WidgetDataStore.saveEntries(
         books.map { Self.bookToEntry($0) },
         forKey: WidgetDataStore.keepReading.storageKey
@@ -108,17 +133,23 @@ enum WidgetDataService {
     }
   }
 
-  static func updateRecentlyAddedBooks(_ books: [Book], instanceId: String) {
+  static func updateRecentlyAddedBooks(_ books: [Book], instanceId: String, libraryIds: [String]) {
     let books = Array(books.prefix(6))
     Task.detached(priority: .utility) {
-      guard await Self.canWriteWidgetData(instanceId: instanceId) else { return }
-      guard AppConfig.current.instanceId == instanceId else { return }
+      guard await Self.canWriteWidgetData(instanceId: instanceId, libraryIds: libraryIds) else {
+        return
+      }
       guard
         await WidgetConfigurationService.shared.hasConfiguredWidget(
           kind: WidgetDataStore.recentlyAdded.kind
         )
-      else { return }
-      guard AppConfig.current.instanceId == instanceId else { return }
+      else {
+        WidgetDataStore.clearEntries(for: WidgetDataStore.recentlyAdded)
+        return
+      }
+      guard Self.isCurrentWidgetContext(instanceId: instanceId, libraryIds: libraryIds) else {
+        return
+      }
       WidgetDataStore.saveEntries(
         books.map { Self.bookToEntry($0) },
         forKey: WidgetDataStore.recentlyAdded.storageKey
@@ -128,17 +159,27 @@ enum WidgetDataService {
     }
   }
 
-  static func updateRecentlyUpdatedSeries(_ series: [Series], instanceId: String) {
+  static func updateRecentlyUpdatedSeries(
+    _ series: [Series],
+    instanceId: String,
+    libraryIds: [String]
+  ) {
     let series = Array(series.prefix(6))
     Task.detached(priority: .utility) {
-      guard await Self.canWriteWidgetData(instanceId: instanceId) else { return }
-      guard AppConfig.current.instanceId == instanceId else { return }
+      guard await Self.canWriteWidgetData(instanceId: instanceId, libraryIds: libraryIds) else {
+        return
+      }
       guard
         await WidgetConfigurationService.shared.hasConfiguredWidget(
           kind: WidgetDataStore.recentlyUpdatedSeries.kind
         )
-      else { return }
-      guard AppConfig.current.instanceId == instanceId else { return }
+      else {
+        WidgetDataStore.clearEntries(for: WidgetDataStore.recentlyUpdatedSeries)
+        return
+      }
+      guard Self.isCurrentWidgetContext(instanceId: instanceId, libraryIds: libraryIds) else {
+        return
+      }
       WidgetDataStore.saveSeriesEntries(
         series.map { Self.seriesToEntry($0) },
         forKey: WidgetDataStore.recentlyUpdatedSeries.storageKey
@@ -148,31 +189,46 @@ enum WidgetDataService {
     }
   }
 
-  static func updateKeepReadingBookIds(_ bookIds: [String], instanceId: String) async {
+  static func updateKeepReadingBookIds(
+    _ bookIds: [String],
+    instanceId: String,
+    libraryIds: [String]
+  ) async {
+    guard await canWriteWidgetData(instanceId: instanceId, libraryIds: libraryIds) else { return }
     let books =
       await DatabaseOperator.databaseIfConfigured()?.fetchBooksForWidget(
         bookIds: Array(bookIds.prefix(6)),
         instanceId: instanceId
       ) ?? []
-    updateKeepReadingBooks(books, instanceId: instanceId)
+    updateKeepReadingBooks(books, instanceId: instanceId, libraryIds: libraryIds)
   }
 
-  static func updateRecentlyAddedBookIds(_ bookIds: [String], instanceId: String) async {
+  static func updateRecentlyAddedBookIds(
+    _ bookIds: [String],
+    instanceId: String,
+    libraryIds: [String]
+  ) async {
+    guard await canWriteWidgetData(instanceId: instanceId, libraryIds: libraryIds) else { return }
     let books =
       await DatabaseOperator.databaseIfConfigured()?.fetchBooksForWidget(
         bookIds: Array(bookIds.prefix(6)),
         instanceId: instanceId
       ) ?? []
-    updateRecentlyAddedBooks(books, instanceId: instanceId)
+    updateRecentlyAddedBooks(books, instanceId: instanceId, libraryIds: libraryIds)
   }
 
-  static func updateRecentlyUpdatedSeriesIds(_ seriesIds: [String], instanceId: String) async {
+  static func updateRecentlyUpdatedSeriesIds(
+    _ seriesIds: [String],
+    instanceId: String,
+    libraryIds: [String]
+  ) async {
+    guard await canWriteWidgetData(instanceId: instanceId, libraryIds: libraryIds) else { return }
     let series =
       await DatabaseOperator.databaseIfConfigured()?.fetchSeriesForWidget(
         seriesIds: Array(seriesIds.prefix(6)),
         instanceId: instanceId
       ) ?? []
-    updateRecentlyUpdatedSeries(series, instanceId: instanceId)
+    updateRecentlyUpdatedSeries(series, instanceId: instanceId, libraryIds: libraryIds)
   }
 
   @MainActor
@@ -313,15 +369,35 @@ enum WidgetDataService {
     #endif
   }
 
-  private static nonisolated func canWriteWidgetData(instanceId: String) async -> Bool {
-    guard !instanceId.isEmpty, AppConfig.current.instanceId == instanceId else { return false }
+  private static nonisolated func clearWidgetPayloads(forKinds kinds: Set<String>) {
+    guard !kinds.isEmpty else { return }
+    for widget in WidgetDataStore.widgets where kinds.contains(widget.kind) {
+      WidgetDataStore.clearEntries(for: widget)
+    }
+  }
+
+  private static nonisolated func canWriteWidgetData(
+    instanceId: String,
+    libraryIds: [String]
+  ) async -> Bool {
+    guard isCurrentWidgetContext(instanceId: instanceId, libraryIds: libraryIds) else {
+      return false
+    }
     guard !(await isProtectedInstance(instanceId)) else {
       if AppConfig.current.instanceId == instanceId {
         await clearWidgetData()
       }
       return false
     }
-    return AppConfig.current.instanceId == instanceId
+    return isCurrentWidgetContext(instanceId: instanceId, libraryIds: libraryIds)
+  }
+
+  private static nonisolated func isCurrentWidgetContext(
+    instanceId: String,
+    libraryIds: [String]
+  ) -> Bool {
+    guard !instanceId.isEmpty, AppConfig.current.instanceId == instanceId else { return false }
+    return Set(AppConfig.dashboard.libraryIds) == Set(libraryIds)
   }
 
   private static nonisolated func isProtectedInstance(_ instanceId: String) async -> Bool {

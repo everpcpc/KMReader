@@ -208,7 +208,12 @@ struct DashboardSectionView: View {
         ids = []
       }
       applyPage(ids: ids, moreAvailable: ids.count == pagination.pageSize)
-      updateWidgetDataIfNeeded(ids: ids, isFirstPage: isFirstPage, instanceId: instanceId)
+      updateWidgetDataIfNeeded(
+        ids: ids,
+        isFirstPage: isFirstPage,
+        instanceId: instanceId,
+        libraryIds: libraryIds
+      )
     } else {
       do {
         switch section.contentKind {
@@ -221,7 +226,11 @@ struct DashboardSectionView: View {
             let ids = page.content.map { $0.id }
             if isFirstPage {
               _ = sectionCacheStore.updateIfChanged(section: section, ids: ids)
-              updateWidgetDataIfNeeded(books: page.content, instanceId: instanceId)
+              updateWidgetDataIfNeeded(
+                books: page.content,
+                instanceId: instanceId,
+                libraryIds: libraryIds
+              )
             }
             applyPage(ids: ids, moreAvailable: !page.last)
           }
@@ -234,7 +243,11 @@ struct DashboardSectionView: View {
             let ids = page.content.map { $0.id }
             if isFirstPage {
               _ = sectionCacheStore.updateIfChanged(section: section, ids: ids)
-              updateWidgetDataIfNeeded(series: page.content, instanceId: instanceId)
+              updateWidgetDataIfNeeded(
+                series: page.content,
+                instanceId: instanceId,
+                libraryIds: libraryIds
+              )
             }
             applyPage(ids: ids, moreAvailable: !page.last)
           }
@@ -280,20 +293,25 @@ struct DashboardSectionView: View {
     pagination.advance(moreAvailable: moreAvailable)
   }
 
-  private func updateWidgetDataIfNeeded(books: [Book], instanceId: String) {
-    section.widgetDataTarget?.update(books: books, instanceId: instanceId)
+  private func updateWidgetDataIfNeeded(books: [Book], instanceId: String, libraryIds: [String]) {
+    section.widgetDataTarget?.update(books: books, instanceId: instanceId, libraryIds: libraryIds)
   }
 
-  private func updateWidgetDataIfNeeded(series: [Series], instanceId: String) {
-    section.widgetDataTarget?.update(series: series, instanceId: instanceId)
+  private func updateWidgetDataIfNeeded(series: [Series], instanceId: String, libraryIds: [String]) {
+    section.widgetDataTarget?.update(series: series, instanceId: instanceId, libraryIds: libraryIds)
   }
 
-  private func updateWidgetDataIfNeeded(ids: [String], isFirstPage: Bool, instanceId: String) {
+  private func updateWidgetDataIfNeeded(
+    ids: [String],
+    isFirstPage: Bool,
+    instanceId: String,
+    libraryIds: [String]
+  ) {
     guard isFirstPage, let target = section.widgetDataTarget else { return }
     guard !instanceId.isEmpty else { return }
 
     Task {
-      await target.update(ids: ids, instanceId: instanceId)
+      await target.update(ids: ids, instanceId: instanceId, libraryIds: libraryIds)
     }
   }
 
