@@ -94,6 +94,19 @@ enum DashboardSection: String, CaseIterable, Identifiable, Codable, Sendable {
     }
   }
 
+  var widgetDataTarget: DashboardWidgetDataTarget? {
+    switch self {
+    case .keepReading:
+      return .keepReading
+    case .recentlyAddedBooks:
+      return .recentlyAdded
+    case .recentlyUpdatedSeries:
+      return .recentlyUpdatedSeries
+    default:
+      return nil
+    }
+  }
+
   static var latestOfflineQueueSections: [DashboardSection] {
     allCases.filter(\.supportsDownloadLatest)
   }

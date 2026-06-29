@@ -30,10 +30,24 @@ struct WidgetSeriesEntry: Codable, Sendable {
 }
 
 enum WidgetDataStore: Sendable {
+  struct WidgetDescriptor: Sendable {
+    let kind: String
+    let storageKey: String
+  }
+
   static nonisolated let suiteName = "group.com.everpcpc.Komga"
-  static nonisolated let keepReadingKey = "widget.keepReading"
-  static nonisolated let recentlyAddedKey = "widget.recentlyAdded"
-  static nonisolated let recentlyUpdatedSeriesKey = "widget.recentlyUpdatedSeries"
+  static nonisolated let keepReading = WidgetDescriptor(
+    kind: "KeepReadingWidget",
+    storageKey: "widget.keepReading"
+  )
+  static nonisolated let recentlyAdded = WidgetDescriptor(
+    kind: "RecentlyAddedWidget",
+    storageKey: "widget.recentlyAdded"
+  )
+  static nonisolated let recentlyUpdatedSeries = WidgetDescriptor(
+    kind: "RecentlyUpdatedSeriesWidget",
+    storageKey: "widget.recentlyUpdatedSeries"
+  )
   private static nonisolated let thumbnailDirectoryName = "WidgetThumbnails"
 
   static nonisolated var sharedDefaults: UserDefaults? {
@@ -87,9 +101,9 @@ enum WidgetDataStore: Sendable {
   }
 
   static nonisolated func clearAll() {
-    sharedDefaults?.removeObject(forKey: keepReadingKey)
-    sharedDefaults?.removeObject(forKey: recentlyAddedKey)
-    sharedDefaults?.removeObject(forKey: recentlyUpdatedSeriesKey)
+    sharedDefaults?.removeObject(forKey: keepReading.storageKey)
+    sharedDefaults?.removeObject(forKey: recentlyAdded.storageKey)
+    sharedDefaults?.removeObject(forKey: recentlyUpdatedSeries.storageKey)
     if let dir = thumbnailDirectory {
       try? FileManager.default.removeItem(at: dir)
     }

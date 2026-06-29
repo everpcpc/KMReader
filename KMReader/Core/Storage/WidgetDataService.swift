@@ -19,10 +19,7 @@ enum WidgetDataService {
     let libraryIds = AppConfig.dashboard.libraryIds
 
     Task.detached(priority: .utility) {
-      guard !(await Self.isProtectedInstance(instanceId)) else {
-        await Self.clearWidgetData()
-        return
-      }
+      guard await Self.canWriteWidgetData(instanceId: instanceId) else { return }
 
       let keepReadingBooks =
         (try? await DatabaseOperator.database().fetchKeepReadingBooksForWidget(
@@ -37,12 +34,17 @@ enum WidgetDataService {
       let recentlyAddedEntries = recentlyAddedBooks.map { Self.bookToEntry($0) }
       let recentlyUpdatedSeriesEntries = recentlyUpdatedSeries.map { Self.seriesToEntry($0) }
 
-      WidgetDataStore.saveEntries(keepReadingEntries, forKey: WidgetDataStore.keepReadingKey)
-      WidgetDataStore.saveEntries(recentlyAddedEntries, forKey: WidgetDataStore.recentlyAddedKey)
+      guard AppConfig.current.instanceId == instanceId else { return }
+      WidgetDataStore.saveEntries(keepReadingEntries, forKey: WidgetDataStore.keepReading.storageKey)
+      WidgetDataStore.saveEntries(recentlyAddedEntries, forKey: WidgetDataStore.recentlyAdded.storageKey)
       WidgetDataStore.saveSeriesEntries(
-        recentlyUpdatedSeriesEntries, forKey: WidgetDataStore.recentlyUpdatedSeriesKey)
+        recentlyUpdatedSeriesEntries, forKey: WidgetDataStore.recentlyUpdatedSeries.storageKey)
 
-      Self.copyThumbnails(books: keepReadingBooks + recentlyAddedBooks, series: recentlyUpdatedSeries)
+      Self.copyThumbnails(
+        books: keepReadingBooks + recentlyAddedBooks,
+        series: recentlyUpdatedSeries,
+        removingStaleFiles: true
+      )
 
       #if canImport(WidgetKit)
         WidgetCenter.shared.reloadAllTimelines()
@@ -51,6 +53,75 @@ enum WidgetDataService {
         "Widget data refreshed: keepReading=\(keepReadingEntries.count), recentlyAdded=\(recentlyAddedEntries.count), recentlyUpdatedSeries=\(recentlyUpdatedSeriesEntries.count)"
       )
     }
+  }
+
+  static func updateKeepReadingBooks(_ books: [Book], instanceId: String) {
+    let books = Array(books.prefix(6))
+    Task.detached(priority: .utility) {
+      guard await Self.canWriteWidgetData(instanceId: instanceId) else { return }
+      guard AppConfig.current.instanceId == instanceId else { return }
+      WidgetDataStore.saveEntries(
+        books.map { Self.bookToEntry($0) },
+        forKey: WidgetDataStore.keepReading.storageKey
+      )
+      Self.copyThumbnails(books: books, series: [])
+      Self.reloadWidget(kind: WidgetDataStore.keepReading.kind)
+    }
+  }
+
+  static func updateRecentlyAddedBooks(_ books: [Book], instanceId: String) {
+    let books = Array(books.prefix(6))
+    Task.detached(priority: .utility) {
+      guard await Self.canWriteWidgetData(instanceId: instanceId) else { return }
+      guard AppConfig.current.instanceId == instanceId else { return }
+      WidgetDataStore.saveEntries(
+        books.map { Self.bookToEntry($0) },
+        forKey: WidgetDataStore.recentlyAdded.storageKey
+      )
+      Self.copyThumbnails(books: books, series: [])
+      Self.reloadWidget(kind: WidgetDataStore.recentlyAdded.kind)
+    }
+  }
+
+  static func updateRecentlyUpdatedSeries(_ series: [Series], instanceId: String) {
+    let series = Array(series.prefix(6))
+    Task.detached(priority: .utility) {
+      guard await Self.canWriteWidgetData(instanceId: instanceId) else { return }
+      guard AppConfig.current.instanceId == instanceId else { return }
+      WidgetDataStore.saveSeriesEntries(
+        series.map { Self.seriesToEntry($0) },
+        forKey: WidgetDataStore.recentlyUpdatedSeries.storageKey
+      )
+      Self.copyThumbnails(books: [], series: series)
+      Self.reloadWidget(kind: WidgetDataStore.recentlyUpdatedSeries.kind)
+    }
+  }
+
+  static func updateKeepReadingBookIds(_ bookIds: [String], instanceId: String) async {
+    let books =
+      await DatabaseOperator.databaseIfConfigured()?.fetchBooksForWidget(
+        bookIds: Array(bookIds.prefix(6)),
+        instanceId: instanceId
+      ) ?? []
+    updateKeepReadingBooks(books, instanceId: instanceId)
+  }
+
+  static func updateRecentlyAddedBookIds(_ bookIds: [String], instanceId: String) async {
+    let books =
+      await DatabaseOperator.databaseIfConfigured()?.fetchBooksForWidget(
+        bookIds: Array(bookIds.prefix(6)),
+        instanceId: instanceId
+      ) ?? []
+    updateRecentlyAddedBooks(books, instanceId: instanceId)
+  }
+
+  static func updateRecentlyUpdatedSeriesIds(_ seriesIds: [String], instanceId: String) async {
+    let series =
+      await DatabaseOperator.databaseIfConfigured()?.fetchSeriesForWidget(
+        seriesIds: Array(seriesIds.prefix(6)),
+        instanceId: instanceId
+      ) ?? []
+    updateRecentlyUpdatedSeries(series, instanceId: instanceId)
   }
 
   @MainActor
@@ -98,7 +169,11 @@ enum WidgetDataService {
     )
   }
 
-  private static nonisolated func copyThumbnails(books: [Book], series: [Series]) {
+  private static nonisolated func copyThumbnails(
+    books: [Book],
+    series: [Series],
+    removingStaleFiles: Bool = false
+  ) {
     guard let destDir = WidgetDataStore.thumbnailDirectory else { return }
     let fm = FileManager.default
 
@@ -106,21 +181,23 @@ enum WidgetDataService {
       try? fm.createDirectory(at: destDir, withIntermediateDirectories: true)
     }
 
-    let validFileNames = Set(
-      books.compactMap { book -> String? in
-        let source = ThumbnailCache.getThumbnailFileURL(id: book.id, type: .book)
-        return fm.fileExists(atPath: source.path) ? bookThumbnailFileName(bookId: book.id) : nil
-      }
-        + series.compactMap { series in
-          let source = ThumbnailCache.getThumbnailFileURL(id: series.id, type: .series)
-          return fm.fileExists(atPath: source.path)
-            ? seriesThumbnailFileName(seriesId: series.id) : nil
+    if removingStaleFiles {
+      let validFileNames = Set(
+        books.compactMap { book -> String? in
+          let source = ThumbnailCache.getThumbnailFileURL(id: book.id, type: .book)
+          return fm.fileExists(atPath: source.path) ? bookThumbnailFileName(bookId: book.id) : nil
         }
-    )
+          + series.compactMap { series in
+            let source = ThumbnailCache.getThumbnailFileURL(id: series.id, type: .series)
+            return fm.fileExists(atPath: source.path)
+              ? seriesThumbnailFileName(seriesId: series.id) : nil
+          }
+      )
 
-    if let existing = try? fm.contentsOfDirectory(atPath: destDir.path) {
-      for file in existing where !validFileNames.contains(file) {
-        try? fm.removeItem(at: destDir.appendingPathComponent(file))
+      if let existing = try? fm.contentsOfDirectory(atPath: destDir.path) {
+        for file in existing where !validFileNames.contains(file) {
+          try? fm.removeItem(at: destDir.appendingPathComponent(file))
+        }
       }
     }
 
@@ -169,6 +246,23 @@ enum WidgetDataService {
 
   private static nonisolated func seriesThumbnailFileName(seriesId: String) -> String {
     "series_\(seriesId).jpg"
+  }
+
+  private static nonisolated func reloadWidget(kind: String) {
+    #if canImport(WidgetKit)
+      WidgetCenter.shared.reloadTimelines(ofKind: kind)
+    #endif
+  }
+
+  private static nonisolated func canWriteWidgetData(instanceId: String) async -> Bool {
+    guard !instanceId.isEmpty, AppConfig.current.instanceId == instanceId else { return false }
+    guard !(await isProtectedInstance(instanceId)) else {
+      if AppConfig.current.instanceId == instanceId {
+        await clearWidgetData()
+      }
+      return false
+    }
+    return AppConfig.current.instanceId == instanceId
   }
 
   private static nonisolated func isProtectedInstance(_ instanceId: String) async -> Bool {

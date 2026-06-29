@@ -17,14 +17,14 @@ struct RecentlyUpdatedSeriesProvider: TimelineProvider {
   }
 
   func getSnapshot(in context: Context, completion: @escaping (RecentlyUpdatedSeriesEntry) -> Void) {
-    let series = WidgetDataStore.loadSeriesEntries(forKey: WidgetDataStore.recentlyUpdatedSeriesKey)
+    let series = WidgetDataStore.loadSeriesEntries(forKey: WidgetDataStore.recentlyUpdatedSeries.storageKey)
     completion(RecentlyUpdatedSeriesEntry(date: .now, series: series))
   }
 
   func getTimeline(
     in context: Context, completion: @escaping (Timeline<RecentlyUpdatedSeriesEntry>) -> Void
   ) {
-    let series = WidgetDataStore.loadSeriesEntries(forKey: WidgetDataStore.recentlyUpdatedSeriesKey)
+    let series = WidgetDataStore.loadSeriesEntries(forKey: WidgetDataStore.recentlyUpdatedSeries.storageKey)
     let entry = RecentlyUpdatedSeriesEntry(date: .now, series: series)
     let nextUpdate = Calendar.current.date(byAdding: .minute, value: 30, to: .now) ?? .now
     completion(Timeline(entries: [entry], policy: .after(nextUpdate)))
@@ -105,7 +105,7 @@ struct RecentlyUpdatedSeriesWidgetEntryView: View {
 }
 
 struct RecentlyUpdatedSeriesWidget: Widget {
-  let kind = "RecentlyUpdatedSeriesWidget"
+  let kind = WidgetDataStore.recentlyUpdatedSeries.kind
 
   var body: some WidgetConfiguration {
     StaticConfiguration(kind: kind, provider: RecentlyUpdatedSeriesProvider()) { entry in
