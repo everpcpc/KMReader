@@ -48,6 +48,9 @@ enum WidgetDataStore: Sendable {
     kind: "RecentlyUpdatedSeriesWidget",
     storageKey: "widget.recentlyUpdatedSeries"
   )
+  static nonisolated var widgetKinds: [String] {
+    [keepReading.kind, recentlyAdded.kind, recentlyUpdatedSeries.kind]
+  }
   private static nonisolated let thumbnailDirectoryName = "WidgetThumbnails"
 
   static nonisolated var sharedDefaults: UserDefaults? {

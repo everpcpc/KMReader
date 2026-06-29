@@ -20,37 +20,70 @@ enum WidgetDataService {
 
     Task.detached(priority: .utility) {
       guard await Self.canWriteWidgetData(instanceId: instanceId) else { return }
+      let configuredWidgetKinds = await WidgetConfigurationService.shared.configuredWidgetKinds(
+        matching: WidgetDataStore.widgetKinds
+      )
+      guard !configuredWidgetKinds.isEmpty else { return }
 
-      let keepReadingBooks =
-        (try? await DatabaseOperator.database().fetchKeepReadingBooksForWidget(
-          instanceId: instanceId, libraryIds: libraryIds, limit: 6)) ?? []
-      let recentlyAddedBooks =
-        (try? await DatabaseOperator.database().fetchRecentlyAddedBooksForWidget(
-          instanceId: instanceId, libraryIds: libraryIds, limit: 6)) ?? []
-      let recentlyUpdatedSeries =
-        (try? await DatabaseOperator.database().fetchRecentlyUpdatedSeriesForWidget(
-          instanceId: instanceId, libraryIds: libraryIds, limit: 6)) ?? []
-      let keepReadingEntries = keepReadingBooks.map { Self.bookToEntry($0) }
-      let recentlyAddedEntries = recentlyAddedBooks.map { Self.bookToEntry($0) }
-      let recentlyUpdatedSeriesEntries = recentlyUpdatedSeries.map { Self.seriesToEntry($0) }
+      var copiedBooks: [Book] = []
+      var copiedSeries: [Series] = []
+      var reloadedKinds: Set<String> = []
+      var keepReadingCount = 0
+      var recentlyAddedCount = 0
+      var recentlyUpdatedSeriesCount = 0
 
       guard AppConfig.current.instanceId == instanceId else { return }
-      WidgetDataStore.saveEntries(keepReadingEntries, forKey: WidgetDataStore.keepReading.storageKey)
-      WidgetDataStore.saveEntries(recentlyAddedEntries, forKey: WidgetDataStore.recentlyAdded.storageKey)
-      WidgetDataStore.saveSeriesEntries(
-        recentlyUpdatedSeriesEntries, forKey: WidgetDataStore.recentlyUpdatedSeries.storageKey)
+      if configuredWidgetKinds.contains(WidgetDataStore.keepReading.kind) {
+        let books =
+          (try? await DatabaseOperator.database().fetchKeepReadingBooksForWidget(
+            instanceId: instanceId, libraryIds: libraryIds, limit: 6)) ?? []
+        guard AppConfig.current.instanceId == instanceId else { return }
+        WidgetDataStore.saveEntries(
+          books.map { Self.bookToEntry($0) },
+          forKey: WidgetDataStore.keepReading.storageKey
+        )
+        copiedBooks += books
+        reloadedKinds.insert(WidgetDataStore.keepReading.kind)
+        keepReadingCount = books.count
+      }
+
+      if configuredWidgetKinds.contains(WidgetDataStore.recentlyAdded.kind) {
+        let books =
+          (try? await DatabaseOperator.database().fetchRecentlyAddedBooksForWidget(
+            instanceId: instanceId, libraryIds: libraryIds, limit: 6)) ?? []
+        guard AppConfig.current.instanceId == instanceId else { return }
+        WidgetDataStore.saveEntries(
+          books.map { Self.bookToEntry($0) },
+          forKey: WidgetDataStore.recentlyAdded.storageKey
+        )
+        copiedBooks += books
+        reloadedKinds.insert(WidgetDataStore.recentlyAdded.kind)
+        recentlyAddedCount = books.count
+      }
+
+      if configuredWidgetKinds.contains(WidgetDataStore.recentlyUpdatedSeries.kind) {
+        let series =
+          (try? await DatabaseOperator.database().fetchRecentlyUpdatedSeriesForWidget(
+            instanceId: instanceId, libraryIds: libraryIds, limit: 6)) ?? []
+        guard AppConfig.current.instanceId == instanceId else { return }
+        WidgetDataStore.saveSeriesEntries(
+          series.map { Self.seriesToEntry($0) },
+          forKey: WidgetDataStore.recentlyUpdatedSeries.storageKey
+        )
+        copiedSeries += series
+        reloadedKinds.insert(WidgetDataStore.recentlyUpdatedSeries.kind)
+        recentlyUpdatedSeriesCount = series.count
+      }
 
       Self.copyThumbnails(
-        books: keepReadingBooks + recentlyAddedBooks,
-        series: recentlyUpdatedSeries,
+        books: copiedBooks,
+        series: copiedSeries,
         removingStaleFiles: true
       )
 
-      #if canImport(WidgetKit)
-        WidgetCenter.shared.reloadAllTimelines()
-      #endif
+      Self.reloadWidgets(kinds: reloadedKinds)
       AppLogger(.app).debug(
-        "Widget data refreshed: keepReading=\(keepReadingEntries.count), recentlyAdded=\(recentlyAddedEntries.count), recentlyUpdatedSeries=\(recentlyUpdatedSeriesEntries.count)"
+        "Widget data refreshed: keepReading=\(keepReadingCount), recentlyAdded=\(recentlyAddedCount), recentlyUpdatedSeries=\(recentlyUpdatedSeriesCount)"
       )
     }
   }
@@ -59,6 +92,12 @@ enum WidgetDataService {
     let books = Array(books.prefix(6))
     Task.detached(priority: .utility) {
       guard await Self.canWriteWidgetData(instanceId: instanceId) else { return }
+      guard AppConfig.current.instanceId == instanceId else { return }
+      guard
+        await WidgetConfigurationService.shared.hasConfiguredWidget(
+          kind: WidgetDataStore.keepReading.kind
+        )
+      else { return }
       guard AppConfig.current.instanceId == instanceId else { return }
       WidgetDataStore.saveEntries(
         books.map { Self.bookToEntry($0) },
@@ -74,6 +113,12 @@ enum WidgetDataService {
     Task.detached(priority: .utility) {
       guard await Self.canWriteWidgetData(instanceId: instanceId) else { return }
       guard AppConfig.current.instanceId == instanceId else { return }
+      guard
+        await WidgetConfigurationService.shared.hasConfiguredWidget(
+          kind: WidgetDataStore.recentlyAdded.kind
+        )
+      else { return }
+      guard AppConfig.current.instanceId == instanceId else { return }
       WidgetDataStore.saveEntries(
         books.map { Self.bookToEntry($0) },
         forKey: WidgetDataStore.recentlyAdded.storageKey
@@ -87,6 +132,12 @@ enum WidgetDataService {
     let series = Array(series.prefix(6))
     Task.detached(priority: .utility) {
       guard await Self.canWriteWidgetData(instanceId: instanceId) else { return }
+      guard AppConfig.current.instanceId == instanceId else { return }
+      guard
+        await WidgetConfigurationService.shared.hasConfiguredWidget(
+          kind: WidgetDataStore.recentlyUpdatedSeries.kind
+        )
+      else { return }
       guard AppConfig.current.instanceId == instanceId else { return }
       WidgetDataStore.saveSeriesEntries(
         series.map { Self.seriesToEntry($0) },
@@ -251,6 +302,14 @@ enum WidgetDataService {
   private static nonisolated func reloadWidget(kind: String) {
     #if canImport(WidgetKit)
       WidgetCenter.shared.reloadTimelines(ofKind: kind)
+    #endif
+  }
+
+  private static nonisolated func reloadWidgets(kinds: Set<String>) {
+    #if canImport(WidgetKit)
+      for kind in kinds {
+        WidgetCenter.shared.reloadTimelines(ofKind: kind)
+      }
     #endif
   }
 
