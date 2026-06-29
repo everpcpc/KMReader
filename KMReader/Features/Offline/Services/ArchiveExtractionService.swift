@@ -24,7 +24,11 @@ nonisolated enum ArchiveExtractionService {
       try? FileManager.default.removeItem(at: stagingDirectory)
     }
 
-    try ArchiveReader().extract(archiveFile, to: stagingDirectory, permissionMode: .normalized)
+    try ArchiveReader().extract(
+      archiveFile,
+      to: stagingDirectory,
+      permissionMode: .normalized
+    )
 
     let extractedFiles = try regularFiles(in: stagingDirectory)
     var remainingDestinations = destinationsByArchivePath

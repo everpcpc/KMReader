@@ -2474,14 +2474,7 @@ actor OfflineManager {
       )
     }
 
-    var requiredPaths: Set<String> = []
-    for page in pages {
-      guard let normalizedPath = Self.normalizeArchivePath(page.fileName) else {
-        throw AppErrorType.invalidFileURL(url: page.fileName)
-      }
-      requiredPaths.insert(normalizedPath)
-    }
-
+    let requiredPaths = try Self.requiredArchivePaths(for: pages)
     let availablePathsByNormalizedPath = try await archivePathIndex(for: archiveFile)
     let availablePaths = Set(availablePathsByNormalizedPath.keys)
 
@@ -2600,7 +2593,10 @@ actor OfflineManager {
         throw error
       }
 
-      let archivePathIndex = try await archivePathIndex(for: archiveFile, priority: .userInitiated)
+      let archivePathIndex = try await archivePathIndex(
+        for: archiveFile,
+        priority: .userInitiated
+      )
       guard let fallbackEntryPath = archivePathIndex[normalizedPath],
         fallbackEntryPath != page.fileName
       else {
@@ -2641,6 +2637,17 @@ actor OfflineManager {
     )
   }
 
+  private static func requiredArchivePaths(for pages: [BookPage]) throws -> Set<String> {
+    var requiredPaths: Set<String> = []
+    for page in pages {
+      guard let normalizedPath = normalizeArchivePath(page.fileName) else {
+        throw AppErrorType.invalidFileURL(url: page.fileName)
+      }
+      requiredPaths.insert(normalizedPath)
+    }
+    return requiredPaths
+  }
+
   private static func manifestResourcePath(from href: String) -> String? {
     let trimmed = href.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !trimmed.isEmpty else { return nil }
@@ -2658,6 +2665,11 @@ actor OfflineManager {
   }
 
   private static func normalizeArchivePath(_ path: String) -> String? {
+    // Komga's archive extractors may decode malformed path bytes as `?`, while
+    // Swift can surface U+FFFD. Normalize that replacement marker before
+    // comparing server page paths with local archive entries.
+    let path = path.replacingOccurrences(of: "\u{FFFD}", with: "?")
+
     // Treat both `/` and `\` as separators. CBR archives created on Windows tooling
     // use backslashes inside entry paths, and Komga returns those verbatim in
     // `BookPage.fileName`. libarchive normalizes RAR `\` to `/` when extracting, so
