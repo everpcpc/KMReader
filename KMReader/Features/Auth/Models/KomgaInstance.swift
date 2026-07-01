@@ -13,6 +13,7 @@ nonisolated struct KomgaInstance: Codable, Equatable, Sendable {
   var isAdmin: Bool
   var authMethod: AuthenticationMethod?
   var protected: Bool
+  var selectedLibraryIdsRaw: String?
   var createdAt: Date
   var lastUsedAt: Date
   var seriesLastSyncedAt: Date
@@ -27,6 +28,7 @@ nonisolated struct KomgaInstance: Codable, Equatable, Sendable {
     isAdmin: Bool,
     authMethod: AuthenticationMethod = .basicAuth,
     protected: Bool = false,
+    selectedLibraryIdsRaw: String? = nil,
     createdAt: Date = Date(),
     lastUsedAt: Date = Date(),
     seriesLastSyncedAt: Date = Date(timeIntervalSince1970: 0),
@@ -40,6 +42,7 @@ nonisolated struct KomgaInstance: Codable, Equatable, Sendable {
     self.isAdmin = isAdmin
     self.authMethod = authMethod
     self.protected = protected
+    self.selectedLibraryIdsRaw = selectedLibraryIdsRaw
     self.createdAt = createdAt
     self.lastUsedAt = lastUsedAt
     self.seriesLastSyncedAt = seriesLastSyncedAt
@@ -54,5 +57,33 @@ nonisolated extension KomgaInstance {
 
   var resolvedAuthMethod: AuthenticationMethod {
     authMethod ?? .basicAuth
+  }
+
+  var selectedLibraryIds: [String] {
+    get {
+      Self.decodeSelectedLibraryIds(selectedLibraryIdsRaw)
+    }
+    set {
+      selectedLibraryIdsRaw = Self.encodeSelectedLibraryIds(newValue)
+    }
+  }
+
+  static func decodeSelectedLibraryIds(_ rawValue: String?) -> [String] {
+    guard let rawValue, let data = rawValue.data(using: .utf8) else { return [] }
+    guard let values = try? JSONSerialization.jsonObject(with: data) as? [String] else { return [] }
+    var seen = Set<String>()
+    return values.filter { !$0.isEmpty && seen.insert($0).inserted }
+  }
+
+  static func encodeSelectedLibraryIds(_ libraryIds: [String]) -> String {
+    var seen = Set<String>()
+    let normalized = libraryIds.filter { !$0.isEmpty && seen.insert($0).inserted }
+    guard
+      let data = try? JSONSerialization.data(withJSONObject: normalized, options: []),
+      let encoded = String(data: data, encoding: .utf8)
+    else {
+      return "[]"
+    }
+    return encoded
   }
 }

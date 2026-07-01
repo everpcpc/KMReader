@@ -22,6 +22,7 @@ nonisolated extension KomgaInstance: FetchableRecord, MutablePersistableRecord {
     case isAdmin = "is_admin"
     case authMethod = "auth_method"
     case protected
+    case selectedLibraryIdsRaw = "selected_library_ids_raw"
     case createdAt = "created_at"
     case lastUsedAt = "last_used_at"
     case seriesLastSyncedAt = "series_last_synced_at"

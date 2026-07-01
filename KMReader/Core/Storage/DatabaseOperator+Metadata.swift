@@ -370,6 +370,24 @@ extension DatabaseOperator {
     }
   }
 
+  func fetchSelectedLibraryIds(instanceId: String) throws -> [String]? {
+    guard let uuid = UUID(uuidString: instanceId) else { return nil }
+    return try read { db in
+      guard let instance = try KomgaInstance.fetchOne(db, key: uuid) else { return nil }
+      guard instance.selectedLibraryIdsRaw != nil else { return nil }
+      return instance.selectedLibraryIds
+    }
+  }
+
+  func updateSelectedLibraryIds(_ libraryIds: [String], instanceId: String) throws {
+    guard let uuid = UUID(uuidString: instanceId) else { return }
+    try write { db in
+      guard var instance = try KomgaInstance.fetchOne(db, key: uuid) else { return }
+      instance.selectedLibraryIds = libraryIds
+      try save(instance, db: db)
+    }
+  }
+
   func updateServerDisplayItem(
     id: UUID,
     name: String,

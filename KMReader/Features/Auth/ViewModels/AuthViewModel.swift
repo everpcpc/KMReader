@@ -77,7 +77,10 @@ class AuthViewModel {
 
   func logout(clearCurrent: Bool = false) {
     LocalDeviceAuthenticationService.shared.clearProtectedAccess()
+    let instanceId = AppConfig.current.instanceId
+    let libraryIds = AppConfig.dashboard.libraryIds
     Task {
+      await DashboardLibrarySelectionStore.persistSelection(libraryIds, instanceId: instanceId)
       // Disconnect SSE before logout
       await SSEService.shared.disconnect()
       try? await AuthService.logout(clearCurrent: clearCurrent)
@@ -161,6 +164,7 @@ class AuthViewModel {
     }
 
     // Ensure current session is logged out before switching to a new instance when sharing a single session
+    await DashboardLibrarySelectionStore.persistCurrentSelection()
     try? await AuthService.logout()
 
     // Establish stateful session before switching
@@ -206,8 +210,7 @@ class AuthViewModel {
 
         AppConfig.isLoggedIn = true
 
-        AppConfig.dashboard.libraryIds = []
-        DashboardSectionCacheStore.shared.reset()
+        await DashboardLibrarySelectionStore.loadSelection(for: instance.instanceId)
         AppConfig.serverLastUpdate = nil
 
         // Switch to offline mode
@@ -253,6 +256,7 @@ class AuthViewModel {
     // Update AppConfig only after validation succeeds
     APIClient.shared.setServer(url: serverURL)
     APIClient.shared.setAuthToken(authToken)
+    await DashboardLibrarySelectionStore.persistCurrentSelection()
 
     let finalInstanceId: String
     let finalDisplayName: String
@@ -294,8 +298,7 @@ class AuthViewModel {
       AppConfig.exitOfflineMode()
     }
 
-    AppConfig.dashboard.libraryIds = []
-    DashboardSectionCacheStore.shared.reset()
+    await DashboardLibrarySelectionStore.loadSelection(for: finalInstanceId)
     AppConfig.serverLastUpdate = nil
 
     // Load libraries

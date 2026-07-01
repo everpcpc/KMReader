@@ -94,6 +94,12 @@ nonisolated enum LocalDatabase {
       try backfillReadListBookMemberships(db)
     }
 
+    migrator.registerMigration("00005_add_instance_library_selection") { db in
+      try db.alter(table: KomgaInstance.databaseTableName) { table in
+        table.add(column: "selected_library_ids_raw", .text)
+      }
+    }
+
     try migrator.migrate(writer)
   }
 

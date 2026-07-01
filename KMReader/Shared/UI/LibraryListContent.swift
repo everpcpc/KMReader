@@ -133,10 +133,16 @@ struct LibraryListContent: View {
         selectedLibraryIds = Array(selectedLibraryIds.prefix(1))
       }
     }
+    .onChange(of: dashboard.libraryIds) { _, newValue in
+      guard selectionEnabled, selectedLibraryIds != newValue else { return }
+      withAnimation {
+        selectedLibraryIds = newValue
+      }
+    }
     .onDisappear {
       if selectionEnabled, dashboard.libraryIds != selectedLibraryIds {
         withAnimation {
-          dashboard.libraryIds = selectedLibraryIds
+          DashboardLibrarySelectionStore.updateCurrentSelection(selectedLibraryIds)
         }
       }
     }

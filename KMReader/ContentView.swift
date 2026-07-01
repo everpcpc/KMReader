@@ -107,6 +107,10 @@ struct ContentView: View {
         .task(id: protectedAccessTaskID) {
           guard isLoggedIn else { return }
           guard await unlockProtectedCurrentInstanceForRendering() else { return }
+          await DashboardLibrarySelectionStore.loadSelection(
+            for: current.instanceId,
+            preferCachedIfUnset: true
+          )
 
           if authViewModel.bootstrapState == .requiresValidation {
             let serverReachable = await authViewModel.loadCurrentUser()
