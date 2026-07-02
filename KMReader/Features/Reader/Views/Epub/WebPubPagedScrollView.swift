@@ -277,6 +277,13 @@
     var currentChapterIndex: Int { chapterIndex }
     var currentPageIndex: Int { currentSubPageIndex }
 
+    private var paginationLayout: WebPubPaginationLayout {
+      WebPubPaginationLayout.resolve(
+        language: publicationLanguage,
+        readingProgression: publicationReadingProgression
+      )
+    }
+
     private let epubResourceSchemeHandler = EpubResourceSchemeHandler()
 
     private var containerView: UIView?
@@ -538,22 +545,33 @@
 
       switch gesture.state {
       case .began:
-        interactivePanStartOffsetX = webView.scrollView.contentOffset.x
-        webView.scrollView.setContentOffset(
-          CGPoint(x: interactivePanStartOffsetX, y: 0),
-          animated: false
-        )
+        interactivePanStartOffsetX =
+          paginationLayout.usesReverseScrollLeft
+          ? CGFloat(currentSubPageIndex) * pageWidth
+          : webView.scrollView.contentOffset.x
+        if paginationLayout.usesReverseScrollLeft {
+          scrollToLogicalOffset(interactivePanStartOffsetX, animated: false)
+        } else {
+          webView.scrollView.setContentOffset(
+            CGPoint(x: interactivePanStartOffsetX, y: 0),
+            animated: false
+          )
+        }
       case .changed:
-        let translationX = gesture.translation(in: view).x
+        let translationX = logicalTranslationX(from: gesture)
         let rawOffset = interactivePanStartOffsetX - translationX
         let adjustedOffset = adjustedHorizontalOffset(
           rawOffset,
           maxOffset: maxOffset
         )
-        webView.scrollView.setContentOffset(
-          CGPoint(x: adjustedOffset, y: 0),
-          animated: false
-        )
+        if paginationLayout.usesReverseScrollLeft {
+          scrollToLogicalOffset(adjustedOffset, animated: false)
+        } else {
+          webView.scrollView.setContentOffset(
+            CGPoint(x: adjustedOffset, y: 0),
+            animated: false
+          )
+        }
       case .ended:
         finishInteractivePan(
           gesture: gesture,
@@ -565,6 +583,16 @@
       default:
         break
       }
+    }
+
+    private func logicalTranslationX(from gesture: UIPanGestureRecognizer) -> CGFloat {
+      let translationX = gesture.translation(in: view).x
+      return paginationLayout.reversesHorizontalGestureDirection ? -translationX : translationX
+    }
+
+    private func logicalVelocityX(from gesture: UIPanGestureRecognizer) -> CGFloat {
+      let velocityX = gesture.velocity(in: view).x
+      return paginationLayout.reversesHorizontalGestureDirection ? -velocityX : velocityX
     }
 
     private func adjustedHorizontalOffset(_ rawOffset: CGFloat, maxOffset: CGFloat) -> CGFloat {
@@ -584,8 +612,8 @@
       pageWidth: CGFloat,
       maxOffset: CGFloat
     ) {
-      let translationX = gesture.translation(in: view).x
-      let velocityX = gesture.velocity(in: view).x
+      let translationX = logicalTranslationX(from: gesture)
+      let velocityX = logicalVelocityX(from: gesture)
       let rawOffset = interactivePanStartOffsetX - translationX
 
       if rawOffset < -chapterOverscrollThreshold {
@@ -875,6 +903,12 @@
       let pageWidth = webView.bounds.width
       guard pageWidth > 0 else { return }
 
+      if paginationLayout.usesReverseScrollLeft {
+        let logicalOffset = pageWidth * CGFloat(max(0, pageIndex))
+        scrollToLogicalOffset(logicalOffset, animated: animated)
+        return
+      }
+
       let contentWidth = webView.scrollView.contentSize.width
       let maxOffset = max(0, contentWidth - webView.bounds.width)
       let targetOffset = min(pageWidth * CGFloat(pageIndex), maxOffset)
@@ -882,11 +916,22 @@
       webView.scrollView.setContentOffset(CGPoint(x: targetOffset, y: 0), animated: animated)
     }
 
+    private func scrollToLogicalOffset(_ offset: CGFloat, animated: Bool) {
+      guard isContentLoaded else { return }
+      let js = WebPubPagedJavaScriptBuilder.makeScrollToLogicalOffsetScript(
+        logicalOffset: Double(offset),
+        animated: animated,
+        paginationLayout: paginationLayout
+      )
+      webView.evaluateJavaScript(js, completionHandler: nil)
+    }
+
     private func injectPaginationJS(targetPageIndex: Int, preferLastPage: Bool) {
       let js = WebPubPagedJavaScriptBuilder.makePaginationScript(
         targetPageIndex: targetPageIndex,
         preferLastPage: preferLastPage,
-        waitForLoadEvents: true
+        waitForLoadEvents: true,
+        paginationLayout: paginationLayout
       )
       webView.evaluateJavaScript(js, completionHandler: nil)
     }
@@ -968,6 +1013,7 @@
       targetContentOffset: UnsafeMutablePointer<CGPoint>
     ) {
       guard isContentLoaded else { return }
+      guard !paginationLayout.usesReverseScrollLeft else { return }
       let pageWidth = webView.bounds.width
       guard pageWidth > 0 else { return }
 
@@ -1008,6 +1054,7 @@
 
     private func updateCurrentPageFromScroll() {
       guard isContentLoaded else { return }
+      guard !paginationLayout.usesReverseScrollLeft else { return }
       let pageWidth = webView.bounds.width
       guard pageWidth > 0 else { return }
 

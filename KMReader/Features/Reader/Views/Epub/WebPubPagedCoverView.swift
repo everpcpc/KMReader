@@ -178,6 +178,21 @@
         static let animationDuration: TimeInterval = 0.3
       }
 
+      private var paginationLayout: WebPubPaginationLayout {
+        WebPubPaginationLayout.resolve(
+          language: parent.viewModel.publicationLanguage,
+          readingProgression: parent.viewModel.publicationReadingProgression
+        )
+      }
+
+      private var forwardDragSign: CGFloat {
+        paginationLayout.reversesHorizontalGestureDirection ? 1 : -1
+      }
+
+      private var backwardDragSign: CGFloat {
+        -forwardDragSign
+      }
+
       init(_ parent: WebPubPagedCoverView) {
         self.parent = parent
         self.currentChapterIndex = parent.viewModel.currentChapterIndex
@@ -611,7 +626,7 @@
         guard abs(translation.x) > abs(translation.y) + Metrics.directionalDragBias else { return }
         guard abs(translation.x) > Metrics.minimumDragDistance else { return }
 
-        let directionOffset = translation.x < 0 ? 1 : -1
+        let directionOffset = pageTurnDirectionOffset(for: translation.x)
 
         if directionOffset == 1 {
           guard nextController != nil else {
@@ -621,7 +636,11 @@
             return
           }
           transitionDirection = 1
-          dragOffset = translation.x
+          dragOffset = clampedDragOffset(
+            translation.x,
+            sign: forwardDragSign,
+            viewWidth: viewWidth
+          )
         } else {
           guard previousController != nil else {
             dragOffset = translation.x * Metrics.overscrollResistance
@@ -630,11 +649,27 @@
             return
           }
           transitionDirection = -1
-          // translation.x is positive when dragging right; map 0→viewWidth to 0→viewWidth for dragOffset
-          dragOffset = min(translation.x, viewWidth)
+          dragOffset = clampedDragOffset(
+            translation.x,
+            sign: backwardDragSign,
+            viewWidth: viewWidth
+          )
         }
 
         updateDragLayout(viewWidth: viewWidth)
+      }
+
+      private func pageTurnDirectionOffset(for translationX: CGFloat) -> Int {
+        translationX * forwardDragSign > 0 ? 1 : -1
+      }
+
+      private func clampedDragOffset(
+        _ translationX: CGFloat,
+        sign: CGFloat,
+        viewWidth: CGFloat
+      ) -> CGFloat {
+        guard viewWidth > 0 else { return 0 }
+        return sign * min(abs(translationX), viewWidth)
       }
 
       private func handlePanEnded(translation: CGPoint, velocity: CGPoint, viewWidth: CGFloat) {
@@ -680,10 +715,10 @@
 
             previousController?.view.isHidden = true
           } else {
-            // Backward: previous page slides in from left
+            // Backward: previous page slides in from the physical previous edge.
             previousController?.view.isHidden = false
             previousController?.view.layer.zPosition = 1
-            let offset = dragOffset - viewWidth
+            let offset = dragOffset - backwardDragSign * viewWidth
             previousController?.view.frame = container.view.bounds.offsetBy(dx: offset, dy: 0)
             updateShadow(for: previousController?.view, isElevated: true, offset: offset)
 
@@ -736,10 +771,11 @@
             delay: 0,
             options: [.curveEaseOut]
           ) {
-            self.dragOffset = -viewWidth
+            let targetOffset = self.forwardDragSign * viewWidth
+            self.dragOffset = targetOffset
             self.frontController?.view.frame =
-              self.containerViewController?.view.bounds.offsetBy(dx: -viewWidth, dy: 0) ?? .zero
-            self.updateShadow(for: self.frontController?.view, isElevated: true, offset: -viewWidth)
+              self.containerViewController?.view.bounds.offsetBy(dx: targetOffset, dy: 0) ?? .zero
+            self.updateShadow(for: self.frontController?.view, isElevated: true, offset: targetOffset)
           } completion: { _ in
             self.completeForwardTransition()
           }
@@ -749,7 +785,7 @@
             delay: 0,
             options: [.curveEaseOut]
           ) {
-            self.dragOffset = viewWidth
+            self.dragOffset = self.backwardDragSign * viewWidth
             self.previousController?.view.frame = self.containerViewController?.view.bounds ?? .zero
             self.updateShadow(for: self.previousController?.view, isElevated: true, offset: 0)
           } completion: { _ in
@@ -916,9 +952,10 @@
             delay: 0,
             options: [.curveEaseOut]
           ) {
+            let targetOffset = self.forwardDragSign * viewWidth
             self.frontController?.view.frame =
-              container.view.bounds.offsetBy(dx: -viewWidth, dy: 0)
-            self.updateShadow(for: self.frontController?.view, isElevated: true, offset: -viewWidth)
+              container.view.bounds.offsetBy(dx: targetOffset, dy: 0)
+            self.updateShadow(for: self.frontController?.view, isElevated: true, offset: targetOffset)
           } completion: { _ in
             self.finalizeJump(
               to: targetVC,
@@ -927,9 +964,9 @@
             )
           }
         } else {
-          // Target slides in from left
+          // Target slides in from the physical previous edge.
           targetVC.view.layer.zPosition = 1
-          targetVC.view.frame = container.view.bounds.offsetBy(dx: -viewWidth, dy: 0)
+          targetVC.view.frame = container.view.bounds.offsetBy(dx: -backwardDragSign * viewWidth, dy: 0)
           targetVC.view.isHidden = false
           frontController?.view.layer.zPosition = 0
 
@@ -991,9 +1028,15 @@
               options: [.curveEaseOut]
             ) {
               self.previousController?.view.frame =
-                self.containerViewController?.view.bounds.offsetBy(dx: -viewWidth, dy: 0) ?? .zero
+                self.containerViewController?.view.bounds.offsetBy(
+                  dx: -self.backwardDragSign * viewWidth,
+                  dy: 0
+                ) ?? .zero
               self.updateShadow(
-                for: self.previousController?.view, isElevated: true, offset: -viewWidth)
+                for: self.previousController?.view,
+                isElevated: true,
+                offset: -self.backwardDragSign * viewWidth
+              )
             } completion: { _ in
               self.resetDragState()
             }

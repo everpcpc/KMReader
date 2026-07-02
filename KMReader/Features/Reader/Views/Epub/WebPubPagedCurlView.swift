@@ -24,7 +24,7 @@
     }
 
     func makeUIViewController(context: Context) -> UIPageViewController {
-      let spineLocation: UIPageViewController.SpineLocation = .min
+      let spineLocation = pageCurlSpineLocation
       let options: [UIPageViewController.OptionsKey: Any] = [.spineLocation: NSNumber(value: spineLocation.rawValue)]
 
       let pageVC = UIPageViewController(
@@ -32,7 +32,10 @@
         navigationOrientation: .horizontal,
         options: options
       )
-      PageCurlControllerPlanner.configure(pageViewController: pageVC)
+      PageCurlControllerPlanner.configure(
+        pageViewController: pageVC,
+        semanticContentAttribute: pageCurlSemanticContentAttribute
+      )
       pageVC.dataSource = context.coordinator
       pageVC.delegate = context.coordinator
       PageCurlBacksideViewController.applyStyle(pageCurlBacksideStyle(), to: pageVC)
@@ -116,7 +119,10 @@
     func updateUIViewController(_ uiViewController: UIPageViewController, context: Context) {
       context.coordinator.parent = self
       defer { context.coordinator.hasCompletedInitialUpdate = true }
-      PageCurlControllerPlanner.configure(pageViewController: uiViewController)
+      PageCurlControllerPlanner.configure(
+        pageViewController: uiViewController,
+        semanticContentAttribute: pageCurlSemanticContentAttribute
+      )
       PageCurlBacksideViewController.applyStyle(pageCurlBacksideStyle(), to: uiViewController)
 
       let initialChapterIndex = viewModel.currentChapterIndex
@@ -198,7 +204,7 @@
           targetChapterIndex > context.coordinator.currentChapterIndex
           || (targetChapterIndex == context.coordinator.currentChapterIndex
             && normalizedPageIndex > context.coordinator.currentPageIndex)
-        let direction: UIPageViewController.NavigationDirection = isForward ? .forward : .reverse
+        let direction = pageCurlNavigationDirection(forward: isForward)
 
         context.coordinator.isAnimating = true
         let shouldAnimateTransition = context.coordinator.hasCompletedInitialUpdate && animateTapTurns
@@ -308,6 +314,28 @@
       )
     }
 
+    private var paginationLayout: WebPubPaginationLayout {
+      WebPubPaginationLayout.resolve(
+        language: viewModel.publicationLanguage,
+        readingProgression: viewModel.publicationReadingProgression
+      )
+    }
+
+    private var pageCurlSpineLocation: UIPageViewController.SpineLocation {
+      paginationLayout.reversesHorizontalGestureDirection ? .max : .min
+    }
+
+    private var pageCurlSemanticContentAttribute: UISemanticContentAttribute {
+      paginationLayout.reversesHorizontalGestureDirection ? .forceRightToLeft : .forceLeftToRight
+    }
+
+    private func pageCurlNavigationDirection(forward: Bool) -> UIPageViewController.NavigationDirection {
+      if paginationLayout.reversesHorizontalGestureDirection {
+        return forward ? .reverse : .forward
+      }
+      return forward ? .forward : .reverse
+    }
+
     private func pageCurlBacksideToken(chapterIndex: Int, subPageIndex: Int) -> String {
       "\(chapterIndex):\(subPageIndex)"
     }
@@ -381,6 +409,12 @@
         self.parent = parent
         self.currentChapterIndex = parent.viewModel.currentChapterIndex
         self.currentPageIndex = parent.viewModel.currentPageIndex
+      }
+
+      private typealias PageTarget = (chapterIndex: Int, subPageIndex: Int)
+
+      private var paginationLayout: WebPubPaginationLayout {
+        parent.paginationLayout
       }
 
       private func cacheKey(chapterIndex: Int, pageIndex: Int) -> String {
@@ -629,18 +663,7 @@
         }
 
         guard let current = viewController as? EpubPageViewController else { return nil }
-
-        let target: (chapterIndex: Int, subPageIndex: Int)?
-        if current.chapterIndex == 0 && current.currentSubPageIndex <= 0 {
-          target = nil
-        } else if current.currentSubPageIndex > 0 {
-          target = (current.chapterIndex, current.currentSubPageIndex - 1)
-        } else {
-          let previousChapter = current.chapterIndex - 1
-          guard previousChapter >= 0 else { return nil }
-          let previousCount = parent.viewModel.chapterPageCount(at: previousChapter) ?? 1
-          target = (previousChapter, max(0, previousCount - 1))
-        }
+        let target = pageViewControllerBeforeTarget(from: current)
 
         guard let target else { return nil }
         let mirroredSnapshot = mirroredSnapshotForBackside(
@@ -675,20 +698,7 @@
         }
 
         guard let current = viewController as? EpubPageViewController else { return nil }
-
-        let target: (chapterIndex: Int, subPageIndex: Int)?
-        let storedCount = parent.viewModel.chapterPageCount(at: current.chapterIndex) ?? 1
-        let chapterPageCount = max(storedCount, current.totalPagesInChapter)
-        if current.currentSubPageIndex < chapterPageCount - 1 {
-          target = (current.chapterIndex, current.currentSubPageIndex + 1)
-        } else {
-          let nextChapter = current.chapterIndex + 1
-          if nextChapter < parent.viewModel.chapterCount {
-            target = (nextChapter, 0)
-          } else {
-            target = nil
-          }
-        }
+        let target = pageViewControllerAfterTarget(from: current)
 
         guard let target else { return nil }
         let mirroredSnapshot = mirroredSnapshotForBackside(
@@ -704,6 +714,46 @@
             mirroredSnapshot: mirroredSnapshot
           )
         )
+      }
+
+      private func pageViewControllerBeforeTarget(from current: EpubPageViewController) -> PageTarget? {
+        if paginationLayout.reversesHorizontalGestureDirection {
+          return nextLogicalTarget(from: current)
+        }
+        return previousLogicalTarget(from: current)
+      }
+
+      private func pageViewControllerAfterTarget(from current: EpubPageViewController) -> PageTarget? {
+        if paginationLayout.reversesHorizontalGestureDirection {
+          return previousLogicalTarget(from: current)
+        }
+        return nextLogicalTarget(from: current)
+      }
+
+      private func previousLogicalTarget(from current: EpubPageViewController) -> PageTarget? {
+        if current.chapterIndex == 0 && current.currentSubPageIndex <= 0 {
+          return nil
+        }
+        if current.currentSubPageIndex > 0 {
+          return (current.chapterIndex, current.currentSubPageIndex - 1)
+        }
+        let previousChapter = current.chapterIndex - 1
+        guard previousChapter >= 0 else { return nil }
+        let previousCount = parent.viewModel.chapterPageCount(at: previousChapter) ?? 1
+        return (previousChapter, max(0, previousCount - 1))
+      }
+
+      private func nextLogicalTarget(from current: EpubPageViewController) -> PageTarget? {
+        let storedCount = parent.viewModel.chapterPageCount(at: current.chapterIndex) ?? 1
+        let chapterPageCount = max(storedCount, current.totalPagesInChapter)
+        if current.currentSubPageIndex < chapterPageCount - 1 {
+          return (current.chapterIndex, current.currentSubPageIndex + 1)
+        }
+        let nextChapter = current.chapterIndex + 1
+        if nextChapter < parent.viewModel.chapterCount {
+          return (nextChapter, 0)
+        }
+        return nil
       }
 
       func pageViewController(
@@ -796,7 +846,7 @@
         _ pageViewController: UIPageViewController,
         spineLocationFor orientation: UIInterfaceOrientation
       ) -> UIPageViewController.SpineLocation {
-        .min
+        parent.pageCurlSpineLocation
       }
 
       @objc func handleTap(_ recognizer: UITapGestureRecognizer) {
@@ -1058,40 +1108,63 @@
           let viewWidth = pageVC.view.bounds.width
           let tapZoneWidth = viewWidth * 0.3
 
-          // Block left tap at first page
-          if isAtFirstPage && location.x < tapZoneWidth {
+          let isPreviousTap =
+            paginationLayout.reversesHorizontalGestureDirection
+            ? location.x > viewWidth - tapZoneWidth
+            : location.x < tapZoneWidth
+          let isNextTap =
+            paginationLayout.reversesHorizontalGestureDirection
+            ? location.x < tapZoneWidth
+            : location.x > viewWidth - tapZoneWidth
+
+          if isAtFirstPage && isPreviousTap {
             return false
           }
 
-          // Block right tap at last page
-          if isAtLastPage && location.x > viewWidth - tapZoneWidth {
+          if isAtLastPage && isNextTap {
             parent.onEndReached()
             return false
           }
-        }
-        // For pan gestures, check the translation direction
-        else if let panGesture = gestureRecognizer as? UIPanGestureRecognizer {
+        } else if let panGesture = gestureRecognizer as? UIPanGestureRecognizer {
           let translation = panGesture.translation(in: pageVC.view)
+          let velocity = panGesture.velocity(in: pageVC.view)
+          let directionSignal = horizontalGestureDirectionSignal(
+            translationX: translation.x,
+            velocityX: velocity.x
+          )
 
-          // Block backward swipe (left to right, positive translation) at first page
-          if isAtFirstPage && translation.x > 0 {
-            return false
-          }
-
-          // Block forward swipe (right to left, negative translation) at last page
-          if isAtLastPage && translation.x < 0 {
-            parent.onEndReached()
-            return false
-          }
-
-          // Ambiguous initial pan direction (often ~0 at begin):
-          // avoid starting boundary curls that may request non-existent neighbors.
-          if abs(translation.x) < 1 {
+          if directionSignal == 0 {
             return !isAtFirstPage && !isAtLastPage
+          }
+
+          if horizontalGestureSignalIsForward(directionSignal) {
+            if isAtLastPage {
+              parent.onEndReached()
+              return false
+            }
+          } else if isAtFirstPage {
+            return false
           }
         }
 
         return true
+      }
+
+      private func horizontalGestureDirectionSignal(
+        translationX: CGFloat,
+        velocityX: CGFloat
+      ) -> CGFloat {
+        if abs(translationX) >= 1 {
+          return translationX
+        }
+        if abs(velocityX) >= 60 {
+          return velocityX
+        }
+        return 0
+      }
+
+      private func horizontalGestureSignalIsForward(_ signal: CGFloat) -> Bool {
+        paginationLayout.reversesHorizontalGestureDirection ? signal > 0 : signal < 0
       }
 
       func gestureRecognizer(
@@ -1145,6 +1218,13 @@
     private var labelTopOffset: CGFloat
     private var labelBottomOffset: CGFloat
     private var useSafeArea: Bool
+
+    private var paginationLayout: WebPubPaginationLayout {
+      WebPubPaginationLayout.resolve(
+        language: publicationLanguage,
+        readingProgression: publicationReadingProgression
+      )
+    }
 
     private let epubResourceSchemeHandler = EpubResourceSchemeHandler()
 
@@ -1639,199 +1719,22 @@
     }
 
     private func injectPaginationJS(targetPageIndex: Int, preferLastPage: Bool) {
-      let js = """
-          (function() {
-            var target = \(targetPageIndex);
-            var preferLast = \(preferLastPage ? "true" : "false");
-            var lastReportedPageCount = 0;
-            var resizeDebounceTimer = null;
-            var hasFinalized = false;
-
-            var finalize = function() {
-              if (hasFinalized) return;
-              hasFinalized = true;
-
-              var root = document.documentElement;
-              var pageWidth = root.clientWidth || window.innerWidth;
-              if (!pageWidth || pageWidth <= 0) { pageWidth = 1; }
-
-              var currentWidth = root.scrollWidth || document.body.scrollWidth;
-              var total = Math.max(1, Math.ceil(currentWidth / pageWidth));
-              var maxScroll = Math.max(0, currentWidth - pageWidth);
-
-              // Recalculate target to ensure we land on the actual last page if requested.
-              var finalTarget = preferLast ? (total - 1) : target;
-              var offset = Math.min(pageWidth * finalTarget, maxScroll);
-
-              // Apply scroll position immediately.
-              window.scrollTo(offset, 0);
-              if (document.documentElement) { document.documentElement.scrollLeft = offset; }
-              if (document.body) { document.body.scrollLeft = offset; }
-
-              // Store initial page count for ResizeObserver comparison
-              lastReportedPageCount = total;
-
-              // Small delay to ensure WebKit commits the paint before signaling readiness.
-              setTimeout(function() {
-                if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.readerBridge) {
-                  window.webkit.messageHandlers.readerBridge.postMessage({
-                    type: 'ready',
-                    totalPages: total,
-                    currentPage: finalTarget
-                  });
-                }
-              }, 60);
-            };
-
-            var startLayoutCheck = function() {
-              var root = document.documentElement;
-              var lastW = root.scrollWidth || document.body.scrollWidth;
-              var stableCount = 0;
-              var attempt = 0;
-
-              var check = function() {
-                if (hasFinalized) return;
-
-                attempt++;
-                var currentW = root.scrollWidth || document.body.scrollWidth;
-                var pageWidth = root.clientWidth || window.innerWidth;
-                if (!pageWidth || pageWidth <= 0) { pageWidth = 1; }
-
-                // Readium-style stability check:
-                // Wait for the multi-column layout to expand beyond 1 page if we expect more.
-                if (currentW === lastW && currentW > 0) {
-                  stableCount++;
-                } else {
-                  stableCount = 0;
-                  lastW = currentW;
-                }
-
-                // If jumping to a deep page (preferLast or target > 0),
-                // we must wait for the width to actually represent multiple pages.
-                var isProbablyReady = (stableCount >= 4);
-                if ((preferLast || target > 0) && currentW <= pageWidth && attempt < 40) {
-                  isProbablyReady = false;
-                }
-
-                if (isProbablyReady || attempt >= 60) {
-                  finalize();
-                } else {
-                  window.requestAnimationFrame(check);
-                }
-              };
-              window.requestAnimationFrame(check);
-            };
-
-            // Global timeout: force finalize after 10 seconds regardless of load state
-            var globalTimeout = setTimeout(function() {
-              finalize();
-            }, 10000);
-
-            // Use the 'load' event to ensure all resources are fetched before calculating layout.
-            // But also start on DOMContentLoaded as a fallback if load takes too long
-            var loadStarted = false;
-            var startOnce = function() {
-              if (loadStarted) return;
-              loadStarted = true;
-              clearTimeout(globalTimeout);
-              startLayoutCheck();
-            };
-
-            if (document.readyState === 'complete') {
-              startOnce();
-            } else {
-              // Start on DOMContentLoaded (DOM ready, images may still be loading)
-              if (document.readyState === 'interactive' || document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', function() {
-                  // Give images a brief moment to start loading
-                  setTimeout(startOnce, 500);
-                });
-              }
-              // Also listen for full load (all resources including images)
-              window.addEventListener('load', function() {
-                startOnce();
-              });
-            }
-
-            // Continuous monitoring for late-loading resources (like gaiji or large images).
-            // Only enable during initial load phase, then lock the page count once stable.
-            if (window.ResizeObserver) {
-              var stableScrollWidth = 0;
-              var stableCheckCount = 0;
-              var isPageCountLocked = false;
-              var resizeDebounceTimer = null;
-
-              var ro = new ResizeObserver(function() {
-                // Once locked, stop monitoring
-                if (isPageCountLocked) {
-                  return;
-                }
-
-                // Debounce: wait for 1000ms of stability before checking
-                if (resizeDebounceTimer) {
-                  clearTimeout(resizeDebounceTimer);
-                }
-
-                resizeDebounceTimer = setTimeout(function() {
-                  var w = document.documentElement.scrollWidth || document.body.scrollWidth;
-                  var pageWidth = document.documentElement.clientWidth || window.innerWidth;
-                  if (!pageWidth || pageWidth <= 0) { pageWidth = 1; }
-
-                  if (pageWidth > 0 && w > 0) {
-                    // Check if scrollWidth has stabilized
-                    if (w === stableScrollWidth) {
-                      stableCheckCount++;
-                      // After 3 consecutive stable checks (3 seconds total), lock the page count
-                      if (stableCheckCount >= 3) {
-                        isPageCountLocked = true;
-                        ro.disconnect();
-                        return;
-                      }
-                    } else {
-                      // ScrollWidth changed, reset stability counter
-                      stableCheckCount = 0;
-                      stableScrollWidth = w;
-
-                      var t = Math.max(1, Math.ceil(w / pageWidth));
-                      // Only report if page count changed significantly (more than 1 page difference)
-                      if (Math.abs(t - lastReportedPageCount) > 1) {
-                        lastReportedPageCount = t;
-                        window.webkit.messageHandlers.readerBridge.postMessage({
-                          type: 'pageCountUpdate',
-                          totalPages: t
-                        });
-                      }
-                    }
-                  }
-                }, 1000);
-              });
-
-              // Start observing after a delay to let initial layout settle
-              setTimeout(function() {
-                stableScrollWidth = document.documentElement.scrollWidth || document.body.scrollWidth;
-                ro.observe(document.documentElement);
-              }, 1500);
-            }
-          })();
-        """
-
+      let js = WebPubPagedJavaScriptBuilder.makePaginationScript(
+        targetPageIndex: targetPageIndex,
+        preferLastPage: preferLastPage,
+        waitForLoadEvents: true,
+        paginationLayout: paginationLayout
+      )
       webView.evaluateJavaScript(js, completionHandler: nil)
     }
 
     private func scrollToPage(_ pageIndex: Int) {
       guard isContentLoaded else { return }
-      let js = """
-          (function() {
-            var root = document.documentElement;
-            var pageWidth = root.clientWidth || window.innerWidth;
-            if (!pageWidth || pageWidth <= 0) { pageWidth = 1; }
-            var maxScroll = Math.max(0, (root.scrollWidth || document.body.scrollWidth) - pageWidth);
-            var offset = Math.min(pageWidth * \(pageIndex), maxScroll);
-            window.scrollTo(offset, 0);
-            if (document.documentElement) { document.documentElement.scrollLeft = offset; }
-            if (document.body) { document.body.scrollLeft = offset; }
-          })();
-        """
+      let js = WebPubPagedJavaScriptBuilder.makeScrollToPageScript(
+        pageIndex: pageIndex,
+        animated: false,
+        paginationLayout: paginationLayout
+      )
       webView.evaluateJavaScript(js, completionHandler: nil)
     }
 

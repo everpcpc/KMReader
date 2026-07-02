@@ -82,6 +82,13 @@
     private var isAwaitingPaginationReady = false
     private var animatePageTransitions = true
 
+    private var paginationLayout: WebPubPaginationLayout {
+      WebPubPaginationLayout.resolve(
+        language: publicationLanguage,
+        readingProgression: publicationReadingProgression
+      )
+    }
+
     init(parent: WebPubPagedScrollView) {
       self.parent = parent
       super.init()
@@ -276,24 +283,11 @@
 
     private func scrollToPage(_ pageIndex: Int, animated: Bool) {
       guard let webView else { return }
-      let pageWidth = webView.bounds.width
-      guard pageWidth > 0 else { return }
-      let contentWidth = max(pageWidth, CGFloat(totalPagesInChapter) * pageWidth)
-      let maxOffset = max(0, contentWidth - pageWidth)
-      let targetOffset = min(pageWidth * CGFloat(pageIndex), maxOffset)
-      let js = """
-          (function() {
-            var left = \(Double(targetOffset));
-            if (\(animated ? "true" : "false")) {
-              window.scrollTo({ left: left, top: 0, behavior: 'smooth' });
-            } else {
-              window.scrollTo(left, 0);
-            }
-            if (document.documentElement) { document.documentElement.scrollLeft = left; }
-            if (document.body) { document.body.scrollLeft = left; }
-            return true;
-          })();
-        """
+      let js = WebPubPagedJavaScriptBuilder.makeScrollToPageScript(
+        pageIndex: pageIndex,
+        animated: animated,
+        paginationLayout: paginationLayout
+      )
       webView.evaluateJavaScript(js, completionHandler: nil)
     }
 
@@ -367,7 +361,8 @@
       let js = WebPubPagedJavaScriptBuilder.makePaginationScript(
         targetPageIndex: targetPageIndex,
         preferLastPage: preferLastPage,
-        waitForLoadEvents: true
+        waitForLoadEvents: true,
+        paginationLayout: paginationLayout
       )
       webView.evaluateJavaScript(js, completionHandler: nil)
     }
