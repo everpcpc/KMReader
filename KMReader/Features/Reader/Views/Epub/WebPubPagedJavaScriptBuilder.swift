@@ -103,14 +103,47 @@
             + atob('\(pagedCompatibilityCSS)');
           style.textContent = css;
           var transformPagination = \(usesTransformPagination ? "true" : "false");
-          var wrapper = document.getElementById('kmreader-pagination-strip');
-          if (document.body && !transformPagination && wrapper) {
+          var restorePageElementTransforms = function() {
+            if (!document.body) { return; }
+            Array.prototype.forEach.call(document.body.children, function(element) {
+              if (!element.hasAttribute('data-kmreader-transform-saved')) { return; }
+              var originalTransform = element.getAttribute('data-kmreader-original-transform') || '';
+              var originalTransition = element.getAttribute('data-kmreader-original-transition') || '';
+              if (originalTransform) {
+                element.style.transform = originalTransform;
+              } else {
+                element.style.removeProperty('transform');
+              }
+              if (originalTransition) {
+                element.style.transition = originalTransition;
+              } else {
+                element.style.removeProperty('transition');
+              }
+              element.removeAttribute('data-kmreader-transform-saved');
+              element.removeAttribute('data-kmreader-original-transform');
+              element.removeAttribute('data-kmreader-original-transition');
+            });
+          };
+          var unwrapLegacyPaginationStrip = function() {
+            if (!document.body) { return; }
+            var wrapper = document.getElementById('kmreader-pagination-strip');
+            if (!wrapper) { return; }
             wrapper.style.transition = '';
             wrapper.style.transform = '';
             while (wrapper.firstChild) {
               document.body.insertBefore(wrapper.firstChild, wrapper);
             }
             wrapper.remove();
+          };
+          if (document.body) {
+            unwrapLegacyPaginationStrip();
+            if (transformPagination) {
+              document.body.classList.add('kmreader-transform-pagination');
+            } else {
+              document.body.classList.remove('kmreader-transform-pagination');
+              document.body.removeAttribute('data-kmreader-logical-offset');
+              restorePageElementTransforms();
+            }
           }
           if (document.body && !transformPagination) {
             document.body.style.transition = '';
@@ -327,34 +360,95 @@
     private static func paginationRuntimeScript(paginationLayout: WebPubPaginationLayout) -> String {
       """
       var reverseScrollLeft = \(paginationLayout.usesReverseScrollLeft ? "true" : "false");
-      var ensurePaginationStrip = function() {
+      var activeLogicalOffset = 0;
+      var unwrapLegacyPaginationStrip = function() {
         var body = document.body;
-        if (!reverseScrollLeft || !body) { return null; }
+        if (!body) { return; }
         var wrapper = document.getElementById('kmreader-pagination-strip');
-        if (wrapper) { return wrapper; }
-        wrapper = document.createElement('div');
-        wrapper.id = 'kmreader-pagination-strip';
-        while (body.firstChild) {
-          wrapper.appendChild(body.firstChild);
+        if (!wrapper) { return; }
+        wrapper.style.transition = '';
+        wrapper.style.transform = '';
+        while (wrapper.firstChild) {
+          body.insertBefore(wrapper.firstChild, wrapper);
         }
-        body.appendChild(wrapper);
-        return wrapper;
+        wrapper.remove();
+      };
+      var paginatedBodyChildren = function() {
+        var body = document.body;
+        if (!body) { return []; }
+        return Array.prototype.filter.call(body.children, function(element) {
+          return element.id !== 'kmreader-pagination-strip';
+        });
+      };
+      var restorePageElementTransforms = function() {
+        paginatedBodyChildren().forEach(function(element) {
+          if (!element.hasAttribute('data-kmreader-transform-saved')) { return; }
+          var originalTransform = element.getAttribute('data-kmreader-original-transform') || '';
+          var originalTransition = element.getAttribute('data-kmreader-original-transition') || '';
+          if (originalTransform) {
+            element.style.transform = originalTransform;
+          } else {
+            element.style.removeProperty('transform');
+          }
+          if (originalTransition) {
+            element.style.transition = originalTransition;
+          } else {
+            element.style.removeProperty('transition');
+          }
+          element.removeAttribute('data-kmreader-transform-saved');
+          element.removeAttribute('data-kmreader-original-transform');
+          element.removeAttribute('data-kmreader-original-transition');
+        });
+      };
+      var applyPageElementTransforms = function(offset, animated) {
+        var body = document.body;
+        if (!body) { return; }
+        unwrapLegacyPaginationStrip();
+        if (offset <= 0) {
+          activeLogicalOffset = 0;
+          restorePageElementTransforms();
+          body.classList.remove('kmreader-transform-pagination');
+          body.removeAttribute('data-kmreader-logical-offset');
+          return;
+        }
+        activeLogicalOffset = offset;
+        body.classList.add('kmreader-transform-pagination');
+        body.setAttribute('data-kmreader-logical-offset', String(offset));
+        paginatedBodyChildren().forEach(function(element) {
+          if (!element.hasAttribute('data-kmreader-transform-saved')) {
+            element.setAttribute('data-kmreader-transform-saved', 'true');
+            element.setAttribute('data-kmreader-original-transform', element.style.transform || '');
+            element.setAttribute('data-kmreader-original-transition', element.style.transition || '');
+          }
+          var originalTransform = element.getAttribute('data-kmreader-original-transform') || '';
+          var paginationTransform = 'translate3d(' + offset + 'px, 0, 0)';
+          element.style.transition = animated ? 'transform 250ms ease' : 'none';
+          element.style.transform = originalTransform
+            ? (paginationTransform + ' ' + originalTransform)
+            : paginationTransform;
+        });
       };
       var measurePagination = function() {
         var root = document.documentElement;
         var body = document.body;
-        var wrapper = ensurePaginationStrip();
+        var previousOffset = activeLogicalOffset;
+        if (body && body.hasAttribute('data-kmreader-logical-offset')) {
+          previousOffset = parseFloat(body.getAttribute('data-kmreader-logical-offset') || '0') || previousOffset;
+        }
+        if (reverseScrollLeft) {
+          unwrapLegacyPaginationStrip();
+          restorePageElementTransforms();
+        }
         var pageWidth = (root && root.clientWidth) || window.innerWidth;
         if (!pageWidth || pageWidth <= 0) { pageWidth = 1; }
-        var currentWidth = wrapper ? Math.max(
-          wrapper.scrollWidth || 0,
-          wrapper.offsetWidth || 0,
-          pageWidth
-        ) : Math.max(
+        var currentWidth = Math.max(
           root ? (root.scrollWidth || 0) : 0,
           body ? (body.scrollWidth || 0) : 0,
           pageWidth
         );
+        if (reverseScrollLeft && previousOffset > 0) {
+          applyPageElementTransforms(previousOffset, false);
+        }
         return {
           pageWidth: pageWidth,
           currentWidth: currentWidth,
@@ -367,10 +461,7 @@
         var root = document.documentElement;
         var body = document.body;
         if (reverseScrollLeft && body) {
-          var wrapper = ensurePaginationStrip();
-          if (!wrapper) { return; }
-          wrapper.style.transition = animated ? 'transform 250ms ease' : 'none';
-          wrapper.style.transform = 'translate3d(' + offset + 'px, 0, 0)';
+          applyPageElementTransforms(offset, animated);
           window.scrollTo(0, 0);
           if (root) {
             root.scrollLeft = 0;
@@ -410,7 +501,7 @@
           transform-origin: top right !important;
         }
 
-        #kmreader-pagination-strip {
+        body.kmreader-transform-pagination > :not(#kmreader-pagination-strip) {
           transform-origin: top right !important;
           will-change: transform;
         }
