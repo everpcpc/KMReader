@@ -9,6 +9,10 @@
       language: String?,
       readingProgression: WebPubReadingProgression?
     ) -> WebPubPaginationLayout {
+      if readingProgression == .rtl {
+        return .reverseHorizontal
+      }
+
       switch ReadiumCSSLoader.resolveVariantSubdirectory(
         language: language,
         readingProgression: readingProgression

@@ -17,10 +17,14 @@
         language: language,
         readingProgression: readingProgression
       )
-      let shouldSetDir = readiumVariant == "rtl"
+      let paginationLayout = WebPubPaginationLayout.resolve(
+        language: language,
+        readingProgression: readingProgression
+      )
+      let shouldSetDir = readiumVariant == "rtl" || (readingProgression == .rtl && readiumVariant != "cjk-vertical")
       let requestedView = readiumProperties["--USER__view"] ?? nil
       let usesTransformPagination =
-        (readiumVariant == "rtl" || readiumVariant == "cjk-vertical")
+        paginationLayout.usesReverseScrollLeft
         && requestedView != "readium-scroll-on"
       let pagedCompatibilityCSS = Data(
         pagedCompatibilityCSS(
