@@ -759,6 +759,7 @@ struct DivinaReaderView: View {
         useDualPage: useDualPage,
         screenSize: screenSize
       )
+      .frame(width: screenSize.width, height: screenSize.height)
 
       #if os(tvOS)
         tvRemoteCommandOverlay
