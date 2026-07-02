@@ -362,14 +362,22 @@ struct DivinaReaderView: View {
   }
 
   private func readerViewportSize(containerSize: CGSize, safeAreaInsets: EdgeInsets) -> CGSize {
-    CGSize(
-      width: max(0, containerSize.width + safeAreaInsets.leading + safeAreaInsets.trailing),
-      height: max(0, containerSize.height + safeAreaInsets.top + safeAreaInsets.bottom)
-    )
+    #if os(iOS) || os(tvOS)
+      CGSize(
+        width: max(0, containerSize.width + safeAreaInsets.leading + safeAreaInsets.trailing),
+        height: max(0, containerSize.height + safeAreaInsets.top + safeAreaInsets.bottom)
+      )
+    #else
+      containerSize
+    #endif
   }
 
   private func readerViewportOffset(safeAreaInsets: EdgeInsets) -> CGSize {
-    CGSize(width: -safeAreaInsets.leading, height: -safeAreaInsets.top)
+    #if os(iOS) || os(tvOS)
+      CGSize(width: -safeAreaInsets.leading, height: -safeAreaInsets.top)
+    #else
+      .zero
+    #endif
   }
 
   private func readerPresentationKey(useDualPage: Bool) -> String {
@@ -558,7 +566,11 @@ struct DivinaReaderView: View {
         readerSafeAreaTop = $0
       }
       .onGeometryChange(for: CGFloat.self) {
-        $0.size.height + $0.safeAreaInsets.top + $0.safeAreaInsets.bottom
+        #if os(iOS) || os(tvOS)
+          $0.size.height + $0.safeAreaInsets.top + $0.safeAreaInsets.bottom
+        #else
+          $0.size.height
+        #endif
       } action: {
         readerViewHeight = $0
       }
