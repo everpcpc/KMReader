@@ -122,6 +122,7 @@
               element.removeAttribute('data-kmreader-transform-saved');
               element.removeAttribute('data-kmreader-original-transform');
               element.removeAttribute('data-kmreader-original-transition');
+              element.removeAttribute('data-kmreader-author-transform');
             });
           };
           var unwrapLegacyPaginationStrip = function() {
@@ -398,6 +399,7 @@
           element.removeAttribute('data-kmreader-transform-saved');
           element.removeAttribute('data-kmreader-original-transform');
           element.removeAttribute('data-kmreader-original-transition');
+          element.removeAttribute('data-kmreader-author-transform');
         });
       };
       var applyPageElementTransforms = function(offset, animated) {
@@ -419,12 +421,17 @@
             element.setAttribute('data-kmreader-transform-saved', 'true');
             element.setAttribute('data-kmreader-original-transform', element.style.transform || '');
             element.setAttribute('data-kmreader-original-transition', element.style.transition || '');
+            var computedTransform = window.getComputedStyle ? window.getComputedStyle(element).transform : '';
+            if (!computedTransform || computedTransform === 'none') {
+              computedTransform = '';
+            }
+            element.setAttribute('data-kmreader-author-transform', computedTransform);
           }
-          var originalTransform = element.getAttribute('data-kmreader-original-transform') || '';
+          var authorTransform = element.getAttribute('data-kmreader-author-transform') || '';
           var paginationTransform = 'translate3d(' + offset + 'px, 0, 0)';
           element.style.transition = animated ? 'transform 250ms ease' : 'none';
-          element.style.transform = originalTransform
-            ? (paginationTransform + ' ' + originalTransform)
+          element.style.transform = authorTransform
+            ? (paginationTransform + ' ' + authorTransform)
             : paginationTransform;
         });
       };
