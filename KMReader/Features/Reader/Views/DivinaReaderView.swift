@@ -361,6 +361,17 @@ struct DivinaReaderView: View {
     return "\(Int(screenSize.width))x\(Int(screenSize.height))"
   }
 
+  private func readerViewportSize(containerSize: CGSize, safeAreaInsets: EdgeInsets) -> CGSize {
+    CGSize(
+      width: max(0, containerSize.width + safeAreaInsets.leading + safeAreaInsets.trailing),
+      height: max(0, containerSize.height + safeAreaInsets.top + safeAreaInsets.bottom)
+    )
+  }
+
+  private func readerViewportOffset(safeAreaInsets: EdgeInsets) -> CGSize {
+    CGSize(width: -safeAreaInsets.leading, height: -safeAreaInsets.top)
+  }
+
   private func readerPresentationKey(useDualPage: Bool) -> String {
     [
       readingDirection.rawValue,
@@ -519,35 +530,35 @@ struct DivinaReaderView: View {
 
   var body: some View {
     GeometryReader { geometry in
-      let screenSize = geometry.size
+      let containerSize = geometry.size
+      let safeAreaInsets = geometry.safeAreaInsets
+      let screenSize = readerViewportSize(containerSize: containerSize, safeAreaInsets: safeAreaInsets)
+      let screenOffset = readerViewportOffset(safeAreaInsets: safeAreaInsets)
       let screenKey = screenKey(screenSize: screenSize)
       let useDualPage = shouldUseDualPage(screenSize: screenSize)
 
-      ZStack {
-        readerBackground.color.readerIgnoresSafeArea()
-
-        readerContent(
+      ZStack(alignment: .topLeading) {
+        readerSurface(
           useDualPage: useDualPage,
-          screenSize: screenSize
+          screenSize: screenSize,
+          screenKey: screenKey
         )
-
-        #if os(tvOS)
-          tvRemoteCommandOverlay
-        #endif
-
-        helperOverlay(screenKey: screenKey)
+        .frame(width: screenSize.width, height: screenSize.height, alignment: .topLeading)
+        .offset(x: screenOffset.width, y: screenOffset.height)
 
         controlsOverlay(useDualPage: useDualPage)
+          .frame(width: containerSize.width, height: containerSize.height, alignment: .topLeading)
 
         keyboardHelpOverlay
       }
+      .frame(width: containerSize.width, height: containerSize.height, alignment: .topLeading)
       .onGeometryChange(for: CGFloat.self) {
         $0.safeAreaInsets.top
       } action: {
         readerSafeAreaTop = $0
       }
       .onGeometryChange(for: CGFloat.self) {
-        $0.size.height
+        $0.size.height + $0.safeAreaInsets.top + $0.safeAreaInsets.bottom
       } action: {
         readerViewHeight = $0
       }
@@ -722,6 +733,30 @@ struct DivinaReaderView: View {
     #if os(iOS)
       .readerDismissGesture(readingDirection: readingDirection)
     #endif
+  }
+
+  private func readerSurface(
+    useDualPage: Bool,
+    screenSize: CGSize,
+    screenKey: String
+  ) -> some View {
+    ZStack(alignment: .topLeading) {
+      readerBackground.color
+
+      readerContent(
+        useDualPage: useDualPage,
+        screenSize: screenSize
+      )
+
+      #if os(tvOS)
+        tvRemoteCommandOverlay
+      #endif
+
+      helperOverlay(screenKey: screenKey)
+        .frame(width: screenSize.width, height: screenSize.height)
+        .clipped()
+    }
+    .frame(width: screenSize.width, height: screenSize.height, alignment: .topLeading)
   }
 
   @ViewBuilder
