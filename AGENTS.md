@@ -176,7 +176,7 @@ Test with:
 
 - **UI**: SwiftUI, UIKit, and AppKit are all acceptable. Choose the most maintainable and platform-appropriate approach per feature.
 - **State**: `@Observable` pattern (not `ObservableObject`)
-- **Persistence**: SwiftData for profiles/libraries/fonts/series/books/collections/read lists/dashboard caches, UserDefaults via `AppConfig`
+- **Persistence**: GRDB for profiles/libraries/fonts/series/books/collections/read lists/dashboard caches, UserDefaults via `AppConfig`
 - **Networking**: Centralized `APIClient` with feature-specific services
 - **Real-time**: Server-Sent Events (SSE) via `SSEService`
 - **Error Handling**: Route all user-visible errors through `ErrorManager.shared` (Core/Storage/Errors/)
@@ -186,7 +186,7 @@ Test with:
 
 ```
 KMReader/
-├── MainApp.swift              # Entry point, SwiftData setup, environment injection
+├── MainApp.swift              # Entry point, GRDB setup, environment injection
 ├── ContentView.swift          # Main navigation, login/tab switching
 ├── MainSplitView.swift        # Split view shell for macOS/iPad
 ├── PhoneTabView.swift         # iPhone tab shell (iOS 18+)
@@ -295,7 +295,7 @@ KMReader/
 
 **App Lifecycle**
 
-- `MainApp.swift`: Loads SwiftData schema, configures stores, registers iOS AppDelegate for background downloads
+- `MainApp.swift`: Opens and migrates the GRDB store, configures stores, registers iOS AppDelegate for background downloads
 - `ContentView.swift`: Chooses onboarding (`LandingView`) or authenticated shells
   - macOS and iPad: `MainSplitView`
   - iPhone: `PhoneTabView` (iOS 18+) or `OldTabView`
@@ -309,7 +309,7 @@ KMReader/
 
 **State & Persistence**
 
-- **SwiftData**: `KomgaInstance`, `KomgaLibrary`, `KomgaSeries`, `KomgaBook`, `KomgaCollection`, `KomgaReadList`, `CustomFont`, `PendingProgress` with dedicated stores
+- **GRDB**: `KomgaInstance`, `KomgaLibrary`, `KomgaSeries`, `KomgaBook`, `KomgaCollection`, `KomgaReadList`, `CustomFont`, `PendingProgress` with dedicated stores
 - **AppConfig**: Centralizes UserDefaults (server URL, tokens, SSE toggles, reader preferences, cache budgets, API timeout/retry settings)
 - **Caches**: Multi-tier caching scoped per Komga instance via `CacheNamespace` (managed by `CacheManager`)
 - Use `@AppStorage` in views, `AppConfig` elsewhere
@@ -320,7 +320,7 @@ KMReader/
 - `APIClient.swift`: Authenticated requests, JSON decoding, OSLog logging, configurable timeout and retry
 - Feature services mirror `openapi.json` endpoints with pagination/filtering
 - Services organized by domain: `AuthService`, `BookService`, `SeriesService`, `LibraryService`, etc.
-- Authentication: `AuthService` + SwiftData `KomgaInstance` stores + `AppConfig`
+- Authentication: `AuthService` + GRDB `KomgaInstance` stores + `AppConfig`
 
 **Real-time Updates**
 
@@ -343,7 +343,7 @@ KMReader/
 
 **Sync & Initialization**
 
-- `SyncService`: Syncs data between server and local SwiftData
+- `SyncService`: Syncs data between server and local GRDB storage
 - `ProgressSyncService`: Syncs read progress to server
 - `SyncViewModel`: Exposes synchronization state to SwiftUI and delegates work to `SyncWorker`
 - `SyncWorker`: Runs synchronization, pagination, reconciliation, and persistence off the main actor
@@ -376,7 +376,7 @@ Additional patterns:
 - Pass shared object dependencies explicitly at split/tab roots, `NavigationStack` roots, sheets, full-screen covers, scene boundaries, and any `UIHostingController`/`NSHostingController` boundary; do not assume outer environment inheritance is stable during snapshot, rotation, or scene transitions
 - For architecture-level bugs, prefer replacing the confused layer instead of adding compensating state around it. Small patches are acceptable only when the underlying ownership model is already sound.
 - SSE callbacks are single-assignment closures; implement dispatchers if multiple components need the same event
-- Clearing caches/server data must go through `CacheManager` and SwiftData stores
+- Clearing caches/server data must go through `CacheManager` and GRDB stores
 - New API endpoints belong in appropriate service; keep request-building out of views
 - Dashboard/library selections stored via `LibraryManager` and related managers
 - All logging goes through `AppLogger` with OSLog subsystems and categories

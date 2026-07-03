@@ -107,7 +107,6 @@ struct MainApp: App {
   private nonisolated static func makePreparedDatabaseQueue() throws -> DatabaseQueue {
     let queue = try LocalDatabase.open()
     try LocalDatabase.migrate(queue)
-    try LegacySwiftDataImporter.importIfNeeded(into: queue)
     return queue
   }
 

@@ -97,9 +97,6 @@ enum LocalDataResetService {
     }
 
     let storeFileNames = [
-      "default.store",
-      "default.store-shm",
-      "default.store-wal",
       LocalDatabase.fileName,
       "\(LocalDatabase.fileName)-shm",
       "\(LocalDatabase.fileName)-wal",

@@ -6,45 +6,8 @@
 import Foundation
 import GRDB
 
-enum LegacyImportMarkerState: String, Codable, Sendable {
-  case missing
-  case completed
-  case failed
-}
-
-nonisolated struct LocalMigrationMarker: Codable, Sendable {
-  static let databaseTableName = "local_migration_markers"
-
-  var key: String
-  var state: LegacyImportMarkerState
-  var message: String?
-  var updatedAt: Date
-
-  init(
-    key: String,
-    state: LegacyImportMarkerState,
-    message: String? = nil,
-    updatedAt: Date = Date()
-  ) {
-    self.key = key
-    self.state = state
-    self.message = message
-    self.updatedAt = updatedAt
-  }
-
-  enum CodingKeys: String, CodingKey {
-    case key
-    case state
-    case message
-    case updatedAt = "updated_at"
-  }
-}
-
-nonisolated extension LocalMigrationMarker: FetchableRecord, MutablePersistableRecord {}
-
 nonisolated enum LocalDatabase {
   static let fileName = "KMReader.sqlite"
-  static let legacyImportMarkerKey = "swiftdata_v6_import"
 
   static func open() throws -> DatabaseQueue {
     let url = try databaseURL()
@@ -100,6 +63,10 @@ nonisolated enum LocalDatabase {
       }
     }
 
+    migrator.registerMigration("00006_drop_migration_markers") { db in
+      try db.execute(sql: "DROP TABLE IF EXISTS local_migration_markers")
+    }
+
     try migrator.migrate(writer)
   }
 
@@ -108,18 +75,8 @@ nonisolated enum LocalDatabase {
     return supportDirectory.appendingPathComponent(fileName)
   }
 
-  static func legacyStoreCandidates(fileManager: FileManager = .default) -> [URL] {
-    var storeDirectories = AppStorageDirectory.supportDirectoryCandidates(fileManager: fileManager)
-
-    if let sharedContainer = WidgetDataStore.sharedContainerURL {
-      storeDirectories.append(sharedContainer.appendingPathComponent("Library/Application Support", isDirectory: true))
-    }
-
-    return storeDirectories.map { $0.appendingPathComponent("default.store") }
-  }
-
   private static nonisolated func createMarkerTable(_ db: Database) throws {
-    try db.create(table: LocalMigrationMarker.databaseTableName, ifNotExists: true) { table in
+    try db.create(table: "local_migration_markers", ifNotExists: true) { table in
       table.column("key", .text).primaryKey()
       table.column("state", .text).notNull()
       table.column("message", .text)
