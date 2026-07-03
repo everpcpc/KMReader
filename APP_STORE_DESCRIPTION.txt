@@ -10,10 +10,11 @@ Rotate individual pages, crop empty page borders in DIVINA, tune preloading for 
 
 - Browse and discover
 Use Keep Reading, On Deck, Recently Added, Recently Updated, pinned collections/read lists, reading history, saved filters, advanced metadata filters with all/any matching, optional unread-cover blur, Spotlight indexing, widgets, and Home Screen quick actions.
-KMReader keeps a local database for responsive browsing, dashboards, logs, and downloaded-library workflows, including large libraries.
+KMReader keeps a local database for responsive browsing, dashboards, logs, and downloaded-library workflows, including large libraries. Dashboard library scopes stay tied to each saved server, and widgets mirror refreshed dashboard content.
 
 - Offline and sync
 Download books for offline reading, set per-series and per-read-list download policies, browse downloaded items with count and storage summaries, queue dashboard sections, keep reading with iOS background downloads and Live Activities, prepare local pages on demand with offline-first reading, and sync progress when you reconnect.
+Sync missing covers for downloaded books, series, read lists, and collections so offline browsing stays visual.
 
 - Multi-server and admin tools
 Save multiple Komga servers, protect private servers with device authentication, and switch instantly.

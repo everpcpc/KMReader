@@ -1,16 +1,17 @@
 New
-- Protect saved Komga servers with device authentication, so private libraries stay hidden until you unlock them.
-- Add offline download policies for read lists, matching the existing series policy workflow.
-- Add a floating reading action bar on series pages that shows the exact book and progress target before opening the reader.
+- Add a dashboard search shortcut on iPad and Mac, so Browse search is easier to reach from split-view dashboards.
+- Add a cancellable offline cover sync task for downloaded books, series, read lists, and collections.
 
 Improvements
-- Offline downloaded sections now show clearer book counts alongside storage usage.
-- Offline pages can be refreshed with pull to refresh on iOS and macOS.
-- Downloaded PDFs open faster in DIVINA mode by preparing lightweight metadata first and rendering page images as needed.
-- Dashboard sections now better match Komga web UI behavior and stay current after local reading, deletion, and offline changes.
-- Reader overlays and tap handling are smoother, with fewer abrupt transitions during loading, keyboard help, zoom, and long-press interactions.
+- Library filters now stay tied to each saved Komga server across startup, online switching, and offline switching.
+- Dashboard widgets now stay aligned with the same refreshed Keep Reading, Recently Added, and Recently Updated content shown in the app.
+- Online Browse search now follows Komga relevance ordering, while offline search keeps your saved local sort.
+- Downloaded archives with unusual filename encoding now open more reliably in offline mode.
+- Cover thumbnails now keep tap and context-menu areas bounded to the visible cover.
 
 Fixes
-- Fixed end-page selection after offline preloading, especially for Webtoon reading.
-- Fixed unavailable book and series indicators after deleting local files.
-- Fixed stale dashboard and progress projections after reader close or server events.
+- Fixed paged manga fitting in iPhone landscape so pages and reader controls are not clipped.
+- Fixed vertical RTL EPUB page turns, blank pages, and unstable page counts.
+- Fixed tvOS DIVINA cover-mode navigation near page transitions and end pages.
+- Fixed localized list layout labels in Japanese and French.
+- Fixed read list and collection edit rows while local book or series data is still loading.
