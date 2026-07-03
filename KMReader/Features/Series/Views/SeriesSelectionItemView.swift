@@ -30,42 +30,75 @@ struct SeriesSelectionItemView: View {
   }
 
   var body: some View {
-    Group {
-      if let item {
-        Group {
-          switch layout {
-          case .grid:
-            SeriesCardView(
-              item: item
-            )
-          case .list:
-            SeriesRowView(
-              item: item
-            )
-          }
+    selectionContent
+      .allowsHitTesting(false)
+      .scaleEffect(isSelected ? 0.96 : 1.0)
+      .overlay {
+        if isSelected {
+          RoundedRectangle(cornerRadius: 12)
+            .stroke(Color.accentColor, lineWidth: 2)
         }
-        .allowsHitTesting(false)
-        .scaleEffect(isSelected ? 0.96 : 1.0)
-        .overlay {
+      }
+      .animation(.default, value: isSelected)
+      .contentShape(Rectangle())
+      .highPriorityGesture(
+        TapGesture().onEnded {
           if isSelected {
-            RoundedRectangle(cornerRadius: 12)
-              .stroke(Color.accentColor, lineWidth: 2)
+            selectedSeriesIds.remove(seriesId)
+          } else {
+            selectedSeriesIds.insert(seriesId)
           }
         }
-        .animation(.default, value: isSelected)
-        .contentShape(Rectangle())
-        .highPriorityGesture(
-          TapGesture().onEnded {
-            if isSelected {
-              selectedSeriesIds.remove(seriesId)
-            } else {
-              selectedSeriesIds.insert(seriesId)
-            }
-          }
+      )
+      .task(id: "\(current.instanceId)|\(seriesId)") {
+        await loadItem()
+      }
+      .onReceive(NotificationCenter.default.publisher(for: .seriesProjectionDidChange)) {
+        notification in
+        guard shouldReload(for: notification) else { return }
+        reloadItem()
+      }
+  }
+
+  @ViewBuilder
+  private var selectionContent: some View {
+    if let item {
+      switch layout {
+      case .grid:
+        SeriesCardView(
+          item: item
+        )
+      case .list:
+        SeriesRowView(
+          item: item
         )
       }
+    } else {
+      CardPlaceholder(layout: layout, kind: .series)
     }
-    .task(id: "\(current.instanceId)|\(seriesId)") {
+  }
+
+  private func shouldReload(for notification: Notification) -> Bool {
+    let changedIds = changedSeriesIds(from: notification)
+    guard !changedIds.isEmpty else { return true }
+    return changedIds.contains(seriesId)
+  }
+
+  private func changedSeriesIds(from notification: Notification) -> Set<String> {
+    if let ids = notification.userInfo?["seriesIds"] as? Set<String> {
+      return ids
+    }
+    if let ids = notification.userInfo?["seriesIds"] as? [String] {
+      return Set(ids)
+    }
+    if let id = notification.userInfo?["seriesId"] as? String {
+      return [id]
+    }
+    return []
+  }
+
+  private func reloadItem() {
+    Task {
       await loadItem()
     }
   }
