@@ -82,11 +82,25 @@ struct SettingsLogsView: View {
     .refreshable {
       await loadLogs()
     }
-    #if os(iOS)
+    #if os(iOS) || os(macOS)
       .toolbar {
         ToolbarItem(placement: .primaryAction) {
-          ShareLink(item: exportLogs()) {
-            Label(String(localized: "Share"), systemImage: "square.and.arrow.up")
+          Menu {
+            ShareLink(item: exportLogs()) {
+              Label(String(localized: "Share"), systemImage: "square.and.arrow.up")
+            }
+
+            Divider()
+
+            Button(role: .destructive) {
+              Task {
+                await clearLogs()
+              }
+            } label: {
+              Label(String(localized: "Clear All"), systemImage: "trash")
+            }
+          } label: {
+            Image(systemName: "ellipsis")
           }
         }
       }
@@ -252,6 +266,11 @@ struct SettingsLogsView: View {
 
   private func exportLogs() -> String {
     pagination.items.map { formatEntry($0) }.joined(separator: "\n")
+  }
+
+  private func clearLogs() async {
+    await LogStore.shared.clear()
+    await loadLogs()
   }
 
   private func formatEntry(_ entry: LogStore.LogEntry) -> String {
