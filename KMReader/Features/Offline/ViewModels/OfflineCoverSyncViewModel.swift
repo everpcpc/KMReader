@@ -17,6 +17,7 @@ final class OfflineCoverSyncViewModel {
   private(set) var selectedLibraryIds: Set<String> = []
   @ObservationIgnored private var syncTask: Task<Void, Never>?
   @ObservationIgnored private var libraryScopeInstanceId: String?
+  @ObservationIgnored private var hasManualLibrarySelection = false
 
   private init() {}
 
@@ -38,13 +39,20 @@ final class OfflineCoverSyncViewModel {
     let loadedLibraries = await database.fetchLibraries(instanceId: instanceId)
       .filter { $0.id != KomgaLibrary.allLibrariesId }
 
+    let isNewInstanceScope = libraryScopeInstanceId != instanceId
     libraryScopeInstanceId = instanceId
 
     if libraries != loadedLibraries {
       libraries = loadedLibraries
     }
 
-    selectedLibraryIds = Set(defaultLibraryIds)
+    if isNewInstanceScope {
+      hasManualLibrarySelection = false
+    }
+
+    if isNewInstanceScope || !hasManualLibrarySelection {
+      selectedLibraryIds = Set(defaultLibraryIds)
+    }
     normalizeSelectedLibraryIds()
   }
 
@@ -54,6 +62,7 @@ final class OfflineCoverSyncViewModel {
   }
 
   func selectLibraries(_ libraryIds: Set<String>) {
+    hasManualLibrarySelection = true
     selectedLibraryIds = libraryIds
     normalizeSelectedLibraryIds()
   }
@@ -153,6 +162,7 @@ final class OfflineCoverSyncViewModel {
     libraryScopeInstanceId = nil
     libraries = []
     selectedLibraryIds = []
+    hasManualLibrarySelection = false
   }
 
   private func normalizeSelectedLibraryIds() {

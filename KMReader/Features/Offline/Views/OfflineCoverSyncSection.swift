@@ -20,6 +20,10 @@ struct OfflineCoverSyncSection: View {
     viewModel.isSyncing || isOffline || instanceId.isEmpty
   }
 
+  private var libraryScopeTaskID: [String] {
+    [instanceId] + defaultLibraryIds.sorted()
+  }
+
   var body: some View {
     Section {
       VStack(alignment: .leading, spacing: 6) {
@@ -77,7 +81,7 @@ struct OfflineCoverSyncSection: View {
         viewModel.selectLibraries(libraryIds)
       }
     }
-    .task(id: instanceId) {
+    .task(id: libraryScopeTaskID) {
       await viewModel.loadLibraryScopeOptions(
         instanceId: instanceId,
         defaultLibraryIds: defaultLibraryIds
