@@ -13,15 +13,11 @@ struct OfflineCoverSyncSection: View {
   @State private var isPickerPresented = false
 
   private var isStartDisabled: Bool {
-    !viewModel.isSyncing && (isOffline || instanceId.isEmpty || !hasLoadedLibraryScope)
+    !viewModel.isSyncing && (isOffline || instanceId.isEmpty)
   }
 
   private var isPickerDisabled: Bool {
     viewModel.isSyncing || isOffline || instanceId.isEmpty
-  }
-
-  private var hasLoadedLibraryScope: Bool {
-    viewModel.hasLoadedLibraryScope(instanceId: instanceId, defaultLibraryIds: defaultLibraryIds)
   }
 
   private var libraryScopeTaskID: [String] {
@@ -169,7 +165,10 @@ struct OfflineCoverSyncSection: View {
       return
     }
 
-    let libraryIds = viewModel.selectedLibraryIdsForSync(instanceId: instanceId)
+    let libraryIds = viewModel.selectedLibraryIdsForSync(
+      instanceId: instanceId,
+      defaultLibraryIds: defaultLibraryIds
+    )
     viewModel.startSyncMissingCovers(instanceId: instanceId, libraryIds: libraryIds)
   }
 }
