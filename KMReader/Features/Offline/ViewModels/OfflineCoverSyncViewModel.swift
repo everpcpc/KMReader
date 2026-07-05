@@ -24,7 +24,7 @@ final class OfflineCoverSyncViewModel {
     selectedLibraryIds.isEmpty
   }
 
-  func loadLibraryScopeOptions(instanceId: String) async {
+  func loadLibraryScopeOptions(instanceId: String, defaultLibraryIds: [String]) async {
     guard !instanceId.isEmpty else {
       clearLibraryScope()
       return
@@ -38,15 +38,13 @@ final class OfflineCoverSyncViewModel {
     let loadedLibraries = await database.fetchLibraries(instanceId: instanceId)
       .filter { $0.id != KomgaLibrary.allLibrariesId }
 
-    if libraryScopeInstanceId != instanceId {
-      libraryScopeInstanceId = instanceId
-      selectedLibraryIds = []
-    }
+    libraryScopeInstanceId = instanceId
 
     if libraries != loadedLibraries {
       libraries = loadedLibraries
     }
 
+    selectedLibraryIds = Set(defaultLibraryIds)
     normalizeSelectedLibraryIds()
   }
 

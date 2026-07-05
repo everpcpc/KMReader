@@ -9,6 +9,7 @@ struct OfflineCoverSyncSection: View {
   let viewModel: OfflineCoverSyncViewModel
   let instanceId: String
   let isOffline: Bool
+  let defaultLibraryIds: [String]
   @State private var isPickerPresented = false
 
   private var isStartDisabled: Bool {
@@ -77,7 +78,10 @@ struct OfflineCoverSyncSection: View {
       }
     }
     .task(id: instanceId) {
-      await viewModel.loadLibraryScopeOptions(instanceId: instanceId)
+      await viewModel.loadLibraryScopeOptions(
+        instanceId: instanceId,
+        defaultLibraryIds: defaultLibraryIds
+      )
     }
     .onChange(of: instanceId) { _, newValue in
       viewModel.cancelSyncIfContextChanged(instanceId: newValue, isOffline: isOffline)

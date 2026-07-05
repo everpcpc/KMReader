@@ -9,6 +9,7 @@ struct OfflineTasksView: View {
   @AppStorage("currentAccount") private var current: Current = .init()
   private var instanceId: String { current.instanceId }
   @AppStorage("isOffline") private var isOffline: Bool = false
+  @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("offlinePaused") private var isPaused: Bool = false
   @AppStorage("offlineAutoDeleteRead") private var autoDeleteRead: Bool = false
   @AppStorage("offlineFirstReading") private var offlineFirstReading: Bool = false
@@ -119,7 +120,8 @@ struct OfflineTasksView: View {
       OfflineCoverSyncSection(
         viewModel: coverSyncViewModel,
         instanceId: instanceId,
-        isOffline: isOffline
+        isOffline: isOffline,
+        defaultLibraryIds: dashboard.libraryIds
       )
 
       if !downloadingTasks.isEmpty {
