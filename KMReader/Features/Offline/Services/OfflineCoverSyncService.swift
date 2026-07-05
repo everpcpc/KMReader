@@ -11,7 +11,7 @@ actor OfflineCoverSyncService {
   static let shared = OfflineCoverSyncService()
 
   private let logger = AppLogger(.offline)
-  private let cachedProgressReportStride = 25
+  private let cachedProgressReportInterval: TimeInterval = 0.15
   private var isRunning = false
 
   private init() {}
@@ -40,6 +40,7 @@ actor OfflineCoverSyncService {
     var summary = OfflineCoverSyncSummary()
     summary.totalCount = targets.count
     await reportProgress(summary: summary, onProgress: onProgress)
+    var lastCachedProgressReportAt = Date()
 
     for target in targets {
       if shouldStopSync(instanceId: instanceId) {
@@ -49,7 +50,11 @@ actor OfflineCoverSyncService {
       if cachedThumbnailIds[target.type]?.contains(target.thumbnailId) == true {
         summary.existingCount += 1
         summary.checkedCount += 1
-        await reportCachedProgressIfNeeded(summary: summary, onProgress: onProgress)
+        await reportCachedProgressIfNeeded(
+          summary: summary,
+          lastReportAt: &lastCachedProgressReportAt,
+          onProgress: onProgress
+        )
         continue
       }
 
@@ -64,7 +69,11 @@ actor OfflineCoverSyncService {
           cachedThumbnailIds[target.type, default: []].insert(target.thumbnailId)
           summary.existingCount += 1
           summary.checkedCount += 1
-          await reportCachedProgressIfNeeded(summary: summary, onProgress: onProgress)
+          await reportCachedProgressIfNeeded(
+            summary: summary,
+            lastReportAt: &lastCachedProgressReportAt,
+            onProgress: onProgress
+          )
         case .stored:
           cachedThumbnailIds[target.type, default: []].insert(target.thumbnailId)
           summary.storedCount += 1
@@ -130,13 +139,17 @@ actor OfflineCoverSyncService {
 
   private func reportCachedProgressIfNeeded(
     summary: OfflineCoverSyncSummary,
+    lastReportAt: inout Date,
     onProgress: OfflineCoverSyncProgressHandler?
   ) async {
-    if summary.checkedCount == summary.totalCount
-      || summary.checkedCount.isMultiple(of: cachedProgressReportStride)
-    {
-      await reportProgress(summary: summary, onProgress: onProgress)
-    }
+    let now = Date()
+    guard
+      summary.checkedCount == summary.totalCount
+        || now.timeIntervalSince(lastReportAt) >= cachedProgressReportInterval
+    else { return }
+
+    lastReportAt = now
+    await reportProgress(summary: summary, onProgress: onProgress)
   }
 
   private func stopSync(
