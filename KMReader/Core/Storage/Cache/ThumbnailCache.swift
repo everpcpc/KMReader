@@ -12,7 +12,7 @@ extension Notification.Name {
   static let thumbnailDidRefresh = Notification.Name("thumbnailDidRefresh")
 }
 
-nonisolated enum ThumbnailType: String, CaseIterable, Sendable {
+nonisolated enum ThumbnailType: String, CaseIterable, Hashable, Sendable {
   case book
   case series
   case collection
@@ -296,6 +296,54 @@ actor ThumbnailCache {
     } catch is DiskCacheLimitReachedError {
       return .cacheLimitReached
     }
+  }
+
+  /// Returns cached cover thumbnail ids matching the requested ids.
+  func cachedCoverThumbnailIds(matching requestedIdsByType: [ThumbnailType: Set<String>]) async
+    -> [ThumbnailType: Set<String>]
+  {
+    let requestedIdsByType = requestedIdsByType.filter { type, ids in
+      type != .page && !ids.isEmpty
+    }
+    guard !requestedIdsByType.isEmpty else { return [:] }
+
+    let diskCacheURL = CacheNamespace.directory(for: "KomgaThumbnailCache")
+
+    return await Task.detached(priority: .utility) {
+      var cachedIdsByType: [ThumbnailType: Set<String>] = [:]
+      let fileManager = FileManager.default
+
+      for (type, requestedIds) in requestedIdsByType {
+        let typeDirectory = diskCacheURL.appendingPathComponent(type.rawValue, isDirectory: true)
+        guard
+          let fileURLs = try? fileManager.contentsOfDirectory(
+            at: typeDirectory,
+            includingPropertiesForKeys: [.isRegularFileKey],
+            options: [.skipsHiddenFiles]
+          )
+        else {
+          continue
+        }
+
+        var cachedIds = Set<String>()
+        for fileURL in fileURLs where fileURL.pathExtension.lowercased() == "jpg" {
+          let isRegularFile =
+            (try? fileURL.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true
+          guard isRegularFile else { continue }
+
+          let id = fileURL.deletingPathExtension().lastPathComponent
+          if requestedIds.contains(id) {
+            cachedIds.insert(id)
+          }
+        }
+
+        if !cachedIds.isEmpty {
+          cachedIdsByType[type] = cachedIds
+        }
+      }
+
+      return cachedIdsByType
+    }.value
   }
 
   private static nonisolated func taskCacheKey(

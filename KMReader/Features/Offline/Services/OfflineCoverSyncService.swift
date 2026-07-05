@@ -11,6 +11,7 @@ actor OfflineCoverSyncService {
   static let shared = OfflineCoverSyncService()
 
   private let logger = AppLogger(.offline)
+  private let cachedProgressReportStride = 25
   private var isRunning = false
 
   private init() {}
@@ -33,6 +34,9 @@ actor OfflineCoverSyncService {
       instanceId: instanceId,
       libraryIds: libraryIds
     )
+    var cachedThumbnailIds = await ThumbnailCache.shared.cachedCoverThumbnailIds(
+      matching: targetIdsByType(targets)
+    )
     var summary = OfflineCoverSyncSummary()
     summary.totalCount = targets.count
     await reportProgress(summary: summary, onProgress: onProgress)
@@ -40,6 +44,13 @@ actor OfflineCoverSyncService {
     for target in targets {
       if shouldStopSync(instanceId: instanceId) {
         return await stopSync(summary: summary, onProgress: onProgress)
+      }
+
+      if cachedThumbnailIds[target.type]?.contains(target.thumbnailId) == true {
+        summary.existingCount += 1
+        summary.checkedCount += 1
+        await reportCachedProgressIfNeeded(summary: summary, onProgress: onProgress)
+        continue
       }
 
       do {
@@ -50,16 +61,21 @@ actor OfflineCoverSyncService {
 
         switch result {
         case .cached:
+          cachedThumbnailIds[target.type, default: []].insert(target.thumbnailId)
           summary.existingCount += 1
+          summary.checkedCount += 1
+          await reportCachedProgressIfNeeded(summary: summary, onProgress: onProgress)
         case .stored:
+          cachedThumbnailIds[target.type, default: []].insert(target.thumbnailId)
           summary.storedCount += 1
+          summary.checkedCount += 1
+          await reportProgress(summary: summary, onProgress: onProgress)
         case .cacheLimitReached:
           summary.stoppedAtCacheLimit = true
           logger.info("⏸️ Stopped offline cover sync because cover cache reached its maximum size")
           await reportProgress(summary: summary, onProgress: onProgress)
           return summary
         }
-        summary.checkedCount += 1
       } catch is CancellationError {
         return await stopSync(summary: summary, onProgress: onProgress)
       } catch APIError.offline {
@@ -80,10 +96,11 @@ actor OfflineCoverSyncService {
         logger.warning(
           "⚠️ Failed to sync offline cover for \(target.type.rawValue) \(target.thumbnailId): \(error.localizedDescription)"
         )
+        await reportProgress(summary: summary, onProgress: onProgress)
       }
-      await reportProgress(summary: summary, onProgress: onProgress)
     }
 
+    await reportProgress(summary: summary, onProgress: onProgress)
     logger.info(
       "✅ Offline cover sync finished: checked=\(summary.checkedCount), existing=\(summary.existingCount), stored=\(summary.storedCount), failed=\(summary.failedCount)"
     )
@@ -100,6 +117,25 @@ actor OfflineCoverSyncService {
       return true
     default:
       return false
+    }
+  }
+
+  private func targetIdsByType(_ targets: [OfflineCoverSyncTarget]) -> [ThumbnailType: Set<String>] {
+    var idsByType: [ThumbnailType: Set<String>] = [:]
+    for target in targets {
+      idsByType[target.type, default: []].insert(target.thumbnailId)
+    }
+    return idsByType
+  }
+
+  private func reportCachedProgressIfNeeded(
+    summary: OfflineCoverSyncSummary,
+    onProgress: OfflineCoverSyncProgressHandler?
+  ) async {
+    if summary.checkedCount == summary.totalCount
+      || summary.checkedCount.isMultiple(of: cachedProgressReportStride)
+    {
+      await reportProgress(summary: summary, onProgress: onProgress)
     }
   }
 
