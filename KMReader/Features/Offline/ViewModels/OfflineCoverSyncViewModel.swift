@@ -15,8 +15,10 @@ final class OfflineCoverSyncViewModel {
   private(set) var progress: OfflineCoverSyncProgress?
   private(set) var libraries: [LibraryInfo] = []
   private(set) var selectedLibraryIds: Set<String> = []
+  private(set) var loadedLibraryScopeTaskID: [String] = []
   @ObservationIgnored private var syncTask: Task<Void, Never>?
   @ObservationIgnored private var libraryScopeInstanceId: String?
+  @ObservationIgnored private var pendingLibraryScopeTaskID: [String] = []
   @ObservationIgnored private var hasManualLibrarySelection = false
 
   private init() {}
@@ -26,18 +28,27 @@ final class OfflineCoverSyncViewModel {
   }
 
   func loadLibraryScopeOptions(instanceId: String, defaultLibraryIds: [String]) async {
+    let taskID = Self.libraryScopeTaskID(
+      instanceId: instanceId,
+      defaultLibraryIds: defaultLibraryIds
+    )
+    pendingLibraryScopeTaskID = taskID
+
     guard !instanceId.isEmpty else {
       clearLibraryScope()
       return
     }
 
+    guard !Task.isCancelled else { return }
     guard let database = try? await DatabaseOperator.database() else {
+      guard !Task.isCancelled else { return }
       clearLibraryScope()
       return
     }
 
     let loadedLibraries = await database.fetchLibraries(instanceId: instanceId)
       .filter { $0.id != KomgaLibrary.allLibrariesId }
+    guard !Task.isCancelled, pendingLibraryScopeTaskID == taskID else { return }
 
     let isNewInstanceScope = libraryScopeInstanceId != instanceId
     libraryScopeInstanceId = instanceId
@@ -54,6 +65,7 @@ final class OfflineCoverSyncViewModel {
       selectedLibraryIds = Set(defaultLibraryIds)
     }
     normalizeSelectedLibraryIds()
+    loadedLibraryScopeTaskID = taskID
   }
 
   func selectedLibraryIdsForSync(instanceId: String) -> [String] {
@@ -61,10 +73,19 @@ final class OfflineCoverSyncViewModel {
     return selectedLibraryIds.sorted()
   }
 
+  func hasLoadedLibraryScope(instanceId: String, defaultLibraryIds: [String]) -> Bool {
+    loadedLibraryScopeTaskID
+      == Self.libraryScopeTaskID(
+        instanceId: instanceId,
+        defaultLibraryIds: defaultLibraryIds
+      )
+  }
+
   func selectLibraries(_ libraryIds: Set<String>) {
+    let libraryIds = normalizedLibrarySelection(libraryIds)
+    guard selectedLibraryIds != libraryIds else { return }
     hasManualLibrarySelection = true
     selectedLibraryIds = libraryIds
-    normalizeSelectedLibraryIds()
   }
 
   func startSyncMissingCovers(instanceId: String, libraryIds: [String]) {
@@ -162,19 +183,32 @@ final class OfflineCoverSyncViewModel {
     libraryScopeInstanceId = nil
     libraries = []
     selectedLibraryIds = []
+    loadedLibraryScopeTaskID = []
+    pendingLibraryScopeTaskID = []
     hasManualLibrarySelection = false
   }
 
   private func normalizeSelectedLibraryIds() {
+    selectedLibraryIds = normalizedLibrarySelection(selectedLibraryIds)
+  }
+
+  private func normalizedLibrarySelection(_ libraryIds: Set<String>) -> Set<String> {
     guard !libraries.isEmpty else {
-      selectedLibraryIds = []
-      return
+      return []
     }
 
     let validLibraryIds = Set(libraries.map(\.id))
-    selectedLibraryIds = selectedLibraryIds.intersection(validLibraryIds)
+    let selectedLibraryIds = libraryIds.intersection(validLibraryIds)
     if selectedLibraryIds.count == validLibraryIds.count {
-      selectedLibraryIds = []
+      return []
     }
+    return selectedLibraryIds
+  }
+
+  private static func libraryScopeTaskID(
+    instanceId: String,
+    defaultLibraryIds: [String]
+  ) -> [String] {
+    [instanceId] + defaultLibraryIds.sorted()
   }
 }
