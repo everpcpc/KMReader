@@ -830,7 +830,7 @@ class ReaderViewModel {
     let status = await OfflineManager.shared.getDownloadStatus(bookId: book.id)
     if case .downloaded = status {
       if updatesLoadingState {
-        clearLoadingProgress()
+        updateLoadingProgress(ReaderLoadingProgress.complete)
         updateLoadingDetail(String(localized: "Using downloaded book files"))
       }
       return
@@ -853,7 +853,7 @@ class ReaderViewModel {
         info: downloadInfo
       )
     case .downloaded:
-      clearLoadingProgress()
+      updateLoadingProgress(ReaderLoadingProgress.complete)
       updateLoadingDetail(String(localized: "Using downloaded book files"))
       return
     }
@@ -867,7 +867,7 @@ class ReaderViewModel {
       switch currentStatus {
       case .downloaded:
         if updatesLoadingState {
-          clearLoadingProgress()
+          updateLoadingProgress(ReaderLoadingProgress.complete)
           updateLoadingDetail(String(localized: "Using downloaded book files"))
         }
         return
@@ -882,7 +882,7 @@ class ReaderViewModel {
           let progress = DownloadProgressTracker.shared.progress[book.id]
         {
           if progress >= 1 {
-            clearLoadingProgress()
+            updateLoadingProgress(ReaderLoadingProgress.complete)
             let status = offlinePostDownloadStatus(for: downloadInfo.kind)
             updateLoadingTitle(status.title)
             updateLoadingDetail(status.detail)

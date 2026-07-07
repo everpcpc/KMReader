@@ -444,12 +444,18 @@
     }
 
     private var loadingProgress: Double? {
-      guard viewModel.loadingStage == .downloading else { return nil }
-      if let expectedBytes = viewModel.downloadBytesExpected, expectedBytes > 0 {
-        return viewModel.downloadProgress
-      }
+      switch viewModel.loadingStage {
+      case .downloading:
+        if let expectedBytes = viewModel.downloadBytesExpected, expectedBytes > 0 {
+          return viewModel.downloadProgress
+        }
 
-      return viewModel.downloadProgress > 0 ? viewModel.downloadProgress : nil
+        return viewModel.downloadProgress > 0 ? viewModel.downloadProgress : nil
+      case .finalizingOfflineDownload, .preparingReader:
+        return ReaderLoadingProgress.complete
+      case .fetchingMetadata, .idle:
+        return nil
+      }
     }
 
     private var loadingDetail: String {
