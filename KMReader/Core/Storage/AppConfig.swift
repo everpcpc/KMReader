@@ -1130,7 +1130,7 @@ enum AppConfig {
 
   static nonisolated var readingStatsCache: ReadingStatsCache {
     get {
-      if let stored = UserDefaults.standard.string(forKey: "readingStatsCache"),
+      if let stored = UserDefaults.standard.string(forKey: "readingStatsCacheV2"),
         let cache = ReadingStatsCache(rawValue: stored)
       {
         return cache
@@ -1138,7 +1138,7 @@ enum AppConfig {
       return ReadingStatsCache()
     }
     set {
-      UserDefaults.standard.set(newValue.rawValue, forKey: "readingStatsCache")
+      UserDefaults.standard.set(newValue.rawValue, forKey: "readingStatsCacheV2")
     }
   }
 

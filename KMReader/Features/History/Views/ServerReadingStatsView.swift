@@ -12,7 +12,7 @@ struct ServerReadingStatsView: View {
 
   @State private var selectedLibraryId: String = ""
   @State private var viewModel = ReadingStatsViewModel()
-  @State private var selectedTimePointIndex: Int?
+  @State private var selectedTimePointId: String?
   @State private var libraries: [SidebarLibraryItem] = []
   @State private var syncInfo: OfflineInstanceSyncInfo?
 
@@ -75,7 +75,7 @@ struct ServerReadingStatsView: View {
       }
     }
     .onChange(of: viewModel.selectedTimeRange) { _, _ in
-      selectedTimePointIndex = nil
+      selectedTimePointId = nil
     }
     .onChange(of: isOffline) { oldValue, newValue in
       if oldValue && !newValue {
@@ -175,14 +175,13 @@ struct ServerReadingStatsView: View {
   @ViewBuilder
   private func statsContent(payload: ReadingStatsPayload) -> some View {
     let summary = payload.summary
-    let filteredTimeSeries = viewModel.filteredTimeSeries()
-    let indexedTimeSeries = Array(filteredTimeSeries.enumerated())
+    let heatmapWeeks = viewModel.readingPagesHeatmapWeeks()
 
     summarySection(summary)
 
     VStack(alignment: .leading, spacing: 12) {
       HStack(spacing: 12) {
-        Text(String(localized: "Reading Time"))
+        Text(String(localized: "Pages Read"))
           .font(.headline)
 
         Spacer()
@@ -196,108 +195,10 @@ struct ServerReadingStatsView: View {
         .pickerStyle(.menu)
       }
 
-      if filteredTimeSeries.isEmpty {
-        sectionEmptyState(systemImage: "chart.xyaxis.line", message: String(localized: "No data"))
+      if heatmapWeeks.isEmpty {
+        sectionEmptyState(systemImage: "square.grid.3x3", message: String(localized: "No data"))
       } else {
-        Chart(indexedTimeSeries, id: \.offset) { item in
-          let index = item.offset
-          let point = item.element
-
-          LineMark(
-            x: .value("Index", index),
-            y: .value("Hours", point.value)
-          )
-          .foregroundStyle(Color.accentColor)
-
-          AreaMark(
-            x: .value("Index", index),
-            y: .value("Hours", point.value)
-          )
-          .interpolationMethod(.catmullRom)
-          .foregroundStyle(
-            LinearGradient(
-              colors: [Color.accentColor.opacity(0.35), Color.accentColor.opacity(0.05)],
-              startPoint: .top,
-              endPoint: .bottom
-            )
-          )
-
-          if selectedTimePointIndex == index {
-            PointMark(
-              x: .value("Index", index),
-              y: .value("Hours", point.value)
-            )
-            .symbolSize(60)
-            .foregroundStyle(Color.accentColor)
-          }
-        }
-        .chartXAxis {
-          AxisMarks(values: axisMarkIndices(count: filteredTimeSeries.count)) { value in
-            if let index = value.as(Int.self), index < filteredTimeSeries.count {
-              AxisValueLabel(axisLabel(for: filteredTimeSeries[index]))
-            }
-          }
-        }
-        #if os(iOS) || os(macOS)
-          .chartOverlay { proxy in
-            GeometryReader { geometry in
-              Color.clear
-              .contentShape(Rectangle())
-              .gesture(
-                DragGesture(minimumDistance: 0)
-                  .onChanged { drag in
-                    guard let plotFrame = proxy.plotFrame else { return }
-                    let plotOrigin = geometry[plotFrame].origin
-                    let plotX = drag.location.x - plotOrigin.x
-
-                    guard plotX >= 0, plotX <= proxy.plotSize.width else { return }
-
-                    if let index = proxy.value(atX: plotX, as: Int.self) {
-                      selectedTimePointIndex = max(0, min(index, filteredTimeSeries.count - 1))
-                    } else if let index = proxy.value(atX: plotX, as: Double.self) {
-                      let rounded = Int(index.rounded())
-                      selectedTimePointIndex = max(0, min(rounded, filteredTimeSeries.count - 1))
-                    }
-                  }
-              )
-            }
-          }
-        #endif
-        .chartBackground { _ in
-          if let selectedTimePointIndex,
-            selectedTimePointIndex >= 0,
-            selectedTimePointIndex < filteredTimeSeries.count
-          {
-            let point = filteredTimeSeries[selectedTimePointIndex]
-            VStack(alignment: .leading, spacing: 4) {
-              Text(displayDate(for: point))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-              Text(String(localized: "Reading Time: \(formatHoursAndMinutes(point.value))"))
-                .font(.caption)
-                .fontWeight(.semibold)
-                .lineLimit(1)
-            }
-            .padding(8)
-            .background(.ultraThinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-            .padding(.top, 8)
-            .padding(.trailing, 8)
-          }
-        }
-        .frame(height: 220)
-
-        Text(String(localized: "X-axis: Date, Y-axis: Estimated reading hours."))
-          .font(.caption)
-          .foregroundStyle(.secondary)
-
-        #if os(iOS) || os(macOS)
-          Text(String(localized: "Tip: Tap or drag a point to view details."))
-            .font(.caption)
-            .foregroundStyle(.secondary)
-        #endif
+        ReadingPagesHeatmapView(weeks: heatmapWeeks, selectedPointId: $selectedTimePointId)
       }
     }
     .padding(12)
@@ -355,7 +256,6 @@ struct ServerReadingStatsView: View {
       (String(localized: "Books Completed"), formatCount(summary.booksCompletedReading), "checkmark.circle"),
       (String(localized: "Pages Read"), formatCount(summary.totalPagesRead), "doc.text"),
       (String(localized: "Reading Days"), formatCount(summary.readingDays), "calendar"),
-      (String(localized: "Estimated Hours"), formatDecimal(summary.estimatedReadingHours), "hourglass"),
       (String(localized: "Avg Pages / Book"), formatDecimal(summary.averagePagesPerBook), "chart.bar.xaxis"),
       (String(localized: "Total Books"), formatCount(summary.totalBooks), "books.vertical"),
       (String(localized: "Last Read"), formatLastRead(summary.lastReadAt), "clock.arrow.circlepath"),
@@ -519,17 +419,6 @@ struct ServerReadingStatsView: View {
     return date.formattedMediumDate
   }
 
-  private func axisMarkIndices(count: Int) -> [Int] {
-    guard count > 0 else { return [] }
-    let desiredMarks = 6
-    let step = max(1, Int(ceil(Double(count) / Double(desiredMarks))))
-    var indices = Array(stride(from: 0, to: count, by: step))
-    if indices.last != count - 1 {
-      indices.append(count - 1)
-    }
-    return indices
-  }
-
   private func distributionAxisIndices(count: Int, keepOrder: Bool) -> [Int] {
     guard count > 0 else { return [] }
     if keepOrder == false {
@@ -543,56 +432,6 @@ struct ServerReadingStatsView: View {
     }
     return indices
   }
-
-  private func axisLabel(for point: ReadingStatsTimePoint) -> String {
-    point.name
-  }
-
-  private func displayDate(for point: ReadingStatsTimePoint) -> String {
-    if let dateString = point.dateString {
-      if dateString.count == 4 {
-        return dateString
-      }
-
-      if dateString.count == 7, let date = Self.monthKeyFormatter.date(from: dateString) {
-        return Self.monthDisplayFormatter.string(from: date)
-      }
-    }
-
-    guard let date = ReadingStatsViewModel.parseDate(point.dateString) else {
-      return point.name
-    }
-    return date.formattedMediumDate
-  }
-
-  private func formatHoursAndMinutes(_ hours: Double) -> String {
-    let totalMinutes = Int((hours * 60).rounded())
-    let hourPart = totalMinutes / 60
-    let minutePart = totalMinutes % 60
-
-    if hourPart == 0 {
-      return "\(minutePart)m"
-    }
-    if minutePart == 0 {
-      return "\(hourPart)h"
-    }
-    return "\(hourPart)h \(minutePart)m"
-  }
-
-  private static let monthKeyFormatter: DateFormatter = {
-    let formatter = DateFormatter()
-    formatter.locale = Locale(identifier: "en_US_POSIX")
-    formatter.timeZone = TimeZone(secondsFromGMT: 0)
-    formatter.dateFormat = "yyyy-MM"
-    return formatter
-  }()
-
-  private static let monthDisplayFormatter: DateFormatter = {
-    let formatter = DateFormatter()
-    formatter.locale = .current
-    formatter.setLocalizedDateFormatFromTemplate("yMMM")
-    return formatter
-  }()
 
   private func reload(forceRefresh: Bool) async {
     await viewModel.load(

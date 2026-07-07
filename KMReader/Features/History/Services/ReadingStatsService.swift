@@ -56,12 +56,10 @@ nonisolated enum ReadingStatsService {
     let completedBooks = filteredBooks.filter(\.isCompleted)
 
     let totalPagesRead = completedBooks.reduce(0.0) { partial, book in
-      partial + Double(book.readProgress?.page ?? 0)
+      partial + Double(readPageCount(for: book))
     }
 
     let averagePagesPerBook = completedBooks.isEmpty ? 0 : (totalPagesRead / Double(completedBooks.count)).rounded()
-    let estimatedReadingHours = (totalPagesRead / 2 / 60).rounded()
-
     let readDates = completedBooks.compactMap { $0.readProgress?.readDate }
     let lastReadDate = readDates.max()
     let uniqueReadingDays = Set(readDates.map(Self.dayKey))
@@ -73,7 +71,7 @@ nonisolated enum ReadingStatsService {
       totalPagesRead: totalPagesRead,
       averagePagesPerBook: averagePagesPerBook,
       readingDays: Double(uniqueReadingDays.count),
-      estimatedReadingHours: estimatedReadingHours,
+      estimatedReadingHours: 0,
       lastReadAt: lastReadDate.map(Self.isoDateTime)
     )
 
@@ -85,7 +83,7 @@ nonisolated enum ReadingStatsService {
 
     let dailyDistribution = buildDailyDistribution(completedBooks: completedBooks)
     let hourlyDistribution = buildHourlyDistribution(completedBooks: completedBooks)
-    let readingTimeSeries = buildReadingTimeSeries(completedBooks: completedBooks)
+    let dailyPagesSeries = buildDailyPagesSeries(completedBooks: completedBooks)
 
     let dimensions = buildDimensions(completedBooks: completedBooks, readSeries: readSeries)
 
@@ -94,7 +92,7 @@ nonisolated enum ReadingStatsService {
       statusDistribution: statusDistribution,
       dailyDistribution: dailyDistribution,
       hourlyDistribution: hourlyDistribution,
-      readingTimeSeries: readingTimeSeries,
+      readingTimeSeries: dailyPagesSeries,
       topAuthors: dimensions.topAuthors,
       topGenres: dimensions.topGenres,
       topTags: dimensions.topTags,
@@ -153,7 +151,7 @@ nonisolated enum ReadingStatsService {
     }
   }
 
-  private static func buildReadingTimeSeries(completedBooks: [Book]) -> [ReadingStatsTimePoint] {
+  private static func buildDailyPagesSeries(completedBooks: [Book]) -> [ReadingStatsTimePoint] {
     guard !completedBooks.isEmpty else { return [] }
 
     let today = Date()
@@ -164,12 +162,12 @@ nonisolated enum ReadingStatsService {
       .map { Calendar.current.startOfDay(for: $0) }
       ?? Calendar.current.startOfDay(for: today)
 
-    var hoursByDay: [String: Double] = [:]
+    var pagesByDay: [String: Double] = [:]
     for book in completedBooks {
       guard let progress = book.readProgress else { continue }
       let dayKey = Self.dayKey(progress.readDate)
-      let hours = Double(progress.page) / 2 / 60
-      hoursByDay[dayKey, default: 0] += hours
+      let pages = Double(readPageCount(for: book))
+      pagesByDay[dayKey, default: 0] += pages
     }
 
     var points: [ReadingStatsTimePoint] = []
@@ -181,7 +179,7 @@ nonisolated enum ReadingStatsService {
       points.append(
         ReadingStatsTimePoint(
           name: dayKey,
-          value: hoursByDay[dayKey, default: 0],
+          value: pagesByDay[dayKey, default: 0],
           dateString: dayKey
         )
       )
@@ -190,6 +188,17 @@ nonisolated enum ReadingStatsService {
     }
 
     return points
+  }
+
+  private static func readPageCount(for book: Book) -> Int {
+    guard let progress = book.readProgress else { return 0 }
+
+    let mediaPagesCount = max(book.media.pagesCount, 0)
+    if progress.completed, mediaPagesCount > 0 {
+      return mediaPagesCount
+    }
+
+    return max(progress.page, 0)
   }
 
   private static func buildDimensions(completedBooks: [Book], readSeries: [Series]) -> ReadingStatsDimensions {

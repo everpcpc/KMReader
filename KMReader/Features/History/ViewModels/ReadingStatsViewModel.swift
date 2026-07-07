@@ -10,7 +10,7 @@ import Foundation
 final class ReadingStatsViewModel {
   var payload: ReadingStatsPayload?
   var lastUpdatedAt: Date?
-  var selectedTimeRange: ReadingStatsTimeRange = .last30Days
+  var selectedTimeRange: ReadingStatsTimeRange = .last90Days
   var isLoading = false
   var isRefreshing = false
   var errorMessage: String?
@@ -68,175 +68,153 @@ final class ReadingStatsViewModel {
     isRefreshing = false
   }
 
-  func filteredTimeSeries(referenceDate: Date = Date()) -> [ReadingStatsTimePoint] {
-    guard let readingTimeSeries = payload?.readingTimeSeries, !readingTimeSeries.isEmpty else {
-      return []
-    }
-
-    let dailyPoints = readingTimeSeries.compactMap { point -> (date: Date, hours: Double)? in
-      guard let parsedDate = Self.parseDate(point.dateString ?? point.name) else {
-        return nil
-      }
-      return (Self.utcCalendar.startOfDay(for: parsedDate), point.value)
-    }
-
+  func readingPagesHeatmapWeeks(referenceDate: Date = Date()) -> [ReadingPagesHeatmapWeek] {
+    let dailyPoints = makeDailyPagePoints()
     guard !dailyPoints.isEmpty else {
       return []
     }
 
     let now = Self.utcCalendar.startOfDay(for: referenceDate)
     let earliestDate = dailyPoints.map(\.date).min() ?? now
-    let window = makeTimeSeriesWindow(referenceDate: now, earliestDate: earliestDate)
+    let window = makeHeatmapWindow(referenceDate: now, earliestDate: earliestDate)
+    guard window.startDate <= window.endDate else {
+      return []
+    }
 
-    var hoursByKey: [String: Double] = [:]
+    var pagesByKey: [String: Double] = [:]
     for point in dailyPoints {
       guard point.date >= window.startDate && point.date <= window.endDate else { continue }
-      let key = Self.groupKey(for: point.date, grouping: window.grouping)
-      hoursByKey[key, default: 0] += point.hours
+      let key = Self.dayKey(for: point.date)
+      pagesByKey[key, default: 0] += point.pages
     }
 
-    if window.grouping == .day {
-      let todayKey = Self.groupKey(for: window.endDate, grouping: .day)
-      if hoursByKey[todayKey] == nil {
-        hoursByKey[todayKey] = 0
-      }
-    }
-
-    if window.startDate > window.endDate {
-      let todayKey = Self.groupKey(for: window.endDate, grouping: .day)
-      let todayLabel = formatAxisLabel(key: todayKey, grouping: .day)
-      return [ReadingStatsTimePoint(name: todayLabel, value: 0, dateString: todayKey)]
-    }
-
-    var series: [ReadingStatsTimePoint] = []
+    var points: [ReadingStatsTimePoint] = []
     var cursor = window.startDate
 
     while cursor <= window.endDate {
-      let key = Self.groupKey(for: cursor, grouping: window.grouping)
-      let value = hoursByKey[key, default: 0]
+      let key = Self.dayKey(for: cursor)
+      let value = pagesByKey[key, default: 0]
 
-      series.append(
+      points.append(
         ReadingStatsTimePoint(
-          name: formatAxisLabel(key: key, grouping: window.grouping),
+          name: Self.dayAxisLabel(for: key),
           value: (value * 100).rounded() / 100,
           dateString: key
         )
       )
 
-      guard let nextCursor = Self.nextDate(from: cursor, grouping: window.grouping) else {
+      guard let nextCursor = Self.utcCalendar.date(byAdding: .day, value: 1, to: cursor) else {
         break
       }
       cursor = nextCursor
     }
 
-    if window.grouping == .day {
-      let todayKey = Self.groupKey(for: window.endDate, grouping: .day)
-      let hasToday = series.contains { $0.dateString == todayKey }
-      if !hasToday {
-        series.append(
-          ReadingStatsTimePoint(
-            name: formatAxisLabel(key: todayKey, grouping: .day),
-            value: 0,
-            dateString: todayKey
-          )
-        )
-      }
-    }
-
-    return series
+    return Self.makeHeatmapWeeks(points: points)
   }
 
-  private func makeTimeSeriesWindow(referenceDate: Date, earliestDate: Date) -> ReadingTimeWindow {
+  private func makeDailyPagePoints() -> [(date: Date, pages: Double)] {
+    guard let readingTimeSeries = payload?.readingTimeSeries, !readingTimeSeries.isEmpty else {
+      return []
+    }
+
+    return readingTimeSeries.compactMap { point -> (date: Date, pages: Double)? in
+      guard let parsedDate = Self.parseDate(point.dateString ?? point.name) else {
+        return nil
+      }
+      return (Self.utcCalendar.startOfDay(for: parsedDate), point.value)
+    }
+  }
+
+  private func makeHeatmapWindow(referenceDate: Date, earliestDate: Date) -> ReadingTimeWindow {
     let now = Self.utcCalendar.startOfDay(for: referenceDate)
-    let year = Self.utcCalendar.component(.year, from: now)
-    let month = Self.utcCalendar.component(.month, from: now)
-    let day = Self.utcCalendar.component(.day, from: now)
     let weekday = Self.utcCalendar.component(.weekday, from: now)
 
     let startDate: Date
-    let grouping: ReadingTimeGrouping
-
     switch selectedTimeRange {
     case .thisWeek:
       let offset = weekday - 1
       startDate = Self.utcCalendar.date(byAdding: .day, value: -offset, to: now) ?? now
-      grouping = .day
     case .last7Days:
       startDate = Self.utcCalendar.date(byAdding: .day, value: -6, to: now) ?? now
-      grouping = .day
     case .last30Days:
       startDate = Self.utcCalendar.date(byAdding: .day, value: -29, to: now) ?? now
-      grouping = .day
     case .last90Days:
-      startDate = Self.utcCalendar.date(from: DateComponents(year: year, month: month - 2, day: 1)) ?? now
-      grouping = .month
+      startDate = Self.utcCalendar.date(byAdding: .day, value: -89, to: now) ?? now
     case .last6Months:
-      startDate = Self.utcCalendar.date(from: DateComponents(year: year, month: month - 5, day: 1)) ?? now
-      grouping = .month
+      startDate = Self.utcCalendar.date(byAdding: .month, value: -6, to: now) ?? now
     case .lastYear:
-      startDate = Self.utcCalendar.date(from: DateComponents(year: year - 1, month: month + 1, day: 1)) ?? now
-      grouping = .month
+      startDate = Self.utcCalendar.date(byAdding: .year, value: -1, to: now) ?? now
     case .allTime:
-      startDate = Self.utcCalendar.date(from: DateComponents(year: year, month: month, day: day)) ?? earliestDate
-      grouping = .year
-    }
-
-    if selectedTimeRange == .allTime {
-      return ReadingTimeWindow(startDate: earliestDate, endDate: now, grouping: grouping)
+      startDate = earliestDate
     }
 
     return ReadingTimeWindow(
       startDate: Self.utcCalendar.startOfDay(for: startDate),
-      endDate: now,
-      grouping: grouping
+      endDate: now
     )
   }
 
-  private func formatAxisLabel(key: String, grouping: ReadingTimeGrouping) -> String {
-    switch grouping {
-    case .day:
-      guard let date = Self.dayKeyFormatter.date(from: key) else { return key }
-      return Self.dayAxisLabelFormatter.string(from: date)
-    case .month:
-      guard let date = Self.monthKeyFormatter.date(from: key) else { return key }
-      return Self.monthAxisLabelFormatter.string(from: date)
-    case .year:
-      return key
+  private static func makeHeatmapWeeks(points: [ReadingStatsTimePoint]) -> [ReadingPagesHeatmapWeek] {
+    let datedPoints = points.compactMap { point -> (date: Date, point: ReadingStatsTimePoint)? in
+      guard let parsedDate = parseDate(point.dateString ?? point.name) else {
+        return nil
+      }
+      return (utcCalendar.startOfDay(for: parsedDate), point)
     }
-  }
+    .sorted { $0.date < $1.date }
 
-  private static func groupKey(for date: Date, grouping: ReadingTimeGrouping) -> String {
-    switch grouping {
-    case .day:
-      return dayKeyFormatter.string(from: date)
-    case .month:
-      return monthKeyFormatter.string(from: date)
-    case .year:
-      return yearKeyFormatter.string(from: date)
+    guard !datedPoints.isEmpty else {
+      return []
     }
-  }
 
-  private static func nextDate(from date: Date, grouping: ReadingTimeGrouping) -> Date? {
-    switch grouping {
-    case .day:
-      return utcCalendar.date(byAdding: .day, value: 1, to: date)
-    case .month:
-      return utcCalendar.date(byAdding: .month, value: 1, to: date)
-    case .year:
-      return utcCalendar.date(byAdding: .year, value: 1, to: date)
+    var weeks: [ReadingPagesHeatmapWeek] = []
+    var currentWeekStart: Date?
+    var currentDays = [ReadingStatsTimePoint?](repeating: nil, count: 7)
+
+    for datedPoint in datedPoints {
+      let weekdayIndex = max(0, min(utcCalendar.component(.weekday, from: datedPoint.date) - 1, 6))
+      let weekStart =
+        utcCalendar.date(byAdding: .day, value: -weekdayIndex, to: datedPoint.date)
+        ?? datedPoint.date
+
+      if let currentWeekStart, currentWeekStart != weekStart {
+        weeks.append(
+          ReadingPagesHeatmapWeek(
+            id: dayKey(for: currentWeekStart),
+            days: currentDays
+          )
+        )
+        currentDays = [ReadingStatsTimePoint?](repeating: nil, count: 7)
+      }
+
+      currentWeekStart = weekStart
+      currentDays[weekdayIndex] = datedPoint.point
     }
-  }
 
-  private enum ReadingTimeGrouping {
-    case day
-    case month
-    case year
+    if let currentWeekStart {
+      weeks.append(
+        ReadingPagesHeatmapWeek(
+          id: dayKey(for: currentWeekStart),
+          days: currentDays
+        )
+      )
+    }
+
+    return weeks
   }
 
   private struct ReadingTimeWindow {
     let startDate: Date
     let endDate: Date
-    let grouping: ReadingTimeGrouping
+  }
+
+  private static func dayKey(for date: Date) -> String {
+    dayKeyFormatter.string(from: date)
+  }
+
+  private static func dayAxisLabel(for key: String) -> String {
+    guard let date = dayKeyFormatter.date(from: key) else { return key }
+    return dayAxisLabelFormatter.string(from: date)
   }
 
   static func parseDate(_ rawValue: String?) -> Date? {
@@ -315,33 +293,10 @@ final class ReadingStatsViewModel {
     return formatter
   }()
 
-  private static let monthKeyFormatter: DateFormatter = {
-    let formatter = DateFormatter()
-    formatter.locale = Locale(identifier: "en_US_POSIX")
-    formatter.timeZone = TimeZone(secondsFromGMT: 0)
-    formatter.dateFormat = "yyyy-MM"
-    return formatter
-  }()
-
-  private static let yearKeyFormatter: DateFormatter = {
-    let formatter = DateFormatter()
-    formatter.locale = Locale(identifier: "en_US_POSIX")
-    formatter.timeZone = TimeZone(secondsFromGMT: 0)
-    formatter.dateFormat = "yyyy"
-    return formatter
-  }()
-
   private static let dayAxisLabelFormatter: DateFormatter = {
     let formatter = DateFormatter()
     formatter.locale = .current
     formatter.setLocalizedDateFormatFromTemplate("MMMd")
-    return formatter
-  }()
-
-  private static let monthAxisLabelFormatter: DateFormatter = {
-    let formatter = DateFormatter()
-    formatter.locale = .current
-    formatter.setLocalizedDateFormatFromTemplate("yMMM")
     return formatter
   }()
 }
