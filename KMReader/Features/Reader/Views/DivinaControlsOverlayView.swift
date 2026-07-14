@@ -29,13 +29,16 @@ struct DivinaControlsOverlayView: View {
   let showingControls: Bool
   let showGradientBackground: Bool
   let showProgressBarWhileReading: Bool
+  let showPageDimensionWarning: Bool
 
   @Namespace private var progressBarNamespace
+  @State private var showingPageDimensionWarning = false
 
   #if os(tvOS)
     private enum ControlFocus: Hashable {
       case close
       case title
+      case pageDimensionWarning
       case settings
       case pageNumber
     }
@@ -156,6 +159,14 @@ struct DivinaControlsOverlayView: View {
     .animation(animation, value: controlsVisible)
     .animation(animation, value: showProgressBarWhileReading)
     .allowsHitTesting(controlsVisible)
+    .alert(
+      "reader.pageDimensions.warning.title",
+      isPresented: $showingPageDimensionWarning
+    ) {
+      Button("OK") {}
+    } message: {
+      Text("reader.missingPageDimensions.alert")
+    }
     #if os(iOS)
       .tint(.primary)
     #endif
@@ -268,6 +279,23 @@ struct DivinaControlsOverlayView: View {
         #if os(tvOS)
           .focused($focusedControl, equals: .title)
           .id("titleLabel")
+        #endif
+      }
+
+      if showPageDimensionWarning {
+        Button {
+          showingPageDimensionWarning = true
+        } label: {
+          Image(systemName: "exclamationmark.triangle.fill")
+            .foregroundStyle(.yellow)
+            .contentShape(Circle())
+        }
+        .accessibilityLabel(Text("reader.pageDimensions.warning.title"))
+        .buttonBorderShape(.circle)
+        .controlSize(.large)
+        .readerControlButtonStyle()
+        #if os(tvOS)
+          .focused($focusedControl, equals: .pageDimensionWarning)
         #endif
       }
 

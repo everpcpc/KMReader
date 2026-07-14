@@ -45,6 +45,8 @@ struct DivinaReaderView: View {
   @AppStorage("doubleTapZoomMode") private var doubleTapZoomMode: DoubleTapZoomMode = .enabled
   @AppStorage("shakeToOpenLiveText") private var shakeToOpenLiveText: Bool = false
   @AppStorage("divinaPreloadProfile") private var divinaPreloadProfile: ReaderPreloadProfile = .balanced
+  @AppStorage("isOffline") private var isOffline: Bool = false
+  @AppStorage("offlineFirstReading") private var offlineFirstReading: Bool = false
 
   @State private var readingDirection: ReadingDirection
   @State private var pageLayout: PageLayout
@@ -188,6 +190,12 @@ struct DivinaReaderView: View {
 
   private var currentSegmentPreviousBook: Book? {
     currentSegmentContext.previousBook
+  }
+
+  private var showPageDimensionWarning: Bool {
+    guard !isOffline, !offlineFirstReading else { return false }
+    guard pageLayout.supportsDualPageOptions || splitWidePageMode.isEnabled else { return false }
+    return viewModel.hasMissingPageDimensions(forBookId: currentSegmentBookId)
   }
 
   private var handoffBookId: String {
@@ -998,7 +1006,8 @@ struct DivinaReaderView: View {
       controlsVisible: shouldShowControls,
       showingControls: showingControls,
       showGradientBackground: showControlsGradientBackground,
-      showProgressBarWhileReading: showProgressBarWhileReading
+      showProgressBarWhileReading: showProgressBarWhileReading,
+      showPageDimensionWarning: showPageDimensionWarning
     )
   }
 
