@@ -153,6 +153,17 @@
       },
       "shouldTranslate" : false
     },
+    "%@\n%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@\n%2$@"
+          }
+        }
+      },
+      "shouldTranslate" : false
+    },
     "%@ " : {
       "localizations" : {
         "fr" : {
@@ -56696,6 +56707,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "白色"
+          }
+        }
+      }
+    },
+    "reader.missingPageDimensions.alert" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einigen Seiten fehlen die Bildabmessungen. Aktiviere „Analysiere Seitenformat“ in den Optionen dieser Bibliothek in Komga und scanne die Bibliothek erneut, oder aktiviere „Offline zuerst lesen“ in KMReader. „Automatisch“ und „Breite Seiten teilen“ funktionieren möglicherweise erst korrekt, wenn die Abmessungen verfügbar sind."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Some pages do not include image dimensions. Enable “Analyze pages dimensions” in this library's options in Komga and rescan the library, or enable Offline-first Reading in KMReader. Auto Page Layout and Split Wide Pages may not work correctly until dimensions are available."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A algunas páginas les faltan las dimensiones de imagen. Activa «Analizar la dimensión de las páginas» en las opciones de esta biblioteca en Komga y vuelve a escanearla, o activa «Lectura primero sin conexión» en KMReader. «Automático» y «Dividir páginas anchas» podrían no funcionar correctamente hasta que las dimensiones estén disponibles."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Certaines pages ne contiennent pas les dimensions de l’image. Activez « Analyser les dimensions des pages » dans les options de cette bibliothèque dans Komga et relancez son analyse, ou activez « Lecture hors ligne d’abord » dans KMReader. « Automatique » et « Diviser les pages larges » risquent de ne pas fonctionner correctement tant que les dimensions ne sont pas disponibles."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alcune pagine non includono le dimensioni dell'immagine. Abilita «Analizza le dimensioni delle pagine» nelle opzioni di questa libreria in Komga e riesegui la scansione, oppure abilita «Lettura prima offline» in KMReader. «Automatico» e «Dividi pagine larghe» potrebbero non funzionare correttamente finché le dimensioni non sono disponibili."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一部のページに画像の寸法情報がありません。Komga のこのライブラリのオプションで「ページ寸法の分析」を有効にしてライブラリを再スキャンするか、KMReader で「オフライン優先読書」を有効にしてください。寸法情報が利用可能になるまで、「自動」ページレイアウトと「ワイドページを分割」が正しく動作しない場合があります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "일부 페이지에 이미지 크기 정보가 없습니다. Komga의 해당 라이브러리 옵션에서 ‘페이지 크기 분석’을 활성화하고 라이브러리를 다시 스캔하거나 KMReader에서 ‘오프라인 우선 읽기’를 활성화하세요. 크기 정보를 사용할 수 있을 때까지 ‘자동’ 페이지 레이아웃과 ‘넓은 페이지 분할’이 올바르게 작동하지 않을 수 있습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Для некоторых страниц отсутствуют размеры изображения. Включите «Анализировать размеры страниц» в параметрах этой библиотеки в Komga и повторно просканируйте библиотеку либо включите «Чтение сначала офлайн» в KMReader. Пока размеры недоступны, «Авто» и «Разделять широкие страницы» могут работать некорректно."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "部分页面缺少图片尺寸信息。请在 Komga 的此书库选项中开启“分析页面尺寸”并重新扫描书库，或在 KMReader 中开启“优先离线阅读”。在尺寸信息可用前，“自动”页面布局和“分割宽页”可能无法正常工作。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "部分頁面缺少圖片尺寸資訊。請在 Komga 的此書庫選項中開啟「分析頁面尺寸」並重新掃描書庫，或在 KMReader 中開啟「優先離線閱讀」。在尺寸資訊可用前，「自動」頁面佈局和「分割寬頁」可能無法正常運作。"
           }
         }
       }

@@ -1439,6 +1439,105 @@ actor OfflineManager {
     }
   }
 
+  func fillMissingPageDimensions(
+    instanceId: String,
+    bookId: String,
+    pages: [BookPage]
+  ) async -> [BookPage] {
+    let pagesMissingDimensions = pages.filter { !$0.hasValidDimensions }
+    guard !pagesMissingDimensions.isEmpty else { return pages }
+
+    let bookDir = bookDirectory(instanceId: instanceId, bookId: bookId)
+    let cache = pageImageCache(for: instanceId)
+    var localFileURLsByEntryPath: [String: URL] = [:]
+
+    for page in pagesMissingDimensions {
+      let candidateURLs =
+        offlinePageImageFileURLs(bookDir: bookDir, page: page) + [
+          cache.imageFileURL(bookId: bookId, page: page)
+        ]
+      if let fileURL = candidateURLs.first(where: {
+        FileManager.default.fileExists(atPath: $0.path)
+      }) {
+        localFileURLsByEntryPath[page.fileName] = fileURL
+      }
+    }
+
+    var pixelSizesByEntryPath = await Task.detached(priority: .userInitiated) {
+      localFileURLsByEntryPath.reduce(into: [String: CGSize]()) { result, item in
+        if let pixelSize = ArchiveExtractionService.imagePixelSize(at: item.value) {
+          result[item.key] = pixelSize
+        }
+      }
+    }.value
+
+    let unresolvedEntryPaths = Set(
+      pagesMissingDimensions.lazy
+        .map(\.fileName)
+        .filter { pixelSizesByEntryPath[$0] == nil }
+    )
+
+    if !unresolvedEntryPaths.isEmpty,
+      let archiveFile = existingArchivedPageSourceURL(in: bookDir)
+    {
+      do {
+        let archivePixelSizes = try await Task.detached(priority: .userInitiated) {
+          try ArchiveExtractionService.imagePixelSizes(
+            from: archiveFile,
+            entryPaths: unresolvedEntryPaths,
+            normalizePath: Self.normalizeArchivePath
+          )
+        }.value
+        pixelSizesByEntryPath.merge(archivePixelSizes) { current, _ in current }
+      } catch {
+        logger.warning(
+          "⚠️ Failed to read missing page dimensions from archive for book \(bookId): \(error)"
+        )
+      }
+    }
+
+    guard !pixelSizesByEntryPath.isEmpty else { return pages }
+
+    var resolvedCount = 0
+    let resolvedPages = pages.map { page in
+      guard !page.hasValidDimensions,
+        let pixelSize = pixelSizesByEntryPath[page.fileName]
+      else {
+        return page
+      }
+
+      resolvedCount += 1
+      return page.withDimensions(
+        width: Int(pixelSize.width),
+        height: Int(pixelSize.height)
+      )
+    }
+    guard resolvedCount > 0 else { return pages }
+
+    if let database = await DatabaseOperator.databaseIfConfigured() {
+      await database.updateBookPages(
+        bookId: bookId,
+        instanceId: instanceId,
+        pages: resolvedPages
+      )
+    }
+
+    if existingArchivedPageSourceURL(in: bookDir) != nil {
+      do {
+        try Self.writeArchivePagesSidecar(resolvedPages, to: bookDir)
+      } catch {
+        logger.warning(
+          "⚠️ Failed to persist resolved page dimensions sidecar for book \(bookId): \(error)"
+        )
+      }
+    }
+
+    logger.info(
+      "✅ Filled missing page dimensions for book \(bookId): resolved=\(resolvedCount), missing=\(pagesMissingDimensions.count - resolvedCount)"
+    )
+    return resolvedPages
+  }
+
   func storeOfflinePageImage(
     instanceId: String,
     bookId: String,

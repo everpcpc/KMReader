@@ -589,6 +589,7 @@ class ReaderViewModel {
 
   private func fetchSegmentPages(for book: Book, purpose: SegmentFetchPurpose) async -> [BookPage]? {
     let database = await DatabaseOperator.databaseIfConfigured()
+    let fetchedPages: [BookPage]
 
     if AppConfig.offlineFirstReading, purpose.shouldEnsureOfflineReady {
       do {
@@ -598,25 +599,49 @@ class ReaderViewModel {
         return nil
       }
 
-      return await database?.fetchPages(id: book.id)
+      guard let localPages = await database?.fetchPages(id: book.id) else {
+        return nil
+      }
+      fetchedPages = localPages
+    } else if let cachedPages = await database?.fetchPages(id: book.id) {
+      fetchedPages = cachedPages
+    } else {
+      guard !AppConfig.isOffline else {
+        return nil
+      }
+
+      do {
+        fetchedPages = try await BookService.getBookPages(id: book.id)
+        await database?.updateBookPages(bookId: book.id, pages: fetchedPages)
+      } catch {
+        logger.error("❌ Failed to preload segment pages for book \(book.id): \(error)")
+        return nil
+      }
     }
 
-    if let cachedPages = await database?.fetchPages(id: book.id) {
-      return cachedPages
-    }
+    return await fillMissingPageDimensions(bookId: book.id, pages: fetchedPages)
+  }
 
-    guard !AppConfig.isOffline else {
-      return nil
-    }
+  private func fillMissingPageDimensions(bookId: String, pages: [BookPage]) async -> [BookPage] {
+    guard pages.contains(where: { !$0.hasValidDimensions }) else { return pages }
+    return await OfflineManager.shared.fillMissingPageDimensions(
+      instanceId: AppConfig.current.instanceId,
+      bookId: bookId,
+      pages: pages
+    )
+  }
 
-    do {
-      let fetchedPages = try await BookService.getBookPages(id: book.id)
-      await database?.updateBookPages(bookId: book.id, pages: fetchedPages)
-      return fetchedPages
-    } catch {
-      logger.error("❌ Failed to preload segment pages for book \(book.id): \(error)")
-      return nil
-    }
+  private func alertForMissingPageDimensionsIfNeeded(pages: [BookPage]) {
+    guard !AppConfig.offlineFirstReading, !AppConfig.isOffline else { return }
+    guard pages.contains(where: { !$0.hasValidDimensions }) else { return }
+
+    ErrorManager.shared.alert(
+      message: String(
+        localized: "reader.missingPageDimensions.alert",
+        defaultValue:
+          "Some pages do not include image dimensions. Enable “Analyze pages dimensions” in this library's options in Komga and rescan the library, or enable Offline-first Reading in KMReader. Auto Page Layout and Split Wide Pages may not work correctly until dimensions are available."
+      )
+    )
   }
 
   private func hydrateIsolatePages(for bookId: String) async {
@@ -784,15 +809,20 @@ class ReaderViewModel {
       await ensureOfflinePDFMetadataForDivina(book: book)
       let database = await DatabaseOperator.databaseIfConfigured()
 
-      let fetchedPages: [BookPage]
+      let storedPages: [BookPage]
       if let localPages = await database?.fetchPages(id: book.id) {
-        fetchedPages = localPages
+        storedPages = localPages
       } else if !AppConfig.isOffline {
-        fetchedPages = try await BookService.getBookPages(id: book.id)
-        await database?.updateBookPages(bookId: book.id, pages: fetchedPages)
+        storedPages = try await BookService.getBookPages(id: book.id)
+        await database?.updateBookPages(bookId: book.id, pages: storedPages)
       } else {
         throw APIError.offline
       }
+      let fetchedPages = await fillMissingPageDimensions(
+        bookId: book.id,
+        pages: storedPages
+      )
+      alertForMissingPageDimensionsIfNeeded(pages: fetchedPages)
 
       let localIsolatePages = await database?.fetchIsolatePages(id: book.id) ?? []
       isolatePagesByBookId[book.id] = Set(localIsolatePages)

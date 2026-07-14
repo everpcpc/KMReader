@@ -20,6 +20,11 @@ struct BookPage: Codable, Identifiable, Sendable {
 }
 
 extension BookPage {
+  nonisolated var hasValidDimensions: Bool {
+    guard let width, let height else { return false }
+    return width > 0 && height > 0
+  }
+
   nonisolated var isAnimatedImageCandidate: Bool {
     let fileExtension = (fileName as NSString).pathExtension.lowercased()
     if fileExtension == "gif" || fileExtension == "webp" {
@@ -60,6 +65,19 @@ extension BookPage {
       sizeBytes: sizeBytes,
       size: size,
       downloadURL: url
+    )
+  }
+
+  nonisolated func withDimensions(width: Int, height: Int) -> BookPage {
+    BookPage(
+      number: number,
+      fileName: fileName,
+      mediaType: mediaType,
+      width: self.width.flatMap { $0 > 0 ? $0 : nil } ?? width,
+      height: self.height.flatMap { $0 > 0 ? $0 : nil } ?? height,
+      sizeBytes: sizeBytes,
+      size: size,
+      downloadURL: downloadURL
     )
   }
 }

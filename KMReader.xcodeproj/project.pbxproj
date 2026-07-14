@@ -692,7 +692,7 @@
 			repositoryURL = "https://github.com/everpcpc/libarchive-swift";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.1.9;
+				minimumVersion = 0.1.11;
 			};
 		};
 		19F0B1002F10000000B10000 /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
