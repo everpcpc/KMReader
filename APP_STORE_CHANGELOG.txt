@@ -1,17 +1,8 @@
 New
-- Add a dashboard search shortcut on iPad and Mac, so Browse search is easier to reach from split-view dashboards.
-- Add a cancellable offline cover sync task for downloaded books, series, read lists, and collections.
+- See your recent reading at a glance with a 90-day pages-read heatmap.
+- Export or clear stored logs from the same logs menu.
 
 Improvements
-- Library filters now stay tied to each saved Komga server across startup, online switching, and offline switching.
-- Dashboard widgets now stay aligned with the same refreshed Keep Reading, Recently Added, and Recently Updated content shown in the app.
-- Online Browse search now follows Komga relevance ordering, while offline search keeps your saved local sort.
-- Downloaded archives with unusual filename encoding now open more reliably in offline mode.
-- Cover thumbnails now keep tap and context-menu areas bounded to the visible cover.
-
-Fixes
-- Fixed paged manga fitting in iPhone landscape so pages and reader controls are not clipped.
-- Fixed vertical RTL EPUB page turns, blank pages, and unstable page counts.
-- Fixed tvOS DIVINA cover-mode navigation near page transitions and end pages.
-- Fixed localized list layout labels in Japanese and French.
-- Fixed read list and collection edit rows while local book or series data is still loading.
+- Offline cover sync now stays scoped to your selected dashboard libraries, preserves manual choices, and handles large libraries more efficiently.
+- DIVINA can recover missing page dimensions from cached, downloaded, or streamed content so Auto Page Layout and Split Wide Pages remain accurate.
+- Completed offline downloads now keep the loading indicator full while the reader finishes preparing EPUB, PDF, or page resources.
