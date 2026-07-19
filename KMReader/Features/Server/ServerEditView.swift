@@ -211,7 +211,11 @@ struct ServerEditView: View {
   }
 
   private var trimmedServerURL: String {
-    serverURL.trimmingCharacters(in: .whitespacesAndNewlines)
+    // Full normalization (not just whitespace): a trailing slash saved to
+    // the instance row would resurface as `//api/...` request URLs when
+    // this server is switched to. Also makes editing a legacy slashed row
+    // register as a change, so saving it heals the persisted value.
+    Current.normalizeServerURL(serverURL)
   }
 
   private var trimmedUsername: String {

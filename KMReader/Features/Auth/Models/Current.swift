@@ -6,6 +6,14 @@
 import Foundation
 
 struct Current: Equatable, Sendable {
+  /// Invariant: always stored without trailing slashes (see
+  /// `normalizeServerURL`). Consumers build request URLs via naive
+  /// concatenation (`serverURL + "/api/..."`); a trailing slash here
+  /// produces `//api/...`, which Komga (Spring Boot) rejects with an
+  /// opaque 400 via Spring Security's StrictHttpFirewall. Both inits
+  /// normalize on assignment; `APIClient.setServer` normalizes the only
+  /// post-init write. New write paths must go through
+  /// `normalizeServerURL` as well.
   var serverURL: String = ""
   var serverDisplayName: String = ""
   var authToken: String = ""
@@ -31,7 +39,7 @@ struct Current: Equatable, Sendable {
     instanceId: String = "",
     sessionToken: String = ""
   ) {
-    self.serverURL = serverURL
+    self.serverURL = Self.normalizeServerURL(serverURL)
     self.serverDisplayName = serverDisplayName
     self.authToken = authToken
     self.authMethod = authMethod
@@ -65,6 +73,19 @@ struct Current: Equatable, Sendable {
     self = Current()
     self.serverURL = savedURL
   }
+
+  /// Canonical server-URL normalization: strip stray whitespace and ALL
+  /// trailing slashes (`while`, not `if`, so `host///` also collapses).
+  /// Reverse-proxy subpaths are preserved: `https://host/komga/` becomes
+  /// `https://host/komga`, and every consumer-supplied path starts with
+  /// `/`, so concatenation stays correct for both root and subpath setups.
+  nonisolated static func normalizeServerURL(_ url: String) -> String {
+    var normalized = url.trimmingCharacters(in: .whitespacesAndNewlines)
+    while normalized.hasSuffix("/") {
+      normalized.removeLast()
+    }
+    return normalized
+  }
 }
 
 extension Current: RawRepresentable {
@@ -77,7 +98,10 @@ extension Current: RawRepresentable {
       return nil
     }
 
-    self.serverURL = dict["serverURL"] as? String ?? ""
+    // Normalizing here self-heals installs that persisted a slashed URL
+    // before normalization existed: `AppConfig.current` re-decodes through
+    // this init on every read, so no migration or re-login is needed.
+    self.serverURL = Self.normalizeServerURL(dict["serverURL"] as? String ?? "")
     self.serverDisplayName = dict["serverDisplayName"] as? String ?? ""
     self.authToken = dict["authToken"] as? String ?? ""
     if let methodRaw = dict["authMethod"] as? String {

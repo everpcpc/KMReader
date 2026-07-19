@@ -67,7 +67,9 @@ nonisolated final class APIClient: Sendable {
   }
 
   func setServer(url: String) {
-    AppConfig.current.serverURL = url
+    // Uphold Current.serverURL's no-trailing-slash invariant: this is the
+    // only post-init write path (Current's inits normalize their own).
+    AppConfig.current.serverURL = Current.normalizeServerURL(url)
   }
 
   func setAuthToken(_ token: String?) {

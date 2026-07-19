@@ -49,20 +49,12 @@ enum KomgaWebLinkBuilder {
     path: String,
     queryItems: [URLQueryItem]? = nil
   ) -> URL? {
-    let normalizedBase = normalizedServerURL(serverURL)
+    let normalizedBase = Current.normalizeServerURL(serverURL)
     guard !normalizedBase.isEmpty else { return nil }
     guard var components = URLComponents(string: normalizedBase + path) else { return nil }
     if let queryItems, !queryItems.isEmpty {
       components.queryItems = queryItems
     }
     return components.url
-  }
-
-  private static func normalizedServerURL(_ serverURL: String) -> String {
-    var value = serverURL.trimmingCharacters(in: .whitespacesAndNewlines)
-    while value.hasSuffix("/") {
-      value.removeLast()
-    }
-    return value
   }
 }
