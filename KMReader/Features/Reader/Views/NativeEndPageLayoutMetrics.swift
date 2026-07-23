@@ -13,6 +13,7 @@ struct NativeEndPageLayoutMetrics {
   let innerPadding: CGFloat
   let stackSpacing: CGFloat
   let portraitSectionSpacing: CGFloat
+  let sectionContentMaxWidth: CGFloat
   let horizontalDividerWidth: CGFloat
   let coverWidth: CGFloat
   let coverHeight: CGFloat
@@ -35,6 +36,7 @@ struct NativeEndPageLayoutMetrics {
       innerPadding: innerPadding,
       stackSpacing: stackSpacing,
       portraitSectionSpacing: stackSpacing + clamped(stackSpacing * 0.5, lower: 6, upper: 12),
+      sectionContentMaxWidth: PlatformDefaults.sectionContentMaxWidth(minDimension: minDimension),
       horizontalDividerWidth: clamped(bounds.width * 0.78, lower: 260, upper: 680),
       coverWidth: coverWidth,
       coverHeight: coverWidth / CoverAspectRatio.widthToHeight,
@@ -124,6 +126,14 @@ struct NativeEndPageLayoutMetrics {
         clamped(minDimension * 0.022, lower: 10, upper: 16)
       #else
         clamped(minDimension * 0.034, lower: 12, upper: 22)
+      #endif
+    }
+
+    static func sectionContentMaxWidth(minDimension: CGFloat) -> CGFloat {
+      #if os(tvOS)
+        clamped(minDimension * 0.48, lower: 420, upper: 560)
+      #else
+        clamped(minDimension * 0.72, lower: 280, upper: 420)
       #endif
     }
 
