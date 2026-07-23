@@ -58,6 +58,8 @@
     private var contentTopConstraint: NSLayoutConstraint?
     private var contentBottomConstraint: NSLayoutConstraint?
     private var contentMaxWidthConstraint: NSLayoutConstraint?
+    private var previousMetadataWidthConstraint: NSLayoutConstraint?
+    private var nextMetadataWidthConstraint: NSLayoutConstraint?
     private var horizontalDividerWidthConstraint: NSLayoutConstraint?
     private var previousCoverWidthConstraint: NSLayoutConstraint?
     private var previousCoverHeightConstraint: NSLayoutConstraint?
@@ -125,6 +127,7 @@
 
       previousBadgeLabel.alignment = .center
       previousBadgeLabel.maximumNumberOfLines = 1
+      previousBadgeLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
       previousStack.addArrangedSubview(previousBadgeLabel)
 
       previousCoverView.translatesAutoresizingMaskIntoConstraints = false
@@ -138,11 +141,13 @@
       previousTitleLabel.alignment = .center
       previousTitleLabel.maximumNumberOfLines = 2
       previousTitleLabel.lineBreakMode = .byTruncatingTail
+      previousTitleLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
       previousMetadataStack.addArrangedSubview(previousTitleLabel)
 
       previousDetailLabel.alignment = .center
       previousDetailLabel.maximumNumberOfLines = 1
       previousDetailLabel.lineBreakMode = .byTruncatingTail
+      previousDetailLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
       previousMetadataStack.addArrangedSubview(previousDetailLabel)
 
       nextContainer.translatesAutoresizingMaskIntoConstraints = false
@@ -154,6 +159,7 @@
 
       nextBadgeLabel.alignment = .center
       nextBadgeLabel.maximumNumberOfLines = 1
+      nextBadgeLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
       nextStack.addArrangedSubview(nextBadgeLabel)
 
       nextCoverView.translatesAutoresizingMaskIntoConstraints = false
@@ -167,11 +173,13 @@
       nextTitleLabel.alignment = .center
       nextTitleLabel.maximumNumberOfLines = 2
       nextTitleLabel.lineBreakMode = .byTruncatingTail
+      nextTitleLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
       nextMetadataStack.addArrangedSubview(nextTitleLabel)
 
       nextDetailLabel.alignment = .center
       nextDetailLabel.maximumNumberOfLines = 1
       nextDetailLabel.lineBreakMode = .byTruncatingTail
+      nextDetailLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
       nextMetadataStack.addArrangedSubview(nextDetailLabel)
 
       caughtUpStack.orientation = .horizontal
@@ -184,6 +192,7 @@
 
       caughtUpLabel.alignment = .center
       caughtUpLabel.maximumNumberOfLines = 2
+      caughtUpLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
       caughtUpStack.addArrangedSubview(caughtUpLabel)
 
       horizontalDividerStack.orientation = .horizontal
@@ -203,6 +212,7 @@
 
       dividerTitleLabel.alignment = .center
       dividerTitleLabel.maximumNumberOfLines = 1
+      dividerTitleLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
       dividerTitleLabel.setContentCompressionResistancePriority(.required, for: .vertical)
       dividerTitleLabel.setContentHuggingPriority(.required, for: .vertical)
       horizontalDividerStack.addArrangedSubview(dividerTitleLabel)
@@ -255,6 +265,10 @@
       previousCoverHeightConstraint = previousCoverView.heightAnchor.constraint(equalToConstant: 160)
       nextCoverWidthConstraint = nextCoverView.widthAnchor.constraint(equalToConstant: 120)
       nextCoverHeightConstraint = nextCoverView.heightAnchor.constraint(equalToConstant: 160)
+      previousMetadataWidthConstraint = previousMetadataStack.widthAnchor.constraint(equalToConstant: 420)
+      nextMetadataWidthConstraint = nextMetadataStack.widthAnchor.constraint(equalToConstant: 420)
+      previousMetadataWidthConstraint?.priority = NSLayoutConstraint.Priority(999)
+      nextMetadataWidthConstraint?.priority = NSLayoutConstraint.Priority(999)
 
       NSLayoutConstraint.activate([
         contentLeading,
@@ -269,13 +283,19 @@
         previousStack.trailingAnchor.constraint(equalTo: previousContainer.trailingAnchor),
         previousStack.topAnchor.constraint(equalTo: previousContainer.topAnchor),
         previousStack.bottomAnchor.constraint(equalTo: previousContainer.bottomAnchor),
-        previousMetadataStack.widthAnchor.constraint(equalTo: previousStack.widthAnchor),
+        previousMetadataStack.widthAnchor.constraint(lessThanOrEqualTo: previousStack.widthAnchor),
+        previousMetadataWidthConstraint!,
+        previousTitleLabel.widthAnchor.constraint(equalTo: previousMetadataStack.widthAnchor),
+        previousDetailLabel.widthAnchor.constraint(equalTo: previousMetadataStack.widthAnchor),
 
         nextStack.leadingAnchor.constraint(equalTo: nextContainer.leadingAnchor),
         nextStack.trailingAnchor.constraint(equalTo: nextContainer.trailingAnchor),
         nextStack.topAnchor.constraint(equalTo: nextContainer.topAnchor),
         nextStack.bottomAnchor.constraint(equalTo: nextContainer.bottomAnchor),
-        nextMetadataStack.widthAnchor.constraint(equalTo: nextStack.widthAnchor),
+        nextMetadataStack.widthAnchor.constraint(lessThanOrEqualTo: nextStack.widthAnchor),
+        nextMetadataWidthConstraint!,
+        nextTitleLabel.widthAnchor.constraint(equalTo: nextMetadataStack.widthAnchor),
+        nextDetailLabel.widthAnchor.constraint(equalTo: nextMetadataStack.widthAnchor),
 
         previousCoverWidthConstraint!,
         previousCoverHeightConstraint!,
@@ -470,6 +490,8 @@
       contentTopConstraint?.constant = metrics.outerPadding
       contentBottomConstraint?.constant = -metrics.outerPadding
       contentMaxWidthConstraint?.constant = -metrics.outerPadding * 2
+      previousMetadataWidthConstraint?.constant = metrics.sectionContentMaxWidth
+      nextMetadataWidthConstraint?.constant = metrics.sectionContentMaxWidth
       horizontalDividerWidthConstraint?.constant = metrics.horizontalDividerWidth
       previousCoverWidthConstraint?.constant = metrics.coverWidth
       previousCoverHeightConstraint?.constant = metrics.coverHeight

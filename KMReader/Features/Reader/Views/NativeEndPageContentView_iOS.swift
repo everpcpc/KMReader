@@ -60,6 +60,8 @@
     private var contentTopConstraint: NSLayoutConstraint?
     private var contentBottomConstraint: NSLayoutConstraint?
     private var contentMaxWidthConstraint: NSLayoutConstraint?
+    private var previousMetadataWidthConstraint: NSLayoutConstraint?
+    private var nextMetadataWidthConstraint: NSLayoutConstraint?
     private var horizontalDividerWidthConstraint: NSLayoutConstraint?
     private var previousCoverWidthConstraint: NSLayoutConstraint?
     private var previousCoverHeightConstraint: NSLayoutConstraint?
@@ -280,6 +282,10 @@
       previousCoverHeightConstraint = previousCoverView.heightAnchor.constraint(equalToConstant: 160)
       nextCoverWidthConstraint = nextCoverView.widthAnchor.constraint(equalToConstant: 120)
       nextCoverHeightConstraint = nextCoverView.heightAnchor.constraint(equalToConstant: 160)
+      previousMetadataWidthConstraint = previousMetadataStack.widthAnchor.constraint(equalToConstant: 420)
+      nextMetadataWidthConstraint = nextMetadataStack.widthAnchor.constraint(equalToConstant: 420)
+      previousMetadataWidthConstraint?.priority = UILayoutPriority(999)
+      nextMetadataWidthConstraint?.priority = UILayoutPriority(999)
       previousCoverHeightConstraint?.priority = NativeEndPageLayoutMetrics.coverHeightConstraintPriority
       nextCoverHeightConstraint?.priority = NativeEndPageLayoutMetrics.coverHeightConstraintPriority
 
@@ -296,13 +302,15 @@
         previousStack.trailingAnchor.constraint(equalTo: previousContainer.trailingAnchor),
         previousStack.topAnchor.constraint(equalTo: previousContainer.topAnchor),
         previousStack.bottomAnchor.constraint(equalTo: previousContainer.bottomAnchor),
-        previousMetadataStack.widthAnchor.constraint(equalTo: previousStack.widthAnchor),
+        previousMetadataStack.widthAnchor.constraint(lessThanOrEqualTo: previousStack.widthAnchor),
+        previousMetadataWidthConstraint!,
 
         nextStack.leadingAnchor.constraint(equalTo: nextContainer.leadingAnchor),
         nextStack.trailingAnchor.constraint(equalTo: nextContainer.trailingAnchor),
         nextStack.topAnchor.constraint(equalTo: nextContainer.topAnchor),
         nextStack.bottomAnchor.constraint(equalTo: nextContainer.bottomAnchor),
-        nextMetadataStack.widthAnchor.constraint(equalTo: nextStack.widthAnchor),
+        nextMetadataStack.widthAnchor.constraint(lessThanOrEqualTo: nextStack.widthAnchor),
+        nextMetadataWidthConstraint!,
 
         closeButton.centerXAnchor.constraint(equalTo: buttonContainer.centerXAnchor),
         closeButton.topAnchor.constraint(equalTo: buttonContainer.topAnchor),
@@ -543,6 +551,8 @@
       contentTopConstraint?.constant = metrics.outerPadding
       contentBottomConstraint?.constant = -metrics.outerPadding
       contentMaxWidthConstraint?.constant = -metrics.outerPadding * 2
+      previousMetadataWidthConstraint?.constant = metrics.sectionContentMaxWidth
+      nextMetadataWidthConstraint?.constant = metrics.sectionContentMaxWidth
       horizontalDividerWidthConstraint?.constant = metrics.horizontalDividerWidth
       previousCoverWidthConstraint?.constant = metrics.coverWidth
       previousCoverHeightConstraint?.constant = metrics.coverHeight
