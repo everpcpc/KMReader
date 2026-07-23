@@ -288,10 +288,23 @@ extension DatabaseOperator {
     displayName: String? = nil,
     instanceId: UUID? = nil
   ) throws -> InstanceSummary {
-    try write { db in
+    // Self-sufficient normalization (callers normalize too, but this must
+    // hold regardless of caller): both the stored row's URL and the incoming
+    // URL are compared in normalized form, so a legacy row persisted with a
+    // trailing slash still matches a re-login for the same account instead
+    // of spawning a duplicate instance — which would orphan everything keyed
+    // to the old instance ID (protected flag, library selection, offline
+    // downloads, last-used state).
+    let serverURL = Current.normalizeServerURL(serverURL)
+    return try write { db in
       let trimmedDisplayName = displayName?.trimmingCharacters(in: .whitespacesAndNewlines)
       let instances = try KomgaInstance.fetchAll(db)
-      if var existing = instances.first(where: { $0.serverURL == serverURL && $0.username == username }) {
+      if var existing = instances.first(where: {
+        Current.normalizeServerURL($0.serverURL) == serverURL && $0.username == username
+      }) {
+        // Heal legacy rows on touch: rewrite the stored URL in normalized
+        // form so the row converges to the invariant without a migration.
+        existing.serverURL = serverURL
         existing.authToken = authToken
         existing.isAdmin = isAdmin
         existing.authMethod = authMethod

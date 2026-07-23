@@ -253,6 +253,14 @@ class AuthViewModel {
     protected: Bool = false,
     successMessage: String
   ) async throws {
+    // Normalize before persisting anywhere (AppConfig AND the instance
+    // row). Login validation succeeds even with a trailing slash because
+    // `buildLoginRequest` normalizes its URL seam locally — without this,
+    // the raw slashed URL would be persisted and every subsequent
+    // naively-concatenated request URL (`serverURL + "/api/..."`) would
+    // 400 against Komga's strict path firewall.
+    let serverURL = Current.normalizeServerURL(serverURL)
+
     // Update AppConfig only after validation succeeds
     APIClient.shared.setServer(url: serverURL)
     APIClient.shared.setAuthToken(authToken)
