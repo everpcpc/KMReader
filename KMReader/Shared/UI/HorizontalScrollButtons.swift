@@ -25,13 +25,17 @@ import SwiftUI
 
     var body: some View {
       ZStack {
-        scrollButton(direction: .left)
-          .frame(maxWidth: .infinity, alignment: .leading)
+        if isVisible {
+          scrollButton(direction: .left)
+            .transition(.opacity)
+            .frame(maxWidth: .infinity, alignment: .leading)
 
-        scrollButton(direction: .right)
-          .frame(maxWidth: .infinity, alignment: .trailing)
+          scrollButton(direction: .right)
+            .transition(.opacity)
+            .frame(maxWidth: .infinity, alignment: .trailing)
+        }
       }
-      .opacity(isVisible ? 1 : 0)
+      .animation(.easeOut(duration: 0.15), value: isVisible)
       .allowsHitTesting(isVisible)
     }
 
