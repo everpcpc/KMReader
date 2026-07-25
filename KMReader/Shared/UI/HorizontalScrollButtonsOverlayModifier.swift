@@ -20,7 +20,6 @@ import SwiftUI
             itemIds: itemIds,
             isVisible: areButtonsVisible
           )
-          .animation(.easeOut(duration: 0.15), value: areButtonsVisible)
         }
         .onHover { hovering in
           guard areButtonsVisible != hovering else { return }
