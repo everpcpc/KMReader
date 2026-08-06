@@ -10,6 +10,7 @@ struct DivinaControlsOverlayView: View {
   @Binding var pageLayout: PageLayout
   @Binding var isolateCoverPage: Bool
   @Binding var splitWidePageMode: SplitWidePageMode
+  @Binding var rotation: ReaderRotation
 
   @Binding var showingPageJumpSheet: Bool
   @Binding var showingTOCSheet: Bool
@@ -437,6 +438,15 @@ struct DivinaControlsOverlayView: View {
           Label(String(localized: "Split Wide Pages"), systemImage: splitWidePageMode.icon)
         }
         .pickerStyle(.menu)
+
+        Picker(selection: $rotation) {
+          ForEach(ReaderRotation.allCases, id: \.self) { rotation in
+            Text(verbatim: rotation.displayName).tag(rotation)
+          }
+        } label: {
+          Label(String(localized: "Page Rotation"), systemImage: "rotate.right")
+        }
+        .pickerStyle(.menu)
       }
     } header: {
       Text(String(localized: "Current Reading Options"))
@@ -553,7 +563,6 @@ struct DivinaControlsOverlayView: View {
     @ViewBuilder
     private func pageActionsMenu(for pageID: ReaderPageID) -> some View {
       let displayedPageNumber = displayPageNumber(for: pageID)
-      let currentRotation = viewModel.pageRotationDegrees(for: pageID)
       Menu {
         Button {
           sharePage(id: pageID)
@@ -567,12 +576,6 @@ struct DivinaControlsOverlayView: View {
           } label: {
             Label(pageIsolationMenuTitle(for: isolationAction), systemImage: isolationAction.systemImage)
           }
-        }
-
-        Menu {
-          pageRotationActions(for: pageID, currentRotation: currentRotation)
-        } label: {
-          Label("Rotate: \(currentRotation)°", systemImage: "rotate.right")
         }
       } label: {
         Label(
@@ -591,21 +594,6 @@ struct DivinaControlsOverlayView: View {
         return action.title
       }
       return String(localized: "Isolate")
-    }
-
-    @ViewBuilder
-    private func pageRotationActions(for pageID: ReaderPageID, currentRotation: Int) -> some View {
-      ForEach([0, 90, 180, 270], id: \.self) { degrees in
-        Button {
-          viewModel.setPageRotation(degrees, for: pageID)
-        } label: {
-          if currentRotation == degrees {
-            Label("\(degrees)°", systemImage: "checkmark")
-          } else {
-            Text("\(degrees)°")
-          }
-        }
-      }
     }
   #endif
 }

@@ -11,6 +11,7 @@
     private let sepiaOverlayView = UIView()
     private let animatedInlineContainer = UIView()
     private let animatedImageController = AnimatedImagePlayerController()
+    private let preparedImageCache = PreparedReaderPageImageCache()
     private let pageNumberLabel = UILabel()
     private let loadingIndicator = UIActivityIndicatorView(style: .medium)
     private let errorLabel = UILabel()
@@ -68,6 +69,7 @@
       updateAnimatedPlayback(sourceFileURL: nil)
       imageView.isHidden = false
       imageView.image = nil
+      preparedImageCache.clear()
       animatedInlineContainer.layer.contents = nil
       updateSepiaOverlay()
     }
@@ -81,7 +83,7 @@
           let pageSourceImage = preparedImage(
             from: viewModel?.preloadedImage(for: data.pageID),
             splitMode: data.splitMode,
-            rotationDegrees: data.rotationDegrees
+            rotation: data.rotation
           )
           #if os(iOS) || os(macOS)
             analysisSourceImage = pageSourceImage
@@ -185,7 +187,7 @@
       let pageSourceImage = preparedImage(
         from: image,
         splitMode: data.splitMode,
-        rotationDegrees: data.rotationDegrees
+        rotation: data.rotation
       )
 
       #if os(iOS) || os(macOS)
@@ -256,43 +258,27 @@
       }
     }
 
-    private func preparedImage(from image: UIImage?, splitMode: PageSplitMode, rotationDegrees: Int) -> UIImage? {
+    private func preparedImage(from image: UIImage?, splitMode: PageSplitMode, rotation: ReaderRotation) -> UIImage? {
       guard let image else { return nil }
-      let rotatedImage = rotateImage(image, degrees: rotationDegrees)
-      let splitImage =
-        splitMode == .none ? rotatedImage : cropImageForSplitMode(image: rotatedImage, splitMode: splitMode)
-      return cropBordersIfNeeded(splitImage)
+      let borderCropMode = AppConfig.divinaPageBorderCropMode
+      return preparedImageCache.resolve(
+        sourceImage: image,
+        rotation: rotation,
+        splitMode: splitMode,
+        borderCropMode: borderCropMode
+      ) {
+        let rotatedImage = image.rotated(for: rotation)
+        let splitImage =
+          splitMode == .none ? rotatedImage : cropImageForSplitMode(image: rotatedImage, splitMode: splitMode)
+        return cropBordersIfNeeded(splitImage, mode: borderCropMode)
+      }
     }
 
-    private func cropBordersIfNeeded(_ image: UIImage?) -> UIImage? {
+    private func cropBordersIfNeeded(_ image: UIImage?, mode: ReaderPageBorderCropMode) -> UIImage? {
       guard let image else { return nil }
-      let mode = AppConfig.divinaPageBorderCropMode
       guard mode != .disabled, let cgImage = image.cgImage else { return image }
       guard let cropped = ReaderPageBorderCropper.crop(cgImage, mode: mode) else { return image }
       return UIImage(cgImage: cropped, scale: image.scale, orientation: image.imageOrientation)
-    }
-
-    private func rotateImage(_ image: UIImage, degrees: Int) -> UIImage {
-      let normalized = ((degrees % 360) + 360) % 360
-      guard normalized != 0 else { return image }
-
-      let radians = CGFloat(normalized) * .pi / 180
-      var rotatedRect = CGRect(origin: .zero, size: image.size)
-        .applying(CGAffineTransform(rotationAngle: radians))
-      rotatedRect.origin = .zero
-
-      let renderer = UIGraphicsImageRenderer(size: rotatedRect.size)
-      return renderer.image { context in
-        context.cgContext.translateBy(x: rotatedRect.size.width / 2, y: rotatedRect.size.height / 2)
-        context.cgContext.rotate(by: radians)
-        image.draw(
-          in: CGRect(
-            x: -image.size.width / 2,
-            y: -image.size.height / 2,
-            width: image.size.width,
-            height: image.size.height
-          ))
-      }
     }
 
     private func cropImageForSplitMode(image: UIImage, splitMode: PageSplitMode) -> UIImage? {
@@ -580,7 +566,6 @@
         if let isolateAction = makePageIsolationAction(for: currentData.pageID) {
           sections.append(UIMenu(options: .displayInline, children: [isolateAction]))
         }
-        sections.append(makePageRotationMenu(for: currentData.pageID))
 
         return UIMenu(children: sections)
       }
@@ -594,17 +579,7 @@
 
       private func makePageIsolationAction(for pageID: ReaderPageID) -> UIAction? {
         guard supportsPageIsolationActions, let viewModel else { return nil }
-        guard let readerPage = viewModel.readerPage(for: pageID) else { return nil }
-        // Check effective portrait considering rotation
-        let rotation = viewModel.pageRotationDegrees(for: pageID)
-        let normalized = ((rotation % 360) + 360) % 360
-        let effectivelyPortrait: Bool
-        if normalized == 90 || normalized == 270 {
-          effectivelyPortrait = (readerPage.page.width ?? 0) > (readerPage.page.height ?? 0)
-        } else {
-          effectivelyPortrait = readerPage.page.isPortrait
-        }
-        guard effectivelyPortrait else { return nil }
+        guard viewModel.isPageEffectivelyPortrait(pageID) else { return nil }
 
         if viewModel.isPageIsolated(pageID) {
           return UIAction(
@@ -622,23 +597,6 @@
         ) { [weak self] _ in
           self?.viewModel?.toggleIsolatePage(pageID)
         }
-      }
-
-      private func makePageRotationMenu(for pageID: ReaderPageID) -> UIMenu {
-        let currentRotation = viewModel?.pageRotationDegrees(for: pageID) ?? 0
-        let actions = [0, 90, 180, 270].map { degrees in
-          UIAction(
-            title: "\(degrees)°",
-            image: currentRotation == degrees ? UIImage(systemName: "checkmark") : nil
-          ) { [weak self] _ in
-            self?.viewModel?.setPageRotation(degrees, for: pageID)
-          }
-        }
-        return UIMenu(
-          title: "\(String(localized: "Rotate")): \(currentRotation)°",
-          image: UIImage(systemName: "rotate.right"),
-          children: actions
-        )
       }
 
       private func shareCurrentImage(for pageID: ReaderPageID) {

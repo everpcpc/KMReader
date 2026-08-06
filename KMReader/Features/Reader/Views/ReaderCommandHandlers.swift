@@ -15,7 +15,7 @@ struct ReaderCommandHandlers {
   let toggleIsolateCoverPage: () -> Void
   let toggleIsolatePage: (ReaderPageID) -> Void
   let sharePage: (ReaderPageID) -> Void
-  let setPageRotation: (ReaderPageID, Int) -> Void
+  let setRotation: (ReaderRotation) -> Void
   let setSplitWidePageMode: (SplitWidePageMode) -> Void
   let toggleContinuousScroll: () -> Void
 }

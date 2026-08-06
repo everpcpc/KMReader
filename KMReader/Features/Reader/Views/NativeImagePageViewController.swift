@@ -165,7 +165,8 @@
         isLoading: isLoading,
         error: loadError,
         alignment: alignment,
-        splitMode: splitMode
+        splitMode: splitMode,
+        rotation: viewModel.rotation
       )
 
       pageItem.update(
@@ -264,6 +265,7 @@
     }
 
     private func isCurrentAnimatedInlineTarget(viewModel: ReaderViewModel) -> Bool {
+      guard viewModel.rotation == .none else { return false }
       guard let currentViewItem = viewModel.currentViewItem() else {
         return false
       }

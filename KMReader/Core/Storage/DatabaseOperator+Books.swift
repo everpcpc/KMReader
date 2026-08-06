@@ -621,18 +621,6 @@ extension DatabaseOperator {
     }
   }
 
-  func fetchPageRotations(id: String) -> [Int: Int]? {
-    try? read { db in
-      try fetchBookRecord(db: db, id: id)?.pageRotations
-    }
-  }
-
-  func updatePageRotations(bookId: String, rotations: [Int: Int]) {
-    updateBookRecord(bookId: bookId) { book in
-      book.pageRotations = rotations
-    }
-  }
-
   func fetchBookEpubThemePreferences(bookId: String) -> EpubThemePreferences? {
     try? read { db in
       guard let raw = try fetchBookRecord(db: db, id: bookId)?.epubPreferencesRaw else {

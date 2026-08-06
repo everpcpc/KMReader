@@ -6,8 +6,7 @@
 import SwiftUI
 
 struct ReaderSettingsSheet: View {
-  // Session-specific bindings (not persisted until reader closes)
-  @Binding var readingDirection: ReadingDirection
+  let readingDirection: ReadingDirection
 
   // Persisted settings (via @AppStorage)
   @AppStorage("readerBackground") private var readerBackground: ReaderBackground = .system
