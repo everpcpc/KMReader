@@ -52,6 +52,7 @@ struct DivinaReaderView: View {
   @State private var pageLayout: PageLayout
   @State private var isolateCoverPage: Bool
   @State private var splitWidePageMode: SplitWidePageMode
+  @State private var rotation: ReaderRotation
 
   private let logger = AppLogger(.reader)
 
@@ -123,12 +124,14 @@ struct DivinaReaderView: View {
     self._pageLayout = State(initialValue: AppConfig.pageLayout)
     self._isolateCoverPage = State(initialValue: AppConfig.isolateCoverPage)
     self._splitWidePageMode = State(initialValue: AppConfig.splitWidePageMode)
+    self._rotation = State(initialValue: .none)
     self._viewModel = State(
       initialValue: ReaderViewModel(
         isolateCoverPage: AppConfig.isolateCoverPage,
         pageLayout: AppConfig.pageLayout,
         splitWidePageMode: AppConfig.splitWidePageMode,
         pageTransitionStyle: AppConfig.pageTransitionStyle,
+        rotation: .none,
         preloadWindow: AppConfig.divinaPreloadProfile.window,
         incognitoMode: incognito
       )
@@ -635,7 +638,7 @@ struct DivinaReaderView: View {
       )
     }
     .sheet(isPresented: $showingReaderSettingsSheet) {
-      ReaderSettingsSheet(readingDirection: $readingDirection)
+      ReaderSettingsSheet(readingDirection: readingDirection)
     }
     .readerDetailSheet(
       isPresented: $showingDetailSheet,
@@ -660,6 +663,9 @@ struct DivinaReaderView: View {
     }
     .onChange(of: pageTransitionStyle) { _, newValue in
       viewModel.updatePageTransitionStyle(newValue)
+    }
+    .onChange(of: rotation) { _, newValue in
+      viewModel.updateRotation(newValue)
     }
     .onChange(of: divinaPreloadProfile) { _, newValue in
       viewModel.updatePreloadWindow(newValue.window)
@@ -990,6 +996,7 @@ struct DivinaReaderView: View {
       pageLayout: $pageLayout,
       isolateCoverPage: $isolateCoverPage,
       splitWidePageMode: $splitWidePageMode,
+      rotation: $rotation,
       showingPageJumpSheet: $showingPageJumpSheet,
       showingTOCSheet: $showingTOCSheet,
       showingReaderSettingsSheet: $showingReaderSettingsSheet,
@@ -1696,13 +1703,6 @@ struct DivinaReaderView: View {
         })
     }
 
-    private var macPageRotationsByID: [ReaderPageID: Int] {
-      Dictionary(
-        uniqueKeysWithValues: macCommandPageIDs.map { pageID in
-          (pageID, viewModel.pageRotationDegrees(for: pageID))
-        })
-    }
-
     private func sharePageFromCommand(_ pageID: ReaderPageID) {
       guard let image = viewModel.preloadedImage(for: pageID) else { return }
       let fileName = viewModel.page(for: pageID)?.fileName
@@ -1735,12 +1735,13 @@ struct DivinaReaderView: View {
         pageIsolationActions: macPageIsolationActions,
         commandPageIDs: macCommandPageIDs,
         displayPageNumbersByID: macDisplayPageNumbersByID,
-        pageRotationsByID: macPageRotationsByID,
+        rotation: rotation,
         splitWidePageMode: splitWidePageMode,
         supportsSearch: false,
         canSearch: false,
         supportsReadingDirectionSelection: true,
         supportsPageLayoutSelection: true,
+        supportsRotationSelection: readingDirection != .webtoon,
         supportsDualPageOptions: supportsDualPageOptions,
         supportsSplitWidePageMode: supportsSplitWidePageMode
       )
@@ -1794,8 +1795,8 @@ struct DivinaReaderView: View {
           sharePage: { pageID in
             sharePageFromCommand(pageID)
           },
-          setPageRotation: { pageID, degrees in
-            viewModel.setPageRotation(degrees, for: pageID)
+          setRotation: { newRotation in
+            rotation = newRotation
           },
           setSplitWidePageMode: { mode in
             splitWidePageMode = mode
@@ -2016,6 +2017,7 @@ struct DivinaReaderView: View {
       isolateCoverPage: isolateCoverPage,
       pageLayout: pageLayout,
       splitWidePageMode: splitWidePageMode,
+      rotation: rotation,
       preloadWindow: divinaPreloadProfile.window,
       incognitoMode: incognito
     )
@@ -2038,6 +2040,7 @@ struct DivinaReaderView: View {
       isolateCoverPage: isolateCoverPage,
       pageLayout: pageLayout,
       splitWidePageMode: splitWidePageMode,
+      rotation: rotation,
       preloadWindow: divinaPreloadProfile.window,
       incognitoMode: incognito
     )

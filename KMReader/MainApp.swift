@@ -223,7 +223,10 @@ struct MainApp: App {
           .disabled(!state.isActive || !state.canSearch)
         }
 
-        if state.supportsReadingDirectionSelection || state.supportsPageLayoutSelection {
+        if state.supportsReadingDirectionSelection
+          || state.supportsPageLayoutSelection
+          || state.supportsRotationSelection
+        {
           Divider()
         }
 
@@ -254,6 +257,23 @@ struct MainApp: App {
                   Label(layout.displayName, systemImage: "checkmark")
                 } else {
                   Text(layout.displayName)
+                }
+              }
+            }
+          }
+          .disabled(!state.isActive)
+        }
+
+        if state.supportsRotationSelection {
+          Menu("Page Rotation") {
+            ForEach(ReaderRotation.allCases, id: \.self) { rotation in
+              Button {
+                readerPresentation.setRotationFromCommand(rotation)
+              } label: {
+                if state.rotation == rotation {
+                  Label(rotation.displayName, systemImage: "checkmark")
+                } else {
+                  Text(rotation.displayName)
                 }
               }
             }
@@ -334,7 +354,6 @@ struct MainApp: App {
 
           ForEach(state.commandPageIDs, id: \.self) { pageID in
             let displayPageNumber = state.displayPageNumbersByID[pageID] ?? pageID.pageNumber + 1
-            let currentRotation = state.pageRotationsByID[pageID] ?? 0
             Menu("Page \(displayPageNumber)") {
               Button("Share") {
                 readerPresentation.sharePageFromCommand(pageID)
@@ -347,22 +366,6 @@ struct MainApp: App {
                   readerPresentation.toggleIsolatePageFromCommand(isolationAction.pageID)
                 }
                 .disabled(!state.isActive)
-              }
-
-              Divider()
-              Menu("Rotate: \(currentRotation)°") {
-                ForEach([0, 90, 180, 270], id: \.self) { degrees in
-                  Button {
-                    readerPresentation.setPageRotationFromCommand(pageID, degrees: degrees)
-                  } label: {
-                    if currentRotation == degrees {
-                      Label("\(degrees)°", systemImage: "checkmark")
-                    } else {
-                      Text("\(degrees)°")
-                    }
-                  }
-                  .disabled(!state.isActive)
-                }
               }
             }
             .disabled(!state.isActive)

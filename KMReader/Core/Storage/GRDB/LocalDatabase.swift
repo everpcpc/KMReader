@@ -67,6 +67,12 @@ nonisolated enum LocalDatabase {
       try db.execute(sql: "DROP TABLE IF EXISTS local_migration_markers")
     }
 
+    migrator.registerMigration("00007_drop_page_rotations") { db in
+      try db.alter(table: KomgaBook.databaseTableName) { table in
+        table.drop(column: "page_rotations_raw")
+      }
+    }
+
     try migrator.migrate(writer)
   }
 

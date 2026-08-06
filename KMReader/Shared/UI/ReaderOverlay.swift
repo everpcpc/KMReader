@@ -48,6 +48,7 @@ import SwiftUI
             readerPresentation: readerPresentation,
             onClose: { readerPresentation.closeReader() }
           )
+          .id(session.id)
         } else {
           ReaderPlaceholderView {
             readerPresentation.closeReader()

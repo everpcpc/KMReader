@@ -737,7 +737,7 @@
             },
             toggleIsolatePage: { _ in },
             sharePage: { _ in },
-            setPageRotation: { _, _ in },
+            setRotation: { _ in },
             setSplitWidePageMode: { _ in },
             toggleContinuousScroll: {}
           )

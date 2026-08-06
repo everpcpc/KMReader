@@ -303,8 +303,8 @@ final class ReaderPresentationManager {
       readerCommandHandlers?.sharePage(pageID)
     }
 
-    func setPageRotationFromCommand(_ pageID: ReaderPageID, degrees: Int) {
-      readerCommandHandlers?.setPageRotation(pageID, degrees)
+    func setRotationFromCommand(_ rotation: ReaderRotation) {
+      readerCommandHandlers?.setRotation(rotation)
     }
 
     func setSplitWidePageModeFromCommand(_ mode: SplitWidePageMode) {

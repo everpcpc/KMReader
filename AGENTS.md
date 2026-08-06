@@ -13,6 +13,11 @@ This file provides guidance to coding agents working with code in this repositor
 - **Per-Book Preferences**: Save reading direction, page layout, and theme settings per book.
 - **Incognito Mode**: Read without saving progress to server.
 
+### Reader State and Settings Boundaries
+
+- `ReaderSettingsSheet` is reserved for persisted reader preferences. Session-only reader options belong in the reader controls menu or the platform command menu.
+- Page rotation is session-only, applies only to paged DIVINA modes, and must not be exposed or applied in Webtoon mode.
+
 ### Offline & Downloads
 
 - **Background Downloads**: URLSession-based downloads with Live Activities on iOS.
@@ -369,6 +374,7 @@ KMReader/
 17. **Strongly avoid patch-style fixes for structural problems**: When the current abstraction or ownership boundary is wrong, do not preserve it by stacking flags, delays, version counters, bridge layers, or special cases just to keep the diff small. Prefer the larger refactor that moves the code toward the final stable architecture.
 18. **Prioritize end-state quality over local diff size**: Stability, simplicity, clarity of ownership, and long-term maintainability are more important than minimizing code churn. Do not be afraid to rewrite or replace a local subsystem when that is the cleaner and more reliable design.
 19. **If a temporary compatibility layer is unavoidable, mark it explicitly**: State why it exists, what the intended final design is, and what should be removed later. Temporary layers should be rare and treated as debt, not as the default implementation style.
+20. **Keep boundary documentation current**: When a change introduces or changes a lifetime, ownership, persistence, navigation, platform, reader-mode, or UI-placement boundary, update `AGENTS.md` in the same change so the boundary remains explicit and enforceable.
 
 Additional patterns:
 

@@ -44,7 +44,6 @@ nonisolated struct KomgaBook: Codable, Equatable, Sendable {
   var downloadedSize: Int64
   var readListIdsRaw: Data?
   var isolatePagesRaw: Data?
-  var pageRotationsRaw: Data?
   var epubPreferencesRaw: String?
 
   init(
@@ -107,7 +106,6 @@ nonisolated struct KomgaBook: Codable, Equatable, Sendable {
     self.downloadedSize = downloadedSize
     self.readListIdsRaw = try? JSONEncoder().encode([] as [String])
     self.isolatePagesRaw = try? JSONEncoder().encode([] as [Int])
-    self.pageRotationsRaw = nil
     self.epubPreferencesRaw = nil
   }
 }
@@ -128,12 +126,6 @@ nonisolated extension KomgaBook {
   var isolatePages: [Int] {
     get { isolatePagesRaw.flatMap { try? JSONDecoder().decode([Int].self, from: $0) } ?? [] }
     set { isolatePagesRaw = try? JSONEncoder().encode(newValue) }
-  }
-
-  /// Page rotations stored as [pageIndex: degrees]
-  var pageRotations: [Int: Int] {
-    get { pageRotationsRaw.flatMap { try? JSONDecoder().decode([Int: Int].self, from: $0) } ?? [:] }
-    set { pageRotationsRaw = try? JSONEncoder().encode(newValue) }
   }
 
   var epubThemePreferences: EpubThemePreferences? {

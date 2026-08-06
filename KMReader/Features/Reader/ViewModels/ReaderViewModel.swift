@@ -13,7 +13,7 @@ class ReaderViewModel {
   private(set) var segments: [ReaderSegment] = []
   var isolatePages: [Int] = []
   private var isolatePagesByBookId: [String: Set<Int>] = [:]
-  private var pageRotationsByBookId: [String: [Int: Int]] = [:]
+  private(set) var rotation: ReaderRotation
   private(set) var bookIdsWithMissingPageDimensions: Set<String> = []
   private var currentPageID: ReaderPageID?
   private var currentViewItemID: ReaderViewItem?
@@ -121,29 +121,27 @@ class ReaderViewModel {
     return isolatePagesByBookId[isolatePosition.bookId]?.contains(isolatePosition.localIndex) == true
   }
 
-  func pageRotationDegrees(for pageID: ReaderPageID) -> Int {
-    guard let position = isolatePosition(for: pageID) else { return 0 }
-    return pageRotationsByBookId[position.bookId]?[position.localIndex] ?? 0
-  }
-
   func hasMissingPageDimensions(forBookId bookId: String) -> Bool {
     bookIdsWithMissingPageDimensions.contains(bookId)
   }
 
-  var currentPageRotationDegrees: Int {
-    guard let currentReaderPage else { return 0 }
-    return pageRotationDegrees(for: currentReaderPage.id)
+  func isPageEffectivelyPortrait(_ pageID: ReaderPageID) -> Bool {
+    guard let page = readerPage(for: pageID)?.page,
+      let width = page.width,
+      let height = page.height
+    else {
+      return false
+    }
+    let size = rotation.rotatedSize(
+      CGSize(width: CGFloat(width), height: CGFloat(height))
+    )
+    return size.height > size.width
   }
 
   /// Whether the current page is a wide (non-portrait) image, which cannot be isolated.
   var isCurrentPageWide: Bool {
     guard let currentReaderPage else { return false }
-    let rotation = pageRotationDegrees(for: currentReaderPage.id)
-    let normalized = ((rotation % 360) + 360) % 360
-    if normalized == 90 || normalized == 270 {
-      return currentReaderPage.page.isPortrait
-    }
-    return !currentReaderPage.page.isPortrait
+    return !isPageEffectivelyPortrait(currentReaderPage.id)
   }
 
   convenience init() {
@@ -152,6 +150,7 @@ class ReaderViewModel {
       pageLayout: AppConfig.pageLayout,
       splitWidePageMode: AppConfig.splitWidePageMode,
       pageTransitionStyle: AppConfig.pageTransitionStyle,
+      rotation: .none,
       preloadWindow: AppConfig.divinaPreloadProfile.window,
       incognitoMode: false
     )
@@ -162,6 +161,7 @@ class ReaderViewModel {
     pageLayout: PageLayout,
     splitWidePageMode: SplitWidePageMode = .none,
     pageTransitionStyle: PageTransitionStyle = AppConfig.pageTransitionStyle,
+    rotation: ReaderRotation = .none,
     preloadWindow: ReaderPreloadWindow = ReaderPreloadWindow.balanced,
     incognitoMode: Bool = false
   ) {
@@ -170,6 +170,7 @@ class ReaderViewModel {
     self.forceDualPagePairs = pageLayout == .dual
     self.splitWidePageMode = splitWidePageMode
     self.pageTransitionStyle = pageTransitionStyle
+    self.rotation = rotation
     self.incognitoMode = incognitoMode
     pageLoadScheduler.setPresentationInvalidationHandler { [weak self] invalidation in
       self?.notifyPagePresentationInvalidation(invalidation)
@@ -710,25 +711,6 @@ class ReaderViewModel {
     isolatePagesByBookId[bookId] = Set(isolatePagesForBook)
   }
 
-  private func hydratePageRotations(for bookId: String) async {
-    let database = await DatabaseOperator.databaseIfConfigured()
-    let rotations = await database?.fetchPageRotations(id: bookId) ?? [:]
-    pageRotationsByBookId[bookId] = rotations
-  }
-
-  private func persistPageRotations(_ rotations: [Int: Int], for bookId: String) {
-    Task {
-      if let database = await DatabaseOperator.databaseIfConfigured() {
-        await database.updatePageRotations(bookId: bookId, rotations: rotations)
-      }
-    }
-  }
-
-  private func normalizedPageRotation(_ degrees: Int) -> Int {
-    let normalized = degrees % 360
-    return normalized >= 0 ? normalized : normalized + 360
-  }
-
   private func restoreCurrentPosition(using currentViewItem: ReaderViewItem?) {
     guard let currentViewItem else { return }
     guard navigationTarget == nil else { return }
@@ -743,7 +725,6 @@ class ReaderViewModel {
     pageLoadScheduler.resetForBookLoad()
     isolatePages.removeAll()
     isolatePagesByBookId.removeAll()
-    pageRotationsByBookId.removeAll()
     bookIdsWithMissingPageDimensions.removeAll()
     tableOfContents.removeAll()
     tableOfContentsByBookId.removeAll()
@@ -791,7 +772,6 @@ class ReaderViewModel {
     }
 
     await hydrateIsolatePages(for: nextBook.id)
-    await hydratePageRotations(for: nextBook.id)
     let currentViewItem = currentViewItem()
 
     appendSegment(
@@ -836,7 +816,6 @@ class ReaderViewModel {
     }
 
     await hydrateIsolatePages(for: previousBook.id)
-    await hydratePageRotations(for: previousBook.id)
     let currentViewItem = currentViewItem()
 
     prependSegment(
@@ -890,7 +869,6 @@ class ReaderViewModel {
 
       let localIsolatePages = await database?.fetchIsolatePages(id: book.id) ?? []
       isolatePagesByBookId[book.id] = Set(localIsolatePages)
-      await hydratePageRotations(for: book.id)
       currentPageID = initialPageNumber.flatMap { pageNumber in
         fetchedPages.first(where: { $0.number == pageNumber }).map {
           ReaderPageID(bookId: book.id, pageNumber: $0.number)
@@ -1346,6 +1324,14 @@ class ReaderViewModel {
     }
   }
 
+  func updateRotation(_ rotation: ReaderRotation) {
+    guard self.rotation != rotation else { return }
+    regenerateViewStatePreservingCurrentPage {
+      self.rotation = rotation
+    }
+    notifyPagePresentationInvalidation(.all)
+  }
+
   func updateDualPagePresentationMode(_ isUsingDualPageMode: Bool) {
     guard isActuallyUsingDualPageMode != isUsingDualPageMode else { return }
 
@@ -1354,43 +1340,9 @@ class ReaderViewModel {
     }
   }
 
-  func setPageRotation(_ degrees: Int, for pageID: ReaderPageID) {
-    guard let position = isolatePosition(for: pageID) else { return }
-    let normalized = normalizedPageRotation(degrees)
-    guard pageRotationDegrees(for: pageID) != normalized else { return }
-    var rotations = pageRotationsByBookId[position.bookId] ?? [:]
-    if normalized == 0 {
-      rotations.removeValue(forKey: position.localIndex)
-    } else {
-      rotations[position.localIndex] = normalized
-    }
-    pageRotationsByBookId[position.bookId] = rotations
-    persistPageRotations(rotations, for: position.bookId)
-    regenerateViewStatePreservingCurrentPage {
-      // rotation state already updated above
-    }
-    notifyPagePresentationInvalidation(.pages([pageID]))
-  }
-
-  func rotatePage(_ pageID: ReaderPageID, by degrees: Int) {
-    let current = pageRotationDegrees(for: pageID)
-    setPageRotation(current + degrees, for: pageID)
-  }
-
   func toggleIsolatePage(_ pageID: ReaderPageID) {
     guard let isolatePosition = isolatePosition(for: pageID) else { return }
-    // Wide pages (considering rotation) always fill both slots and cannot be isolated
-    let rotation = pageRotationDegrees(for: pageID)
-    let normalized = ((rotation % 360) + 360) % 360
-    if let page = readerPage(for: pageID)?.page {
-      let effectivelyPortrait: Bool
-      if normalized == 90 || normalized == 270 {
-        effectivelyPortrait = (page.width ?? 0) > (page.height ?? 0)
-      } else {
-        effectivelyPortrait = page.isPortrait
-      }
-      if !effectivelyPortrait { return }
-    }
+    guard isPageEffectivelyPortrait(pageID) else { return }
     toggleIsolatePage(at: isolatePosition)
   }
 
@@ -1441,8 +1393,7 @@ class ReaderViewModel {
       splitWidePages: effectiveSplitWidePages,
       pageCurl: pageTransitionStyle == .pageCurl,
       isolatePages: Set(isolatePages),
-      pageRotationsByBookId: pageRotationsByBookId,
-      segmentPageRangeByBookId: segmentPageRangeByBookId
+      rotation: rotation
     )
     viewItemIndexByPage = generateViewItemIndexMap(items: viewItems)
     currentViewItemID = resolvedViewItem(
@@ -1593,8 +1544,7 @@ private func generateViewItems(
   splitWidePages: Bool,
   pageCurl: Bool,
   isolatePages: Set<Int> = [],
-  pageRotationsByBookId: [String: [Int: Int]] = [:],
-  segmentPageRangeByBookId: [String: Range<Int>] = [:]
+  rotation: ReaderRotation = .none
 ) -> [ReaderViewItem] {
   guard !segments.isEmpty, !readerPages.isEmpty else { return [] }
 
@@ -1614,19 +1564,11 @@ private func generateViewItems(
 
   func effectiveOrientation(at index: Int) -> PageOrientation {
     let page = readerPages[index].page
-    let bookId = readerPages[index].bookId
-    if let range = segmentPageRangeByBookId[bookId] {
-      let localIndex = index - range.lowerBound
-      let rotation = pageRotationsByBookId[bookId]?[localIndex] ?? 0
-      let normalized = ((rotation % 360) + 360) % 360
-      if normalized == 90 || normalized == 270 {
-        guard let width = page.width, let height = page.height else { return .unknown }
-        return width > height ? .portrait : .landscape
-      }
-    }
-
     guard let width = page.width, let height = page.height else { return .unknown }
-    return height > width ? .portrait : .landscape
+    let size = rotation.rotatedSize(
+      CGSize(width: CGFloat(width), height: CGFloat(height))
+    )
+    return size.height > size.width ? .portrait : .landscape
   }
 
   var items: [ReaderViewItem] = []

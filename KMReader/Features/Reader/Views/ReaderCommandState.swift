@@ -17,13 +17,14 @@ struct ReaderCommandState: Equatable {
   var pageIsolationActions: [ReaderPageIsolationActions.Action] = []
   var commandPageIDs: [ReaderPageID] = []
   var displayPageNumbersByID: [ReaderPageID: Int] = [:]
-  var pageRotationsByID: [ReaderPageID: Int] = [:]
+  var rotation: ReaderRotation = .none
   var splitWidePageMode: SplitWidePageMode = .none
   var continuousScroll: Bool = false
   var supportsSearch: Bool = false
   var canSearch: Bool = false
   var supportsReadingDirectionSelection: Bool = false
   var supportsPageLayoutSelection: Bool = false
+  var supportsRotationSelection: Bool = false
   var supportsDualPageOptions: Bool = false
   var supportsSplitWidePageMode: Bool = false
   var supportsContinuousScrollToggle: Bool = false

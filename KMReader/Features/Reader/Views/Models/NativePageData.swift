@@ -6,7 +6,7 @@
 import SwiftUI
 
 /// Split mode for wide pages
-enum PageSplitMode {
+enum PageSplitMode: Hashable {
   case none
   case leftHalf
   case rightHalf
@@ -19,7 +19,7 @@ struct NativePageData {
   let error: String?
   let alignment: HorizontalAlignment
   let splitMode: PageSplitMode
-  let rotationDegrees: Int
+  let rotation: ReaderRotation
   let animatedSourceFileURL: URL?
 
   init(
@@ -28,7 +28,7 @@ struct NativePageData {
     error: String?,
     alignment: HorizontalAlignment,
     splitMode: PageSplitMode = .none,
-    rotationDegrees: Int = 0,
+    rotation: ReaderRotation = .none,
     animatedSourceFileURL: URL? = nil
   ) {
     self.pageID = pageID
@@ -36,7 +36,7 @@ struct NativePageData {
     self.error = error
     self.alignment = alignment
     self.splitMode = splitMode
-    self.rotationDegrees = rotationDegrees
+    self.rotation = rotation
     self.animatedSourceFileURL = animatedSourceFileURL
   }
 }
