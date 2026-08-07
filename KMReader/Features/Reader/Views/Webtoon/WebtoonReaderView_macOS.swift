@@ -441,18 +441,43 @@
           scrollToInitialPage(currentPageID)
         }
 
-        if let targetPageID = viewModel.navigationTarget?.pageID,
-          itemIndex(forPageID: targetPageID) != nil
-        {
-          scrollToPage(targetPageID, animated: true)
-          viewModel.clearNavigationTarget()
-          if self.scrollEngine.currentPageID != targetPageID {
+        if let navigationTarget = viewModel.navigationTarget {
+          if let targetPageID = navigationPageID(for: navigationTarget),
+            itemIndex(forPageID: targetPageID) != nil
+          {
+            scrollToPage(targetPageID, animated: true)
             self.scrollEngine.currentPageID = targetPageID
-            viewModel.updateCurrentPosition(pageID: targetPageID)
+            let committedAnchor = ReaderPositionAnchor(
+              item: navigationTarget.item,
+              focusedPageID: targetPageID
+            )
+            if viewModel.captureCurrentPositionAnchor() != committedAnchor {
+              viewModel.updateCurrentPosition(anchor: committedAnchor)
+            }
+            clearNavigationTargetIfMatching(navigationTarget)
+          } else {
+            clearNavigationTargetIfMatching(navigationTarget)
+            if self.scrollEngine.currentPageID != currentPageID {
+              self.scrollEngine.currentPageID = currentPageID
+            }
           }
         } else if self.scrollEngine.currentPageID != currentPageID {
           self.scrollEngine.currentPageID = currentPageID
         }
+      }
+
+      private func navigationPageID(for target: ReaderPositionAnchor) -> ReaderPageID? {
+        guard let item = target.item else { return nil }
+        if let focusedPageID = target.focusedPageID,
+          item.pageIDs.contains(focusedPageID) || item.pageID == focusedPageID
+        {
+          return focusedPageID
+        }
+        return item.pageID
+      }
+
+      private func clearNavigationTargetIfMatching(_ target: ReaderPositionAnchor) {
+        viewModel?.clearNavigationTarget(matching: target)
       }
 
       private func handleDataReload(

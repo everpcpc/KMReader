@@ -160,6 +160,7 @@
       private var visiblePreloadItem: ReaderViewItem?
       private var programmaticScrollToken: Int = 0
       private var lastObservedClipBounds: CGRect = .zero
+      private var pendingNavigationTarget: ReaderPositionAnchor?
       private var singleClickWorkItem: DispatchWorkItem?
       weak var longPressGesture: NSPressGestureRecognizer?
 
@@ -196,6 +197,7 @@
         visiblePreloadTask?.cancel()
         visiblePreloadTask = nil
         visiblePreloadItem = nil
+        pendingNavigationTarget = nil
         pagePresentationCoordinator.teardown()
         engine.teardown()
       }
@@ -448,7 +450,7 @@
       }
 
       private func handleNavigationChange(
-        _ navigationTarget: ReaderViewItem,
+        _ navigationTarget: ReaderPositionAnchor,
         in scrollView: NSScrollView,
         collectionView: NSCollectionView
       ) {
@@ -458,16 +460,18 @@
         // existing guard in `scrollViewWillBeginDragging` that lets a drag override an
         // in-flight programmatic scroll.
         if engine.isUserInteracting {
-          parent.viewModel.clearNavigationTarget()
+          clearNavigationTargetIfCurrent(navigationTarget)
           return
         }
 
-        guard let resolvedTarget = parent.viewModel.resolvedViewItem(for: navigationTarget),
-          let targetItem = engine.resolveItem(resolvedTarget)
+        guard
+          let resolvedTarget = strictNavigationAnchor(for: navigationTarget),
+          let targetItem = resolvedTarget.item
         else {
-          parent.viewModel.clearNavigationTarget()
+          clearNavigationTargetIfCurrent(navigationTarget)
           return
         }
+        pendingNavigationTarget = navigationTarget
 
         guard engine.hasSyncedInitialPosition else {
           engine.setPendingInitialItem(targetItem)
@@ -486,6 +490,34 @@
         }
 
         _ = scrollToItem(targetItem, animated: true, in: scrollView, collectionView: collectionView)
+      }
+
+      private func strictNavigationAnchor(
+        for target: ReaderPositionAnchor
+      ) -> ReaderPositionAnchor? {
+        let resolvedItem: ReaderViewItem?
+        if let targetItem = target.item,
+          let exactItem = engine.renderedItems.first(where: { $0 == targetItem })
+        {
+          resolvedItem = exactItem
+        } else if let focusedPageID = target.focusedPageID {
+          resolvedItem = engine.renderedItems.first(where: { $0.pageIDs.contains(focusedPageID) })
+        } else {
+          resolvedItem = nil
+        }
+
+        guard let resolvedItem else { return nil }
+        let focusedPageID =
+          target.focusedPageID.flatMap { resolvedItem.pageIDs.contains($0) ? $0 : nil }
+          ?? resolvedItem.pageID
+        return ReaderPositionAnchor(item: resolvedItem, focusedPageID: focusedPageID)
+      }
+
+      private func clearNavigationTargetIfCurrent(_ target: ReaderPositionAnchor) {
+        parent.viewModel.clearNavigationTarget(matching: target)
+        if pendingNavigationTarget == target {
+          pendingNavigationTarget = nil
+        }
       }
 
       @discardableResult
@@ -604,13 +636,11 @@
       private func synchronizeViewModelCurrentPosition(to item: ReaderViewItem) {
         let resolvedItem = engine.resolveItem(item) ?? item
         engine.commit(resolvedItem)
-
-        if parent.viewModel.currentViewItem() != resolvedItem {
-          parent.viewModel.updateCurrentPosition(viewItem: resolvedItem)
-        }
-        if parent.viewModel.navigationTarget != nil {
-          parent.viewModel.clearNavigationTarget()
-        }
+        let commit = positionCommit(for: resolvedItem)
+        commitViewModelPosition(
+          commit.anchor,
+          matchingNavigationTarget: commit.navigationTarget
+        )
       }
 
       private func centeredItem(
@@ -681,6 +711,7 @@
       }
 
       private func commitItemIfNeeded(_ item: ReaderViewItem, in collectionView: NSCollectionView) {
+        let commit = positionCommit(for: item)
         let previousCommittedItem = engine.committedItem
         engine.commit(item)
         preloadVisiblePages(for: item)
@@ -689,7 +720,11 @@
           to: item,
           in: collectionView
         )
-        scheduleViewModelCommit(for: item)
+        scheduleViewModelCommit(
+          for: item,
+          anchor: commit.anchor,
+          matchingNavigationTarget: commit.navigationTarget
+        )
       }
 
       private func refreshVisibleItems(
@@ -821,8 +856,53 @@
         }
       }
 
-      private func scheduleViewModelCommit(for item: ReaderViewItem) {
-        guard parent.viewModel.currentViewItem() != item || parent.viewModel.navigationTarget != nil else {
+      private func positionCommit(
+        for item: ReaderViewItem
+      ) -> (anchor: ReaderPositionAnchor, navigationTarget: ReaderPositionAnchor?) {
+        if let navigationTarget = pendingNavigationTarget,
+          parent.viewModel.navigationTarget == navigationTarget,
+          let navigationAnchor = strictNavigationAnchor(for: navigationTarget),
+          navigationAnchor.item == item
+        {
+          return (navigationAnchor, navigationTarget)
+        }
+
+        let currentFocusedPageID = parent.viewModel.captureCurrentPositionAnchor().focusedPageID
+        let focusedPageID =
+          currentFocusedPageID.flatMap { item.pageIDs.contains($0) ? $0 : nil }
+          ?? item.pageID
+        return (
+          ReaderPositionAnchor(item: item, focusedPageID: focusedPageID),
+          nil
+        )
+      }
+
+      private func commitViewModelPosition(
+        _ anchor: ReaderPositionAnchor,
+        matchingNavigationTarget navigationTarget: ReaderPositionAnchor?
+      ) {
+        guard parent.viewModel.navigationTarget == navigationTarget else { return }
+        if parent.viewModel.captureCurrentPositionAnchor() != anchor {
+          parent.viewModel.updateCurrentPosition(anchor: anchor)
+        }
+        if let navigationTarget {
+          clearNavigationTargetIfCurrent(navigationTarget)
+        }
+      }
+
+      private func scheduleViewModelCommit(
+        for item: ReaderViewItem,
+        anchor: ReaderPositionAnchor? = nil,
+        matchingNavigationTarget navigationTarget: ReaderPositionAnchor? = nil
+      ) {
+        let commit = anchor.map { ($0, navigationTarget) } ?? positionCommit(for: item)
+        guard parent.viewModel.navigationTarget == commit.1 else {
+          return
+        }
+        guard
+          parent.viewModel.captureCurrentPositionAnchor() != commit.0
+            || commit.1 != nil
+        else {
           return
         }
 
@@ -830,13 +910,10 @@
         deferredViewModelCommitTask = Task { @MainActor [weak self] in
           await Task.yield()
           guard let self, self.engine.committedItem == item else { return }
-
-          if self.parent.viewModel.currentViewItem() != item {
-            self.parent.viewModel.updateCurrentPosition(viewItem: item)
-          }
-          if self.parent.viewModel.navigationTarget != nil {
-            self.parent.viewModel.clearNavigationTarget()
-          }
+          self.commitViewModelPosition(
+            commit.0,
+            matchingNavigationTarget: commit.1
+          )
         }
       }
 

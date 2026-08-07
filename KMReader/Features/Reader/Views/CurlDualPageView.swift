@@ -3,6 +3,7 @@
 //
 
 #if os(iOS)
+  import Foundation
   import SwiftUI
   import UIKit
 
@@ -27,8 +28,6 @@
       case end(segmentBookId: String)
       case placeholder
     }
-
-    private let slotViewIdentifier = "curlDualSlot"
 
     func makeCoordinator() -> Coordinator {
       Coordinator(self)
@@ -60,12 +59,7 @@
         semanticContentAttribute: mode.isRTL ? .forceRightToLeft : .forceLeftToRight
       )
 
-      let initialSpreadIndex = viewModel.currentViewItem().flatMap { viewModel.viewItemIndex(for: $0) } ?? 0
-      context.coordinator.currentItem = viewModel.viewItem(at: initialSpreadIndex)
-      context.coordinator.updateViewItemsSnapshot(viewModel.viewItems)
-      Task { @MainActor in
-        viewModel.updateCurrentPosition(viewItem: viewModel.viewItem(at: initialSpreadIndex))
-      }
+      let initialSpreadIndex = context.coordinator.currentResolvedSpreadIndex() ?? 0
 
       if let initialPair = context.coordinator.pageControllerPair(for: initialSpreadIndex) {
         PageCurlControllerPlanner.safeSetViewControllers(
@@ -89,6 +83,13 @@
       return pageVC
     }
 
+    static func dismantleUIViewController(
+      _ pageViewController: UIPageViewController,
+      coordinator: Coordinator
+    ) {
+      coordinator.teardown(pageViewController: pageViewController)
+    }
+
     func updateUIViewController(_ pageVC: UIPageViewController, context: Context) {
       context.coordinator.parent = self
       context.coordinator.pageViewController = pageVC
@@ -101,100 +102,20 @@
       )
 
       context.coordinator.syncCurrentItemWithVisibleController()
-      let didViewItemsChange = context.coordinator.updateViewItemsSnapshot(viewModel.viewItems)
-      context.coordinator.refreshVisibleControllerConfiguration()
-
-      let targetSpreadIndex: Int? = {
-        if let explicitTarget = viewModel.navigationTarget.flatMap({ viewModel.resolvedViewItem(for: $0) }) {
-          return viewModel.viewItemIndex(for: explicitTarget)
-        }
-        if didViewItemsChange, let currentItem = viewModel.currentViewItem() {
-          return viewModel.viewItemIndex(for: currentItem)
-        }
-        return nil
-      }()
-
-      guard let targetSpreadIndex else { return }
-      let currentSpreadIndex = context.coordinator.currentResolvedSpreadIndex() ?? targetSpreadIndex
-
-      let clearTargets: () -> Void = {
-        _ = Task { @MainActor in
-          viewModel.clearNavigationTarget()
-        }
-      }
-
-      guard targetSpreadIndex != currentSpreadIndex else {
-        clearTargets()
-        return
-      }
-
-      guard let targetPair = context.coordinator.pageControllerPair(for: targetSpreadIndex) else {
-        clearTargets()
-        return
-      }
-
+      let didViewItemsChange = context.coordinator.updateViewItemsSnapshot(
+        PageCurlViewItemsSnapshot(items: viewModel.viewItems),
+        preferredAnchor: viewModel.captureCurrentPositionAnchor()
+      )
       guard !context.coordinator.isTransitioning else { return }
-
-      let direction: UIPageViewController.NavigationDirection
-      if mode.isRTL {
-        direction = targetSpreadIndex > currentSpreadIndex ? .reverse : .forward
-      } else {
-        direction = targetSpreadIndex > currentSpreadIndex ? .forward : .reverse
-      }
-
-      context.coordinator.isTransitioning = true
-      let shouldAnimateTransition = context.coordinator.hasCompletedInitialUpdate && animateTapTurns
-      PageCurlControllerPlanner.safeSetViewControllers(
-        targetPair,
+      context.coordinator.refreshVisibleControllerConfiguration()
+      context.coordinator.processNavigationTarget(
         on: pageVC,
-        direction: direction,
-        animated: shouldAnimateTransition
-      ) { completed in
-        Task { @MainActor in
-          context.coordinator.isTransitioning = false
-          if completed || !shouldAnimateTransition {
-            if let committedPair = context.coordinator.pageControllerPair(for: targetSpreadIndex) {
-              PageCurlControllerPlanner.safeSetViewControllers(
-                committedPair,
-                on: pageVC,
-                direction: direction,
-                animated: false
-              )
-            }
-            context.coordinator.currentItem = viewModel.viewItem(at: targetSpreadIndex)
-            viewModel.updateCurrentPosition(viewItem: context.coordinator.currentItem)
-          }
-          viewModel.clearNavigationTarget()
-        }
-      }
+        restoreModelPosition: didViewItemsChange
+      )
     }
 
-    private func encodedTag(for spreadIndex: Int, slot: SpreadSlot) -> Int {
-      spreadIndex * 2 + slot.rawValue + 1
-    }
-
-    private func decodedMetadata(
-      for controller: UIViewController
-    ) -> (spreadIndex: Int, slot: SpreadSlot)? {
-      guard controller.view.accessibilityIdentifier == slotViewIdentifier else { return nil }
-      let rawTag = controller.view.tag - 1
-      guard rawTag >= 0 else { return nil }
-      let slotRaw = rawTag % 2
-      guard let slot = SpreadSlot(rawValue: slotRaw) else { return nil }
-      let spreadIndex = rawTag / 2
-      return (spreadIndex: spreadIndex, slot: slot)
-    }
-
-    private func applyMetadata(
-      to controller: UIViewController,
-      spreadIndex: Int,
-      slot: SpreadSlot
-    ) {
-      controller.view.tag = encodedTag(for: spreadIndex, slot: slot)
-      controller.view.accessibilityIdentifier = slotViewIdentifier
-    }
-
-    class Coordinator: NSObject, UIPageViewControllerDataSource, UIPageViewControllerDelegate,
+    @MainActor
+    final class Coordinator: NSObject, UIPageViewControllerDataSource, UIPageViewControllerDelegate,
       UIGestureRecognizerDelegate
     {
       var parent: CurlDualPageView
@@ -202,15 +123,25 @@
       weak var pageViewController: UIPageViewController?
       var isTransitioning = false
       var hasCompletedInitialUpdate = false
+      private var isActive = true
       private weak var doubleTapRecognizer: UITapGestureRecognizer?
+      private var installedTapRecognizers: [UIGestureRecognizer] = []
       private var transitionTargetItem: ReaderViewItem?
-      private var lastViewItemsCount: Int = 0
-      private var lastFirstViewItem: ReaderViewItem?
-      private var lastLastViewItem: ReaderViewItem?
+      private var viewItemsSnapshot: PageCurlViewItemsSnapshot
+      private var pendingViewItemsSnapshot: PageCurlViewItemsSnapshot?
+      private let controllerIdentities =
+        NSMapTable<UIViewController, PageCurlControllerIdentity>.weakToStrongObjects()
+      private var transitionToken = 0
+      private var preloadTask: Task<Void, Never>?
+      private var navigationContinuationTask: Task<Void, Never>?
+      private var consumedNavigationTarget: ReaderPositionAnchor?
+      private var retriedNavigationTarget: ReaderPositionAnchor?
 
       init(_ parent: CurlDualPageView) {
         self.parent = parent
-        self.currentItem = parent.viewModel.currentViewItem()
+        let snapshot = PageCurlViewItemsSnapshot(items: parent.viewModel.viewItems)
+        self.viewItemsSnapshot = snapshot
+        self.currentItem = snapshot.resolvedItem(for: parent.viewModel.captureCurrentPositionAnchor())
       }
 
       func installTapRecognizers(on view: UIView) {
@@ -233,6 +164,7 @@
         longPress.delegate = self
         singleTap.require(toFail: longPress)
         view.addGestureRecognizer(longPress)
+        installedTapRecognizers = [singleTap, doubleTap, longPress]
         applyDoubleTapRecognizerState()
       }
 
@@ -241,22 +173,317 @@
       }
 
       private var totalSpreads: Int {
-        parent.viewModel.viewItems.count
+        viewItemsSnapshot.count
       }
 
       @discardableResult
-      func updateViewItemsSnapshot(_ items: [ReaderViewItem]) -> Bool {
-        let firstItem = items.first
-        let lastItem = items.last
-        let didChange =
-          items.count != lastViewItemsCount
-          || firstItem != lastFirstViewItem
-          || lastItem != lastLastViewItem
+      func updateViewItemsSnapshot(
+        _ snapshot: PageCurlViewItemsSnapshot,
+        preferredAnchor: ReaderPositionAnchor
+      ) -> Bool {
+        guard snapshot != viewItemsSnapshot else {
+          pendingViewItemsSnapshot = nil
+          return false
+        }
+        guard !isTransitioning else {
+          pendingViewItemsSnapshot = snapshot
+          return false
+        }
+        return applyViewItemsSnapshot(snapshot, preferredAnchor: preferredAnchor)
+      }
 
-        lastViewItemsCount = items.count
-        lastFirstViewItem = firstItem
-        lastLastViewItem = lastItem
-        return didChange
+      private func applyViewItemsSnapshot(
+        _ snapshot: PageCurlViewItemsSnapshot,
+        preferredAnchor: ReaderPositionAnchor
+      ) -> Bool {
+        guard snapshot != viewItemsSnapshot else { return false }
+        viewItemsSnapshot = snapshot
+        currentItem = snapshot.resolvedItem(for: preferredAnchor)
+        return true
+      }
+
+      @discardableResult
+      private func applyPendingViewItemsSnapshot(preferredAnchor: ReaderPositionAnchor) -> Bool {
+        guard let pendingViewItemsSnapshot else { return false }
+        self.pendingViewItemsSnapshot = nil
+        return applyViewItemsSnapshot(
+          pendingViewItemsSnapshot,
+          preferredAnchor: preferredAnchor
+        )
+      }
+
+      func resolvedItem(for anchor: ReaderPositionAnchor) -> ReaderViewItem? {
+        viewItemsSnapshot.resolvedItem(for: anchor)
+      }
+
+      func spreadIndex(for item: ReaderViewItem) -> Int? {
+        viewItemsSnapshot.index(for: item)
+      }
+
+      func beginTransition() -> Int {
+        preloadTask?.cancel()
+        preloadTask = nil
+        transitionToken += 1
+        isTransitioning = true
+        return transitionToken
+      }
+
+      func processNavigationTarget(
+        on pageViewController: UIPageViewController,
+        restoreModelPosition: Bool = false
+      ) {
+        guard isActive, self.pageViewController === pageViewController, !isTransitioning else {
+          return
+        }
+
+        let explicitTarget = parent.viewModel.navigationTarget
+        let target: (anchor: ReaderPositionAnchor, item: ReaderViewItem)?
+        if let explicitTarget,
+          let item = viewItemsSnapshot.matchingItem(for: explicitTarget)
+        {
+          target = (explicitTarget, item)
+        } else if explicitTarget == nil, restoreModelPosition {
+          let modelAnchor = parent.viewModel.captureCurrentPositionAnchor()
+          target = resolvedItem(for: modelAnchor).map { (modelAnchor, $0) }
+        } else {
+          target = nil
+        }
+
+        guard let target, let targetSpreadIndex = spreadIndex(for: target.item) else {
+          if let explicitTarget {
+            let modelSnapshot = PageCurlViewItemsSnapshot(items: parent.viewModel.viewItems)
+            if viewItemsSnapshot == modelSnapshot {
+              retriedNavigationTarget = nil
+              scheduleNavigationContinuation(
+                consuming: explicitTarget,
+                on: pageViewController
+              )
+            }
+          }
+          return
+        }
+        let currentSpreadIndex = currentResolvedSpreadIndex() ?? targetSpreadIndex
+
+        guard targetSpreadIndex != currentSpreadIndex else {
+          currentItem = target.item
+          if let explicitTarget {
+            retriedNavigationTarget = nil
+            commitCurrentItem(target.item, preserving: explicitTarget)
+            scheduleNavigationContinuation(
+              consuming: explicitTarget,
+              on: pageViewController
+            )
+          }
+          return
+        }
+
+        guard let targetPair = pageControllerPair(for: targetSpreadIndex) else {
+          if let explicitTarget {
+            retriedNavigationTarget = nil
+            scheduleNavigationContinuation(
+              consuming: explicitTarget,
+              on: pageViewController
+            )
+          }
+          return
+        }
+
+        let direction: UIPageViewController.NavigationDirection
+        if parent.mode.isRTL {
+          direction = targetSpreadIndex > currentSpreadIndex ? .reverse : .forward
+        } else {
+          direction = targetSpreadIndex > currentSpreadIndex ? .forward : .reverse
+        }
+
+        let token = beginTransition()
+        let shouldAnimateTransition = hasCompletedInitialUpdate && parent.animateTapTurns
+        PageCurlControllerPlanner.safeSetViewControllers(
+          targetPair,
+          on: pageViewController,
+          direction: direction,
+          animated: shouldAnimateTransition
+        ) { [weak self, weak pageViewController] completed in
+          guard let self, let pageViewController else { return }
+          self.finishProgrammaticTransition(
+            token: token,
+            completed: completed || !shouldAnimateTransition,
+            targetItem: target.item,
+            targetAnchor: target.anchor,
+            consumedNavigationTarget: explicitTarget,
+            pageViewController: pageViewController,
+            direction: direction
+          )
+        }
+      }
+
+      func finishProgrammaticTransition(
+        token: Int,
+        completed: Bool,
+        targetItem: ReaderViewItem,
+        targetAnchor: ReaderPositionAnchor,
+        consumedNavigationTarget: ReaderPositionAnchor?,
+        pageViewController: UIPageViewController,
+        direction: UIPageViewController.NavigationDirection
+      ) {
+        guard isActive,
+          token == transitionToken,
+          self.pageViewController === pageViewController
+        else { return }
+        isTransitioning = false
+        transitionTargetItem = nil
+
+        if completed {
+          retriedNavigationTarget = nil
+          let anchor = localAnchor(for: targetItem, preserving: targetAnchor)
+          let pendingAnchor: ReaderPositionAnchor
+          if consumedNavigationTarget != nil,
+            let pendingViewItemsSnapshot,
+            pendingViewItemsSnapshot.matchingItem(for: anchor) == nil
+          {
+            pendingAnchor = parent.viewModel.captureCurrentPositionAnchor()
+          } else {
+            pendingAnchor = anchor
+          }
+          applyPendingViewItemsSnapshot(preferredAnchor: pendingAnchor)
+
+          let committedItem =
+            consumedNavigationTarget == nil
+            ? viewItemsSnapshot.resolvedItem(for: anchor)
+            : viewItemsSnapshot.matchingItem(for: anchor)
+          if let committedItem,
+            let committedSpreadIndex = viewItemsSnapshot.index(for: committedItem)
+          {
+            if let committedPair = pageControllerPair(for: committedSpreadIndex) {
+              PageCurlControllerPlanner.safeSetViewControllers(
+                committedPair,
+                on: pageViewController,
+                direction: direction,
+                animated: false
+              )
+            }
+            commitCurrentItem(committedItem, preserving: anchor)
+          } else {
+            refreshVisibleControllerConfiguration()
+          }
+          scheduleNavigationContinuation(
+            consuming: consumedNavigationTarget,
+            on: pageViewController
+          )
+        } else {
+          syncCurrentItemWithVisibleController()
+          let anchor = currentPositionAnchor()
+          applyPendingViewItemsSnapshot(preferredAnchor: anchor)
+          refreshVisibleControllerConfiguration()
+          if let consumedNavigationTarget,
+            retriedNavigationTarget != consumedNavigationTarget
+          {
+            retriedNavigationTarget = consumedNavigationTarget
+            scheduleNavigationContinuation(consuming: nil, on: pageViewController)
+          }
+        }
+      }
+
+      func scheduleNavigationContinuation(
+        consuming target: ReaderPositionAnchor?,
+        on pageViewController: UIPageViewController
+      ) {
+        if let target {
+          consumedNavigationTarget = target
+        }
+        guard navigationContinuationTask == nil else { return }
+
+        navigationContinuationTask = Task { @MainActor [weak self, weak pageViewController] in
+          await Task.yield()
+          guard !Task.isCancelled,
+            let self,
+            let pageViewController,
+            self.isActive,
+            self.pageViewController === pageViewController
+          else { return }
+
+          let consumedTarget = self.consumedNavigationTarget
+          self.consumedNavigationTarget = nil
+          self.navigationContinuationTask = nil
+          if let consumedTarget {
+            self.parent.viewModel.clearNavigationTarget(matching: consumedTarget)
+          }
+          self.processNavigationTarget(on: pageViewController)
+        }
+      }
+
+      private func localAnchor(
+        for item: ReaderViewItem,
+        preserving anchor: ReaderPositionAnchor?
+      ) -> ReaderPositionAnchor {
+        let focusedPageID: ReaderPageID?
+        if let preferredPageID = anchor?.focusedPageID,
+          item.pageIDs.contains(preferredPageID) || item.pageID == preferredPageID
+        {
+          focusedPageID = preferredPageID
+        } else {
+          focusedPageID = item.pageID
+        }
+        return ReaderPositionAnchor(item: item, focusedPageID: focusedPageID)
+      }
+
+      private func currentPositionAnchor() -> ReaderPositionAnchor {
+        let focusedPageID = parent.viewModel.captureCurrentPositionAnchor().focusedPageID
+        return ReaderPositionAnchor(item: currentItem, focusedPageID: focusedPageID)
+      }
+
+      private func commitCurrentItem(
+        _ item: ReaderViewItem,
+        preserving preferredAnchor: ReaderPositionAnchor?
+      ) {
+        guard isActive else { return }
+        currentItem = item
+        let anchor = localAnchor(for: item, preserving: preferredAnchor)
+        parent.viewModel.updateCurrentPosition(anchor: anchor)
+
+        preloadTask?.cancel()
+        let token = transitionToken
+        let viewModel = parent.viewModel
+        preloadTask = Task(priority: .utility) { @MainActor [weak self, weak viewModel] in
+          guard !Task.isCancelled,
+            let self,
+            self.isActive,
+            token == self.transitionToken,
+            self.currentItem == item,
+            let viewModel
+          else { return }
+          await viewModel.preloadPages()
+        }
+      }
+
+      func teardown(pageViewController: UIPageViewController) {
+        guard isActive else { return }
+        isActive = false
+        transitionToken += 1
+        isTransitioning = false
+        hasCompletedInitialUpdate = false
+        transitionTargetItem = nil
+        pendingViewItemsSnapshot = nil
+
+        preloadTask?.cancel()
+        preloadTask = nil
+        navigationContinuationTask?.cancel()
+        navigationContinuationTask = nil
+        consumedNavigationTarget = nil
+        retriedNavigationTarget = nil
+
+        pageViewController.dataSource = nil
+        pageViewController.delegate = nil
+        for recognizer in pageViewController.gestureRecognizers where recognizer.delegate === self {
+          recognizer.delegate = nil
+        }
+        for recognizer in installedTapRecognizers {
+          recognizer.view?.removeGestureRecognizer(recognizer)
+        }
+        installedTapRecognizers.removeAll()
+        doubleTapRecognizer = nil
+        controllerIdentities.removeAllObjects()
+        currentItem = nil
+        self.pageViewController = nil
       }
 
       private func beforeSpreadIndex(from spreadIndex: Int) -> Int {
@@ -274,7 +501,7 @@
       private func isFirstSpreadInSegment(_ spreadIndex: Int) -> Bool {
         guard spreadIndex >= 0 else { return false }
         if spreadIndex == 0 { return true }
-        guard let previousItem = parent.viewModel.viewItem(at: spreadIndex - 1) else { return false }
+        guard let previousItem = viewItemsSnapshot.item(at: spreadIndex - 1) else { return false }
         if case .end = previousItem {
           return true
         }
@@ -284,7 +511,7 @@
       private func isLastSpreadInSegment(_ spreadIndex: Int) -> Bool {
         guard spreadIndex >= 0 else { return false }
         if spreadIndex >= totalSpreads - 1 { return true }
-        guard let nextItem = parent.viewModel.viewItem(at: spreadIndex + 1) else { return false }
+        guard let nextItem = viewItemsSnapshot.item(at: spreadIndex + 1) else { return false }
         if case .end = nextItem {
           return true
         }
@@ -319,7 +546,7 @@
 
       private func slotContent(for spreadIndex: Int, slot: SpreadSlot) -> SlotContent? {
         guard isValidSpreadIndex(spreadIndex) else { return nil }
-        guard let item = parent.viewModel.viewItem(at: spreadIndex) else { return nil }
+        guard let item = viewItemsSnapshot.item(at: spreadIndex) else { return nil }
 
         switch item {
         case .dual(let firstID, let secondID):
@@ -379,6 +606,31 @@
         let placeholder = UIViewController()
         placeholder.view.backgroundColor = UIColor(parent.renderConfig.readerBackground.color)
         return placeholder
+      }
+
+      private func registerIdentity(
+        for controller: UIViewController,
+        item: ReaderViewItem,
+        role: PageCurlControllerIdentity.Role,
+        slot: SpreadSlot
+      ) {
+        controllerIdentities.setObject(
+          PageCurlControllerIdentity(item: item, role: role, slot: slot.rawValue),
+          forKey: controller
+        )
+      }
+
+      private func controllerMetadata(
+        for controller: UIViewController
+      ) -> (item: ReaderViewItem, slot: SpreadSlot, role: PageCurlControllerIdentity.Role)? {
+        guard let identity = controllerIdentities.object(forKey: controller),
+          let item = identity.item,
+          let slotRawValue = identity.slot,
+          let slot = SpreadSlot(rawValue: slotRawValue)
+        else {
+          return nil
+        }
+        return (item: item, slot: slot, role: identity.role)
       }
 
       private func configureImageController(
@@ -441,16 +693,21 @@
           configureEndController(endController, segmentBookId: segmentBookId, slot: slot)
           return true
         case .placeholder:
+          guard !(controller is NativeImagePageViewController),
+            !(controller is NativeEndPageViewController)
+          else { return false }
           controller.view.backgroundColor = UIColor(parent.renderConfig.readerBackground.color)
           return true
         }
       }
 
       private func pageController(for spreadIndex: Int, slot: SpreadSlot) -> UIViewController? {
-        guard parent.viewModel.hasPages else { return nil }
+        guard !viewItemsSnapshot.isEmpty else { return nil }
+        guard let item = viewItemsSnapshot.item(at: spreadIndex) else { return nil }
         guard let content = slotContent(for: spreadIndex, slot: slot) else { return nil }
 
         let controller: UIViewController
+        let role: PageCurlControllerIdentity.Role
         switch content {
         case .page(let pageID, let splitMode):
           let imageController = NativeImagePageViewController()
@@ -461,15 +718,18 @@
             alignment: spineAlignment(for: slot)
           )
           controller = imageController
+          role = .content
         case .end(let segmentBookId):
           let endController = NativeEndPageViewController()
           configureEndController(endController, segmentBookId: segmentBookId, slot: slot)
           controller = endController
+          role = .content
         case .placeholder:
           controller = makePlaceholderController()
+          role = .placeholder
         }
 
-        parent.applyMetadata(to: controller, spreadIndex: spreadIndex, slot: slot)
+        registerIdentity(for: controller, item: item, role: role, slot: slot)
         return controller
       }
 
@@ -482,44 +742,54 @@
         return [first, second]
       }
 
-      private func spreadIndices(
+      private func spreadItems(
         from controllers: [UIViewController]
-      ) -> [Int] {
-        controllers.compactMap { parent.decodedMetadata(for: $0)?.spreadIndex }
+      ) -> [ReaderViewItem] {
+        var seenItems: Set<ReaderViewItem> = []
+        return controllers.compactMap { controller in
+          guard let item = controllerMetadata(for: controller)?.item,
+            seenItems.insert(item).inserted
+          else { return nil }
+          return item
+        }
       }
 
-      private func resolvedSpreadIndex(for item: ReaderViewItem?) -> Int? {
-        guard let item = parent.viewModel.resolvedViewItem(for: item) else { return nil }
-        return parent.viewModel.viewItemIndex(for: item)
+      private func exactSpreadIndex(for item: ReaderViewItem?) -> Int? {
+        guard let item else { return nil }
+        return viewItemsSnapshot.index(for: item)
       }
 
       func currentResolvedSpreadIndex() -> Int? {
-        resolvedSpreadIndex(for: currentItem)
+        guard let currentItem else { return nil }
+        let focusedPageID = parent.viewModel.captureCurrentPositionAnchor().focusedPageID
+        return viewItemsSnapshot.index(
+          for: ReaderPositionAnchor(item: currentItem, focusedPageID: focusedPageID)
+        )
       }
 
       private func resolvedVisibleSpreadIndex() -> Int? {
         guard let visibleControllers = pageViewController?.viewControllers else { return nil }
-        let uniqueIndices = Array(Set(spreadIndices(from: visibleControllers))).sorted()
-        guard !uniqueIndices.isEmpty else { return nil }
-        if uniqueIndices.count == 1 {
-          return uniqueIndices[0]
+        let uniqueItems = spreadItems(from: visibleControllers)
+        guard !uniqueItems.isEmpty else { return nil }
+        if uniqueItems.count == 1 {
+          return exactSpreadIndex(for: uniqueItems[0])
         }
-        if let transitionTargetSpreadIndex = resolvedSpreadIndex(for: transitionTargetItem),
-          uniqueIndices.contains(transitionTargetSpreadIndex)
+        if let transitionTargetSpreadIndex = exactSpreadIndex(for: transitionTargetItem),
+          uniqueItems.contains(where: { exactSpreadIndex(for: $0) == transitionTargetSpreadIndex })
         {
           return transitionTargetSpreadIndex
         }
         if let currentSpreadIndex = currentResolvedSpreadIndex(),
-          uniqueIndices.contains(currentSpreadIndex)
+          uniqueItems.contains(where: { exactSpreadIndex(for: $0) == currentSpreadIndex })
         {
           return currentSpreadIndex
         }
-        return uniqueIndices[0]
+        return uniqueItems.compactMap { exactSpreadIndex(for: $0) }.first
       }
 
       func syncCurrentItemWithVisibleController() {
         if let visibleSpreadIndex = resolvedVisibleSpreadIndex() {
-          currentItem = parent.viewModel.viewItem(at: visibleSpreadIndex)
+          currentItem = viewItemsSnapshot.item(at: visibleSpreadIndex)
         }
       }
 
@@ -527,15 +797,17 @@
         guard !isTransitioning else { return }
         guard let pageViewController else { return }
         guard let visibleControllers = pageViewController.viewControllers else { return }
-        guard let spreadIndex = resolvedVisibleSpreadIndex() else { return }
+        guard let spreadIndex = resolvedVisibleSpreadIndex() ?? currentResolvedSpreadIndex() else { return }
 
         var needsReplacement = false
         for controller in visibleControllers {
-          guard let metadata = parent.decodedMetadata(for: controller) else {
+          guard let metadata = controllerMetadata(for: controller) else {
             needsReplacement = true
             break
           }
-          if metadata.spreadIndex != spreadIndex {
+          guard let expectedItem = viewItemsSnapshot.item(at: spreadIndex),
+            metadata.item == expectedItem
+          else {
             needsReplacement = true
             break
           }
@@ -561,16 +833,18 @@
         _ pageViewController: UIPageViewController,
         viewControllerBefore viewController: UIViewController
       ) -> UIViewController? {
-        guard let metadata = parent.decodedMetadata(for: viewController) else { return nil }
+        guard let metadata = controllerMetadata(for: viewController),
+          let spreadIndex = viewItemsSnapshot.index(for: metadata.item)
+        else { return nil }
 
         switch metadata.slot {
         case .first:
-          let targetSpreadIndex = beforeSpreadIndex(from: metadata.spreadIndex)
+          let targetSpreadIndex = beforeSpreadIndex(from: spreadIndex)
           guard isValidSpreadIndex(targetSpreadIndex) else { return nil }
           return pageController(for: targetSpreadIndex, slot: .second)
         case .second:
-          guard isValidSpreadIndex(metadata.spreadIndex) else { return nil }
-          return pageController(for: metadata.spreadIndex, slot: .first)
+          guard isValidSpreadIndex(spreadIndex) else { return nil }
+          return pageController(for: spreadIndex, slot: .first)
         }
       }
 
@@ -578,14 +852,16 @@
         _ pageViewController: UIPageViewController,
         viewControllerAfter viewController: UIViewController
       ) -> UIViewController? {
-        guard let metadata = parent.decodedMetadata(for: viewController) else { return nil }
+        guard let metadata = controllerMetadata(for: viewController),
+          let spreadIndex = viewItemsSnapshot.index(for: metadata.item)
+        else { return nil }
 
         switch metadata.slot {
         case .first:
-          guard isValidSpreadIndex(metadata.spreadIndex) else { return nil }
-          return pageController(for: metadata.spreadIndex, slot: .second)
+          guard isValidSpreadIndex(spreadIndex) else { return nil }
+          return pageController(for: spreadIndex, slot: .second)
         case .second:
-          let targetSpreadIndex = afterSpreadIndex(from: metadata.spreadIndex)
+          let targetSpreadIndex = afterSpreadIndex(from: spreadIndex)
           guard isValidSpreadIndex(targetSpreadIndex) else { return nil }
           return pageController(for: targetSpreadIndex, slot: .first)
         }
@@ -597,13 +873,13 @@
         _ pageViewController: UIPageViewController,
         willTransitionTo pendingViewControllers: [UIViewController]
       ) {
-        isTransitioning = true
-        let pendingIndices = Array(Set(spreadIndices(from: pendingViewControllers))).sorted()
-        let currentSpreadIndex = currentResolvedSpreadIndex()
-        if let explicitTarget = pendingIndices.first(where: { $0 != currentSpreadIndex }) {
-          transitionTargetItem = parent.viewModel.viewItem(at: explicitTarget)
+        guard isActive, self.pageViewController === pageViewController else { return }
+        _ = beginTransition()
+        let pendingItems = spreadItems(from: pendingViewControllers)
+        if let explicitTarget = pendingItems.first(where: { $0 != currentItem }) {
+          transitionTargetItem = explicitTarget
         } else {
-          transitionTargetItem = pendingIndices.first.flatMap { parent.viewModel.viewItem(at: $0) }
+          transitionTargetItem = pendingItems.first
         }
       }
 
@@ -613,25 +889,47 @@
         previousViewControllers: [UIViewController],
         transitionCompleted completed: Bool
       ) {
+        guard isActive, self.pageViewController === pageViewController else { return }
         isTransitioning = false
         syncCurrentItemWithVisibleController()
 
         guard completed else {
           transitionTargetItem = nil
+          let anchor = currentPositionAnchor()
+          applyPendingViewItemsSnapshot(preferredAnchor: anchor)
+          refreshVisibleControllerConfiguration()
+          scheduleNavigationContinuation(consuming: nil, on: pageViewController)
           return
         }
 
-        guard
-          let committedSpreadIndex =
-            resolvedSpreadIndex(for: transitionTargetItem)
-            ?? resolvedVisibleSpreadIndex()
-            ?? currentResolvedSpreadIndex()
-        else {
-          transitionTargetItem = nil
+        let committedCandidate = transitionTargetItem ?? currentItem
+        transitionTargetItem = nil
+        guard let committedCandidate else {
+          let anchor = parent.viewModel.captureCurrentPositionAnchor()
+          applyPendingViewItemsSnapshot(preferredAnchor: anchor)
+          refreshVisibleControllerConfiguration()
+          scheduleNavigationContinuation(consuming: nil, on: pageViewController)
           return
         }
-        transitionTargetItem = nil
-        guard isValidSpreadIndex(committedSpreadIndex) else { return }
+
+        let anchor = localAnchor(
+          for: committedCandidate,
+          preserving: currentPositionAnchor()
+        )
+        applyPendingViewItemsSnapshot(preferredAnchor: anchor)
+        let committedItem =
+          viewItemsSnapshot.matchingItem(for: anchor)
+          ?? viewItemsSnapshot.resolvedItem(
+            for: parent.viewModel.captureCurrentPositionAnchor()
+          )
+        guard let committedItem,
+          let committedSpreadIndex = viewItemsSnapshot.index(for: committedItem),
+          isValidSpreadIndex(committedSpreadIndex)
+        else {
+          refreshVisibleControllerConfiguration()
+          scheduleNavigationContinuation(consuming: nil, on: pageViewController)
+          return
+        }
 
         if let committedPair = pageControllerPair(for: committedSpreadIndex) {
           PageCurlControllerPlanner.safeSetViewControllers(
@@ -642,14 +940,8 @@
           )
         }
 
-        currentItem = parent.viewModel.viewItem(at: committedSpreadIndex)
-        let viewModel = parent.viewModel
-        Task { @MainActor in
-          viewModel.updateCurrentPosition(viewItem: currentItem)
-        }
-        Task(priority: .utility) { @MainActor in
-          await viewModel.preloadPages()
-        }
+        commitCurrentItem(committedItem, preserving: anchor)
+        scheduleNavigationContinuation(consuming: nil, on: pageViewController)
       }
 
       func pageViewController(

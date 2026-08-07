@@ -122,7 +122,7 @@
             // during the pan itself it is false, so an unguarded tap would call
             // `commitTransition` mid-drag and override the user's gesture.
             if isUserPanning {
-              parent.viewModel.clearNavigationTarget()
+              clearNavigationTargetIfMatching(navigationTarget)
             } else {
               handleNavigationTarget(navigationTarget)
             }
@@ -376,22 +376,19 @@
         applyCurrentItem(resolved)
       }
 
-      private func resolveNavigationTarget(_ target: ReaderViewItem) -> ReaderViewItem? {
-        if let exactIndex = parent.viewModel.viewItemIndex(for: target) {
-          return parent.viewModel.viewItem(at: exactIndex)
-        }
-        return parent.viewModel.viewItem(for: target.pageID)
+      private func resolveNavigationTarget(_ target: ReaderPositionAnchor) -> ReaderPositionAnchor? {
+        parent.viewModel.matchingPositionAnchor(for: target)
       }
 
-      private func clearNavigationTargetIfConsumed(_ consumedItem: ReaderViewItem) {
-        guard let navigationTarget = parent.viewModel.navigationTarget else { return }
-        guard resolveNavigationTarget(navigationTarget) == consumedItem else { return }
-        parent.viewModel.clearNavigationTarget()
+      private func clearNavigationTargetIfMatching(_ target: ReaderPositionAnchor) {
+        parent.viewModel.clearNavigationTarget(matching: target)
       }
 
-      private func handleNavigationTarget(_ target: ReaderViewItem) {
-        guard let targetItem = resolveNavigationTarget(target) else {
-          parent.viewModel.clearNavigationTarget()
+      private func handleNavigationTarget(_ target: ReaderPositionAnchor) {
+        guard let targetAnchor = resolveNavigationTarget(target),
+          let targetItem = targetAnchor.item
+        else {
+          clearNavigationTargetIfMatching(target)
           return
         }
 
@@ -399,34 +396,40 @@
           deckState.rebuild(around: targetItem, viewModel: parent.viewModel)
           syncSlotContent()
           updateSlotLayout()
-          applyCurrentItem(targetItem)
-          clearNavigationTargetIfConsumed(targetItem)
+          applyCurrentPosition(targetAnchor)
+          clearNavigationTargetIfMatching(target)
           return
         }
 
         guard let currentIndex = parent.viewModel.viewItemIndex(for: currentItem),
           let targetIndex = parent.viewModel.viewItemIndex(for: targetItem)
         else {
-          parent.viewModel.clearNavigationTarget()
+          clearNavigationTargetIfMatching(target)
           return
         }
 
         guard targetIndex != currentIndex else {
-          parent.viewModel.clearNavigationTarget()
+          applyCurrentPosition(targetAnchor)
+          clearNavigationTargetIfMatching(target)
           return
         }
 
         if abs(targetIndex - currentIndex) == 1 {
           dragOffset = 0
-          commitTransition(to: targetItem, animation: .tapNavigation)
+          commitTransition(
+            to: targetItem,
+            positionAnchor: targetAnchor,
+            navigationTarget: target,
+            animation: .tapNavigation
+          )
         } else {
           deckState.rebuild(around: targetItem, viewModel: parent.viewModel)
           transitionDirection = nil
           dragOffset = 0
           syncSlotContent()
           updateSlotLayout()
-          applyCurrentItem(targetItem)
-          clearNavigationTargetIfConsumed(targetItem)
+          applyCurrentPosition(targetAnchor)
+          clearNavigationTargetIfMatching(target)
         }
       }
 
@@ -501,13 +504,19 @@
 
       private func commitTransition(
         to targetItem: ReaderViewItem,
+        positionAnchor: ReaderPositionAnchor? = nil,
+        navigationTarget: ReaderPositionAnchor? = nil,
         animation: TransitionAnimationKind
       ) {
         guard let currentItem,
           let currentIndex = parent.viewModel.viewItemIndex(for: currentItem),
           let targetIndex = parent.viewModel.viewItemIndex(for: targetItem)
         else {
-          completeTransition(to: targetItem)
+          completeTransition(
+            to: targetItem,
+            positionAnchor: positionAnchor,
+            navigationTarget: navigationTarget
+          )
           return
         }
 
@@ -526,7 +535,11 @@
 
         if targetIndex > currentIndex {
           animateDragOffset(to: endOffset, duration: duration, token: token) {
-            self.completeTransition(to: targetItem)
+            self.completeTransition(
+              to: targetItem,
+              positionAnchor: positionAnchor,
+              navigationTarget: navigationTarget
+            )
           }
         } else {
           if abs(dragOffset) < TransitionMetrics.cancelThreshold {
@@ -534,12 +547,20 @@
             updateSlotLayout()
           }
           animateDragOffset(to: 0, duration: duration, token: token) {
-            self.completeTransition(to: targetItem)
+            self.completeTransition(
+              to: targetItem,
+              positionAnchor: positionAnchor,
+              navigationTarget: navigationTarget
+            )
           }
         }
       }
 
-      private func completeTransition(to targetItem: ReaderViewItem) {
+      private func completeTransition(
+        to targetItem: ReaderViewItem,
+        positionAnchor: ReaderPositionAnchor?,
+        navigationTarget: ReaderPositionAnchor?
+      ) {
         let direction = transitionDirection ?? 1
         deckState.rotateAfterCommit(
           to: targetItem,
@@ -551,8 +572,14 @@
         isAnimatingTransition = false
         syncSlotContent()
         updateSlotLayout()
-        applyCurrentItem(targetItem)
-        clearNavigationTargetIfConsumed(targetItem)
+        if let positionAnchor {
+          applyCurrentPosition(positionAnchor)
+        } else {
+          applyCurrentItem(targetItem)
+        }
+        if let navigationTarget {
+          clearNavigationTargetIfMatching(navigationTarget)
+        }
         applyPanRecognizerState()
         // A freshly committed page is never zoomed. Clear any stale scale left on
         // a slot that was zoomed while the transition animation was in flight
@@ -637,9 +664,18 @@
       }
 
       private func applyCurrentItem(_ item: ReaderViewItem) {
+        let currentAnchor = parent.viewModel.captureCurrentPositionAnchor()
+        let focusedPageID = currentAnchor.item == item ? currentAnchor.focusedPageID : item.pageID
+        applyCurrentPosition(
+          ReaderPositionAnchor(item: item, focusedPageID: focusedPageID)
+        )
+      }
+
+      private func applyCurrentPosition(_ anchor: ReaderPositionAnchor) {
+        guard let item = anchor.item else { return }
         postTransitionTask?.cancel()
         let token = transitionToken
-        parent.viewModel.updateCurrentPosition(viewItem: item)
+        parent.viewModel.updateCurrentPosition(anchor: anchor)
 
         postTransitionTask = Task(priority: .utility) {
           guard !Task.isCancelled else { return }
