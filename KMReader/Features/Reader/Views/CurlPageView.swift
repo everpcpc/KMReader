@@ -3,6 +3,7 @@
 //
 
 #if os(iOS)
+  import Foundation
   import SwiftUI
   import UIKit
 
@@ -23,17 +24,16 @@
 
     func makeUIViewController(context: Context) -> UIPageViewController {
       let spineLocation: UIPageViewController.SpineLocation = mode.isRTL ? .max : .min
-      let pageVC = UIPageViewController(
+      let pageViewController = UIPageViewController(
         transitionStyle: .pageCurl,
         navigationOrientation: mode.isVertical ? .vertical : .horizontal,
         options: [.spineLocation: NSNumber(value: spineLocation.rawValue)]
       )
-      context.coordinator.pageViewController = pageVC
-      pageVC.dataSource = context.coordinator
-      pageVC.delegate = context.coordinator
-      context.coordinator.installTapRecognizers(on: pageVC.view)
 
-      for recognizer in pageVC.gestureRecognizers {
+      context.coordinator.attach(to: pageViewController)
+      context.coordinator.installTapRecognizers(on: pageViewController.view)
+
+      for recognizer in pageViewController.gestureRecognizers {
         recognizer.delegate = context.coordinator
         if recognizer is UITapGestureRecognizer {
           recognizer.isEnabled = false
@@ -41,135 +41,24 @@
       }
 
       PageCurlControllerPlanner.configure(
-        pageViewController: pageVC,
+        pageViewController: pageViewController,
         semanticContentAttribute: mode.isRTL ? .forceRightToLeft : .forceLeftToRight
       )
-      PageCurlBacksideViewController.applyStyle(pageCurlBacksideStyle(), to: pageVC)
+      PageCurlBacksideViewController.applyStyle(pageCurlBacksideStyle(), to: pageViewController)
+      context.coordinator.installInitialControllers(on: pageViewController)
 
-      let initialIndex = viewModel.currentViewItem().flatMap { viewModel.viewItemIndex(for: $0) } ?? 0
-      context.coordinator.currentItem = viewModel.viewItem(at: initialIndex)
-      context.coordinator.updateViewItemsSnapshot(viewModel.viewItems)
-      Task { @MainActor in
-        viewModel.updateCurrentPosition(viewItem: viewModel.viewItem(at: initialIndex))
-      }
-
-      if let initialVC = context.coordinator.pageViewController(for: initialIndex) {
-        let controllers = pageCurlControllers(
-          primary: initialVC,
-          targetIndex: initialIndex,
-          animated: false,
-          in: pageVC
-        )
-        PageCurlControllerPlanner.safeSetViewControllers(
-          controllers,
-          on: pageVC,
-          direction: .forward,
-          animated: false
-        )
-      } else {
-        PageCurlControllerPlanner.safeSetViewControllers(
-          PageCurlControllerPlanner.placeholderControllers(
-            in: pageVC,
-            backgroundColor: UIColor(renderConfig.readerBackground.color)
-          ),
-          on: pageVC,
-          direction: .forward,
-          animated: false
-        )
-      }
-
-      return pageVC
+      return pageViewController
     }
 
-    func updateUIViewController(_ pageVC: UIPageViewController, context: Context) {
-      context.coordinator.parent = self
-      context.coordinator.pageViewController = pageVC
-      context.coordinator.applyDoubleTapRecognizerState()
-      defer { context.coordinator.hasCompletedInitialUpdate = true }
-      PageCurlControllerPlanner.configure(
-        pageViewController: pageVC,
-        semanticContentAttribute: mode.isRTL ? .forceRightToLeft : .forceLeftToRight
-      )
-      PageCurlBacksideViewController.applyStyle(pageCurlBacksideStyle(), to: pageVC)
-      context.coordinator.syncCurrentItemWithVisibleController()
-      let didViewItemsChange = context.coordinator.updateViewItemsSnapshot(viewModel.viewItems)
-      context.coordinator.refreshVisibleControllerConfiguration()
+    func updateUIViewController(_ pageViewController: UIPageViewController, context: Context) {
+      context.coordinator.update(parent: self, pageViewController: pageViewController)
+    }
 
-      let targetViewItemIndex: Int? = {
-        if let explicitTarget = viewModel.navigationTarget.flatMap({ viewModel.resolvedViewItem(for: $0) }) {
-          return viewModel.viewItemIndex(for: explicitTarget)
-        }
-        if didViewItemsChange, let currentItem = viewModel.currentViewItem() {
-          return viewModel.viewItemIndex(for: currentItem)
-        }
-        return nil
-      }()
-
-      guard let targetViewItemIndex else { return }
-      let currentPageIndex = context.coordinator.currentResolvedIndex() ?? targetViewItemIndex
-
-      let clearTargets: () -> Void = {
-        _ = Task { @MainActor in
-          viewModel.clearNavigationTarget()
-        }
-      }
-
-      guard targetViewItemIndex != currentPageIndex else {
-        clearTargets()
-        return
-      }
-
-      guard let targetVC = context.coordinator.pageViewController(for: targetViewItemIndex) else {
-        clearTargets()
-        return
-      }
-
-      guard !context.coordinator.isTransitioning else { return }
-
-      let direction: UIPageViewController.NavigationDirection
-      if mode.isRTL {
-        direction = targetViewItemIndex > currentPageIndex ? .reverse : .forward
-      } else {
-        direction = targetViewItemIndex > currentPageIndex ? .forward : .reverse
-      }
-
-      context.coordinator.isTransitioning = true
-      let shouldAnimateTransition = context.coordinator.hasCompletedInitialUpdate && animateTapTurns
-      let transitionControllers = pageCurlControllers(
-        primary: targetVC,
-        targetIndex: targetViewItemIndex,
-        animated: shouldAnimateTransition,
-        in: pageVC
-      )
-      PageCurlControllerPlanner.safeSetViewControllers(
-        transitionControllers,
-        on: pageVC,
-        direction: direction,
-        animated: shouldAnimateTransition
-      ) { completed in
-        Task { @MainActor in
-          context.coordinator.isTransitioning = false
-          if completed || !shouldAnimateTransition {
-            let committedControllers = pageCurlControllers(
-              primary: targetVC,
-              targetIndex: targetViewItemIndex,
-              animated: false,
-              in: pageVC
-            )
-            PageCurlControllerPlanner.safeSetViewControllers(
-              committedControllers,
-              on: pageVC,
-              direction: direction,
-              animated: false
-            )
-            context.coordinator.currentItem = viewModel.viewItem(at: targetViewItemIndex)
-            viewModel.updateCurrentPosition(
-              viewItem: context.coordinator.currentItem
-            )
-          }
-          viewModel.clearNavigationTarget()
-        }
-      }
+    static func dismantleUIViewController(
+      _ pageViewController: UIPageViewController,
+      coordinator: Coordinator
+    ) {
+      coordinator.teardown(from: pageViewController)
     }
 
     private func pageCurlBacksideStyle() -> PageCurlBacksideViewController.Style {
@@ -182,58 +71,141 @@
       mode.isVertical ? .vertical : .horizontal
     }
 
-    private func pageCurlBacksideController(
-      for targetIndex: Int,
-      mirroredSnapshot: PageCurlBacksideViewController.MirroredSnapshot? = nil
-    ) -> PageCurlBacksideViewController {
-      PageCurlBacksideViewController(
-        destinationToken: String(targetIndex),
-        style: pageCurlBacksideStyle(),
-        mirroredSnapshot: mirroredSnapshot
-      )
-    }
-
-    private func pageCurlControllers(
-      primary: UIViewController,
-      targetIndex: Int,
-      animated: Bool,
-      in pageVC: UIPageViewController
-    ) -> [UIViewController] {
-      PageCurlControllerPlanner.controllers(
-        primary: primary,
-        animated: animated,
-        in: pageVC,
-        makeBackside: {
-          let mirroredSnapshot = PageCurlBacksideViewController.makeMirroredSnapshot(
-            from: primary,
-            axis: pageCurlBacksideMirrorAxis()
-          )
-          return pageCurlBacksideController(
-            for: targetIndex,
-            mirroredSnapshot: mirroredSnapshot
-          )
-        }
-      )
-    }
-
     // MARK: - Coordinator
 
-    class Coordinator: NSObject, UIPageViewControllerDataSource, UIPageViewControllerDelegate,
+    @MainActor
+    final class Coordinator: NSObject, UIPageViewControllerDataSource, UIPageViewControllerDelegate,
       UIGestureRecognizerDelegate
     {
-      var parent: CurlPageView
-      var currentItem: ReaderViewItem?
-      weak var pageViewController: UIPageViewController?
-      var isTransitioning = false
-      var hasCompletedInitialUpdate = false
+      private var parent: CurlPageView
+      private weak var pageViewController: UIPageViewController?
+      private var isActive = false
+      private var isTransitioning = false
+      private var hasCompletedInitialUpdate = false
+      private var currentAnchor: ReaderPositionAnchor?
+      private var renderedSnapshot = PageCurlViewItemsSnapshot(items: [])
+      private var pendingSnapshot: PageCurlViewItemsSnapshot?
+      private var preloadTask: Task<Void, Never>?
+      private var navigationContinuationTask: Task<Void, Never>?
+      private var consumedNavigationTarget: ReaderPositionAnchor?
+      private var retriedNavigationTarget: ReaderPositionAnchor?
+      private let controllerIdentities =
+        NSMapTable<UIViewController, PageCurlControllerIdentity>.weakToStrongObjects()
+      private weak var singleTapRecognizer: UITapGestureRecognizer?
       private weak var doubleTapRecognizer: UITapGestureRecognizer?
-      private var lastViewItemsCount: Int = 0
-      private var lastFirstViewItem: ReaderViewItem?
-      private var lastLastViewItem: ReaderViewItem?
+      private weak var longPressRecognizer: UILongPressGestureRecognizer?
 
       init(_ parent: CurlPageView) {
         self.parent = parent
-        self.currentItem = parent.viewModel.currentViewItem()
+        super.init()
+      }
+
+      func attach(to pageViewController: UIPageViewController) {
+        self.pageViewController = pageViewController
+        isActive = true
+        pageViewController.dataSource = self
+        pageViewController.delegate = self
+      }
+
+      func installInitialControllers(on pageViewController: UIPageViewController) {
+        guard isCurrentAttachment(pageViewController) else { return }
+
+        renderedSnapshot = PageCurlViewItemsSnapshot(items: parent.viewModel.viewItems)
+        let modelAnchor = parent.viewModel.captureCurrentPositionAnchor()
+        guard let item = renderedSnapshot.resolvedItem(for: modelAnchor) else {
+          currentAnchor = nil
+          installPlaceholderControllers(on: pageViewController)
+          return
+        }
+
+        currentAnchor = localAnchor(for: item, preserving: modelAnchor)
+        installContentControllers(
+          for: item,
+          on: pageViewController,
+          direction: .forward,
+          animated: false
+        )
+      }
+
+      func update(parent: CurlPageView, pageViewController: UIPageViewController) {
+        self.parent = parent
+        if !isCurrentAttachment(pageViewController) {
+          attach(to: pageViewController)
+        }
+
+        guard isCurrentAttachment(pageViewController) else { return }
+        defer { hasCompletedInitialUpdate = true }
+
+        applyDoubleTapRecognizerState()
+        PageCurlControllerPlanner.configure(
+          pageViewController: pageViewController,
+          semanticContentAttribute: parent.mode.isRTL ? .forceRightToLeft : .forceLeftToRight
+        )
+        PageCurlBacksideViewController.applyStyle(
+          parent.pageCurlBacksideStyle(),
+          to: pageViewController
+        )
+
+        if !isTransitioning {
+          synchronizeCurrentAnchorWithVisibleController()
+        }
+
+        let newSnapshot = PageCurlViewItemsSnapshot(items: parent.viewModel.viewItems)
+        var didInstallSnapshot = false
+        if isTransitioning {
+          pendingSnapshot = newSnapshot == renderedSnapshot ? nil : newSnapshot
+        } else if newSnapshot != renderedSnapshot {
+          applySnapshot(
+            newSnapshot,
+            preserving: currentAnchor ?? parent.viewModel.captureCurrentPositionAnchor(),
+            on: pageViewController
+          )
+          didInstallSnapshot = true
+        }
+
+        guard !isTransitioning else { return }
+        if !didInstallSnapshot {
+          refreshVisibleControllerConfiguration()
+        }
+        processNavigationTarget(on: pageViewController)
+      }
+
+      func teardown(from pageViewController: UIPageViewController) {
+        guard self.pageViewController === pageViewController else { return }
+
+        isActive = false
+        preloadTask?.cancel()
+        preloadTask = nil
+        navigationContinuationTask?.cancel()
+        navigationContinuationTask = nil
+        consumedNavigationTarget = nil
+        retriedNavigationTarget = nil
+
+        pageViewController.dataSource = nil
+        pageViewController.delegate = nil
+        for recognizer in pageViewController.gestureRecognizers where recognizer.delegate === self {
+          recognizer.delegate = nil
+        }
+
+        let ownedRecognizers: [UIGestureRecognizer?] = [
+          singleTapRecognizer,
+          doubleTapRecognizer,
+          longPressRecognizer,
+        ]
+        for recognizer in ownedRecognizers.compactMap({ $0 }) {
+          recognizer.view?.removeGestureRecognizer(recognizer)
+        }
+        singleTapRecognizer = nil
+        doubleTapRecognizer = nil
+        longPressRecognizer = nil
+
+        controllerIdentities.removeAllObjects()
+        renderedSnapshot = PageCurlViewItemsSnapshot(items: [])
+        pendingSnapshot = nil
+        currentAnchor = nil
+        isTransitioning = false
+        hasCompletedInitialUpdate = false
+        self.pageViewController = nil
       }
 
       func installTapRecognizers(on view: UIView) {
@@ -242,6 +214,7 @@
         singleTap.cancelsTouchesInView = false
         singleTap.delegate = self
         view.addGestureRecognizer(singleTap)
+        singleTapRecognizer = singleTap
 
         let doubleTap = UITapGestureRecognizer(target: self, action: #selector(handleDoubleTap(_:)))
         doubleTap.numberOfTapsRequired = 2
@@ -256,30 +229,100 @@
         longPress.delegate = self
         singleTap.require(toFail: longPress)
         view.addGestureRecognizer(longPress)
+        longPressRecognizer = longPress
         applyDoubleTapRecognizerState()
       }
 
-      func applyDoubleTapRecognizerState() {
+      private func applyDoubleTapRecognizerState() {
         doubleTapRecognizer?.isEnabled = parent.renderConfig.doubleTapZoomMode.isEnabled
       }
 
-      var totalPages: Int {
-        parent.viewModel.viewItems.count
+      private func isCurrentAttachment(_ pageViewController: UIPageViewController) -> Bool {
+        isActive && self.pageViewController === pageViewController
       }
 
-      @discardableResult
-      func updateViewItemsSnapshot(_ items: [ReaderViewItem]) -> Bool {
-        let firstItem = items.first
-        let lastItem = items.last
-        let didChange =
-          items.count != lastViewItemsCount
-          || firstItem != lastFirstViewItem
-          || lastItem != lastLastViewItem
+      private func localAnchor(
+        for item: ReaderViewItem,
+        preserving anchor: ReaderPositionAnchor?
+      ) -> ReaderPositionAnchor {
+        let focusedPageID: ReaderPageID?
+        if let preferredPageID = anchor?.focusedPageID,
+          item.pageIDs.contains(preferredPageID) || item.pageID == preferredPageID
+        {
+          focusedPageID = preferredPageID
+        } else {
+          focusedPageID = item.pageID
+        }
+        return ReaderPositionAnchor(item: item, focusedPageID: focusedPageID)
+      }
 
-        lastViewItemsCount = items.count
-        lastFirstViewItem = firstItem
-        lastLastViewItem = lastItem
-        return didChange
+      private func applySnapshot(
+        _ snapshot: PageCurlViewItemsSnapshot,
+        preserving anchor: ReaderPositionAnchor,
+        on pageViewController: UIPageViewController
+      ) {
+        guard isCurrentAttachment(pageViewController) else { return }
+
+        renderedSnapshot = snapshot
+        pendingSnapshot = nil
+        guard let item = snapshot.resolvedItem(for: anchor) else {
+          currentAnchor = nil
+          installPlaceholderControllers(on: pageViewController)
+          return
+        }
+
+        currentAnchor = localAnchor(for: item, preserving: anchor)
+        installContentControllers(
+          for: item,
+          on: pageViewController,
+          direction: .forward,
+          animated: false
+        )
+      }
+
+      private func applyPendingSnapshotIfNeeded(
+        preserving anchor: ReaderPositionAnchor? = nil,
+        on pageViewController: UIPageViewController
+      ) {
+        guard let pendingSnapshot else { return }
+        self.pendingSnapshot = nil
+        guard pendingSnapshot != renderedSnapshot else { return }
+
+        applySnapshot(
+          pendingSnapshot,
+          preserving: anchor ?? currentAnchor ?? parent.viewModel.captureCurrentPositionAnchor(),
+          on: pageViewController
+        )
+      }
+
+      private func registerIdentity(
+        _ role: PageCurlControllerIdentity.Role,
+        item: ReaderViewItem?,
+        for controller: UIViewController
+      ) {
+        controllerIdentities.setObject(
+          PageCurlControllerIdentity(item: item, role: role),
+          forKey: controller
+        )
+      }
+
+      private func identity(for controller: UIViewController) -> PageCurlControllerIdentity? {
+        controllerIdentities.object(forKey: controller)
+      }
+
+      private func visibleItem() -> ReaderViewItem? {
+        guard let visibleController = pageViewController?.viewControllers?.first else { return nil }
+        return identity(for: visibleController)?.item
+      }
+
+      private func synchronizeCurrentAnchorWithVisibleController() {
+        guard let item = visibleItem() else { return }
+        currentAnchor = localAnchor(for: item, preserving: currentAnchor)
+      }
+
+      private func currentResolvedIndex() -> Int? {
+        guard let currentAnchor else { return nil }
+        return renderedSnapshot.index(for: currentAnchor)
       }
 
       private func configureImageController(
@@ -326,58 +369,8 @@
         )
       }
 
-      func refreshVisibleControllerConfiguration() {
-        guard !isTransitioning else { return }
-        guard let pageViewController else { return }
-        guard let visibleController = pageViewController.viewControllers?.first else { return }
-        guard let index = resolvedIndex(for: visibleController) else { return }
-        guard let item = parent.viewModel.viewItem(at: index) else { return }
-
-        switch item {
-        case .end(let id):
-          if let endController = visibleController as? NativeEndPageViewController {
-            configureEndController(endController, segmentBookId: id.bookId)
-          } else if let replacement = self.pageViewController(for: index) {
-            let controllers = parent.pageCurlControllers(
-              primary: replacement,
-              targetIndex: index,
-              animated: false,
-              in: pageViewController
-            )
-            PageCurlControllerPlanner.safeSetViewControllers(
-              controllers,
-              on: pageViewController,
-              direction: .forward,
-              animated: false
-            )
-          }
-        case .page, .dual, .split:
-          if let imageController = visibleController as? NativeImagePageViewController {
-            configureImageController(imageController, with: item)
-          } else if let replacement = self.pageViewController(for: index) {
-            let controllers = parent.pageCurlControllers(
-              primary: replacement,
-              targetIndex: index,
-              animated: false,
-              in: pageViewController
-            )
-            PageCurlControllerPlanner.safeSetViewControllers(
-              controllers,
-              on: pageViewController,
-              direction: .forward,
-              animated: false
-            )
-          }
-        }
-      }
-
-      func pageViewController(for index: Int) -> UIViewController? {
-        guard index >= 0 && index < totalPages else { return nil }
-        guard parent.viewModel.hasPages else { return nil }
-        guard let item = parent.viewModel.viewItem(at: index) else { return nil }
-
+      private func makeContentController(for item: ReaderViewItem) -> UIViewController {
         let controller: UIViewController
-
         switch item {
         case .end(let id):
           let endController = NativeEndPageViewController()
@@ -388,9 +381,257 @@
           configureImageController(imageController, with: item)
           controller = imageController
         }
-
-        controller.view.tag = index
+        registerIdentity(.content, item: item, for: controller)
         return controller
+      }
+
+      private func makeBacksideController(
+        for item: ReaderViewItem,
+        mirroredSnapshot: PageCurlBacksideViewController.MirroredSnapshot? = nil
+      ) -> PageCurlBacksideViewController {
+        let controller = PageCurlBacksideViewController(
+          destinationToken: item.pageID.description,
+          style: parent.pageCurlBacksideStyle(),
+          mirroredSnapshot: mirroredSnapshot
+        )
+        registerIdentity(.backside, item: item, for: controller)
+        return controller
+      }
+
+      private func pageCurlControllers(
+        primary: UIViewController,
+        item: ReaderViewItem,
+        animated: Bool,
+        in pageViewController: UIPageViewController
+      ) -> [UIViewController] {
+        PageCurlControllerPlanner.controllers(
+          primary: primary,
+          animated: animated,
+          in: pageViewController,
+          makeBackside: {
+            let mirroredSnapshot = PageCurlBacksideViewController.makeMirroredSnapshot(
+              from: primary,
+              axis: self.parent.pageCurlBacksideMirrorAxis()
+            )
+            return self.makeBacksideController(
+              for: item,
+              mirroredSnapshot: mirroredSnapshot
+            )
+          }
+        )
+      }
+
+      private func installContentControllers(
+        for item: ReaderViewItem,
+        primary: UIViewController? = nil,
+        on pageViewController: UIPageViewController,
+        direction: UIPageViewController.NavigationDirection,
+        animated: Bool
+      ) {
+        let primaryController = primary ?? makeContentController(for: item)
+        let controllers = pageCurlControllers(
+          primary: primaryController,
+          item: item,
+          animated: animated,
+          in: pageViewController
+        )
+        PageCurlControllerPlanner.safeSetViewControllers(
+          controllers,
+          on: pageViewController,
+          direction: direction,
+          animated: animated
+        )
+      }
+
+      private func installPlaceholderControllers(on pageViewController: UIPageViewController) {
+        let controllers = PageCurlControllerPlanner.placeholderControllers(
+          in: pageViewController,
+          backgroundColor: UIColor(parent.renderConfig.readerBackground.color)
+        )
+        for controller in controllers {
+          registerIdentity(.placeholder, item: nil, for: controller)
+        }
+        PageCurlControllerPlanner.safeSetViewControllers(
+          controllers,
+          on: pageViewController,
+          direction: .forward,
+          animated: false
+        )
+      }
+
+      private func refreshVisibleControllerConfiguration() {
+        guard !isTransitioning else { return }
+        guard let pageViewController else { return }
+        guard let visibleController = pageViewController.viewControllers?.first else { return }
+        guard let visibleItem = identity(for: visibleController)?.item,
+          let visibleIndex = renderedSnapshot.index(for: visibleItem),
+          let item = renderedSnapshot.item(at: visibleIndex)
+        else {
+          return
+        }
+
+        switch item {
+        case .end(let id):
+          if let endController = visibleController as? NativeEndPageViewController {
+            configureEndController(endController, segmentBookId: id.bookId)
+          } else {
+            installContentControllers(
+              for: item,
+              on: pageViewController,
+              direction: .forward,
+              animated: false
+            )
+          }
+        case .page, .dual, .split:
+          if let imageController = visibleController as? NativeImagePageViewController {
+            configureImageController(imageController, with: item)
+          } else {
+            installContentControllers(
+              for: item,
+              on: pageViewController,
+              direction: .forward,
+              animated: false
+            )
+          }
+        }
+      }
+
+      private func processNavigationTarget(on pageViewController: UIPageViewController) {
+        guard isCurrentAttachment(pageViewController), !isTransitioning else { return }
+        guard let requestedTarget = parent.viewModel.navigationTarget else { return }
+        guard !renderedSnapshot.isEmpty else { return }
+
+        guard let targetItem = renderedSnapshot.matchingItem(for: requestedTarget),
+          let targetIndex = renderedSnapshot.index(for: targetItem)
+        else {
+          let modelSnapshot = PageCurlViewItemsSnapshot(items: parent.viewModel.viewItems)
+          if renderedSnapshot == modelSnapshot {
+            retriedNavigationTarget = nil
+            scheduleNavigationContinuation(consuming: requestedTarget, on: pageViewController)
+          }
+          return
+        }
+
+        let currentIndex = currentResolvedIndex() ?? targetIndex
+        guard targetIndex != currentIndex else {
+          retriedNavigationTarget = nil
+          commitCurrentPosition(
+            to: targetItem,
+            preserving: requestedTarget,
+            preloadPages: false
+          )
+          scheduleNavigationContinuation(consuming: requestedTarget, on: pageViewController)
+          return
+        }
+
+        let direction: UIPageViewController.NavigationDirection
+        if parent.mode.isRTL {
+          direction = targetIndex > currentIndex ? .reverse : .forward
+        } else {
+          direction = targetIndex > currentIndex ? .forward : .reverse
+        }
+
+        let targetController = makeContentController(for: targetItem)
+        let shouldAnimateTransition = hasCompletedInitialUpdate && parent.animateTapTurns
+        let transitionControllers = pageCurlControllers(
+          primary: targetController,
+          item: targetItem,
+          animated: shouldAnimateTransition,
+          in: pageViewController
+        )
+        isTransitioning = true
+
+        PageCurlControllerPlanner.safeSetViewControllers(
+          transitionControllers,
+          on: pageViewController,
+          direction: direction,
+          animated: shouldAnimateTransition
+        ) { [weak self, weak pageViewController] completed in
+          guard let self, let pageViewController else { return }
+          guard self.isCurrentAttachment(pageViewController) else { return }
+
+          self.isTransitioning = false
+          if completed || !shouldAnimateTransition {
+            self.retriedNavigationTarget = nil
+            self.installContentControllers(
+              for: targetItem,
+              primary: targetController,
+              on: pageViewController,
+              direction: direction,
+              animated: false
+            )
+            self.commitCurrentPosition(
+              to: targetItem,
+              preserving: requestedTarget,
+              preloadPages: false
+            )
+            self.applyPendingSnapshotIfNeeded(
+              preserving: self.parent.viewModel.captureCurrentPositionAnchor(),
+              on: pageViewController
+            )
+            self.scheduleNavigationContinuation(
+              consuming: requestedTarget,
+              on: pageViewController
+            )
+          } else {
+            self.synchronizeCurrentAnchorWithVisibleController()
+            self.applyPendingSnapshotIfNeeded(
+              preserving: self.currentAnchor,
+              on: pageViewController
+            )
+            self.refreshVisibleControllerConfiguration()
+            if self.retriedNavigationTarget != requestedTarget {
+              self.retriedNavigationTarget = requestedTarget
+              self.scheduleNavigationContinuation(consuming: nil, on: pageViewController)
+            }
+          }
+        }
+      }
+
+      private func scheduleNavigationContinuation(
+        consuming target: ReaderPositionAnchor?,
+        on pageViewController: UIPageViewController
+      ) {
+        if let target {
+          consumedNavigationTarget = target
+        }
+        guard navigationContinuationTask == nil else { return }
+
+        navigationContinuationTask = Task { @MainActor [weak self, weak pageViewController] in
+          await Task.yield()
+          guard !Task.isCancelled,
+            let self,
+            let pageViewController,
+            self.isCurrentAttachment(pageViewController)
+          else { return }
+
+          let consumedTarget = self.consumedNavigationTarget
+          self.consumedNavigationTarget = nil
+          self.navigationContinuationTask = nil
+          if let consumedTarget {
+            self.parent.viewModel.clearNavigationTarget(matching: consumedTarget)
+          }
+          self.processNavigationTarget(on: pageViewController)
+        }
+      }
+
+      private func commitCurrentPosition(
+        to item: ReaderViewItem,
+        preserving preferredAnchor: ReaderPositionAnchor?,
+        preloadPages: Bool
+      ) {
+        let anchor = localAnchor(for: item, preserving: preferredAnchor)
+        parent.viewModel.updateCurrentPosition(anchor: anchor)
+        currentAnchor = parent.viewModel.matchingPositionAnchor(for: anchor) ?? anchor
+
+        guard preloadPages else { return }
+        preloadTask?.cancel()
+        let viewModel = parent.viewModel
+        preloadTask = Task { @MainActor [weak self] in
+          await viewModel.preloadPages()
+          guard !Task.isCancelled else { return }
+          self?.preloadTask = nil
+        }
       }
 
       // MARK: - UIPageViewControllerDataSource
@@ -399,46 +640,56 @@
         _ pageViewController: UIPageViewController,
         viewControllerBefore viewController: UIViewController
       ) -> UIViewController? {
-        if let backsideController = viewController as? PageCurlBacksideViewController {
-          guard let targetIndex = Int(backsideController.destinationToken), isValidIndex(targetIndex) else {
-            return nil
-          }
-          return self.pageViewController(for: targetIndex)
+        guard isCurrentAttachment(pageViewController) else { return nil }
+        guard let identity = identity(for: viewController), let item = identity.item else { return nil }
+
+        switch identity.role {
+        case .backside:
+          guard renderedSnapshot.index(for: item) != nil else { return nil }
+          return makeContentController(for: item)
+        case .content:
+          guard let index = renderedSnapshot.index(for: item) else { return nil }
+          let targetIndex = parent.mode.isRTL ? index + 1 : index - 1
+          guard let targetItem = renderedSnapshot.item(at: targetIndex) else { return nil }
+          let mirroredSnapshot = mirroredSnapshotForBackside(
+            targetItem: targetItem,
+            currentController: viewController
+          )
+          return makeBacksideController(
+            for: targetItem,
+            mirroredSnapshot: mirroredSnapshot
+          )
+        case .placeholder:
+          return nil
         }
-        let index = viewController.view.tag
-        let targetIndex = parent.mode.isRTL ? index + 1 : index - 1
-        if !isValidIndex(targetIndex) { return nil }
-        let mirroredSnapshot = mirroredSnapshotForBackside(
-          targetIndex: targetIndex,
-          currentController: viewController
-        )
-        return parent.pageCurlBacksideController(
-          for: targetIndex,
-          mirroredSnapshot: mirroredSnapshot
-        )
       }
 
       func pageViewController(
         _ pageViewController: UIPageViewController,
         viewControllerAfter viewController: UIViewController
       ) -> UIViewController? {
-        if let backsideController = viewController as? PageCurlBacksideViewController {
-          guard let targetIndex = Int(backsideController.destinationToken), isValidIndex(targetIndex) else {
-            return nil
-          }
-          return self.pageViewController(for: targetIndex)
+        guard isCurrentAttachment(pageViewController) else { return nil }
+        guard let identity = identity(for: viewController), let item = identity.item else { return nil }
+
+        switch identity.role {
+        case .backside:
+          guard renderedSnapshot.index(for: item) != nil else { return nil }
+          return makeContentController(for: item)
+        case .content:
+          guard let index = renderedSnapshot.index(for: item) else { return nil }
+          let targetIndex = parent.mode.isRTL ? index - 1 : index + 1
+          guard let targetItem = renderedSnapshot.item(at: targetIndex) else { return nil }
+          let mirroredSnapshot = mirroredSnapshotForBackside(
+            targetItem: targetItem,
+            currentController: viewController
+          )
+          return makeBacksideController(
+            for: targetItem,
+            mirroredSnapshot: mirroredSnapshot
+          )
+        case .placeholder:
+          return nil
         }
-        let index = viewController.view.tag
-        let targetIndex = parent.mode.isRTL ? index - 1 : index + 1
-        if !isValidIndex(targetIndex) { return nil }
-        let mirroredSnapshot = mirroredSnapshotForBackside(
-          targetIndex: targetIndex,
-          currentController: viewController
-        )
-        return parent.pageCurlBacksideController(
-          for: targetIndex,
-          mirroredSnapshot: mirroredSnapshot
-        )
       }
 
       // MARK: - UIPageViewControllerDelegate
@@ -447,6 +698,7 @@
         _ pageViewController: UIPageViewController,
         willTransitionTo pendingViewControllers: [UIViewController]
       ) {
+        guard isCurrentAttachment(pageViewController) else { return }
         isTransitioning = true
       }
 
@@ -456,49 +708,33 @@
         previousViewControllers: [UIViewController],
         transitionCompleted completed: Bool
       ) {
+        guard isCurrentAttachment(pageViewController) else { return }
         isTransitioning = false
-        syncCurrentItemWithVisibleController()
-        guard completed,
-          let visibleController = pageViewController.viewControllers?.first
-        else { return }
 
-        let newIndex: Int
-        if let backsideController = visibleController as? PageCurlBacksideViewController {
-          guard
-            let targetIndex = Int(backsideController.destinationToken),
-            isValidIndex(targetIndex),
-            let targetVC = self.pageViewController(for: targetIndex)
-          else {
-            return
+        if completed, let item = visibleItem() {
+          if let visibleController = pageViewController.viewControllers?.first,
+            let identity = identity(for: visibleController)
+          {
+            if case .backside = identity.role {
+              installContentControllers(
+                for: item,
+                on: pageViewController,
+                direction: .forward,
+                animated: false
+              )
+            }
           }
-          let controllers = parent.pageCurlControllers(
-            primary: targetVC,
-            targetIndex: targetIndex,
-            animated: false,
-            in: pageViewController
+          commitCurrentPosition(
+            to: item,
+            preserving: currentAnchor,
+            preloadPages: true
           )
-          PageCurlControllerPlanner.safeSetViewControllers(
-            controllers,
-            on: pageViewController,
-            direction: .forward,
-            animated: false
-          )
-          newIndex = targetIndex
         } else {
-          let resolvedIndex = visibleController.view.tag
-          guard isValidIndex(resolvedIndex) else { return }
-          newIndex = resolvedIndex
+          synchronizeCurrentAnchorWithVisibleController()
         }
 
-        currentItem = parent.viewModel.viewItem(at: newIndex)
-
-        let viewModel = parent.viewModel
-        Task { @MainActor in
-          viewModel.updateCurrentPosition(viewItem: currentItem)
-        }
-        Task(priority: .utility) { @MainActor in
-          await viewModel.preloadPages()
-        }
+        applyPendingSnapshotIfNeeded(on: pageViewController)
+        scheduleNavigationContinuation(consuming: nil, on: pageViewController)
       }
 
       func pageViewController(
@@ -509,38 +745,6 @@
       }
 
       // MARK: - UIGestureRecognizerDelegate
-
-      private func isValidIndex(_ index: Int) -> Bool {
-        index >= 0 && index < totalPages
-      }
-
-      private func resolvedIndex(for viewController: UIViewController) -> Int? {
-        if let backsideController = viewController as? PageCurlBacksideViewController {
-          guard let targetIndex = Int(backsideController.destinationToken) else { return nil }
-          guard isValidIndex(targetIndex) else { return nil }
-          return targetIndex
-        }
-
-        let index = viewController.view.tag
-        guard isValidIndex(index) else { return nil }
-        return index
-      }
-
-      private func visiblePageIndex() -> Int? {
-        guard let visibleController = pageViewController?.viewControllers?.first else { return nil }
-        return resolvedIndex(for: visibleController)
-      }
-
-      func currentResolvedIndex() -> Int? {
-        guard let currentItem = parent.viewModel.resolvedViewItem(for: currentItem) else { return nil }
-        return parent.viewModel.viewItemIndex(for: currentItem)
-      }
-
-      func syncCurrentItemWithVisibleController() {
-        if let visibleIndex = visiblePageIndex() {
-          currentItem = parent.viewModel.viewItem(at: visibleIndex)
-        }
-      }
 
       private func beforeIndex(from index: Int) -> Int {
         parent.mode.isRTL ? index + 1 : index - 1
@@ -560,26 +764,22 @@
         return parent.mode.isVertical ? velocity.y : velocity.x
       }
 
-      private func isForwardNavigation(from currentIndex: Int, to targetIndex: Int) -> Bool {
-        if parent.mode.isRTL {
-          return targetIndex > currentIndex
-        }
-        return targetIndex > currentIndex
-      }
-
       private func mirroredSnapshotForBackside(
-        targetIndex: Int,
+        targetItem: ReaderViewItem,
         currentController: UIViewController
       ) -> PageCurlBacksideViewController.MirroredSnapshot? {
-        let currentIndex = currentController.view.tag
-        let sourceController: UIViewController
+        guard let currentItem = identity(for: currentController)?.item,
+          let currentIndex = renderedSnapshot.index(for: currentItem),
+          let targetIndex = renderedSnapshot.index(for: targetItem)
+        else {
+          return nil
+        }
 
-        if isForwardNavigation(from: currentIndex, to: targetIndex) {
+        let sourceController: UIViewController
+        if targetIndex > currentIndex {
           sourceController = currentController
-        } else if let targetController = pageViewController(for: targetIndex) {
-          sourceController = targetController
         } else {
-          sourceController = currentController
+          sourceController = makeContentController(for: targetItem)
         }
 
         return PageCurlBacksideViewController.makeMirroredSnapshot(
@@ -620,13 +820,11 @@
         guard !isTransitioning else { return false }
         guard !parent.viewModel.isZoomed else { return false }
 
-        syncCurrentItemWithVisibleController()
-        guard let currentPageIndex = currentResolvedIndex(), isValidIndex(currentPageIndex) else {
-          return false
-        }
+        synchronizeCurrentAnchorWithVisibleController()
+        guard let currentPageIndex = currentResolvedIndex() else { return false }
 
-        let beforeExists = isValidIndex(beforeIndex(from: currentPageIndex))
-        let afterExists = isValidIndex(afterIndex(from: currentPageIndex))
+        let beforeExists = renderedSnapshot.item(at: beforeIndex(from: currentPageIndex)) != nil
+        let afterExists = renderedSnapshot.item(at: afterIndex(from: currentPageIndex)) != nil
 
         if let pan = gestureRecognizer as? UIPanGestureRecognizer {
           let primaryTranslation = primaryTranslation(for: pan)

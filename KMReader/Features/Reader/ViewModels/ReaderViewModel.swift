@@ -17,7 +17,7 @@ class ReaderViewModel {
   private(set) var bookIdsWithMissingPageDimensions: Set<String> = []
   private var currentPageID: ReaderPageID?
   private var currentViewItemID: ReaderViewItem?
-  var navigationTarget: ReaderViewItem?
+  var navigationTarget: ReaderPositionAnchor?
   var isLoading = true
   var loadingTitle = String(localized: "Loading book...")
   var loadingDetail = String(localized: "Resolving page metadata")
@@ -41,6 +41,8 @@ class ReaderViewModel {
   private var pagePresentationInvalidationHandlers: [UUID: PagePresentationInvalidationHandler] = [:]
   @ObservationIgnored
   private var pdfPreparationTasks: [String: Task<Void, Never>] = [:]
+  @ObservationIgnored
+  private var progressDispatchTail: Task<Void, Never>?
 
   private enum SegmentFetchPurpose {
     case nextPreload
@@ -237,7 +239,7 @@ class ReaderViewModel {
     return isolatePosition(forGlobalPageIndex: pageIndex)
   }
 
-  private func resolvedViewItem(
+  private func matchingViewItem(
     preferredItem: ReaderViewItem? = nil,
     preferredPageID: ReaderPageID? = nil
   ) -> ReaderViewItem? {
@@ -252,14 +254,17 @@ class ReaderViewModel {
     {
       return resolvedItem
     }
-    return viewItems.first
+    return nil
   }
 
-  func resolvedViewItem(for item: ReaderViewItem?) -> ReaderViewItem? {
-    resolvedViewItem(
-      preferredItem: item,
-      preferredPageID: item?.pageID
-    )
+  private func resolvedViewItem(
+    preferredItem: ReaderViewItem? = nil,
+    preferredPageID: ReaderPageID? = nil
+  ) -> ReaderViewItem? {
+    matchingViewItem(
+      preferredItem: preferredItem,
+      preferredPageID: preferredPageID
+    ) ?? viewItems.first
   }
 
   func updatePreloadWindow(_ preloadWindow: ReaderPreloadWindow) {
@@ -711,12 +716,6 @@ class ReaderViewModel {
     isolatePagesByBookId[bookId] = Set(isolatePagesForBook)
   }
 
-  private func restoreCurrentPosition(using currentViewItem: ReaderViewItem?) {
-    guard let currentViewItem else { return }
-    guard navigationTarget == nil else { return }
-    updateCurrentPosition(viewItem: currentViewItem)
-  }
-
   private func syncPageLoadSchedulerCurrentPage() {
     pageLoadScheduler.updateCurrentPageID(resolvedCurrentPageID)
   }
@@ -772,7 +771,7 @@ class ReaderViewModel {
     }
 
     await hydrateIsolatePages(for: nextBook.id)
-    let currentViewItem = currentViewItem()
+    let positionAnchor = captureCurrentPositionAnchor()
 
     appendSegment(
       currentBook: nextBook,
@@ -780,8 +779,7 @@ class ReaderViewModel {
       nextBook: nil,
       pages: fetchedPages
     )
-    regenerateViewState()
-    restoreCurrentPosition(using: currentViewItem)
+    regenerateViewState(preserving: positionAnchor)
   }
 
   func preloadPreviousSegmentIfNeeded(
@@ -816,7 +814,7 @@ class ReaderViewModel {
     }
 
     await hydrateIsolatePages(for: previousBook.id)
-    let currentViewItem = currentViewItem()
+    let positionAnchor = captureCurrentPositionAnchor()
 
     prependSegment(
       currentBook: previousBook,
@@ -824,8 +822,7 @@ class ReaderViewModel {
       nextBook: currentBook,
       pages: fetchedPages
     )
-    regenerateViewState()
-    restoreCurrentPosition(using: currentViewItem)
+    regenerateViewState(preserving: positionAnchor)
   }
 
   func loadPages(
@@ -1175,7 +1172,7 @@ class ReaderViewModel {
     guard let segmentIndex = segmentIndex(forSegmentBookId: bookId) else { return }
 
     let segment = segments[segmentIndex]
-    let currentItem = currentViewItem()
+    let positionAnchor = captureCurrentPositionAnchor()
     segments[segmentIndex] = ReaderSegment(
       previousBook: segment.previousBook,
       currentBook: segment.currentBook,
@@ -1183,8 +1180,7 @@ class ReaderViewModel {
       pages: pages
     )
     rebuildReaderPages()
-    regenerateViewState()
-    restoreCurrentPosition(using: currentItem)
+    regenerateViewState(preserving: positionAnchor)
     notifyPagePresentationInvalidation(.all)
   }
 
@@ -1232,30 +1228,56 @@ class ReaderViewModel {
     pageLoadScheduler.clearPreloadedImages()
   }
 
-  /// Update reading progress on the server
-  /// Uses API page number (1-based) instead of array index (0-based)
-  /// Skip update if incognito mode is enabled
-  func updateProgress() async {
-    // Skip progress updates in incognito mode
-    guard !incognitoMode else {
-      logger.debug("⏭️ [Progress/Page] Skip capture: incognito mode enabled")
-      return
-    }
-    guard let currentReaderPage else {
-      logger.debug("⏭️ [Progress/Page] Skip capture: current page unavailable")
-      return
-    }
-    let currentBookId = currentReaderPage.bookId
-
-    let completed = isBookCompleted(for: currentReaderPage)
-    logger.debug(
-      "📝 [Progress/Page] Captured from reader state: book=\(currentBookId), page=\(currentReaderPage.pageNumber), completed=\(completed)"
+  func captureProgressSnapshot(for pageID: ReaderPageID?) -> ReaderPageProgressSnapshot? {
+    guard let pageID, let readerPage = readerPage(for: pageID) else { return nil }
+    return ReaderPageProgressSnapshot(
+      bookId: readerPage.bookId,
+      page: readerPage.pageNumber,
+      completed: isBookCompleted(for: readerPage)
     )
+  }
 
+  func enqueueProgressChange(
+    from previousSnapshot: ReaderPageProgressSnapshot?,
+    to currentSnapshot: ReaderPageProgressSnapshot?
+  ) {
+    guard !incognitoMode else {
+      logger.debug("⏭️ [Progress/Page] Skip enqueue: incognito mode enabled")
+      return
+    }
+
+    let precedingDispatch = progressDispatchTail
+    progressDispatchTail = Task(priority: .userInitiated) {
+      await precedingDispatch?.value
+      await self.dispatchProgressChange(from: previousSnapshot, to: currentSnapshot)
+    }
+  }
+
+  private func dispatchProgressChange(
+    from previousSnapshot: ReaderPageProgressSnapshot?,
+    to currentSnapshot: ReaderPageProgressSnapshot?
+  ) async {
+    if let previousSnapshot,
+      previousSnapshot.bookId != currentSnapshot?.bookId
+    {
+      logger.debug(
+        "🚿 [Progress/Page] Flush committed book boundary: book=\(previousSnapshot.bookId), page=\(previousSnapshot.page), completed=\(previousSnapshot.completed)"
+      )
+      await ReaderProgressDispatchService.shared.flushPageProgress(
+        bookId: previousSnapshot.bookId,
+        snapshotPage: previousSnapshot.page,
+        snapshotCompleted: previousSnapshot.completed
+      )
+    }
+
+    guard let currentSnapshot else { return }
+    logger.debug(
+      "📝 [Progress/Page] Dispatch committed snapshot: book=\(currentSnapshot.bookId), page=\(currentSnapshot.page), completed=\(currentSnapshot.completed)"
+    )
     await ReaderProgressDispatchService.shared.submitPageProgress(
-      bookId: currentBookId,
-      page: currentReaderPage.pageNumber,
-      completed: completed
+      bookId: currentSnapshot.bookId,
+      page: currentSnapshot.page,
+      completed: currentSnapshot.completed
     )
   }
 
@@ -1265,25 +1287,12 @@ class ReaderViewModel {
       return
     }
 
-    let snapshotBookId = currentReaderPage?.bookId
-    let snapshotPage = currentReaderPage?.pageNumber
-    let snapshotCompleted = currentReaderPage.map { isBookCompleted(for: $0) }
+    let snapshot = captureProgressSnapshot(for: currentReaderPage?.id)
 
     logger.debug(
-      "🚿 [Progress/Page] Flush requested from reader: book=\(snapshotBookId ?? "unknown"), hasCurrentPage=\(snapshotPage != nil)"
+      "🚿 [Progress/Page] Flush requested from reader: book=\(snapshot?.bookId ?? "unknown"), hasCurrentPage=\(snapshot != nil)"
     )
-
-    Task {
-      guard let flushBookId = snapshotBookId else {
-        logger.debug("⏭️ [Progress/Page] Skip flush: no active book ID")
-        return
-      }
-      await ReaderProgressDispatchService.shared.flushPageProgress(
-        bookId: flushBookId,
-        snapshotPage: snapshotPage,
-        snapshotCompleted: snapshotCompleted
-      )
-    }
+    enqueueProgressChange(from: snapshot, to: nil)
   }
 
   private func isBookCompleted(for readerPage: ReaderPage) -> Bool {
@@ -1297,7 +1306,7 @@ class ReaderViewModel {
   func updateDualPageSettings(noCover: Bool) {
     let newIsolateCover = !noCover
     guard isolateCoverPageEnabled != newIsolateCover else { return }
-    regenerateViewStatePreservingCurrentPage {
+    regenerateViewStatePreservingCurrentPosition {
       isolateCoverPageEnabled = newIsolateCover
     }
   }
@@ -1305,28 +1314,28 @@ class ReaderViewModel {
   func updatePageLayout(_ layout: PageLayout) {
     let shouldForceDualPage = layout == .dual
     guard forceDualPagePairs != shouldForceDualPage else { return }
-    regenerateViewStatePreservingCurrentPage {
+    regenerateViewStatePreservingCurrentPosition {
       forceDualPagePairs = shouldForceDualPage
     }
   }
 
   func updateSplitWidePageMode(_ mode: SplitWidePageMode) {
     guard splitWidePageMode != mode else { return }
-    regenerateViewStatePreservingCurrentPage {
+    regenerateViewStatePreservingCurrentPosition {
       splitWidePageMode = mode
     }
   }
 
   func updatePageTransitionStyle(_ style: PageTransitionStyle) {
     guard pageTransitionStyle != style else { return }
-    regenerateViewStatePreservingCurrentPage {
+    regenerateViewStatePreservingCurrentPosition {
       pageTransitionStyle = style
     }
   }
 
   func updateRotation(_ rotation: ReaderRotation) {
     guard self.rotation != rotation else { return }
-    regenerateViewStatePreservingCurrentPage {
+    regenerateViewStatePreservingCurrentPosition {
       self.rotation = rotation
     }
     notifyPagePresentationInvalidation(.all)
@@ -1335,7 +1344,7 @@ class ReaderViewModel {
   func updateDualPagePresentationMode(_ isUsingDualPageMode: Bool) {
     guard isActuallyUsingDualPageMode != isUsingDualPageMode else { return }
 
-    regenerateViewStatePreservingCurrentPage {
+    regenerateViewStatePreservingCurrentPosition {
       isActuallyUsingDualPageMode = isUsingDualPageMode
     }
   }
@@ -1369,13 +1378,11 @@ class ReaderViewModel {
     }
   }
 
-  func preserveCurrentPageForPresentationRebuild() {
-    requestNavigation(toPageID: resolvedCurrentPageID)
+  private func regenerateViewState() {
+    regenerateViewState(preserving: captureCurrentPositionAnchor())
   }
 
-  private func regenerateViewState() {
-    let preservedCurrentItem = currentViewItemID
-    let preservedCurrentPageID = resolvedCurrentPageID
+  private func regenerateViewState(preserving positionAnchor: ReaderPositionAnchor) {
 
     // Apply the split-wide preference consistently in single and dual presentations.
     let effectiveSplitWidePages = splitWidePageMode.isEnabled
@@ -1396,22 +1403,22 @@ class ReaderViewModel {
       rotation: rotation
     )
     viewItemIndexByPage = generateViewItemIndexMap(items: viewItems)
-    currentViewItemID = resolvedViewItem(
-      preferredItem: preservedCurrentItem,
-      preferredPageID: preservedCurrentPageID
-    )
-    currentPageID = resolvedCurrentPageID(
-      for: currentViewItemID,
-      preferredPageID: preservedCurrentPageID
-    )
-    syncPageLoadSchedulerCurrentPage()
+    restoreCurrentPosition(anchor: positionAnchor)
   }
 
-  private func regenerateViewStatePreservingCurrentPage(_ mutation: () -> Void) {
-    let currentPageID = resolvedCurrentPageID
+  private func regenerateViewStatePreservingCurrentPosition(_ mutation: () -> Void) {
+    let positionAnchor = captureCurrentPositionAnchor()
+    let pendingNavigationTarget = navigationTarget
     mutation()
-    regenerateViewState()
-    requestNavigation(toPageID: currentPageID)
+    regenerateViewState(preserving: positionAnchor)
+    if let pendingNavigationTarget,
+      let remappedTarget = matchingPositionAnchor(for: pendingNavigationTarget)
+    {
+      navigationTarget = remappedTarget
+    } else {
+      let restoredAnchor = captureCurrentPositionAnchor()
+      navigationTarget = restoredAnchor.item == nil ? nil : restoredAnchor
+    }
   }
 
   func viewItem(at index: Int) -> ReaderViewItem? {
@@ -1433,12 +1440,16 @@ class ReaderViewModel {
       navigationTarget = nil
       return
     }
-    navigationTarget = resolvedViewItem(preferredPageID: pageID)
+    guard let item = matchingViewItem(preferredPageID: pageID) else {
+      navigationTarget = nil
+      return
+    }
+    navigationTarget = ReaderPositionAnchor(item: item, focusedPageID: pageID)
   }
 
   func requestNavigation(toViewItem viewItem: ReaderViewItem?) {
     guard
-      let viewItem = resolvedViewItem(
+      let viewItem = matchingViewItem(
         preferredItem: viewItem,
         preferredPageID: viewItem?.pageID
       )
@@ -1446,18 +1457,32 @@ class ReaderViewModel {
       navigationTarget = nil
       return
     }
-    navigationTarget = viewItem
+    let currentFocusedPageID = resolvedCurrentPageID
+    let focusedPageID: ReaderPageID
+    if let currentFocusedPageID,
+      viewItem.pageIDs.contains(currentFocusedPageID) || viewItem.pageID == currentFocusedPageID
+    {
+      focusedPageID = currentFocusedPageID
+    } else {
+      focusedPageID = viewItem.pageID
+    }
+    navigationTarget = ReaderPositionAnchor(item: viewItem, focusedPageID: focusedPageID)
   }
 
   func clearNavigationTarget() {
     navigationTarget = nil
   }
 
+  func clearNavigationTarget(matching target: ReaderPositionAnchor) {
+    guard navigationTarget == target else { return }
+    navigationTarget = nil
+  }
+
   func adjacentViewItem(from item: ReaderViewItem? = nil, offset: Int) -> ReaderViewItem? {
     guard offset != 0 else {
-      return item ?? navigationTarget ?? currentViewItem()
+      return item ?? navigationTarget?.item ?? currentViewItem()
     }
-    let anchorItem = item ?? navigationTarget ?? currentViewItem()
+    let anchorItem = item ?? navigationTarget?.item ?? currentViewItem()
     guard let anchorItem, let anchorIndex = viewItemIndex(for: anchorItem) else {
       return nil
     }
@@ -1471,11 +1496,9 @@ class ReaderViewModel {
       syncPageLoadSchedulerCurrentPage()
       return
     }
-    currentPageID = pageID
-    currentViewItemID = resolvedViewItem(
-      preferredPageID: pageID
+    updateCurrentPosition(
+      anchor: ReaderPositionAnchor(item: nil, focusedPageID: pageID)
     )
-    syncPageLoadSchedulerCurrentPage()
   }
 
   private func resolvedCurrentPageID(
@@ -1496,15 +1519,65 @@ class ReaderViewModel {
       syncPageLoadSchedulerCurrentPage()
       return
     }
-    let preferredPageID = currentPageID
-    currentViewItemID = resolvedViewItem(
-      preferredItem: viewItem,
-      preferredPageID: preferredPageID ?? viewItem.pageID
+    updateCurrentPosition(
+      anchor: ReaderPositionAnchor(
+        item: viewItem,
+        focusedPageID: currentPageID ?? viewItem.pageID
+      )
     )
-    currentPageID = resolvedCurrentPageID(
-      for: currentViewItemID,
-      preferredPageID: preferredPageID
+  }
+
+  func captureCurrentPositionAnchor() -> ReaderPositionAnchor {
+    ReaderPositionAnchor(
+      item: currentViewItem(),
+      focusedPageID: resolvedCurrentPageID
     )
+  }
+
+  func resolvedPositionAnchor(for anchor: ReaderPositionAnchor) -> ReaderPositionAnchor? {
+    if let matchingAnchor = matchingPositionAnchor(for: anchor) {
+      return matchingAnchor
+    }
+    guard let firstItem = viewItems.first else { return nil }
+    return ReaderPositionAnchor(item: firstItem, focusedPageID: firstItem.pageID)
+  }
+
+  func matchingPositionAnchor(for anchor: ReaderPositionAnchor) -> ReaderPositionAnchor? {
+    guard
+      let resolvedItem = matchingViewItem(
+        preferredItem: anchor.item,
+        preferredPageID: anchor.focusedPageID
+      )
+    else {
+      return nil
+    }
+    return ReaderPositionAnchor(
+      item: resolvedItem,
+      focusedPageID: resolvedCurrentPageID(
+        for: resolvedItem,
+        preferredPageID: anchor.focusedPageID
+      )
+    )
+  }
+
+  func updateCurrentPosition(anchor: ReaderPositionAnchor) {
+    guard let resolvedAnchor = matchingPositionAnchor(for: anchor) else { return }
+    assignCurrentPosition(resolvedAnchor)
+  }
+
+  private func restoreCurrentPosition(anchor: ReaderPositionAnchor) {
+    guard let resolvedAnchor = resolvedPositionAnchor(for: anchor) else {
+      currentViewItemID = nil
+      currentPageID = nil
+      syncPageLoadSchedulerCurrentPage()
+      return
+    }
+    assignCurrentPosition(resolvedAnchor)
+  }
+
+  private func assignCurrentPosition(_ anchor: ReaderPositionAnchor) {
+    currentViewItemID = anchor.item
+    currentPageID = anchor.focusedPageID
     syncPageLoadSchedulerCurrentPage()
   }
 
