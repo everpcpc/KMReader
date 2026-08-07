@@ -17,7 +17,7 @@ class ReaderViewModel {
   private(set) var bookIdsWithMissingPageDimensions: Set<String> = []
   private var currentPageID: ReaderPageID?
   private var currentViewItemID: ReaderViewItem?
-  var navigationTarget: ReaderPositionAnchor?
+  private(set) var navigationTarget: ReaderPositionAnchor?
   var isLoading = true
   var loadingTitle = String(localized: "Loading book...")
   var loadingDetail = String(localized: "Resolving page metadata")
@@ -1411,13 +1411,10 @@ class ReaderViewModel {
     let pendingNavigationTarget = navigationTarget
     mutation()
     regenerateViewState(preserving: positionAnchor)
-    if let pendingNavigationTarget,
-      let remappedTarget = matchingPositionAnchor(for: pendingNavigationTarget)
-    {
-      navigationTarget = remappedTarget
-    } else {
-      let restoredAnchor = captureCurrentPositionAnchor()
-      navigationTarget = restoredAnchor.item == nil ? nil : restoredAnchor
+    // Presentation restoration follows the committed position. Only explicit
+    // navigation commands survive a rebuild, and only when they still resolve strictly.
+    navigationTarget = pendingNavigationTarget.flatMap {
+      matchingPositionAnchor(for: $0)
     }
   }
 

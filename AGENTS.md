@@ -17,9 +17,10 @@ This file provides guidance to coding agents working with code in this repositor
 
 - `ReaderSettingsSheet` is reserved for persisted reader preferences. Session-only reader options belong in the reader controls menu or the platform command menu.
 - Page rotation is session-only, applies only to paged DIVINA modes, and must not be exposed or applied in Webtoon mode.
-- `ReaderViewModel` owns the committed semantic reader position and navigation commands as a full `ReaderViewItem` plus its focused `ReaderPageID`. Page Curl adapters must not publish a position while mounting or dismantling; restoration may fall back to the first item, but command resolution must be strict and discard invalid targets.
+- `ReaderViewModel` owns the committed semantic reader position as a full `ReaderViewItem` plus its focused `ReaderPageID`. Page Curl adapters must not publish a position while mounting or dismantling; restoration may fall back to the first item, but explicit command resolution must be strict and discard invalid targets.
+- `navigationTarget` is reserved for explicit navigation commands. Presentation rebuilds restore from the committed position and adapter-owned snapshots; they must not synthesize navigation commands, and a later interactive commit supersedes any earlier restoration anchor.
 - Page Curl indices are local to one coordinator-owned immutable snapshot. UIKit controllers and asynchronous completions must cross update, preload, rotation, and teardown boundaries using stable reader-item identities rather than array indices or view tags.
-- During seamless DIVINA cross-book navigation, `currentReaderPage` is the committed position, `currentBook` and `ReaderSession.book` follow its segment, and `currentBookId` remains the explicit whole-book load anchor.
+- During seamless DIVINA cross-book navigation, the committed `ReaderPositionAnchor` is the source of truth. `currentReaderPage` is its focused or backing page projection; `.end` items retain their segment's final `ReaderPageID` so book identity remains available. `currentBook` and `ReaderSession.book` follow that segment, while `currentBookId` remains the explicit whole-book load anchor.
 
 ### Offline & Downloads
 
