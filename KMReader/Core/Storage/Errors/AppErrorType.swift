@@ -45,13 +45,6 @@ enum AppErrorType: Error, CustomStringConvertible, LocalizedError {
   case manifestUnableToDecodeDocument(String)
   case manifestImageTagNotFound(String)
 
-  // Save image errors
-  case bookIdEmpty
-  case imageNotCached
-  case photoLibraryAccessDenied
-  case failedToLoadImageData
-  case saveImageError(String)
-
   // Generic
   case unknown(message: String)
   case underlying(Error)
@@ -126,16 +119,6 @@ enum AppErrorType: Error, CustomStringConvertible, LocalizedError {
       return String(
         format: String(
           localized: "error.manifestImageTagNotFound", defaultValue: "No image tag found in XHTML document: %@"), href)
-    case .bookIdEmpty:
-      return String(localized: "error.bookIdEmpty", defaultValue: "Book ID is empty")
-    case .imageNotCached:
-      return String(localized: "error.imageNotCached", defaultValue: "Image not cached yet")
-    case .photoLibraryAccessDenied:
-      return String(localized: "error.photoLibraryAccessDenied", defaultValue: "Photo library access denied")
-    case .failedToLoadImageData:
-      return String(localized: "error.failedToLoadImageData", defaultValue: "Failed to load image data")
-    case .saveImageError(let message):
-      return message
     case .unknown(let message):
       return message
     case .underlying(let error):
