@@ -611,7 +611,10 @@
     }
 
     @objc private func handleShareContextMenuAction() {
-      guard let pageID = currentData?.pageID, let image = imageView.image else { return }
+      guard let pageID = currentData?.pageID else { return }
+      // Share the original decoded page (no rotation/split/border crop); fall back
+      // to the displayed image only if the preloaded original is unavailable.
+      guard let image = readerViewModel?.preloadedImage(for: pageID) ?? imageView.image else { return }
       let fileName = readerViewModel?.page(for: pageID)?.fileName
       ImageShareHelper.share(image: image, fileName: fileName)
     }
