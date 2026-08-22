@@ -29,6 +29,7 @@
       applyPresentationConfiguration(to: pdfView, coordinator: context.coordinator)
       context.coordinator.bind(pdfView: pdfView)
       loadDocument(into: pdfView, coordinator: context.coordinator)
+      disableScrollInsetAdjustment(in: pdfView)
       return pdfView
     }
 
@@ -107,6 +108,10 @@
       coordinator.lastResolvedReadingDirection = direction
       coordinator.lastResolvedIsolateCoverPage = isolateCoverPage
 
+      // usePageViewController rebuilds PDFView's internal view hierarchy, so
+      // re-apply the inset lock after every configuration change.
+      disableScrollInsetAdjustment(in: pdfView)
+
       if pdfView.document != nil {
         goToPage(targetPageAfterConfiguration, in: pdfView)
       }
@@ -159,6 +164,18 @@
       return document.index(for: page) + 1
     }
 
+    // PDFView's internal scroll views use .automatic inset adjustment, so a
+    // status bar / safe area change (controls overlay toggles it) shifts the
+    // rendered page vertically on iOS 18. Lock all of them to .never (#956).
+    private func disableScrollInsetAdjustment(in view: UIView) {
+      if let scrollView = view as? UIScrollView {
+        scrollView.contentInsetAdjustmentBehavior = .never
+      }
+      for subview in view.subviews {
+        disableScrollInsetAdjustment(in: subview)
+      }
+    }
+
     final class Coordinator: NSObject, UIGestureRecognizerDelegate {
       var onPageChange: (Int, Int) -> Void
       var onSingleTap: (CGPoint) -> Void
@@ -172,6 +189,13 @@
       private weak var doubleTapRecognizer: UITapGestureRecognizer?
       private weak var longPressRecognizer: UILongPressGestureRecognizer?
       private var hadSelectionAtTouchStart = false
+      private var singleTapStartPoint: CGPoint?
+      private var singleTapStartTime: TimeInterval = 0
+
+      // Stricter than UITapGestureRecognizer's built-in slop: slow/short drags
+      // must not toggle the reader overlays (#957).
+      private let singleTapMaximumMovement: CGFloat = 10
+      private let singleTapMaximumDuration: TimeInterval = 0.5
 
       init(
         onPageChange: @escaping (Int, Int) -> Void,
@@ -278,6 +302,14 @@
           return
         }
 
+        if let startPoint = singleTapStartPoint {
+          let endPoint = recognizer.location(in: pdfView)
+          let movement = hypot(endPoint.x - startPoint.x, endPoint.y - startPoint.y)
+          let duration = ProcessInfo.processInfo.systemUptime - singleTapStartTime
+          singleTapStartPoint = nil
+          guard movement <= singleTapMaximumMovement, duration <= singleTapMaximumDuration else { return }
+        }
+
         let size = pdfView.bounds.size
         guard size.width > 0, size.height > 0 else { return }
 
@@ -313,6 +345,10 @@
 
       func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
         hadSelectionAtTouchStart = (observedPDFView?.currentSelection != nil)
+        if gestureRecognizer === singleTapRecognizer, let view = touch.view {
+          singleTapStartPoint = touch.location(in: view)
+          singleTapStartTime = touch.timestamp
+        }
         return !isInteractiveElement(touch.view)
       }
 
