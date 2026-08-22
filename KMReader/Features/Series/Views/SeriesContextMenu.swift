@@ -75,7 +75,7 @@ struct SeriesContextMenu: View {
 
       if !isOffline {
         Button {
-          onShowCollectionPicker?()
+          deferMenuActionPresentation { onShowCollectionPicker?() }
         } label: {
           Label("Add to Collection", systemImage: ContentIcon.collection)
         }
@@ -101,7 +101,7 @@ struct SeriesContextMenu: View {
         if current.isAdmin {
           Menu {
             Button {
-              onEditRequested?()
+              deferMenuActionPresentation { onEditRequested?() }
             } label: {
               Label("Edit", systemImage: "pencil")
             }
@@ -119,7 +119,7 @@ struct SeriesContextMenu: View {
             if onDeleteRequested != nil {
               Divider()
               Button(role: .destructive) {
-                onDeleteRequested?()
+                deferMenuActionPresentation { onDeleteRequested?() }
               } label: {
                 Label("Delete Series", systemImage: "trash")
               }

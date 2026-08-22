@@ -45,7 +45,7 @@ struct BookContextMenu: View {
 
       if !isOffline {
         Button {
-          onShowReadListPicker?()
+          deferMenuActionPresentation { onShowReadListPicker?() }
         } label: {
           Label("Add to Read List", systemImage: ContentIcon.readList)
         }
@@ -68,7 +68,7 @@ struct BookContextMenu: View {
         if current.isAdmin {
           Menu {
             Button {
-              onEditRequested?()
+              deferMenuActionPresentation { onEditRequested?() }
             } label: {
               Label("Edit", systemImage: "pencil")
             }
@@ -86,7 +86,7 @@ struct BookContextMenu: View {
             if onDeleteRequested != nil {
               Divider()
               Button(role: .destructive) {
-                onDeleteRequested?()
+                deferMenuActionPresentation { onDeleteRequested?() }
               } label: {
                 Label("Delete Book", systemImage: "trash")
               }

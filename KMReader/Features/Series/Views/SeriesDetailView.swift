@@ -419,7 +419,7 @@ extension SeriesDetailView {
 
         if current.isAdmin {
           Button {
-            showEditSheet = true
+            deferMenuActionPresentation { showEditSheet = true }
           } label: {
             Label("Edit", systemImage: "pencil")
           }
@@ -442,7 +442,7 @@ extension SeriesDetailView {
         Divider()
 
         Button {
-          showCollectionPicker = true
+          deferMenuActionPresentation { showCollectionPicker = true }
         } label: {
           Label("Add to Collection", systemImage: ContentIcon.collection)
         }
@@ -469,7 +469,7 @@ extension SeriesDetailView {
 
         if current.isAdmin {
           Button(role: .destructive) {
-            showDeleteConfirmation = true
+            deferMenuActionPresentation { showDeleteConfirmation = true }
           } label: {
             Label("Delete Series", systemImage: "trash")
           }

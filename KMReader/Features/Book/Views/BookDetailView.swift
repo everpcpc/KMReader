@@ -285,7 +285,7 @@ struct BookDetailView: View {
       Menu {
         if current.isAdmin {
           Button {
-            showEditSheet = true
+            deferMenuActionPresentation { showEditSheet = true }
           } label: {
             Label("Edit", systemImage: "pencil")
           }
@@ -308,7 +308,7 @@ struct BookDetailView: View {
         Divider()
 
         Button {
-          showReadListPicker = true
+          deferMenuActionPresentation { showReadListPicker = true }
         } label: {
           Label("Add to Read List", systemImage: ContentIcon.readList)
         }
@@ -335,7 +335,7 @@ struct BookDetailView: View {
 
         if current.isAdmin {
           Button(role: .destructive) {
-            showDeleteConfirmation = true
+            deferMenuActionPresentation { showDeleteConfirmation = true }
           } label: {
             Label("Delete Book", systemImage: "trash")
           }
