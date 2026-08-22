@@ -332,7 +332,7 @@ struct OneshotDetailView: View {
       Menu {
         if current.isAdmin {
           Button {
-            showEditSheet = true
+            deferMenuActionPresentation { showEditSheet = true }
           } label: {
             Label("Edit", systemImage: "pencil")
           }
@@ -355,13 +355,13 @@ struct OneshotDetailView: View {
         Divider()
 
         Button {
-          showCollectionPicker = true
+          deferMenuActionPresentation { showCollectionPicker = true }
         } label: {
           Label("Add to Collection", systemImage: ContentIcon.collection)
         }
 
         Button {
-          showReadListPicker = true
+          deferMenuActionPresentation { showReadListPicker = true }
         } label: {
           Label("Add to Read List", systemImage: ContentIcon.readList)
         }
@@ -390,7 +390,7 @@ struct OneshotDetailView: View {
 
         if current.isAdmin {
           Button(role: .destructive) {
-            showDeleteConfirmation = true
+            deferMenuActionPresentation { showDeleteConfirmation = true }
           } label: {
             Label("Delete Oneshot", systemImage: "trash")
           }
