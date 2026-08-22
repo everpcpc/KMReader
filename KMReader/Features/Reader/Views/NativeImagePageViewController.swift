@@ -307,7 +307,11 @@
     func scrollViewDidZoom(_ scrollView: UIScrollView) {
       guard let viewModel else { return }
       let zoomed = scrollView.zoomScale > (scrollView.minimumZoomScale + 0.01)
-      if viewModel.isZoomed != zoomed {
+      guard viewModel.isZoomed != zoomed else { return }
+      // Defer the observable write out of the zoom gesture callback; publishing
+      // SwiftUI state synchronously here can crash AttributeGraph on iOS 18.
+      DispatchQueue.main.async { [weak viewModel] in
+        guard let viewModel, viewModel.isZoomed != zoomed else { return }
         viewModel.isZoomed = zoomed
       }
     }

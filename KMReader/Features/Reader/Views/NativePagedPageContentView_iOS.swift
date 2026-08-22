@@ -214,6 +214,17 @@
     }
 
     private func resetScrollViewportState() {
+      // Never reset the zoom scale while a pinch gesture is in flight; changing
+      // the scale mid-gesture desyncs UIScrollView's gesture state and can crash
+      // on iPadOS 18. Retry on the next runloop until the gesture settles.
+      #if os(iOS)
+        if let pinch = scrollView.pinchGestureRecognizer, pinch.state == .began || pinch.state == .changed {
+          DispatchQueue.main.async { [weak self] in
+            self?.resetScrollViewportState()
+          }
+          return
+        }
+      #endif
       isUpdatingZoomState = true
       scrollView.setZoomScale(scrollView.minimumZoomScale, animated: false)
       scrollView.contentOffset = .zero
@@ -238,7 +249,11 @@
       guard let viewModel else { return }
 
       let zoomed = scrollView.zoomScale > (scrollView.minimumZoomScale + 0.01)
-      if viewModel.isZoomed != zoomed {
+      guard viewModel.isZoomed != zoomed else { return }
+      // Defer the observable write out of the zoom gesture callback; publishing
+      // SwiftUI state synchronously here can crash AttributeGraph on iOS 18.
+      DispatchQueue.main.async { [weak viewModel] in
+        guard let viewModel, viewModel.isZoomed != zoomed else { return }
         viewModel.isZoomed = zoomed
       }
     }
