@@ -125,5 +125,6 @@ struct BookReaderView: View {
       }
     }
     .environment(\.readerActions, .live(readerPresentation: readerPresentation))
+    .keepScreenAwakeWhileReading()
   }
 }
