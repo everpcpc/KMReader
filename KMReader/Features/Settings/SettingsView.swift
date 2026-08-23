@@ -9,6 +9,11 @@ struct SettingsView: View {
   var body: some View {
     Form {
       Section(header: Text(String(localized: "Reader"))) {
+        #if os(iOS) || os(tvOS)
+          NavigationLink(value: NavDestination.settingsReading) {
+            SettingsSectionRow(section: .reading)
+          }
+        #endif
         NavigationLink(value: NavDestination.settingsDivinaReader) {
           SettingsSectionRow(section: .divinaReader)
         }

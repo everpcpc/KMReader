@@ -4994,6 +4994,70 @@
         }
       }
     },
+    "Applies to all readers (DIVINA, EPUB, and PDF). The screen returns to normal when you close the reader." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gilt für alle Reader (DIVINA, EPUB und PDF). Der Bildschirm kehrt zum Normalzustand zurück, sobald du den Reader schließt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Applies to all readers (DIVINA, EPUB, and PDF). The screen returns to normal when you close the reader."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se aplica a todos los lectores (DIVINA, EPUB y PDF). La pantalla vuelve a la normalidad al cerrar el lector."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "S'applique à tous les lecteurs (DIVINA, EPUB et PDF). L'écran redevient normal à la fermeture du lecteur."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Si applica a tutti i lettori (DIVINA, EPUB e PDF). Lo schermo torna alla normalità quando chiudi il lettore."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべてのリーダー（DIVINA、EPUB、PDF）に適用されます。リーダーを閉じると画面は通常に戻ります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모든 리더(DIVINA, EPUB, PDF)에 적용됩니다. 리더를 닫으면 화면이 정상으로 돌아갑니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Применяется ко всем просмотрщикам (DIVINA, EPUB и PDF). После закрытия просмотрщика экран работает как обычно."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "适用于所有阅读器（DIVINA、EPUB 和 PDF）。关闭阅读器后屏幕恢复正常。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "適用於所有閱讀器（DIVINA、EPUB 和 PDF）。關閉閱讀器後螢幕恢復正常。"
+          }
+        }
+      }
+    },
     "Apply Filter" : {
       "localizations" : {
         "de" : {
@@ -26051,6 +26115,7 @@
       }
     },
     "error.bookIdEmpty" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -26307,6 +26372,7 @@
       }
     },
     "error.failedToLoadImageData" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -26563,6 +26629,7 @@
       }
     },
     "error.imageNotCached" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -27587,6 +27654,7 @@
       }
     },
     "error.photoLibraryAccessDenied" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -33406,6 +33474,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "保留更多已解碼的附近頁面以獲得更流暢的翻頁，但會增加記憶體使用量。"
+          }
+        }
+      }
+    },
+    "Keep Screen Awake While Reading" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bildschirm beim Lesen aktiv halten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep Screen Awake While Reading"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantener la pantalla activa al leer"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Garder l'écran allumé pendant la lecture"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mantieni lo schermo attivo durante la lettura"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読書中は画面をスリープしない"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "읽는 동안 화면 켜짐 유지"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не гасить экран во время чтения"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "阅读时保持屏幕常亮"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "閱讀時保持螢幕常亮"
           }
         }
       }
@@ -47619,6 +47751,7 @@
       }
     },
     "notification.reader.imageSaved" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -54916,6 +55049,70 @@
         }
       }
     },
+    "Prevents the screen from dimming or locking while a reader is open." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verhindert, dass der Bildschirm gedimmt oder gesperrt wird, solange ein Reader geöffnet ist."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prevents the screen from dimming or locking while a reader is open."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Evita que la pantalla se atenúe o se bloquee mientras un lector está abierto."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Empêche l'écran de s'assombrir ou de se verrouiller lorsqu'un lecteur est ouvert."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impedisce l'attenuazione o il blocco dello schermo mentre un lettore è aperto."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リーダーを開いている間、画面の減光やロックを防ぎます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "리더가 열려 있는 동안 화면이 어두워지거나 잠기지 않도록 합니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Запрещает затемнение и блокировку экрана, пока открыт просмотрщик."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "阅读器打开期间，防止屏幕变暗或锁定。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "閱讀器開啟期間，防止螢幕變暗或鎖定。"
+          }
+        }
+      }
+    },
     "Privacy" : {
       "localizations" : {
         "de" : {
@@ -58560,6 +58757,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "T 形"
+          }
+        }
+      }
+    },
+    "Reading" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lesen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reading"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lectura"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lecture"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lettura"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読書"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "읽기"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Чтение"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "阅读"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "閱讀"
           }
         }
       }
@@ -62912,6 +63173,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "深度掃描圖書館檔案"
+          }
+        }
+      }
+    },
+    "Screen" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bildschirm"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Screen"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pantalla"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Écran"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schermo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画面"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "화면"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Экран"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "屏幕"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "螢幕"
           }
         }
       }
