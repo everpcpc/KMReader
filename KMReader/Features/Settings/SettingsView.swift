@@ -6,11 +6,14 @@
 import SwiftUI
 
 struct SettingsView: View {
-  @AppStorage("keepScreenAwakeWhileReading") private var keepScreenAwakeWhileReading: Bool = false
-
   var body: some View {
     Form {
       Section(header: Text(String(localized: "Reader"))) {
+        #if os(iOS) || os(tvOS)
+          NavigationLink(value: NavDestination.settingsReading) {
+            SettingsSectionRow(section: .reading)
+          }
+        #endif
         NavigationLink(value: NavDestination.settingsDivinaReader) {
           SettingsSectionRow(section: .divinaReader)
         }
@@ -25,16 +28,6 @@ struct SettingsView: View {
           }
           NavigationLink(value: NavDestination.settingsEpubSettings) {
             SettingsSectionRow(section: .epubSettings)
-          }
-        #endif
-        #if os(iOS) || os(tvOS)
-          Toggle(isOn: $keepScreenAwakeWhileReading) {
-            VStack(alignment: .leading, spacing: 2) {
-              Text(String(localized: "Keep Screen Awake While Reading"))
-              Text(String(localized: "Prevents the screen from dimming or locking while a reader is open."))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            }
           }
         #endif
       }
