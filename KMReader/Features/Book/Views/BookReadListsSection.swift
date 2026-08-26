@@ -17,7 +17,7 @@ struct BookReadListsSection: View {
   }
 
   var body: some View {
-    Group {
+    VStack(alignment: .leading, spacing: 6) {
       if !readLists.isEmpty {
         VStack(alignment: .leading, spacing: 6) {
           HStack(spacing: 4) {
@@ -48,6 +48,7 @@ struct BookReadListsSection: View {
         }
       }
     }
+    .frame(maxWidth: .infinity, alignment: .leading)
     .task(id: "\(current.instanceId)|\(readListIdsKey)") {
       await loadReadLists()
     }

@@ -17,7 +17,7 @@ struct SeriesCollectionsSection: View {
   }
 
   var body: some View {
-    Group {
+    VStack(alignment: .leading, spacing: 8) {
       if !collections.isEmpty {
         VStack(alignment: .leading, spacing: 8) {
           HStack(spacing: 4) {
@@ -48,6 +48,7 @@ struct SeriesCollectionsSection: View {
         }
       }
     }
+    .frame(maxWidth: .infinity, alignment: .leading)
     .task(id: "\(current.instanceId)|\(collectionIdsKey)") {
       await loadCollections()
     }
