@@ -84,6 +84,11 @@
     /// that fallback position would regress the server's progress, so all
     /// progression submissions are suppressed for the session.
     private var progressSubmissionSuppressed = false
+    /// Page-based read progress from the book DTO. Komga reports page-based
+    /// progress (written by KOReader/Kindle sync, paged readers, or the web UI)
+    /// as an empty locator on the progression endpoint, so the page number is
+    /// the only resume hint for EPUB books in that state.
+    private var fallbackPageNumber: Int?
     private var downloadResumeTask: Task<Void, Never>?
     private var lastUpdateTime: Date = Date()
     private let updateThrottleInterval: TimeInterval = 2.0
@@ -151,6 +156,7 @@
     func load(book: Book) async {
       downloadInfo = book.downloadInfo
       let shouldResumeFromProgression = !book.isCompleted
+      fallbackPageNumber = shouldResumeFromProgression ? book.readProgress?.page : nil
       await load(
         bookId: book.id,
         shouldResumeFromProgression: shouldResumeFromProgression
@@ -252,7 +258,30 @@
             remoteFetchFailed = await syncRemoteProgressionToLocal(bookId: bookId)
           }
           savedProgression = await database.fetchBookEpubProgression(bookId: bookId)
-          if remoteFetchFailed && savedProgression == nil {
+
+          if savedProgression == nil,
+            let fallbackPage = fallbackPageNumber,
+            fallbackPage > 1
+          {
+            // Komga answers the progression GET with an empty locator whenever
+            // the stored read progress is page-based (KOReader/Kindle sync,
+            // paged readers, web UI). That is not "no progress": map the known
+            // page to a locator via the positions endpoint so the EPUB reader
+            // resumes there instead of falling back to the first page.
+            savedProgression = await restoreProgressionFromServerPage(
+              bookId: bookId,
+              page: fallbackPage,
+              database: database
+            )
+            if savedProgression == nil {
+              // The server has progress but it could not be located; never let
+              // this session upload the first-page fallback over it.
+              progressSubmissionSuppressed = true
+              logger.warning(
+                "⚠️ [Progress/Epub] Server has page-based progress (page \(fallbackPage)) that could not be mapped to a locator; suppressing progress submission for this session: book=\(bookId)"
+              )
+            }
+          } else if remoteFetchFailed && savedProgression == nil {
             progressSubmissionSuppressed = true
             logger.warning(
               "⚠️ [Progress/Epub] Remote progression fetch failed and no local progression exists; suppressing progress submission for this session: book=\(bookId)"
@@ -1192,6 +1221,61 @@
         )
         return false
       }
+    }
+
+    /// Maps a page-based server read progress to a locator using the WebPub
+    /// positions endpoint. Returns nil when the page cannot be mapped, in which
+    /// case the caller must treat the position as unknown rather than falling
+    /// back to the first page.
+    private func restoreProgressionFromServerPage(
+      bookId: String,
+      page: Int,
+      database: DatabaseOperator
+    ) async -> R2Progression? {
+      guard !AppConfig.isOffline else { return nil }
+
+      let positions: R2Positions
+      do {
+        positions = try await BookService.getWebPubPositions(bookId: bookId)
+      } catch {
+        logger.warning(
+          "⚠️ [Progress/Epub] Failed to fetch positions for page-based resume: book=\(bookId), error=\(error.localizedDescription)"
+        )
+        return nil
+      }
+
+      let candidates = positions.positions.compactMap { locator -> (position: Int, locator: R2Locator)? in
+        guard let position = locator.locations?.position else { return nil }
+        return (position, locator)
+      }
+      guard !candidates.isEmpty else { return nil }
+
+      let sorted = candidates.sorted { $0.position < $1.position }
+      guard let match = sorted.last(where: { $0.position <= page }) ?? sorted.first else {
+        return nil
+      }
+
+      let locator = match.locator
+      guard chapterIndexForHref(locator.href) != nil else {
+        logger.warning(
+          "⚠️ [Progress/Epub] Position locator does not match any chapter: book=\(bookId), href=\(locator.href)"
+        )
+        return nil
+      }
+
+      let progression = R2Progression(
+        modified: Date(),
+        device: R2Device(
+          id: AppConfig.deviceIdentifier,
+          name: AppConfig.userAgent
+        ),
+        locator: locator
+      )
+      await database.updateBookEpubProgression(bookId: bookId, progression: progression)
+      logger.info(
+        "📖 [Progress/Epub] Resumed from page-based server progress: book=\(bookId), page=\(page), href=\(locator.href)"
+      )
+      return progression
     }
 
     private func stripResourcePrefix(_ href: String) -> String {
