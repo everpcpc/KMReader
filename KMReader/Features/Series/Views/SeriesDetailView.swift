@@ -14,6 +14,7 @@ struct SeriesDetailView: View {
   @AppStorage("seriesDetailLayout") private var seriesDetailLayout: BrowseLayoutMode = .list
 
   @Environment(\.dismiss) private var dismiss
+  @Environment(\.horizontalSizeClass) private var horizontalSizeClass
   @Environment(\.readerActions) private var readerActions
 
   @State private var item: SeriesDisplayItem?
@@ -28,6 +29,7 @@ struct SeriesDetailView: View {
   @State private var readingTargetIsOffline: Bool?
   @State private var isResolvingReadingTarget = false
   @State private var readingTargetResolutionID = 0
+  @State private var readingBarCollapsed = false
   @AppStorage("seriesBookBrowseOptions") private var seriesBookBrowseOptions: BookBrowseOptions =
     BookBrowseOptions()
 
@@ -76,6 +78,35 @@ struct SeriesDetailView: View {
 
   private var shouldShowReadingBar: Bool {
     canRead
+  }
+
+  /// Wide layouts dock the bar to the trailing corner; collapsed state
+  /// (while scrolling) always docks trailing as a compact FAB.
+  private var docksReadingBarTrailing: Bool {
+    horizontalSizeClass == .regular || readingBarCollapsed
+  }
+
+  private var readingBarMaxWidth: CGFloat {
+    horizontalSizeClass == .regular ? 420 : 720
+  }
+
+  private func updateReadingBarCollapsed(oldOffset: CGFloat, newOffset: CGFloat) {
+    let delta = newOffset - oldOffset
+
+    let collapsed: Bool
+    if newOffset <= 8 {
+      collapsed = false
+    } else if delta > 1 {
+      collapsed = true
+    } else if delta < -1 {
+      collapsed = false
+    } else {
+      return
+    }
+    guard collapsed != readingBarCollapsed else { return }
+    withAnimation(.easeInOut(duration: 0.25)) {
+      readingBarCollapsed = collapsed
+    }
   }
 
   private var readingTargetBookForCurrentContext: Book? {
@@ -148,21 +179,30 @@ struct SeriesDetailView: View {
     #endif
     .safeAreaInset(edge: .bottom, spacing: 0) {
       if shouldShowReadingBar {
-        SeriesReadingActionBar(
-          actionTitle: readLabel,
-          book: readingTargetBookForCurrentContext,
-          fallbackTitle: navigationTitle,
-          isResuming: isResumingReading,
-          isResolving: isResolvingReadingTarget,
-          action: {
-            continueReading()
+        HStack {
+          if docksReadingBarTrailing {
+            Spacer(minLength: 0)
           }
-        )
-        .frame(maxWidth: 720)
+          SeriesReadingActionBar(
+            actionTitle: readLabel,
+            book: readingTargetBookForCurrentContext,
+            fallbackTitle: navigationTitle,
+            isResuming: isResumingReading,
+            isResolving: isResolvingReadingTarget,
+            isCollapsed: readingBarCollapsed,
+            action: {
+              continueReading()
+            }
+          )
+          .frame(maxWidth: readingBarCollapsed ? nil : readingBarMaxWidth)
+        }
         .padding(.horizontal, 16)
         .padding(.top, 6)
         .padding(.bottom, 8)
       }
+    }
+    .trackReadingBarCollapse { oldOffset, newOffset in
+      updateReadingBarCollapsed(oldOffset: oldOffset, newOffset: newOffset)
     }
     .alert("Delete Series?", isPresented: $showDeleteConfirmation) {
       Button("Delete", role: .destructive) {
@@ -580,5 +620,30 @@ extension SeriesDetailView {
       return [id]
     }
     return []
+  }
+}
+
+private struct ReadingBarCollapseModifier: ViewModifier {
+  let onOffsetChange: (CGFloat, CGFloat) -> Void
+
+  func body(content: Content) -> some View {
+    if #available(iOS 18.0, macOS 15.0, tvOS 18.0, *) {
+      content
+        .onScrollGeometryChange(
+          for: CGFloat.self,
+          of: { $0.contentOffset.y + $0.contentInsets.top },
+          action: onOffsetChange
+        )
+    } else {
+      content
+    }
+  }
+}
+
+extension View {
+  func trackReadingBarCollapse(
+    onOffsetChange: @escaping (CGFloat, CGFloat) -> Void
+  ) -> some View {
+    modifier(ReadingBarCollapseModifier(onOffsetChange: onOffsetChange))
   }
 }

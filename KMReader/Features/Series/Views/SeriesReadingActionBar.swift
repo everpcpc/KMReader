@@ -11,6 +11,7 @@ struct SeriesReadingActionBar: View {
   let fallbackTitle: String
   let isResuming: Bool
   let isResolving: Bool
+  var isCollapsed: Bool = false
   let action: () -> Void
 
   @ScaledMetric(relativeTo: .callout) private var iconSize = 36.0
@@ -48,6 +49,7 @@ struct SeriesReadingActionBar: View {
         .contentShape(Capsule(style: .continuous))
     }
     .adaptiveButtonStyle(.plain)
+    .accessibilityLabel(Text("\(actionSummary), \(displayTitle)"))
   }
 
   @ViewBuilder
@@ -71,24 +73,26 @@ struct SeriesReadingActionBar: View {
 
   private var content: some View {
     HStack(spacing: 12) {
-      VStack(alignment: .leading, spacing: 2) {
-        Text(actionSummary)
-          .font(.caption)
-          .fontWeight(.semibold)
-          .foregroundStyle(.secondary)
-          .lineLimit(1)
+      if !isCollapsed {
+        VStack(alignment: .leading, spacing: 2) {
+          Text(actionSummary)
+            .font(.caption)
+            .fontWeight(.semibold)
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
 
-        Text(displayTitle)
-          .font(.callout.weight(.semibold))
-          .foregroundStyle(.primary)
-          .lineLimit(1)
-      }
+          Text(displayTitle)
+            .font(.callout.weight(.semibold))
+            .foregroundStyle(.primary)
+            .lineLimit(1)
+        }
 
-      Spacer(minLength: 8)
+        Spacer(minLength: 8)
 
-      if isResolving {
-        ProgressView()
-          .controlSize(.small)
+        if isResolving {
+          ProgressView()
+            .controlSize(.small)
+        }
       }
 
       HStack(spacing: 12) {
@@ -103,9 +107,9 @@ struct SeriesReadingActionBar: View {
           }
       }
     }
-    .padding(.leading, 16)
+    .padding(.leading, isCollapsed ? 10 : 16)
     .padding(.trailing, 10)
     .padding(.vertical, 9)
-    .frame(maxWidth: .infinity, alignment: .leading)
+    .frame(maxWidth: isCollapsed ? nil : .infinity, alignment: .leading)
   }
 }
