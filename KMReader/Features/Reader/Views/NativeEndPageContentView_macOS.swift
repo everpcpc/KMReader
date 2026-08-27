@@ -73,6 +73,29 @@
       setupUI()
     }
 
+    override func viewDidChangeEffectiveAppearance() {
+      super.viewDidChangeEffectiveAppearance()
+      applyAppearanceColors()
+    }
+
+    /// Dynamic colors (the `.system` reader background and `.primary` content
+    /// color) must be snapshotted under this view's own appearance. `configure`
+    /// can run before the view enters a window, where the current drawing
+    /// appearance still reflects the system light mode, baking a white
+    /// background that then clashes with the dark-mode text.
+    private func applyAppearanceColors() {
+      let backgroundColor = NSColor(renderConfig.readerBackground.color)
+      let textColor = NSColor(renderConfig.readerBackground.contentColor)
+      effectiveAppearance.performAsCurrentDrawingAppearance {
+        layer?.backgroundColor = backgroundColor.cgColor
+        leadingDivider.layer?.backgroundColor = textColor.withAlphaComponent(0.3).cgColor
+        trailingDivider.layer?.backgroundColor = textColor.withAlphaComponent(0.3).cgColor
+        verticalDivider.layer?.backgroundColor = textColor.withAlphaComponent(0.3).cgColor
+      }
+      previousCoverView.useLightShadow = shouldUseLightCoverShadow
+      nextCoverView.useLightShadow = shouldUseLightCoverShadow
+    }
+
     required init?(coder: NSCoder) {
       fatalError("init(coder:) has not been implemented")
     }
@@ -105,7 +128,7 @@
 
     private func setupUI() {
       wantsLayer = true
-      layer?.backgroundColor = NSColor(renderConfig.readerBackground.color).cgColor
+      applyAppearanceColors()
 
       contentStack.translatesAutoresizingMaskIntoConstraints = false
       contentStack.orientation = .vertical
@@ -314,7 +337,7 @@
       )
       let relationTitle = presentation.relationTitle
 
-      layer?.backgroundColor = NSColor(renderConfig.readerBackground.color).cgColor
+      applyAppearanceColors()
 
       dividerTitleLabel.stringValue = relationTitle
       dividerTitleLabel.isHidden = relationTitle.isEmpty
@@ -338,11 +361,6 @@
       caughtUpIconView.contentTintColor = textColor
       caughtUpLabel.textColor = textColor
       dividerTitleLabel.textColor = textColor.withAlphaComponent(0.8)
-      leadingDivider.layer?.backgroundColor = textColor.withAlphaComponent(0.3).cgColor
-      trailingDivider.layer?.backgroundColor = textColor.withAlphaComponent(0.3).cgColor
-      verticalDivider.layer?.backgroundColor = textColor.withAlphaComponent(0.3).cgColor
-      previousCoverView.useLightShadow = shouldUseLightCoverShadow
-      nextCoverView.useLightShadow = shouldUseLightCoverShadow
       previousCoverView.imageBlendTintColor = coverBlendTintColor
       nextCoverView.imageBlendTintColor = coverBlendTintColor
 
