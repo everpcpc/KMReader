@@ -180,6 +180,11 @@ actor SyncWorker {
             instanceId: instanceId
           )
           syncedCount += booksToSync.count
+          await refreshDownloadedEpubProgressions(
+            books: booksToSync,
+            instanceId: instanceId,
+            database: database
+          )
         }
 
         page += 1
@@ -196,6 +201,97 @@ actor SyncWorker {
     } catch {
       logger.warning("⚠️ Failed to sync latest recently-read progress: \(error)")
       return false
+    }
+  }
+
+  /// Tolerates clock skew between the server-side readProgress.lastModified
+  /// and the client-supplied locator `modified` timestamp, so a locator this
+  /// device just uploaded is not immediately re-fetched.
+  private let epubProgressionSkewTolerance: TimeInterval = 60
+
+  /// Refreshes cached Readium locators for downloaded, in-progress EPUBs whose
+  /// server-side read progress changed. Batch book endpoints only expose
+  /// page-based progress, so the locator stored in `epubProgressionRaw` must
+  /// be re-fetched per book here; otherwise reopening the book offline resumes
+  /// from a stale position.
+  private func refreshDownloadedEpubProgressions(
+    books: [Book],
+    instanceId: String,
+    database: DatabaseOperator
+  ) async {
+    let inProgress = books.filter { $0.isInProgress }
+    guard !inProgress.isEmpty else { return }
+
+    let checkpoints = await database.fetchDownloadedEpubProgressionModifiedDates(
+      instanceId: instanceId,
+      bookIds: inProgress.map(\.id)
+    )
+    guard !checkpoints.isEmpty else { return }
+
+    let lastModifiedByBookId = Dictionary(
+      uniqueKeysWithValues: inProgress.compactMap { book in
+        book.readProgress.map { (book.id, $0.lastModified) }
+      }
+    )
+    let pageByBookId = Dictionary(
+      uniqueKeysWithValues: inProgress.compactMap { book in
+        book.readProgress.map { (book.id, $0.page) }
+      }
+    )
+
+    var refreshedCount = 0
+    for checkpoint in checkpoints {
+      guard let serverLastModified = lastModifiedByBookId[checkpoint.bookId] else { continue }
+      if let localModified = checkpoint.progressionModified,
+        serverLastModified <= localModified.addingTimeInterval(epubProgressionSkewTolerance)
+      {
+        continue
+      }
+
+      switch await BookService.fetchRemoteWebPubProgression(bookId: checkpoint.bookId) {
+      case .available(let progression):
+        await database.updateBookEpubProgression(
+          bookId: checkpoint.bookId,
+          progression: progression
+        )
+        refreshedCount += 1
+      case .missing:
+        // A missing locator with a non-zero page means the server stores
+        // page-based progress (KOReader/Kindle sync, paged readers, web UI);
+        // map the page to a locator so offline resume can use it.
+        let page = pageByBookId[checkpoint.bookId] ?? 0
+        if page > 0,
+          let progression = await EpubPageProgressionMapper.progression(
+            bookId: checkpoint.bookId,
+            page: page
+          )
+        {
+          await database.updateBookEpubProgression(
+            bookId: checkpoint.bookId,
+            progression: progression
+          )
+          refreshedCount += 1
+        } else if checkpoint.progressionModified == nil {
+          // Never downgrade a locally cached locator on a missing-shaped
+          // response; only record "missing" when there is no local position.
+          await database.updateBookEpubProgression(
+            bookId: checkpoint.bookId,
+            progression: nil
+          )
+        }
+      case .retryableFailure(let error):
+        logger.warning(
+          "⚠️ Failed to refresh EPUB progression for book \(checkpoint.bookId): \(error.localizedDescription)"
+        )
+      case .invalidPayload(let error):
+        logger.warning(
+          "⚠️ Ignoring non-retryable EPUB progression payload for book \(checkpoint.bookId): \(error.localizedDescription)"
+        )
+      }
+    }
+
+    if refreshedCount > 0 {
+      logger.info("📖 Refreshed EPUB progression for \(refreshedCount) downloaded books")
     }
   }
 

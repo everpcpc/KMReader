@@ -672,6 +672,40 @@ extension DatabaseOperator {
     return bookIds
   }
 
+  /// Returns the `modified` timestamp of the cached Readium locator for each
+  /// requested book that is a downloaded EPUB. A nil timestamp means no usable
+  /// locator is cached (never fetched or recorded as missing).
+  func fetchDownloadedEpubProgressionModifiedDates(
+    instanceId: String,
+    bookIds: [String]
+  ) async -> [(bookId: String, progressionModified: Date?)] {
+    guard !bookIds.isEmpty else { return [] }
+    guard
+      let results = try? read({ db in
+        try KomgaBook
+          .filter(KomgaBook.Columns.instanceId == instanceId)
+          .filter(bookIds.contains(KomgaBook.Columns.bookId))
+          .filter(KomgaBook.Columns.downloadStatusRaw == "downloaded")
+          .filter(KomgaBook.Columns.mediaProfile == MediaProfile.epub.rawValue)
+          .fetchAll(db)
+      })
+    else {
+      return []
+    }
+    var checkpoints: [(bookId: String, progressionModified: Date?)] = []
+    checkpoints.reserveCapacity(results.count)
+    for book in results {
+      if case .available(let progression) = await decodeStoredEpubProgressionState(
+        book.epubProgressionRaw
+      ) {
+        checkpoints.append((book.bookId, progression.modified))
+      } else {
+        checkpoints.append((book.bookId, nil))
+      }
+    }
+    return checkpoints
+  }
+
   func fetchReadBooksEligibleForAutoDelete(instanceId: String) -> [(id: String, seriesId: String)] {
     (try? read { db in
       let now = Date.now

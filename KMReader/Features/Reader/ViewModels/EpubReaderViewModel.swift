@@ -1232,48 +1232,25 @@
       page: Int,
       database: DatabaseOperator
     ) async -> R2Progression? {
-      guard !AppConfig.isOffline else { return nil }
+      guard
+        let progression = await EpubPageProgressionMapper.progression(
+          bookId: bookId,
+          page: page
+        )
+      else {
+        return nil
+      }
 
-      let positions: R2Positions
-      do {
-        positions = try await BookService.getWebPubPositions(bookId: bookId)
-      } catch {
+      guard chapterIndexForHref(progression.locator.href) != nil else {
         logger.warning(
-          "⚠️ [Progress/Epub] Failed to fetch positions for page-based resume: book=\(bookId), error=\(error.localizedDescription)"
+          "⚠️ [Progress/Epub] Position locator does not match any chapter: book=\(bookId), href=\(progression.locator.href)"
         )
         return nil
       }
 
-      let candidates = positions.positions.compactMap { locator -> (position: Int, locator: R2Locator)? in
-        guard let position = locator.locations?.position else { return nil }
-        return (position, locator)
-      }
-      guard !candidates.isEmpty else { return nil }
-
-      let sorted = candidates.sorted { $0.position < $1.position }
-      guard let match = sorted.last(where: { $0.position <= page }) ?? sorted.first else {
-        return nil
-      }
-
-      let locator = match.locator
-      guard chapterIndexForHref(locator.href) != nil else {
-        logger.warning(
-          "⚠️ [Progress/Epub] Position locator does not match any chapter: book=\(bookId), href=\(locator.href)"
-        )
-        return nil
-      }
-
-      let progression = R2Progression(
-        modified: Date(),
-        device: R2Device(
-          id: AppConfig.deviceIdentifier,
-          name: AppConfig.userAgent
-        ),
-        locator: locator
-      )
       await database.updateBookEpubProgression(bookId: bookId, progression: progression)
       logger.info(
-        "📖 [Progress/Epub] Resumed from page-based server progress: book=\(bookId), page=\(page), href=\(locator.href)"
+        "📖 [Progress/Epub] Resumed from page-based server progress: book=\(bookId), page=\(page), href=\(progression.locator.href)"
       )
       return progression
     }

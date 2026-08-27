@@ -119,6 +119,7 @@ nonisolated extension KomgaBook: FetchableRecord, MutablePersistableRecord {
     static let metaReleaseDate = Column(CodingKeys.metaReleaseDate)
     static let progressReadDate = Column(CodingKeys.progressReadDate)
     static let downloadStatusRaw = Column(CodingKeys.downloadStatusRaw)
+    static let mediaProfile = Column(CodingKeys.mediaProfile)
     static let downloadAt = Column(CodingKeys.downloadAt)
   }
 
