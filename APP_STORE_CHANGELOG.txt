@@ -1,8 +1,20 @@
 New
-- See your recent reading at a glance with a 90-day pages-read heatmap.
-- Export or clear stored logs from the same logs menu.
+- The series reading action bar now docks to the trailing corner on iPad and macOS, and collapses into a compact button while you scroll.
+- Keep the screen awake while reading with a new toggle in Reader > Reading settings.
+- Page rotation in DIVINA now applies to the whole reading session, so you do not need to rotate each page individually.
 
 Improvements
-- Offline cover sync now stays scoped to your selected dashboard libraries, preserves manual choices, and handles large libraries more efficiently.
-- DIVINA can recover missing page dimensions from cached, downloaded, or streamed content so Auto Page Layout and Split Wide Pages remain accurate.
-- Completed offline downloads now keep the loading indicator full while the reader finishes preparing EPUB, PDF, or page resources.
+- Resume EPUB books from page-based server progress (KOReader, Kindle sync, web UI) instead of losing the position.
+- Offline EPUB reading position now refreshes from the server during sync so it stays current across devices.
+- Transient server failures no longer wipe EPUB reading progress.
+- PDF overlay toggling is smoother on iPadOS 18.
+- DIVINA pinch-to-zoom no longer crashes on iPadOS 18.
+- Page position stays stable across layout rebuilds and Page Curl orientation changes.
+- Share the original un-cropped page image from the page context menu.
+- tvOS login now works correctly with the Siri Remote.
+- Fix macOS freezes when adding books to read lists or collections from the menu bar.
+- Dashboard scrolling is smoother on macOS.
+- Server URLs with trailing slashes are now handled automatically.
+
+Fixes
+- Restore missing Collections and Read Lists sections on series and book detail pages.
