@@ -91,20 +91,9 @@ struct SeriesDetailView: View {
   }
 
   private func updateReadingBarCollapsed(oldOffset: CGFloat, newOffset: CGFloat) {
-    let delta = newOffset - oldOffset
-
-    let collapsed: Bool
-    if newOffset <= 8 {
-      collapsed = false
-    } else if delta > 1 {
-      collapsed = true
-    } else if delta < -1 {
-      collapsed = false
-    } else {
-      return
-    }
+    let collapsed = newOffset > 8
     guard collapsed != readingBarCollapsed else { return }
-    withAnimation(.spring(duration: 0.45, bounce: 0.35)) {
+    withAnimation(.spring(duration: 0.35, bounce: 0.12)) {
       readingBarCollapsed = collapsed
     }
   }
