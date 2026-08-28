@@ -97,19 +97,14 @@ struct SeriesReadingActionBar: View {
 
       HStack(spacing: 12) {
         Image(systemName: actionIcon)
-          .font(.subheadline.weight(.bold))
+          .font(.title3.weight(.bold))
           .foregroundStyle(Color.accentColor)
           .frame(width: iconSize, height: iconSize)
-          .background(Color.primary.opacity(0.08), in: Circle())
-          .overlay {
-            Circle()
-              .strokeBorder(Color.primary.opacity(0.06))
-          }
       }
     }
     .padding(.leading, isCollapsed ? 10 : 16)
     .padding(.trailing, 10)
-    .padding(.vertical, 9)
+    .padding(.vertical, isCollapsed ? 10 : 9)
     .frame(maxWidth: isCollapsed ? nil : .infinity, alignment: .leading)
   }
 }

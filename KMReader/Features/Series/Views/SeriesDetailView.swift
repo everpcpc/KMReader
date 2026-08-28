@@ -104,7 +104,7 @@ struct SeriesDetailView: View {
       return
     }
     guard collapsed != readingBarCollapsed else { return }
-    withAnimation(.easeInOut(duration: 0.25)) {
+    withAnimation(.spring(duration: 0.45, bounce: 0.35)) {
       readingBarCollapsed = collapsed
     }
   }
