@@ -77,7 +77,13 @@ struct SeriesDetailView: View {
   }
 
   private var shouldShowReadingBar: Bool {
-    canRead
+    guard canRead else { return false }
+    // Offline: only show when there is an actual downloadable book to resume;
+    // otherwise the bar would just show the series title as a useless fallback.
+    if isOffline {
+      return readingTargetBookForCurrentContext != nil || isResolvingReadingTarget
+    }
+    return true
   }
 
   /// Wide layouts dock the bar to the trailing corner; collapsed state
