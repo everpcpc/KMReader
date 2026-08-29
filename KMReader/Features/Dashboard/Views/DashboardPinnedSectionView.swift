@@ -81,17 +81,12 @@ struct DashboardPinnedSectionView: View {
     }
   }
 
-  private var compactCardWidth: CGFloat {
-    let proposed = LayoutConfig.cardWidth(for: gridDensity) * 2.0
-    #if os(tvOS)
-      return min(max(proposed, 360), 680)
-    #else
-      return min(max(proposed, 220), 480)
-    #endif
+  private var horizontalCardWidth: CGFloat {
+    LayoutConfig.horizontalCardWidth(for: gridDensity)
   }
 
-  private var compactCoverWidth: CGFloat {
-    min(max(compactCardWidth * 0.24, 64), 132)
+  private var horizontalCoverWidth: CGFloat {
+    LayoutConfig.horizontalCoverWidth(for: gridDensity)
   }
 
   private var spacing: CGFloat {
@@ -135,9 +130,9 @@ struct DashboardPinnedSectionView: View {
                 switch section.contentKind {
                 case .collections:
                   ForEach(pinnedCollections) { collection in
-                    CollectionCompactCardView(
+                    CollectionHorizontalCardView(
                       item: collection,
-                      coverWidth: compactCoverWidth,
+                      coverWidth: horizontalCoverWidth,
                       onChanged: schedulePinnedItemsReload,
                       onDeleteRequested: {
                         collectionPendingDelete = collection
@@ -145,13 +140,13 @@ struct DashboardPinnedSectionView: View {
                       }
                     )
                     .id(collection.collectionId)
-                    .frame(width: compactCardWidth)
+                    .frame(width: horizontalCardWidth)
                   }
                 case .readLists:
                   ForEach(pinnedReadLists) { readList in
-                    ReadListCompactCardView(
+                    ReadListHorizontalCardView(
                       item: readList,
-                      coverWidth: compactCoverWidth,
+                      coverWidth: horizontalCoverWidth,
                       onChanged: schedulePinnedItemsReload,
                       onDeleteRequested: {
                         readListPendingDelete = readList
@@ -159,7 +154,7 @@ struct DashboardPinnedSectionView: View {
                       }
                     )
                     .id(readList.readListId)
-                    .frame(width: compactCardWidth)
+                    .frame(width: horizontalCardWidth)
                   }
                 default:
                   EmptyView()

@@ -11,6 +11,8 @@ struct DashboardSectionView: View {
 
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
+  @AppStorage("dashboardHorizontalBookCards")
+  private var dashboardHorizontalBookCards: Bool = true
   @AppStorage("showDashboardSectionGradientBackground")
   private var showDashboardSectionGradientBackground: Bool =
     AppConfig.showDashboardSectionGradientBackground
@@ -40,6 +42,23 @@ struct DashboardSectionView: View {
 
   private var cardWidth: CGFloat {
     LayoutConfig.cardWidth(for: gridDensity)
+  }
+
+  /// Horizontal cards only apply to Keep Reading.
+  private var useHorizontalBookCards: Bool {
+    section == .keepReading && dashboardHorizontalBookCards
+  }
+
+  private var horizontalCardWidth: CGFloat {
+    LayoutConfig.horizontalCardWidth(for: gridDensity)
+  }
+
+  private var horizontalCoverWidth: CGFloat {
+    LayoutConfig.horizontalCoverWidth(for: gridDensity)
+  }
+
+  private var itemWidth: CGFloat {
+    useHorizontalBookCards ? horizontalCardWidth : cardWidth
   }
 
   private var spacing: CGFloat {
@@ -82,7 +101,7 @@ struct DashboardSectionView: View {
               ForEach(pagination.items) { item in
                 itemView(for: item.id)
                   .id(item.id)
-                  .frame(width: cardWidth)
+                  .frame(width: itemWidth)
                   .onAppear {
                     if pagination.shouldLoadMore(after: item) {
                       Task {
@@ -132,6 +151,7 @@ struct DashboardSectionView: View {
         bookId: itemId,
         layout: .grid,
         showSeriesTitle: true,
+        horizontalCoverWidth: useHorizontalBookCards ? horizontalCoverWidth : nil,
         onItemMissing: {
           removeItem(id: itemId)
         }

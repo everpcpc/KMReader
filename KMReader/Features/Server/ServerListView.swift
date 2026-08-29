@@ -198,7 +198,7 @@ struct ServerListView: View {
       // existing navigation stack instead of presenting a second sheet.
       .navigationDestination(isPresented: $showLogin) {
         LoginView(authViewModel: authViewModel)
-          .inlineNavigationBarTitle(String(localized: "Connect to a Server"))
+        .inlineNavigationBarTitle(String(localized: "Connect to a Server"))
       }
     #else
       .sheet(isPresented: $showLogin) {
