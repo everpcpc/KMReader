@@ -28,6 +28,7 @@ This file provides guidance to coding agents working with code in this repositor
 - **Series Policies**: Manual, unread-only, or all books per series/read list.
 - **Offline Mode**: Full reader functionality with downloaded content. Progress syncs when reconnected.
 - **Two-Tier Caching**: Pages and thumbnails with adjustable limits and auto-cleanup.
+- **Download Directory Lifecycle**: Cancelling a download removes its on-disk book directory. Failed downloads keep partial content for resume on retry, but empty directories left by early failures are removed immediately instead of becoming orphans.
 
 ### Browse & Dashboards
 
