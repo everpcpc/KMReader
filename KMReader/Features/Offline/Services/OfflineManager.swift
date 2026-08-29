@@ -222,6 +222,41 @@ actor OfflineManager {
     return url
   }
 
+  /// On-disk location for a book's offline files. Unlike `bookDirectory`, never creates it.
+  private static func bookDirectoryURL(instanceId: String, bookId: String) -> URL {
+    offlineDirectory(for: instanceId)
+      .appendingPathComponent(bookId, isDirectory: true)
+  }
+
+  /// Removes the book's offline directory if present. Never creates it.
+  private func removeBookDirectory(instanceId: String, bookId: String) {
+    let dir = Self.bookDirectoryURL(instanceId: instanceId, bookId: bookId)
+    guard FileManager.default.fileExists(atPath: dir.path) else { return }
+    do {
+      try FileManager.default.removeItem(at: dir)
+      logger.info("🗑️ Removed offline directory for book: \(bookId)")
+    } catch {
+      logger.error("❌ Failed to remove offline directory \(bookId): \(error)")
+    }
+  }
+
+  /// Removes the book's offline directory only when it holds no files, so downloads
+  /// that failed or were cancelled before writing content don't leave empty shells
+  /// behind. Directories with partial content are kept for resume on retry.
+  private func removeBookDirectoryIfEmpty(instanceId: String, bookId: String) {
+    let dir = Self.bookDirectoryURL(instanceId: instanceId, bookId: bookId)
+    var isDir: ObjCBool = false
+    guard FileManager.default.fileExists(atPath: dir.path, isDirectory: &isDir),
+      isDir.boolValue, !Self.directoryContainsFiles(dir)
+    else { return }
+    do {
+      try FileManager.default.removeItem(at: dir)
+      logger.info("🗑️ Removed empty offline directory for book: \(bookId)")
+    } catch {
+      logger.error("❌ Failed to remove empty offline directory \(bookId): \(error)")
+    }
+  }
+
   private func webPubRootURL(bookDir: URL) -> URL {
     let url = bookDir.appendingPathComponent("webpub", isDirectory: true)
     Self.ensureDirectoryExists(at: url)
@@ -417,7 +452,6 @@ actor OfflineManager {
   ) async {
     await cancelDownload(
       bookId: bookId, instanceId: instanceId, commit: false, syncSeriesStatus: syncSeriesStatus)
-    let dir = bookDirectory(instanceId: instanceId, bookId: bookId)
 
     // Update local database
     try? await DatabaseOperator.database().updateBookDownloadStatus(
@@ -429,17 +463,8 @@ actor OfflineManager {
       await refreshQueueStatus(instanceId: instanceId)
     }
 
-    // Then delete files
-    Task.detached { [logger] in
-      do {
-        if FileManager.default.fileExists(atPath: dir.path) {
-          try FileManager.default.removeItem(at: dir)
-        }
-        logger.info("🗑️ Deleted offline book: \(bookId)")
-      } catch {
-        logger.error("❌ Failed to delete book \(bookId): \(error)")
-      }
-    }
+    // Safety net: cancelDownload already removed the on-disk directory.
+    removeBookDirectory(instanceId: instanceId, bookId: bookId)
 
     #if os(iOS) || os(macOS)
       SpotlightIndexService.removeBook(bookId: bookId, instanceId: instanceId)
@@ -604,10 +629,15 @@ actor OfflineManager {
   ) async {
     removeActiveTask(bookId)
     let resolvedInstanceId = instanceId ?? AppConfig.current.instanceId
+    #if os(iOS)
+      await BackgroundDownloadManager.shared.cancelDownloads(forBookId: bookId)
+      clearBackgroundDownloadContext(bookId: bookId)
+    #endif
     try? await DatabaseOperator.database().updateBookDownloadStatus(
       bookId: bookId, instanceId: resolvedInstanceId, status: .notDownloaded,
       syncSeriesStatus: syncSeriesStatus
     )
+    removeBookDirectory(instanceId: resolvedInstanceId, bookId: bookId)
     if commit {
       await postDownloadProjectionDidChange(bookId: bookId, instanceId: resolvedInstanceId)
       await refreshQueueStatus(instanceId: resolvedInstanceId)
@@ -1002,6 +1032,7 @@ actor OfflineManager {
         await BackgroundDownloadManager.shared.cancelDownloads(forBookId: info.bookId)
         clearBackgroundDownloadContext(bookId: info.bookId)
         removeActiveTask(info.bookId)
+        removeBookDirectoryIfEmpty(instanceId: instanceId, bookId: info.bookId)
         try? await DatabaseOperator.database().updateBookDownloadStatus(
           bookId: info.bookId,
           instanceId: instanceId,
@@ -1836,17 +1867,7 @@ actor OfflineManager {
   }
 
   private func removeOfflineFiles(instanceId: String, bookId: String) {
-    let dir = bookDirectory(instanceId: instanceId, bookId: bookId)
-    Task.detached { [logger] in
-      do {
-        if FileManager.default.fileExists(atPath: dir.path) {
-          try FileManager.default.removeItem(at: dir)
-        }
-        logger.info("🗑️ Deleted offline book files: \(bookId)")
-      } catch {
-        logger.error("❌ Failed to delete offline book files \(bookId): \(error)")
-      }
-    }
+    removeBookDirectory(instanceId: instanceId, bookId: bookId)
 
     #if os(iOS) || os(macOS)
       SpotlightIndexService.removeBook(bookId: bookId, instanceId: instanceId)
@@ -2181,6 +2202,7 @@ actor OfflineManager {
       await BackgroundDownloadManager.shared.cancelDownloads(forBookId: bookId)
       clearBackgroundDownloadContext(bookId: bookId)
       removeActiveTask(bookId)
+      removeBookDirectoryIfEmpty(instanceId: info.instanceId, bookId: bookId)
 
       // Update Live Activity or end if no more pending
       let pendingBooks =
@@ -2348,6 +2370,7 @@ actor OfflineManager {
           await postDownloadProjectionDidChange(bookId: bookId, instanceId: info.instanceId)
           clearBackgroundDownloadContext(bookId: bookId)
           removeActiveTask(bookId)
+          removeBookDirectoryIfEmpty(instanceId: info.instanceId, bookId: bookId)
           await refreshQueueStatus(instanceId: info.instanceId)
           await syncDownloadQueue(instanceId: info.instanceId)
           return
