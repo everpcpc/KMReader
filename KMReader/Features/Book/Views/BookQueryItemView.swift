@@ -12,6 +12,7 @@ struct BookQueryItemView: View {
   var showSeriesTitle: Bool = true
   var showSeriesNavigation: Bool = true
   var readListContext: ReaderReadListContext? = nil
+  var horizontalCoverWidth: CGFloat? = nil
   var onItemMissing: (() -> Void)? = nil
 
   @AppStorage("currentAccount") private var current: Current = .init()
@@ -25,6 +26,7 @@ struct BookQueryItemView: View {
     showSeriesTitle: Bool = true,
     showSeriesNavigation: Bool = true,
     readListContext: ReaderReadListContext? = nil,
+    horizontalCoverWidth: CGFloat? = nil,
     onItemMissing: (() -> Void)? = nil
   ) {
     self.bookId = bookId
@@ -32,6 +34,7 @@ struct BookQueryItemView: View {
     self.showSeriesTitle = showSeriesTitle
     self.showSeriesNavigation = showSeriesNavigation
     self.readListContext = readListContext
+    self.horizontalCoverWidth = horizontalCoverWidth
     self.onItemMissing = onItemMissing
 
   }
@@ -39,10 +42,10 @@ struct BookQueryItemView: View {
   var body: some View {
     Group {
       if let item {
-        switch layout {
-        case .grid:
-          BookCardView(
+        if let horizontalCoverWidth, layout == .grid {
+          BookHorizontalCardView(
             item: item,
+            coverWidth: horizontalCoverWidth,
             onReadBook: { incognito in
               readerActions.open(
                 book: item.book,
@@ -54,33 +57,56 @@ struct BookQueryItemView: View {
             onDeleteRequested: {
               showDeleteConfirmation = true
             },
-            showSeriesTitle: showSeriesTitle,
             showSeriesNavigation: showSeriesNavigation
           )
-        case .list:
-          BookRowView(
-            item: item,
-            onReadBook: { incognito in
-              readerActions.open(
-                book: item.book,
-                incognito: incognito,
-                readListContext: readListContext
-              )
-            },
-            onMutationCompleted: reloadItem,
-            onDeleteRequested: {
-              showDeleteConfirmation = true
-            },
-            showSeriesTitle: showSeriesTitle,
-            showSeriesNavigation: showSeriesNavigation
-          )
+        } else {
+          switch layout {
+          case .grid:
+            BookCardView(
+              item: item,
+              onReadBook: { incognito in
+                readerActions.open(
+                  book: item.book,
+                  incognito: incognito,
+                  readListContext: readListContext
+                )
+              },
+              onMutationCompleted: reloadItem,
+              onDeleteRequested: {
+                showDeleteConfirmation = true
+              },
+              showSeriesTitle: showSeriesTitle,
+              showSeriesNavigation: showSeriesNavigation
+            )
+          case .list:
+            BookRowView(
+              item: item,
+              onReadBook: { incognito in
+                readerActions.open(
+                  book: item.book,
+                  incognito: incognito,
+                  readListContext: readListContext
+                )
+              },
+              onMutationCompleted: reloadItem,
+              onDeleteRequested: {
+                showDeleteConfirmation = true
+              },
+              showSeriesTitle: showSeriesTitle,
+              showSeriesNavigation: showSeriesNavigation
+            )
+          }
         }
       } else {
-        CardPlaceholder(
-          layout: layout,
-          kind: .book,
-          showBookSeriesTitle: showSeriesTitle
-        )
+        if let horizontalCoverWidth, layout == .grid {
+          BookHorizontalCardPlaceholder(coverWidth: horizontalCoverWidth)
+        } else {
+          CardPlaceholder(
+            layout: layout,
+            kind: .book,
+            showBookSeriesTitle: showSeriesTitle
+          )
+        }
       }
     }
     .task(id: "\(current.instanceId)|\(bookId)") {

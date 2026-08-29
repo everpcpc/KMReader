@@ -1,13 +1,13 @@
 //
-// CollectionCompactCardView.swift
+// ReadListHorizontalCardView.swift
 //
 //
 
 import SwiftUI
 
 @MainActor
-struct CollectionCompactCardView: View {
-  let item: CollectionDisplayItem
+struct ReadListHorizontalCardView: View {
+  let item: ReadListDisplayItem
   var coverWidth: CGFloat = 80
   var onChanged: () -> Void = {}
   let onDeleteRequested: () -> Void
@@ -15,23 +15,22 @@ struct CollectionCompactCardView: View {
   @State private var showEditSheet = false
 
   var body: some View {
-    NavigationLink(
-      value: NavDestination.collectionDetail(collectionId: item.collectionId)
-    ) {
+    NavigationLink(value: NavDestination.readListDetail(readListId: item.readListId)) {
       HStack(alignment: .top, spacing: 10) {
-        ThumbnailImage(id: item.collectionId, type: .collection, width: coverWidth)
-          .frame(width: coverWidth)
-          .allowsHitTesting(false)
+        ThumbnailImage(
+          id: item.readListId, type: .readlist, width: coverWidth, preserveAspectRatioOverride: false
+        )
+        .frame(width: coverWidth)
+        .allowsHitTesting(false)
 
         VStack(alignment: .leading, spacing: 4) {
           Text(item.name)
-            .font(.headline)
-            .fontWeight(.medium)
+            .font(.footnote)
             .lineLimit(2)
             .multilineTextAlignment(.leading)
 
-          Text("\(item.seriesCount) series")
-            .font(.footnote)
+          Text("\(item.bookCount) books")
+            .font(.caption)
             .foregroundColor(.secondary)
 
           Text(item.lastModifiedDate.formattedMediumDate)
@@ -54,9 +53,12 @@ struct CollectionCompactCardView: View {
     }
     .adaptiveButtonStyle(.plain)
     .contextMenu {
-      CollectionContextMenu(
-        collectionId: item.collectionId,
+      ReadListContextMenu(
+        readListId: item.readListId,
         menuTitle: item.name,
+        downloadStatus: item.downloadStatus,
+        offlinePolicy: item.offlinePolicy,
+        offlinePolicyLimit: item.offlinePolicyLimit,
         isPinned: item.isPinned,
         onDeleteRequested: {
           onDeleteRequested()
@@ -66,11 +68,12 @@ struct CollectionCompactCardView: View {
         },
         onPinToggleRequested: {
           togglePinned()
-        }
+        },
+        onMutationCompleted: onChanged
       )
     }
     .sheet(isPresented: $showEditSheet, onDismiss: onChanged) {
-      CollectionEditSheet(collection: item.collection)
+      ReadListEditSheet(readList: item.readList)
     }
   }
 
@@ -79,8 +82,8 @@ struct CollectionCompactCardView: View {
     Task {
       do {
         let database = try await DatabaseOperator.database()
-        await database.setCollectionPinned(
-          collectionId: item.collectionId,
+        await database.setReadListPinned(
+          readListId: item.readListId,
           instanceId: item.instanceId,
           isPinned: nextPinned
         )

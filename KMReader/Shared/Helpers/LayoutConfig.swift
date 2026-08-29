@@ -33,6 +33,26 @@ struct LayoutConfig {
     baseCardWidth * CGFloat(density)
   }
 
+  /// Width of horizontal cards (dashboard book sections, pinned read lists/collections)
+  static func horizontalCardWidth(for density: Double) -> CGFloat {
+    let proposed = cardWidth(for: density) * 2.2
+    #if os(tvOS)
+      return min(max(proposed, 360), 660)
+    #else
+      return min(max(proposed, 240), 480)
+    #endif
+  }
+
+  /// Cover width inside horizontal cards
+  static func horizontalCoverWidth(for density: Double) -> CGFloat {
+    let cardWidth = horizontalCardWidth(for: density)
+    #if os(tvOS)
+      return min(max(cardWidth * 0.21, 56), 140)
+    #else
+      return min(max(cardWidth * 0.21, 48), 96)
+    #endif
+  }
+
   /// Default spacing between cards
   static var defaultSpacing: CGFloat {
     #if os(tvOS)
