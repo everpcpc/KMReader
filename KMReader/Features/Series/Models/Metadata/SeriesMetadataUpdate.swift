@@ -112,8 +112,11 @@ struct SeriesMetadataUpdate: Codable {
     }
     dict["languageLock"] = languageLock
 
-    let currentReadingDirection = ReadingDirection.fromString(original.metadata.readingDirection)
-    if readingDirection != currentReadingDirection {
+    // Compare against the raw server value: an unset direction must not be
+    // treated as equal to the default fallback (.ltr), or locking it would
+    // send the lock flag without the direction value.
+    let currentReadingDirection = original.metadata.readingDirection?.uppercased() ?? ""
+    if readingDirection.rawValue != currentReadingDirection {
       dict["readingDirection"] = readingDirection.rawValue
     }
     dict["readingDirectionLock"] = readingDirectionLock
