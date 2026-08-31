@@ -16,7 +16,7 @@ struct BookActionsSection: View {
       Button {
         readerActions.open(book: book, incognito: false)
       } label: {
-        Label("Read", systemImage: "play")
+        Label("Read", systemImage: "book.fill")
       }
       .adaptiveButtonStyle(.borderedProminent)
 

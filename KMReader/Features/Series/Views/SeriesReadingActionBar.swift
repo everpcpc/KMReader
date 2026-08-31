@@ -31,10 +31,6 @@ struct SeriesReadingActionBar: View {
     return "\(actionTitle) · \(progressSummary)"
   }
 
-  private var actionIcon: String {
-    isResuming ? "forward.fill" : "play.fill"
-  }
-
   private var progressSummary: String? {
     guard let book, let progress = book.readProgress, !progress.completed else { return nil }
     let page = progress.page
@@ -48,7 +44,19 @@ struct SeriesReadingActionBar: View {
       styledContent
         .contentShape(Capsule(style: .continuous))
     }
-    .adaptiveButtonStyle(.plain)
+    #if os(tvOS)
+      .adaptiveButtonStyle(.plain)
+    #elseif os(iOS)
+      // Deeper squeeze than the default 0.95 squish, closer to the
+      // Apple Music capsule button press feel.
+      .buttonStyle(.squish(scale: 0.93))
+      .hoverEffect(.lift)
+    #elseif os(macOS)
+      .buttonStyle(.squish(scale: 0.93))
+      .macHoverEffect()
+    #else
+      .buttonStyle(.plain)
+    #endif
     .accessibilityLabel(Text("\(actionSummary), \(displayTitle)"))
   }
 
@@ -96,7 +104,7 @@ struct SeriesReadingActionBar: View {
       }
 
       HStack(spacing: 12) {
-        Image(systemName: actionIcon)
+        Image(systemName: "book.fill")
           .font(.title3.weight(.bold))
           .foregroundStyle(Color.accentColor)
           .frame(width: iconSize, height: iconSize)
