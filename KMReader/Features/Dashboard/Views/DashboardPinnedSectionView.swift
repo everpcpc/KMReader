@@ -118,7 +118,8 @@ struct DashboardPinnedSectionView: View {
             }
           }
           .buttonStyle(.plain)
-          .padding()
+          .padding(.horizontal)
+          .padding(.top)
           #if os(macOS)
             .padding(.leading, 16)
           #endif
