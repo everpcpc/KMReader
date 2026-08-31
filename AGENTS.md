@@ -56,6 +56,7 @@ This file provides guidance to coding agents working with code in this repositor
 - **iOS**: Live Activities, background downloads, page curl transitions, shake gestures.
 - **macOS**: Separate reader windows, comprehensive keyboard shortcuts, keyboard help overlay.
 - **tvOS**: Remote control navigation, TV-optimized interface (DIVINA only).
+- **Series continue-reading accessory**: Rendered by the system via `tabViewBottomAccessory(isEnabled:)` in `PhoneTabView` on iOS 26.1+ only, driven by the shared `ReadingActionBarContext` written from `SeriesDetailView`. The modifier must stay permanently attached with `isEnabled` toggling visibility; conditionally attaching it rebuilds the tab subtree and causes a refresh loop. It intentionally does not exist on iOS < 26.1, iPad, macOS, or tvOS (see convention 21); do not reintroduce a hand-written bar for those platforms.
 
 ## Commands
 
@@ -381,6 +382,7 @@ KMReader/
 18. **Prioritize end-state quality over local diff size**: Stability, simplicity, clarity of ownership, and long-term maintainability are more important than minimizing code churn. Do not be afraid to rewrite or replace a local subsystem when that is the cleaner and more reliable design.
 19. **If a temporary compatibility layer is unavoidable, mark it explicitly**: State why it exists, what the intended final design is, and what should be removed later. Temporary layers should be rare and treated as debt, not as the default implementation style.
 20. **Keep boundary documentation current**: When a change introduces or changes a lifetime, ownership, persistence, navigation, platform, reader-mode, or UI-placement boundary, update `AGENTS.md` in the same change so the boundary remains explicit and enforceable.
+21. **No compatibility shims for OS-gated features**: Unless a feature is explicitly required, do not hand-roll fallback implementations of newer system APIs for older OS versions. Gate the feature to the OS version that supports it natively and omit it on older systems, instead of building and maintaining a parallel custom implementation.
 
 Additional patterns:
 

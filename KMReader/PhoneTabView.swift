@@ -10,10 +10,45 @@ import SwiftUI
   struct PhoneTabView: View {
     let context: AppViewContext
     @State private var deepLinkRouter = DeepLinkRouter.shared
+    @State private var readingBarContext = ReadingActionBarContext.shared
     @State private var selectedTab: TabItem = .home
     @State private var homePath = NavigationPath()
 
     var body: some View {
+      rootTabView
+        .tabBarMinimizeBehaviorIfAvailable()
+        .onAppear {
+          if let link = deepLinkRouter.pendingDeepLink {
+            handleDeepLink(link)
+          }
+        }
+        .onChange(of: deepLinkRouter.pendingDeepLink) { _, link in
+          guard let link else { return }
+          handleDeepLink(link)
+        }
+    }
+
+    @ViewBuilder
+    private var rootTabView: some View {
+      if #available(iOS 26.1, *) {
+        // Keep the modifier always attached and toggle visibility via
+        // isEnabled. Conditionally attaching it would switch ViewBuilder
+        // branches, rebuilding the whole tab subtree and resetting detail
+        // view state in a refresh loop.
+        tabContent
+          .tabViewBottomAccessory(isEnabled: readingBarContext.presentation != nil) {
+            if let presentation = readingBarContext.presentation {
+              SeriesReadingAccessoryView(presentation: presentation) {
+                readingBarContext.performAction()
+              }
+            }
+          }
+      } else {
+        tabContent
+      }
+    }
+
+    private var tabContent: some View {
       TabView(selection: $selectedTab) {
         Tab(TabItem.home.title, systemImage: TabItem.home.icon, value: TabItem.home) {
           NavigationStack(path: $homePath) {
@@ -47,16 +82,6 @@ import SwiftUI
             rootContent(for: .browse)
           }
         }
-      }
-      .tabBarMinimizeBehaviorIfAvailable()
-      .onAppear {
-        if let link = deepLinkRouter.pendingDeepLink {
-          handleDeepLink(link)
-        }
-      }
-      .onChange(of: deepLinkRouter.pendingDeepLink) { _, link in
-        guard let link else { return }
-        handleDeepLink(link)
       }
     }
 

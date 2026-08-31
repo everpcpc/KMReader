@@ -16,7 +16,7 @@ struct BookActionsSection: View {
       Button {
         readerActions.open(book: book, incognito: false)
       } label: {
-        Label("Read", systemImage: "play")
+        Label("Read", systemImage: "book")
       }
       .adaptiveButtonStyle(.borderedProminent)
 
@@ -31,7 +31,7 @@ struct BookActionsSection: View {
 
       if seriesLink {
         NavigationLink(value: NavDestination.seriesDetail(seriesId: book.seriesId)) {
-          Label("View Series", systemImage: "book.fill")
+          Label("View Series", systemImage: ContentIcon.series)
         }
         .adaptiveButtonStyle(.bordered)
       }
