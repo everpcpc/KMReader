@@ -17,8 +17,15 @@ struct BookHorizontalCardView: View {
 
   @AppStorage("thumbnailShowUnreadIndicator") private var thumbnailShowUnreadIndicator: Bool = true
   @AppStorage("thumbnailBlurUnreadCovers") private var thumbnailBlurUnreadCovers: Bool = false
+  @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
   @State private var showReadListPicker = false
   @State private var showEditSheet = false
+
+  /// Compact density shows the title on a single line so the card height can
+  /// actually shrink with the cover instead of being held up by reserved text space.
+  private var titleLineLimit: Int {
+    gridDensity < GridDensity.standard.rawValue ? 1 : 2
+  }
 
   private var progress: Double {
     guard let progressPage = item.progressPage else { return 0 }
@@ -99,7 +106,7 @@ struct BookHorizontalCardView: View {
           Text(bookTitleLine)
             .font(.footnote)
             .foregroundColor(item.isCompleted ? .secondary : .primary)
-            .lineLimit(2, reservesSpace: true)
+            .lineLimit(titleLineLimit, reservesSpace: true)
             .multilineTextAlignment(.leading)
 
           Spacer(minLength: 2)

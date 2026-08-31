@@ -36,20 +36,24 @@ struct LayoutConfig {
   /// Width of horizontal cards (dashboard book sections, pinned read lists/collections)
   static func horizontalCardWidth(for density: Double) -> CGFloat {
     let proposed = cardWidth(for: density) * 2.2
+    // Fixed floors stay below the smallest compact-density proposal (176pt on
+    // iPhone) so every density renders at its natural proportional width.
     #if os(tvOS)
       return min(max(proposed, 360), 660)
     #else
-      return min(max(proposed, 240), 480)
+      return min(max(proposed, 160), 480)
     #endif
   }
 
   /// Cover width inside horizontal cards
   static func horizontalCoverWidth(for density: Double) -> CGFloat {
     let cardWidth = horizontalCardWidth(for: density)
+    // Fixed floor stays below the smallest compact-density proposal (37pt on
+    // iPhone) so covers keep shrinking with the card.
     #if os(tvOS)
       return min(max(cardWidth * 0.21, 56), 140)
     #else
-      return min(max(cardWidth * 0.21, 48), 96)
+      return min(max(cardWidth * 0.21, 32), 96)
     #endif
   }
 
