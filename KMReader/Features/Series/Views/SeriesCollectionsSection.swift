@@ -17,40 +17,45 @@ struct SeriesCollectionsSection: View {
   }
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      if !collections.isEmpty {
-        VStack(alignment: .leading, spacing: 8) {
-          HStack(spacing: 4) {
-            Text("Collections")
-              .font(.headline)
-          }
-          .foregroundColor(.secondary)
+    sectionContent
+      .task(id: "\(current.instanceId)|\(collectionIdsKey)") {
+        await loadCollections()
+      }
+  }
 
-          VStack(alignment: .leading, spacing: 8) {
-            ForEach(collections) { collection in
-              NavigationLink(
-                value: NavDestination.collectionDetail(collectionId: collection.collectionId)
-              ) {
-                HStack {
-                  Label(collection.name, systemImage: ContentIcon.collection)
-                    .foregroundColor(.primary)
-                  Spacer()
-                  Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                }
-                .padding()
-                .background(Color.secondary.opacity(0.1))
-                .cornerRadius(16)
-              }.adaptiveButtonStyle(.plain)
-            }
+  // Renders nothing when empty: an always-present zero-height container would
+  // swallow the parent VStack spacing and make the Divider below hug the content above.
+  @ViewBuilder
+  private var sectionContent: some View {
+    if !collections.isEmpty {
+      VStack(alignment: .leading, spacing: 8) {
+        HStack(spacing: 4) {
+          Text("Collections")
+            .font(.headline)
+        }
+        .foregroundColor(.secondary)
+
+        VStack(alignment: .leading, spacing: 8) {
+          ForEach(collections) { collection in
+            NavigationLink(
+              value: NavDestination.collectionDetail(collectionId: collection.collectionId)
+            ) {
+              HStack {
+                Label(collection.name, systemImage: ContentIcon.collection)
+                  .foregroundColor(.primary)
+                Spacer()
+                Image(systemName: "chevron.right")
+                  .font(.caption)
+                  .foregroundColor(.secondary)
+              }
+              .padding()
+              .background(Color.secondary.opacity(0.1))
+              .cornerRadius(16)
+            }.adaptiveButtonStyle(.plain)
           }
         }
       }
-    }
-    .frame(maxWidth: .infinity, alignment: .leading)
-    .task(id: "\(current.instanceId)|\(collectionIdsKey)") {
-      await loadCollections()
+      .frame(maxWidth: .infinity, alignment: .leading)
     }
   }
 

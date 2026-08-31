@@ -17,40 +17,45 @@ struct BookReadListsSection: View {
   }
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 6) {
-      if !readLists.isEmpty {
-        VStack(alignment: .leading, spacing: 6) {
-          HStack(spacing: 4) {
-            Image(systemName: ContentIcon.readList)
-              .font(.caption)
-            Text("Read Lists")
-              .font(.headline)
-          }
-          .foregroundColor(.secondary)
+    sectionContent
+      .task(id: "\(current.instanceId)|\(readListIdsKey)") {
+        await loadReadLists()
+      }
+  }
 
-          VStack(alignment: .leading, spacing: 8) {
-            ForEach(readLists) { readList in
-              NavigationLink(value: NavDestination.readListDetail(readListId: readList.readListId)) {
-                HStack {
-                  Label(readList.name, systemImage: ContentIcon.readList)
-                    .foregroundColor(.primary)
-                  Spacer()
-                  Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                }
-                .padding()
-                .background(Color.secondary.opacity(0.1))
-                .cornerRadius(16)
-              }.adaptiveButtonStyle(.plain)
-            }
+  // Renders nothing when empty: an always-present zero-height container would
+  // swallow the parent VStack spacing and make adjacent Dividers hug the content.
+  @ViewBuilder
+  private var sectionContent: some View {
+    if !readLists.isEmpty {
+      VStack(alignment: .leading, spacing: 6) {
+        HStack(spacing: 4) {
+          Image(systemName: ContentIcon.readList)
+            .font(.caption)
+          Text("Read Lists")
+            .font(.headline)
+        }
+        .foregroundColor(.secondary)
+
+        VStack(alignment: .leading, spacing: 8) {
+          ForEach(readLists) { readList in
+            NavigationLink(value: NavDestination.readListDetail(readListId: readList.readListId)) {
+              HStack {
+                Label(readList.name, systemImage: ContentIcon.readList)
+                  .foregroundColor(.primary)
+                Spacer()
+                Image(systemName: "chevron.right")
+                  .font(.caption)
+                  .foregroundColor(.secondary)
+              }
+              .padding()
+              .background(Color.secondary.opacity(0.1))
+              .cornerRadius(16)
+            }.adaptiveButtonStyle(.plain)
           }
         }
       }
-    }
-    .frame(maxWidth: .infinity, alignment: .leading)
-    .task(id: "\(current.instanceId)|\(readListIdsKey)") {
-      await loadReadLists()
+      .frame(maxWidth: .infinity, alignment: .leading)
     }
   }
 
