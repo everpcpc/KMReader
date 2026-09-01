@@ -6,8 +6,31 @@
 import SwiftUI
 
 struct SettingsView: View {
+  let authViewModel: AuthViewModel
+
+  @AppStorage("currentAccount") private var current: Current = .init()
+  @AppStorage("taskQueueStatus") private var taskQueueStatus: TaskQueueSSEDto = TaskQueueSSEDto()
+  @State private var showingUpdatePassword = false
+
+  /// iPhone has no Server tab; the current-server card and the
+  /// management/account entries live at the top of Settings instead.
+  /// iPad keeps the sidebar Server page, tvOS keeps its Server tab.
+  private var showsServerSections: Bool {
+    #if os(iOS)
+      return !PlatformHelper.isPad
+    #else
+      return false
+    #endif
+  }
+
   var body: some View {
     Form {
+      if showsServerSections {
+        Section {
+          SettingsServerCardView()
+        }
+      }
+
       Section(header: Text(String(localized: "Reader"))) {
         #if os(iOS) || os(tvOS)
           NavigationLink(value: NavDestination.settingsReading) {
@@ -44,6 +67,63 @@ struct SettingsView: View {
         }
       }
 
+      if showsServerSections {
+        Section(header: Text(String(localized: "Server"))) {
+          NavigationLink(value: NavDestination.settingsLibraries) {
+            Label(ServerSection.libraries.title, systemImage: ServerSection.libraries.icon)
+          }
+          NavigationLink(value: NavDestination.settingsReadingStats) {
+            Label(ServerSection.readingStats.title, systemImage: ServerSection.readingStats.icon)
+          }
+          if current.isAdmin {
+            NavigationLink(value: NavDestination.settingsServerInfo) {
+              Label(ServerSection.serverInfo.title, systemImage: ServerSection.serverInfo.icon)
+            }
+            NavigationLink(value: NavDestination.settingsTasks) {
+              HStack {
+                Label(ServerSection.tasks.title, systemImage: ServerSection.tasks.icon)
+                Spacer()
+                if taskQueueStatus.count > 0 {
+                  Text("\(taskQueueStatus.count)")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(Color.accentColor)
+                }
+              }
+            }
+            NavigationLink(value: NavDestination.settingsHistory) {
+              Label(ServerSection.history.title, systemImage: ServerSection.history.icon)
+            }
+            NavigationLink(value: NavDestination.settingsMedia) {
+              Label(ServerSection.media.title, systemImage: ServerSection.media.icon)
+            }
+          }
+        }
+
+        Section(header: Text(ServerSection.account.title)) {
+          if !current.userId.isEmpty {
+            Button {
+              showingUpdatePassword = true
+            } label: {
+              Label(
+                String(localized: "account.details.changePassword"),
+                systemImage: "key"
+              )
+              .foregroundColor(.primary)
+            }
+          }
+          NavigationLink(value: NavDestination.settingsApiKey) {
+            Label(ServerSection.apiKeys.title, systemImage: ServerSection.apiKeys.icon)
+          }
+          NavigationLink(value: NavDestination.settingsAuthenticationActivity) {
+            Label(
+              ServerSection.authenticationActivity.title,
+              systemImage: ServerSection.authenticationActivity.icon
+            )
+          }
+        }
+      }
+
       Section(header: Text(String(localized: "Behavior"))) {
         NavigationLink(value: NavDestination.settingsSSE) {
           SettingsSectionRow(section: .sse)
@@ -74,5 +154,9 @@ struct SettingsView: View {
     }
     .formStyle(.grouped)
     .inlineNavigationBarTitle(String(localized: "title.settings"))
+    .sheet(isPresented: $showingUpdatePassword) {
+      UpdatePasswordSheet(authViewModel: authViewModel)
+        .presentationDetents([.medium])
+    }
   }
 }
