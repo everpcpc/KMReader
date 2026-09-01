@@ -14,7 +14,6 @@ struct SeriesDetailView: View {
   @AppStorage("seriesDetailLayout") private var seriesDetailLayout: BrowseLayoutMode = .list
 
   @Environment(\.dismiss) private var dismiss
-  @Environment(\.horizontalSizeClass) private var horizontalSizeClass
   @Environment(\.readerActions) private var readerActions
 
   @State private var item: SeriesDisplayItem?
@@ -29,9 +28,10 @@ struct SeriesDetailView: View {
   @State private var readingTargetIsOffline: Bool?
   @State private var isResolvingReadingTarget = false
   @State private var readingTargetResolutionID = 0
-  @State private var readingBarCollapsed = false
   @AppStorage("seriesBookBrowseOptions") private var seriesBookBrowseOptions: BookBrowseOptions =
     BookBrowseOptions()
+
+  private let readingBarContext = ReadingActionBarContext.shared
 
   init(seriesId: String) {
     self.seriesId = seriesId
@@ -84,24 +84,6 @@ struct SeriesDetailView: View {
       return readingTargetBookForCurrentContext != nil || isResolvingReadingTarget
     }
     return true
-  }
-
-  /// Wide layouts dock the bar to the trailing corner; collapsed state
-  /// (while scrolling) always docks trailing as a compact FAB.
-  private var docksReadingBarTrailing: Bool {
-    horizontalSizeClass == .regular || readingBarCollapsed
-  }
-
-  private var readingBarMaxWidth: CGFloat {
-    horizontalSizeClass == .regular ? 420 : 720
-  }
-
-  private func updateReadingBarCollapsed(oldOffset: CGFloat, newOffset: CGFloat) {
-    let collapsed = newOffset > 8
-    guard collapsed != readingBarCollapsed else { return }
-    withAnimation(.spring(duration: 0.35, bounce: 0.12)) {
-      readingBarCollapsed = collapsed
-    }
   }
 
   private var readingTargetBookForCurrentContext: Book? {
@@ -165,6 +147,12 @@ struct SeriesDetailView: View {
       url: KomgaWebLinkBuilder.series(serverURL: current.serverURL, seriesId: seriesId),
       scope: .browse
     )
+    .onAppear {
+      syncReadingBarContext()
+    }
+    .onDisappear {
+      readingBarContext.clear(seriesId: seriesId)
+    }
     #if os(iOS) || os(macOS)
       .toolbar {
         ToolbarItem(placement: .automatic) {
@@ -172,33 +160,6 @@ struct SeriesDetailView: View {
         }
       }
     #endif
-    .safeAreaInset(edge: .bottom, spacing: 0) {
-      if shouldShowReadingBar {
-        HStack {
-          if docksReadingBarTrailing {
-            Spacer(minLength: 0)
-          }
-          SeriesReadingActionBar(
-            actionTitle: readLabel,
-            book: readingTargetBookForCurrentContext,
-            fallbackTitle: navigationTitle,
-            isResuming: isResumingReading,
-            isResolving: isResolvingReadingTarget,
-            isCollapsed: readingBarCollapsed,
-            action: {
-              continueReading()
-            }
-          )
-          .frame(maxWidth: readingBarCollapsed ? nil : readingBarMaxWidth)
-        }
-        .padding(.horizontal, 16)
-        .padding(.top, 6)
-        .padding(.bottom, 8)
-      }
-    }
-    .trackReadingBarCollapse { oldOffset, newOffset in
-      updateReadingBarCollapsed(oldOffset: oldOffset, newOffset: newOffset)
-    }
     .alert("Delete Series?", isPresented: $showDeleteConfirmation) {
       Button("Delete", role: .destructive) {
         deleteSeries()
@@ -515,8 +476,56 @@ extension SeriesDetailView {
     }.toolbarButtonStyle()
   }
 
+  private var readingProgressSummary: String? {
+    guard let book = readingTargetBookForCurrentContext,
+      let progress = book.readProgress,
+      !progress.completed
+    else { return nil }
+    let page = progress.page
+    guard book.media.pagesCount > 0 else { return "Page \(page)" }
+    let value = min(max(Double(page) / Double(book.media.pagesCount), 0), 1)
+    return "Page \(page) · \(value.formatted(.percent.precision(.fractionLength(0))))"
+  }
+
+  private var readingActionCaption: String {
+    guard let readingProgressSummary else { return readLabel }
+    return "\(readLabel) · \(readingProgressSummary)"
+  }
+
+  private var readingDisplayTitle: String {
+    guard let book = readingTargetBookForCurrentContext else {
+      return isResolvingReadingTarget ? String(localized: "Loading...") : navigationTitle
+    }
+    if book.oneshot || book.metadata.number.isEmpty {
+      return book.metadata.title
+    }
+    return "#\(book.metadata.number) - \(book.metadata.title)"
+  }
+
+  /// Publishes the current continue-reading state to the shared context that
+  /// backs the iOS 26 tab bar bottom accessory. On platforms and OS versions
+  /// without the accessory this is a no-op.
+  private func syncReadingBarContext() {
+    guard shouldShowReadingBar else {
+      readingBarContext.clear(seriesId: seriesId)
+      return
+    }
+    readingBarContext.present(
+      ReadingActionBarContext.Presentation(
+        seriesId: seriesId,
+        instanceId: current.instanceId,
+        bookId: readingTargetBookForCurrentContext?.id,
+        caption: readingActionCaption,
+        title: readingDisplayTitle,
+        isResolving: isResolvingReadingTarget
+      ),
+      action: continueReading
+    )
+  }
+
   private func refreshReadingTargetBook() async {
     readingTargetResolutionID += 1
+    defer { syncReadingBarContext() }
     let resolutionID = readingTargetResolutionID
     let instanceId = current.instanceId
     let offline = isOffline
@@ -566,6 +575,7 @@ extension SeriesDetailView {
     readingTargetInstanceId = current.instanceId
     readingTargetIsOffline = isOffline
     isResolvingReadingTarget = false
+    syncReadingBarContext()
   }
 
   private func isReadingTargetScoped(to instanceId: String, isOffline: Bool) -> Bool {
@@ -615,30 +625,5 @@ extension SeriesDetailView {
       return [id]
     }
     return []
-  }
-}
-
-private struct ReadingBarCollapseModifier: ViewModifier {
-  let onOffsetChange: (CGFloat, CGFloat) -> Void
-
-  func body(content: Content) -> some View {
-    if #available(iOS 18.0, macOS 15.0, tvOS 18.0, *) {
-      content
-        .onScrollGeometryChange(
-          for: CGFloat.self,
-          of: { $0.contentOffset.y + $0.contentInsets.top },
-          action: onOffsetChange
-        )
-    } else {
-      content
-    }
-  }
-}
-
-extension View {
-  func trackReadingBarCollapse(
-    onOffsetChange: @escaping (CGFloat, CGFloat) -> Void
-  ) -> some View {
-    modifier(ReadingBarCollapseModifier(onOffsetChange: onOffsetChange))
   }
 }
