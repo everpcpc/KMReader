@@ -62,12 +62,6 @@ import SwiftUI
           }
         }
 
-        Tab(TabItem.server.title, systemImage: TabItem.server.icon, value: TabItem.server) {
-          NavigationStack {
-            rootContent(for: .server)
-          }
-        }
-
         Tab(TabItem.settings.title, systemImage: TabItem.settings.icon, value: TabItem.settings) {
           NavigationStack {
             rootContent(for: .settings)

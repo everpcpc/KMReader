@@ -25,11 +25,13 @@ struct OldTabView: View {
       .tabItem { TabItem.offline.label }
       .tag(TabItem.offline)
 
-      NavigationStack {
-        rootContent(for: .server)
-      }
-      .tabItem { TabItem.server.label }
-      .tag(TabItem.server)
+      #if os(tvOS)
+        NavigationStack {
+          rootContent(for: .server)
+        }
+        .tabItem { TabItem.server.label }
+        .tag(TabItem.server)
+      #endif
 
       NavigationStack {
         rootContent(for: .settings)

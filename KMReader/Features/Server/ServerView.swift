@@ -15,7 +15,7 @@ struct ServerView: View {
   var body: some View {
     ScrollView {
       VStack(alignment: .leading, spacing: 16) {
-        serverSummaryCard
+        ServerCardView()
         managementSection
         accountSection
       }
@@ -23,61 +23,6 @@ struct ServerView: View {
       .padding(.vertical, 12)
     }
     .inlineNavigationBarTitle(String(localized: "tab.server"))
-  }
-
-  private var serverSummaryCard: some View {
-    VStack(alignment: .leading, spacing: 12) {
-      HStack(alignment: .top, spacing: 12) {
-        VStack(alignment: .leading, spacing: 4) {
-          HStack(spacing: 8) {
-            Text(serverDisplayName)
-              .font(.title2)
-              .fontWeight(.semibold)
-
-            if let roleLabel {
-              Text(roleLabel)
-                .font(.caption)
-                .fontWeight(.semibold)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color.accentColor.opacity(0.15), in: Capsule())
-                .foregroundColor(Color.accentColor)
-            }
-          }
-        }
-
-        Spacer()
-
-        NavigationLink(value: NavDestination.settingsServers) {
-          Label(String(localized: "server.switch"), systemImage: "arrow.left.arrow.right")
-        }
-        .font(.caption)
-        .controlSize(.small)
-        .adaptiveButtonStyle(.borderedProminent)
-      }
-
-      if let userEmail = accountDisplayValue {
-        InfoRow(
-          label: ServerSection.account.title,
-          value: userEmail,
-          icon: "person"
-        )
-      }
-
-      InfoRow(
-        label: String(localized: "Server"),
-        value: current.serverURL.isEmpty ? current.serverDisplayName : current.serverURL,
-        icon: "globe"
-      )
-
-      ServerUpdateStatusView()
-        .foregroundColor(.secondary)
-        .font(.footnote)
-
-    }
-    .padding(12)
-    .background(.thinMaterial)
-    .clipShape(RoundedRectangle(cornerRadius: 16))
   }
 
   private var managementSection: some View {
@@ -257,18 +202,6 @@ struct ServerView: View {
     #else
       return [GridItem(.adaptive(minimum: 160), spacing: actionGridSpacing)]
     #endif
-  }
-
-  private var serverDisplayName: String {
-    if !current.serverDisplayName.isEmpty {
-      return current.serverDisplayName
-    }
-    return String(localized: "Server")
-  }
-
-  private var roleLabel: String? {
-    guard accountDisplayValue != nil else { return nil }
-    return String(localized: current.isAdmin ? "user.role.admin" : "user.role.user")
   }
 
   private var accountDisplayValue: String? {
