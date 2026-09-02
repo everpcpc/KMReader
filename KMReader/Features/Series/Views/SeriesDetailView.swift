@@ -153,6 +153,20 @@ struct SeriesDetailView: View {
     .onDisappear {
       readingBarContext.clear(seriesId: seriesId)
     }
+    #if os(iOS)
+      .background {
+        if #available(iOS 26.1, *) {
+          // Hide the reading accessory as soon as the pop transition starts
+          // (viewWillDisappear) instead of waiting for onDisappear, which only
+          // fires after teardown. onDidAppear re-syncs so a cancelled
+          // interactive pop restores the accessory.
+          ViewLifecycleObserver(
+            onWillDisappear: { readingBarContext.clear(seriesId: seriesId) },
+            onDidAppear: { syncReadingBarContext() }
+          )
+        }
+      }
+    #endif
     #if os(iOS) || os(macOS)
       .toolbar {
         ToolbarItem(placement: .automatic) {
