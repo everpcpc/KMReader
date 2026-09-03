@@ -164,10 +164,10 @@ final class ScrollReaderEngine {
       return item
     }
 
-    if let pageMatch = snapshot.first(where: { $0.pageID == item.pageID }) {
-      return pageMatch
-    }
-
-    return snapshot.first
+    // Match by any contained page so a page that became the second half of a
+    // dual pair still resolves. Restoration must stay strict: an unresolvable
+    // anchor is discarded instead of falling back to a positional item, which
+    // in display order can be another segment's `.end` transition.
+    return snapshot.first(where: { $0.pageIDs.contains(item.pageID) })
   }
 }
