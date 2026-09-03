@@ -33,19 +33,6 @@ struct BookHorizontalCardView: View {
     return Double(progressPage) / Double(item.mediaPagesCount)
   }
 
-  /// The ring only appears for in-progress books; unread and completed books
-  /// keep the plain bottom bar to avoid visual noise.
-  private var showsProgressRing: Bool {
-    !item.isUnavailable && item.media.statusValue == .ready && progress > 0 && progress < 1
-  }
-
-  /// The cover slot uses a fixed √2 height ratio and always drives the row
-  /// height, so this ring (smaller than the cover) can never affect the card
-  /// height. The 16pt total inset keeps its top/bottom/right margins equal.
-  private var progressRingDiameter: CGFloat {
-    coverWidth * CoverAspectRatio.heightToWidth - 16
-  }
-
   var bookTitleLine: String {
     if item.oneshot {
       return item.metaTitle
@@ -103,38 +90,30 @@ struct BookHorizontalCardView: View {
       Button {
         onReadBook?(false)
       } label: {
-        HStack(spacing: 8) {
-          VStack(alignment: .leading, spacing: 2) {
-            if item.oneshot {
-              Text("Oneshot")
-                .font(.caption)
-                .foregroundColor(.blue)
-                .lineLimit(1)
-            } else if !item.seriesTitle.isEmpty {
-              Text(item.seriesTitle)
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .lineLimit(1)
-            }
-
-            Text(bookTitleLine)
-              .font(.footnote)
-              .foregroundColor(item.isCompleted ? .secondary : .primary)
-              .lineLimit(titleLineLimit, reservesSpace: true)
-              .multilineTextAlignment(.leading)
-
-            Spacer(minLength: 2)
-
-            bottomBar
+        VStack(alignment: .leading, spacing: 2) {
+          if item.oneshot {
+            Text("Oneshot")
+              .font(.caption)
+              .foregroundColor(.blue)
+              .lineLimit(1)
+          } else if !item.seriesTitle.isEmpty {
+            Text(item.seriesTitle)
+              .font(.caption)
+              .foregroundColor(.secondary)
+              .lineLimit(1)
           }
-          .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
 
-          if showsProgressRing {
-            ProgressRingView(progress: progress, diameter: progressRingDiameter)
-              .frame(maxHeight: .infinity, alignment: .center)
-              .padding(.trailing, 8)
-          }
+          Text(bookTitleLine)
+            .font(.footnote)
+            .foregroundColor(item.isCompleted ? .secondary : .primary)
+            .lineLimit(titleLineLimit, reservesSpace: true)
+            .multilineTextAlignment(.leading)
+
+          Spacer(minLength: 2)
+
+          bottomBar
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .contentShape(Rectangle())
       }
       .adaptiveButtonStyle(.plain)
@@ -177,6 +156,10 @@ struct BookHorizontalCardView: View {
         Text(mediaStatus.label)
           .foregroundColor(mediaStatus.color)
       } else {
+        if progress > 0 && progress < 1 {
+          Text(progress, format: .percent.precision(.fractionLength(0)))
+          Text("•")
+        }
         if progress == 1 {
           Image(systemName: "checkmark.circle.fill")
             .foregroundColor(.secondary)
@@ -185,6 +168,7 @@ struct BookHorizontalCardView: View {
         Text(progress == 1 ? completedMetaText : "\(item.mediaPagesCount) pages")
       }
       if item.downloadStatus != .notDownloaded {
+        Spacer()
         Image(systemName: item.downloadStatus.displayIcon)
           .foregroundColor(item.downloadStatus.displayColor)
           .font(.caption2)
