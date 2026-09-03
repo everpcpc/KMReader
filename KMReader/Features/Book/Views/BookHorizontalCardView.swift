@@ -20,6 +20,19 @@ struct BookHorizontalCardView: View {
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
   @State private var showReadListPicker = false
   @State private var showEditSheet = false
+  @State private var coverArtwork: PlatformImage?
+
+  private var isCoverTinted: Bool {
+    coverArtwork != nil
+  }
+
+  private var primaryTextColor: Color {
+    isCoverTinted ? .white : .primary
+  }
+
+  private var secondaryTextColor: Color {
+    isCoverTinted ? .white.opacity(0.65) : .secondary
+  }
 
   /// Compact density shows the title on a single line so the card height can
   /// actually shrink with the cover instead of being held up by reserved text space.
@@ -94,18 +107,18 @@ struct BookHorizontalCardView: View {
           if item.oneshot {
             Text("Oneshot")
               .font(.caption)
-              .foregroundColor(.blue)
+              .foregroundColor(isCoverTinted ? secondaryTextColor : .blue)
               .lineLimit(1)
           } else if !item.seriesTitle.isEmpty {
             Text(item.seriesTitle)
               .font(.caption)
-              .foregroundColor(.secondary)
+              .foregroundColor(secondaryTextColor)
               .lineLimit(1)
           }
 
           Text(bookTitleLine)
             .font(.footnote)
-            .foregroundColor(item.isCompleted ? .secondary : .primary)
+            .foregroundColor(item.isCompleted ? secondaryTextColor : primaryTextColor)
             .lineLimit(titleLineLimit, reservesSpace: true)
             .multilineTextAlignment(.leading)
 
@@ -123,7 +136,21 @@ struct BookHorizontalCardView: View {
     .background {
       RoundedRectangle(cornerRadius: 12)
         .fill(.regularMaterial)
+        .overlay {
+          // Overlay content never contributes to layout size, so the flexible
+          // blurred image can neither inflate the card nor bleed past it.
+          if let coverArtwork {
+            Image(platformImage: coverArtwork)
+              .resizable()
+              .scaledToFill()
+              .blur(radius: 28)
+              .overlay(Color.black.opacity(0.5))
+              .transition(.opacity)
+          }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 12))
         .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+        .animation(.easeInOut(duration: 0.2), value: isCoverTinted)
     }
     .contentShape(Rectangle())
     #if os(iOS)
@@ -131,6 +158,24 @@ struct BookHorizontalCardView: View {
     #endif
     .contextMenu {
       bookContextMenu
+    }
+    .task(id: item.bookId) {
+      coverArtwork = await CoverBackgroundProvider.shared.backgroundImage(
+        instanceId: item.instanceId, id: item.bookId, type: .book)
+    }
+    .onReceive(NotificationCenter.default.publisher(for: .thumbnailDidRefresh)) { notification in
+      guard let userInfo = notification.userInfo,
+        let id = userInfo["id"] as? String,
+        let type = userInfo["type"] as? String,
+        id == item.bookId,
+        type == ThumbnailType.book.rawValue
+      else { return }
+      Task {
+        await CoverBackgroundProvider.shared.invalidate(
+          instanceId: item.instanceId, id: item.bookId, type: .book)
+        coverArtwork = await CoverBackgroundProvider.shared.backgroundImage(
+          instanceId: item.instanceId, id: item.bookId, type: .book)
+      }
     }
     .sheet(isPresented: $showReadListPicker) {
       ReadListPickerSheet(
@@ -162,7 +207,7 @@ struct BookHorizontalCardView: View {
         }
         if progress == 1 {
           Image(systemName: "checkmark.circle.fill")
-            .foregroundColor(.secondary)
+            .foregroundColor(secondaryTextColor)
             .font(.caption2)
         }
         Text(progress == 1 ? completedMetaText : "\(item.mediaPagesCount) pages")
@@ -175,7 +220,7 @@ struct BookHorizontalCardView: View {
       }
     }
     .font(.caption)
-    .foregroundColor(.secondary)
+    .foregroundColor(secondaryTextColor)
     .lineLimit(1)
   }
 
