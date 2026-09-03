@@ -48,12 +48,14 @@ struct LayoutConfig {
   /// Cover width inside horizontal cards
   static func horizontalCoverWidth(for density: Double) -> CGFloat {
     let cardWidth = horizontalCardWidth(for: density)
-    // Fixed floor stays below the smallest compact-density proposal (37pt on
-    // iPhone) so covers keep shrinking with the card.
+    // Fixed floor stays below the smallest compact-density proposal (44pt on
+    // iPhone) so covers keep shrinking with the card. The ratio keeps the
+    // cover taller than the text column (series + two-line title + bottom
+    // bar) at every density, so the cover always drives the card height.
     #if os(tvOS)
-      return min(max(cardWidth * 0.21, 56), 140)
+      return min(max(cardWidth * 0.25, 56), 140)
     #else
-      return min(max(cardWidth * 0.21, 32), 96)
+      return min(max(cardWidth * 0.25, 32), 96)
     #endif
   }
 
