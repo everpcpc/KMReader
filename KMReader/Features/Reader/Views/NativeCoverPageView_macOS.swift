@@ -137,6 +137,11 @@
       }
 
       func teardown() {
+        // Invalidate any in-flight transition so a pending animation completion
+        // cannot commit into the shared view model after the rebuild.
+        transitionToken += 1
+        transitionDirection = nil
+        isAnimatingTransition = false
         postTransitionTask?.cancel()
         postTransitionTask = nil
         if let panRecognizer {
@@ -167,6 +172,12 @@
         guard newSize != .zero else { return }
         let sizeChanged = newSize != lastViewportSize
         lastViewportSize = newSize
+        if sizeChanged && isUserPanning {
+          // A viewport change (window resize) distorts the pan recognizer's
+          // translation; cancel an in-flight drag instead of letting it commit
+          // against a coordinate space that no longer applies.
+          resetDragStateImmediately()
+        }
         if sizeChanged && !isAnimatingTransition {
           syncSlotContent()
         }
@@ -497,11 +508,16 @@
           let currentIndex = parent.viewModel.viewItemIndex(for: currentItem),
           let targetIndex = parent.viewModel.viewItemIndex(for: targetItem)
         else {
-          completeTransition(
-            to: targetItem,
-            positionAnchor: positionAnchor,
-            navigationTarget: navigationTarget
-          )
+          // The item list was rebuilt underneath an in-flight transition (e.g. a
+          // window resize flipped single/dual layout). A stale target can still
+          // match an `.end` item by identity and skip the reader to the volume
+          // transition, so discard the transition and re-sync from the committed
+          // position instead of completing it.
+          if let navigationTarget {
+            clearNavigationTargetIfMatching(navigationTarget)
+          }
+          resetDragStateImmediately()
+          syncCurrentItemFromViewModel(force: true)
           return
         }
 
