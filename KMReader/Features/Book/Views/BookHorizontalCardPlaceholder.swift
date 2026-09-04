@@ -9,6 +9,8 @@ import SwiftUI
 struct BookHorizontalCardPlaceholder: View {
   var coverWidth: CGFloat = 60
 
+  @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
+
   private let cornerRadius: CGFloat = 8
 
   var body: some View {
@@ -19,12 +21,18 @@ struct BookHorizontalCardPlaceholder: View {
         .frame(width: coverWidth)
 
       VStack(alignment: .leading, spacing: 2) {
-        placeholderLine(textStyle: .caption, text: "Series Title", widthScale: 0.45, opacity: 0.18)
-        placeholderLine(textStyle: .footnote, text: "Book Title", widthScale: 0.8, opacity: 0.2)
+        placeholderLine(
+          textStyle: LayoutConfig.horizontalCardSecondaryTextStyle(for: gridDensity),
+          text: "Series Title", widthScale: 0.45, opacity: 0.18)
+        placeholderLine(
+          textStyle: LayoutConfig.horizontalCardTitleTextStyle(for: gridDensity),
+          text: "Book Title", widthScale: 0.8, opacity: 0.2)
 
         Spacer(minLength: 2)
 
-        placeholderLine(textStyle: .caption, text: "Page 42 • 36%", widthScale: 0.55, opacity: 0.15)
+        placeholderLine(
+          textStyle: LayoutConfig.horizontalCardSecondaryTextStyle(for: gridDensity),
+          text: "Page 42 • 36%", widthScale: 0.55, opacity: 0.15)
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
     }
