@@ -40,6 +40,18 @@ struct BookHorizontalCardView: View {
     gridDensity < GridDensity.standard.rawValue ? 1 : 2
   }
 
+  private var titleTextStyle: Font.TextStyle {
+    LayoutConfig.horizontalCardTitleTextStyle(for: gridDensity)
+  }
+
+  private var secondaryTextStyle: Font.TextStyle {
+    LayoutConfig.horizontalCardSecondaryTextStyle(for: gridDensity)
+  }
+
+  private var tertiaryTextStyle: Font.TextStyle {
+    LayoutConfig.horizontalCardTertiaryTextStyle(for: gridDensity)
+  }
+
   private var progress: Double {
     guard let progressPage = item.progressPage else { return 0 }
     guard item.mediaPagesCount > 0 else { return 0 }
@@ -79,10 +91,12 @@ struct BookHorizontalCardView: View {
   }
 
   var body: some View {
-    HStack(alignment: .top, spacing: 10) {
-      Button {
-        onReadBook?(false)
-      } label: {
+    // The whole card is a single button so cover and text highlight together
+    // and form one focus target on tvOS.
+    Button {
+      onReadBook?(false)
+    } label: {
+      HStack(alignment: .top, spacing: 10) {
         ThumbnailImage(
           id: item.bookId,
           type: .book,
@@ -97,27 +111,22 @@ struct BookHorizontalCardView: View {
           }
         }
         .frame(width: coverWidth)
-      }
-      .adaptiveButtonStyle(.plain)
 
-      Button {
-        onReadBook?(false)
-      } label: {
         VStack(alignment: .leading, spacing: 2) {
           if item.oneshot {
             Text("Oneshot")
-              .font(.caption)
+              .font(.system(secondaryTextStyle))
               .foregroundColor(isCoverTinted ? secondaryTextColor : .blue)
               .lineLimit(1)
           } else if !item.seriesTitle.isEmpty {
             Text(item.seriesTitle)
-              .font(.caption)
+              .font(.system(secondaryTextStyle))
               .foregroundColor(secondaryTextColor)
               .lineLimit(1)
           }
 
           Text(bookTitleLine)
-            .font(.footnote)
+            .font(.system(titleTextStyle))
             .foregroundColor(item.isCompleted ? secondaryTextColor : primaryTextColor)
             .lineLimit(titleLineLimit, reservesSpace: true)
             .multilineTextAlignment(.leading)
@@ -127,12 +136,11 @@ struct BookHorizontalCardView: View {
           bottomBar
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .contentShape(Rectangle())
       }
-      .adaptiveButtonStyle(.plain)
+      .padding(8)
+      .frame(maxWidth: .infinity, alignment: .leading)
     }
-    .padding(8)
-    .frame(maxWidth: .infinity, alignment: .leading)
+    .adaptiveButtonStyle(.plain)
     .background {
       RoundedRectangle(cornerRadius: 12)
         .fill(.regularMaterial)
@@ -208,7 +216,7 @@ struct BookHorizontalCardView: View {
         if progress == 1 {
           Image(systemName: "checkmark.circle.fill")
             .foregroundColor(secondaryTextColor)
-            .font(.caption2)
+            .font(.system(tertiaryTextStyle))
         }
         Text(progress == 1 ? completedMetaText : "\(item.mediaPagesCount) pages")
       }
@@ -216,10 +224,10 @@ struct BookHorizontalCardView: View {
         Spacer()
         Image(systemName: item.downloadStatus.displayIcon)
           .foregroundColor(item.downloadStatus.displayColor)
-          .font(.caption2)
+          .font(.system(tertiaryTextStyle))
       }
     }
-    .font(.caption)
+    .font(.system(secondaryTextStyle))
     .foregroundColor(secondaryTextColor)
     .lineLimit(1)
   }

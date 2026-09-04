@@ -59,6 +59,22 @@ struct LayoutConfig {
     #endif
   }
 
+  /// Title text style inside horizontal cards (book title, read list/collection name).
+  /// Cozy density steps text up one tier so the wider card doesn't look sparse.
+  static func horizontalCardTitleTextStyle(for density: Double) -> Font.TextStyle {
+    density > GridDensity.standard.rawValue ? .subheadline : .footnote
+  }
+
+  /// Secondary text style inside horizontal cards (series, progress, metadata).
+  static func horizontalCardSecondaryTextStyle(for density: Double) -> Font.TextStyle {
+    density > GridDensity.standard.rawValue ? .footnote : .caption
+  }
+
+  /// Tertiary text style for small icons in horizontal card accessory rows.
+  static func horizontalCardTertiaryTextStyle(for density: Double) -> Font.TextStyle {
+    density > GridDensity.standard.rawValue ? .caption : .caption2
+  }
+
   /// Default spacing between cards
   static var defaultSpacing: CGFloat {
     #if os(tvOS)

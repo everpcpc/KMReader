@@ -34,7 +34,7 @@ This file provides guidance to coding agents working with code in this repositor
 ### Browse & Dashboards
 
 - **Dynamic Dashboards**: Keep Reading, On Deck, Recently Added, Recently Updated with real-time SSE updates.
-- **Dashboard Book Card Style**: The Keep Reading section renders books as horizontal cards (`BookHorizontalCardView`: cover left, series/title/progress right) by default; classic cover cards remain available via the `dashboardHorizontalBookCards` toggle in Dashboard settings. Pinned read list/collection cards (`ReadListHorizontalCardView`, `CollectionHorizontalCardView`) share the same sizing via `LayoutConfig.horizontalCardWidth` / `LayoutConfig.horizontalCoverWidth`.
+- **Dashboard Book Card Style**: The Keep Reading section renders books as horizontal cards (`BookHorizontalCardView`: cover left, series/title/progress right) by default; classic cover cards remain available via the `dashboardHorizontalBookCards` toggle in Dashboard settings. Pinned read list/collection cards (`ReadListHorizontalCardView`, `CollectionHorizontalCardView`) share the same sizing via `LayoutConfig.horizontalCardWidth` / `LayoutConfig.horizontalCoverWidth`, and all three horizontal card types take their text styles from `LayoutConfig.horizontalCard{Title,Secondary,Tertiary}TextStyle(for:)`, which steps fonts up one tier in cozy density only.
 - **Advanced Filters**: Search with metadata filters (authors, genres, tags, publishers) using all/any logic.
 - **Grid/List Layouts**: Multiple density options (compact, standard, comfortable).
 - **Library Filtering**: Browse per-library or across all libraries.

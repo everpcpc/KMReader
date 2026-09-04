@@ -12,6 +12,7 @@ struct CollectionHorizontalCardView: View {
   var onChanged: () -> Void = {}
   let onDeleteRequested: () -> Void
 
+  @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
   @State private var showEditSheet = false
 
   var body: some View {
@@ -27,16 +28,16 @@ struct CollectionHorizontalCardView: View {
 
         VStack(alignment: .leading, spacing: 4) {
           Text(item.name)
-            .font(.footnote)
+            .font(.system(LayoutConfig.horizontalCardTitleTextStyle(for: gridDensity)))
             .lineLimit(2)
             .multilineTextAlignment(.leading)
 
           Text("\(item.seriesCount) series")
-            .font(.caption)
+            .font(.system(LayoutConfig.horizontalCardSecondaryTextStyle(for: gridDensity)))
             .foregroundColor(.secondary)
 
           Text(item.lastModifiedDate.formattedMediumDate)
-            .font(.caption)
+            .font(.system(LayoutConfig.horizontalCardSecondaryTextStyle(for: gridDensity)))
             .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
