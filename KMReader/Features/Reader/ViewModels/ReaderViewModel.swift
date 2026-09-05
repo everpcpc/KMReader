@@ -17,6 +17,10 @@ class ReaderViewModel {
   private(set) var bookIdsWithMissingPageDimensions: Set<String> = []
   private var currentPageID: ReaderPageID?
   private var currentViewItemID: ReaderViewItem?
+  // Last committed split side for the current page. A merge into `.both`
+  // (e.g. rotation to dual layout) preserves it so a later rebuild can restore
+  // the same split side instead of falling back to the first half.
+  private var splitPartPreference: (pageID: ReaderPageID, part: ReaderSplitPart)?
   private(set) var navigationTarget: ReaderPositionAnchor?
   var isLoading = true
   var loadingTitle = String(localized: "Loading book...")
@@ -241,10 +245,19 @@ class ReaderViewModel {
 
   private func matchingViewItem(
     preferredItem: ReaderViewItem? = nil,
-    preferredPageID: ReaderPageID? = nil
+    preferredPageID: ReaderPageID? = nil,
+    preferredSplitPart: ReaderSplitPart? = nil
   ) -> ReaderViewItem? {
     if let preferredItem, viewItemIndex(for: preferredItem) != nil {
       return preferredItem
+    }
+    let resolvedPageID = preferredPageID ?? preferredItem?.pageID
+    let splitPart = preferredSplitPart ?? splitPartPreference(forPageID: resolvedPageID)
+    if let resolvedPageID, let splitPart {
+      let splitItem = ReaderViewItem.split(id: resolvedPageID, part: splitPart)
+      if viewItemIndex(for: splitItem) != nil {
+        return splitItem
+      }
     }
     if let preferredPageID, let resolvedItem = viewItem(for: preferredPageID) {
       return resolvedItem
@@ -255,6 +268,20 @@ class ReaderViewModel {
       return resolvedItem
     }
     return nil
+  }
+
+  private func splitPartPreference(forPageID pageID: ReaderPageID?) -> ReaderSplitPart? {
+    guard let pageID, let splitPartPreference, splitPartPreference.pageID == pageID
+    else { return nil }
+    return splitPartPreference.part
+  }
+
+  private func preferredSplitPart(
+    for item: ReaderViewItem,
+    pageID: ReaderPageID?
+  ) -> ReaderSplitPart? {
+    if case .split(_, let part) = item, part != .both { return part }
+    return splitPartPreference(forPageID: pageID ?? item.pageID)
   }
 
   private func resolvedViewItem(
@@ -1441,7 +1468,11 @@ class ReaderViewModel {
       navigationTarget = nil
       return
     }
-    navigationTarget = ReaderPositionAnchor(item: item, focusedPageID: pageID)
+    navigationTarget = ReaderPositionAnchor(
+      item: item,
+      focusedPageID: pageID,
+      preferredSplitPart: preferredSplitPart(for: item, pageID: pageID)
+    )
   }
 
   func requestNavigation(toViewItem viewItem: ReaderViewItem?) {
@@ -1463,7 +1494,11 @@ class ReaderViewModel {
     } else {
       focusedPageID = viewItem.pageID
     }
-    navigationTarget = ReaderPositionAnchor(item: viewItem, focusedPageID: focusedPageID)
+    navigationTarget = ReaderPositionAnchor(
+      item: viewItem,
+      focusedPageID: focusedPageID,
+      preferredSplitPart: preferredSplitPart(for: viewItem, pageID: focusedPageID)
+    )
   }
 
   func clearNavigationTarget() {
@@ -1490,11 +1525,16 @@ class ReaderViewModel {
     guard let pageID else {
       currentPageID = nil
       currentViewItemID = nil
+      splitPartPreference = nil
       syncPageLoadSchedulerCurrentPage()
       return
     }
     updateCurrentPosition(
-      anchor: ReaderPositionAnchor(item: nil, focusedPageID: pageID)
+      anchor: ReaderPositionAnchor(
+        item: nil,
+        focusedPageID: pageID,
+        preferredSplitPart: splitPartPreference(forPageID: pageID)
+      )
     )
   }
 
@@ -1513,21 +1553,27 @@ class ReaderViewModel {
     guard let viewItem else {
       currentViewItemID = nil
       currentPageID = nil
+      splitPartPreference = nil
       syncPageLoadSchedulerCurrentPage()
       return
     }
+    let focusedPageID = currentPageID ?? viewItem.pageID
     updateCurrentPosition(
       anchor: ReaderPositionAnchor(
         item: viewItem,
-        focusedPageID: currentPageID ?? viewItem.pageID
+        focusedPageID: focusedPageID,
+        preferredSplitPart: preferredSplitPart(for: viewItem, pageID: focusedPageID)
       )
     )
   }
 
   func captureCurrentPositionAnchor() -> ReaderPositionAnchor {
-    ReaderPositionAnchor(
-      item: currentViewItem(),
-      focusedPageID: resolvedCurrentPageID
+    let item = currentViewItem()
+    let focusedPageID = resolvedCurrentPageID
+    return ReaderPositionAnchor(
+      item: item,
+      focusedPageID: focusedPageID,
+      preferredSplitPart: splitPartPreference(forPageID: focusedPageID ?? item?.pageID)
     )
   }
 
@@ -1543,7 +1589,8 @@ class ReaderViewModel {
     guard
       let resolvedItem = matchingViewItem(
         preferredItem: anchor.item,
-        preferredPageID: anchor.focusedPageID
+        preferredPageID: anchor.focusedPageID,
+        preferredSplitPart: anchor.preferredSplitPart
       )
     else {
       return nil
@@ -1553,7 +1600,8 @@ class ReaderViewModel {
       focusedPageID: resolvedCurrentPageID(
         for: resolvedItem,
         preferredPageID: anchor.focusedPageID
-      )
+      ),
+      preferredSplitPart: resolvedItem.preferredSplitPart(preserving: anchor)
     )
   }
 
@@ -1566,6 +1614,7 @@ class ReaderViewModel {
     guard let resolvedAnchor = resolvedPositionAnchor(for: anchor) else {
       currentViewItemID = nil
       currentPageID = nil
+      splitPartPreference = nil
       syncPageLoadSchedulerCurrentPage()
       return
     }
@@ -1575,7 +1624,24 @@ class ReaderViewModel {
   private func assignCurrentPosition(_ anchor: ReaderPositionAnchor) {
     currentViewItemID = anchor.item
     currentPageID = anchor.focusedPageID
+    updateSplitPartPreference(for: anchor)
     syncPageLoadSchedulerCurrentPage()
+  }
+
+  private func updateSplitPartPreference(for anchor: ReaderPositionAnchor) {
+    guard case .split(let id, let part) = anchor.item else {
+      splitPartPreference = nil
+      return
+    }
+    switch part {
+    case .first, .second:
+      splitPartPreference = (id, part)
+    case .both:
+      // A merged split keeps the previously committed side for the same page.
+      if splitPartPreference?.pageID != id {
+        splitPartPreference = nil
+      }
+    }
   }
 
   func currentViewItem() -> ReaderViewItem? {
