@@ -9,6 +9,7 @@ enum SettingsSection: String, CaseIterable {
   case appearance
   case browse
   case dashboard
+  case about
   case cache
   case divinaReader
   #if os(iOS) || os(macOS)
@@ -34,6 +35,8 @@ enum SettingsSection: String, CaseIterable {
       return "square.grid.2x2"
     case .dashboard:
       return "house"
+    case .about:
+      return "info.circle.fill"
     case .cache:
       return "externaldrive"
     case .divinaReader:
@@ -71,6 +74,8 @@ enum SettingsSection: String, CaseIterable {
       return .purple
     case .dashboard:
       return .orange
+    case .about:
+      return .gray
     case .cache:
       return .gray
     case .divinaReader:
@@ -108,6 +113,8 @@ enum SettingsSection: String, CaseIterable {
       return String(localized: "Browse")
     case .dashboard:
       return String(localized: "Dashboard")
+    case .about:
+      return String(localized: "About")
     case .cache:
       return String(localized: "Cache")
     case .divinaReader:

@@ -71,7 +71,7 @@ enum TabItem: Hashable, Identifiable {
     case .server:
       ServerView(authViewModel: context.authViewModel)
     case .settings:
-      SettingsView(authViewModel: context.authViewModel)
+      SettingsView()
     }
   }
 }

@@ -73,6 +73,9 @@ enum NavDestination: Hashable {
   case settingsServers
   case settingsApiKey
   case settingsAuthenticationActivity
+  case settingsManagement
+  case settingsAccount
+  case settingsAbout
 
   @ViewBuilder
   func content(context: AppViewContext) -> some View {
@@ -114,7 +117,7 @@ enum NavDestination: Hashable {
     case .server:
       ServerView(authViewModel: context.authViewModel)
     case .settings:
-      SettingsView(authViewModel: context.authViewModel)
+      SettingsView()
 
     // NOTE: library selection passed via environment
     case .browseLibrary(_):
@@ -237,6 +240,12 @@ enum NavDestination: Hashable {
       ApiKeysView()
     case .settingsAuthenticationActivity:
       AccountActivityView()
+    case .settingsManagement:
+      SettingsManagementView()
+    case .settingsAccount:
+      SettingsAccountView(authViewModel: context.authViewModel)
+    case .settingsAbout:
+      SettingsAboutView()
     }
   }
 

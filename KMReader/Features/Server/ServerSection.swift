@@ -3,7 +3,7 @@
 //
 //
 
-import Foundation
+import SwiftUI
 
 enum ServerSection: String, CaseIterable {
 
@@ -43,6 +43,32 @@ enum ServerSection: String, CaseIterable {
     case .authenticationActivity:
       return "clock"
 
+    }
+  }
+
+  var color: Color {
+    switch self {
+    case .libraries:
+      return .blue
+    case .readingStats:
+      return .indigo
+    case .serverInfo:
+      return .gray
+    case .tasks:
+      return .orange
+    case .history:
+      return .brown
+    case .media:
+      return .purple
+
+    case .servers:
+      return .gray
+    case .account:
+      return .green
+    case .apiKeys:
+      return .yellow
+    case .authenticationActivity:
+      return .gray
     }
   }
 

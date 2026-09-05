@@ -38,7 +38,9 @@ import SwiftUI
             SettingsSectionRow(section: .logs)
           }
 
-          SettingsAboutSection()
+          Section {
+            SettingsSectionRow(section: .about)
+          }
         }
         .listStyle(.sidebar)
         .toolbar(removing: .sidebarToggle)
@@ -46,8 +48,10 @@ import SwiftUI
         .navigationTitle("Settings")
       } detail: {
         if let selectedSection {
-          detailContent(for: selectedSection)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+          NavigationStack {
+            detailContent(for: selectedSection)
+          }
+          .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
           Text("Select a setting")
             .foregroundColor(.secondary)
@@ -92,6 +96,8 @@ import SwiftUI
         SettingsNetworkView()
       case .logs:
         SettingsLogsView()
+      case .about:
+        SettingsAboutView()
       }
     }
   }
