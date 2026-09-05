@@ -151,8 +151,23 @@ struct BookHorizontalCardView: View {
             Image(platformImage: coverArtwork)
               .resizable()
               .scaledToFill()
+              .compositingGroup()
               .blur(radius: 28)
-              .overlay(Color.black.opacity(0.5))
+              .saturation(0.55)
+              .overlay(
+                LinearGradient(
+                  gradient: Gradient(stops: [
+                    // Keep a minimum darkness at the top: tinted cards force
+                    // white text, so light covers still need enough overlay
+                    // for the title to stay readable.
+                    .init(color: .black.opacity(0.3), location: 0.0),
+                    .init(color: .black.opacity(0.4), location: 0.45),
+                    .init(color: .black.opacity(0.5), location: 1.0),
+                  ]),
+                  startPoint: .top,
+                  endPoint: .bottom
+                )
+              )
               .transition(.opacity)
           }
         }
