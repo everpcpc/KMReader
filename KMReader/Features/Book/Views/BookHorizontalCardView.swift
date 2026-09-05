@@ -148,12 +148,25 @@ struct BookHorizontalCardView: View {
           // Overlay content never contributes to layout size, so the flexible
           // blurred image can neither inflate the card nor bleed past it.
           if let coverArtwork {
-            Image(platformImage: coverArtwork)
-              .resizable()
-              .scaledToFill()
-              .blur(radius: 28)
-              .overlay(Color.black.opacity(0.5))
-              .transition(.opacity)
+              Image(platformImage: coverArtwork)
+                .resizable()
+                .scaledToFill()
+                .compositingGroup()
+                .blur(radius: 28)
+                .saturation(0.55)
+                .overlay(
+                  LinearGradient(
+                    gradient: Gradient(stops: [
+                      .init(color: .clear, location: 0.0),
+                      .init(color: .black.opacity(0.2), location: 0.15),
+                      .init(color: .black.opacity(0.3), location: 0.45),
+                      .init(color: .black.opacity(0.5), location: 1.0),
+                    ]),
+                    startPoint: .top,
+                    endPoint: .bottom
+                  )
+                )
+                .transition(.opacity)
           }
         }
         .clipShape(RoundedRectangle(cornerRadius: 12))
