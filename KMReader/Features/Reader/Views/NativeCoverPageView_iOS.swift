@@ -683,7 +683,11 @@
         let currentAnchor = parent.viewModel.captureCurrentPositionAnchor()
         let focusedPageID = currentAnchor.item == item ? currentAnchor.focusedPageID : item.pageID
         applyCurrentPosition(
-          ReaderPositionAnchor(item: item, focusedPageID: focusedPageID)
+          ReaderPositionAnchor(
+            item: item,
+            focusedPageID: focusedPageID,
+            preferredSplitPart: item.preferredSplitPart(preserving: currentAnchor)
+          )
         )
       }
 

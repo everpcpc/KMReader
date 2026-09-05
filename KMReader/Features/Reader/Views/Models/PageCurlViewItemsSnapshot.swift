@@ -48,6 +48,14 @@ struct PageCurlViewItemsSnapshot: Equatable {
     if let item = anchor.item, indexByItem[item] != nil {
       return item
     }
+    // A merged split (`.both`) cannot exact-match after a rebuild; honor the
+    // committed split side before falling back to the first item for the page.
+    let pageID = anchor.focusedPageID ?? anchor.item?.pageID
+    if let pageID, let part = anchor.preferredSplitPart,
+      let index = indexByItem[.split(id: pageID, part: part)]
+    {
+      return item(at: index)
+    }
     if let focusedPageID = anchor.focusedPageID,
       let index = indexByPageID[focusedPageID]
     {

@@ -247,9 +247,11 @@
           if engine.isInteractionActive {
             engine.queueRenderedItems(displayedItems, anchor: anchorItem)
           } else {
+            // A rebuild restores from the committed position: the view model's
+            // resolution is split-side aware, the engine's stale items are not.
             applyRenderedItems(
               displayedItems,
-              anchor: anchorItem,
+              anchor: parent.viewModel.currentViewItem() ?? anchorItem,
               commitAfterRestore: parent.viewModel.navigationTarget == nil,
               in: scrollView,
               collectionView: collectionView
@@ -510,7 +512,11 @@
         let focusedPageID =
           target.focusedPageID.flatMap { resolvedItem.pageIDs.contains($0) ? $0 : nil }
           ?? resolvedItem.pageID
-        return ReaderPositionAnchor(item: resolvedItem, focusedPageID: focusedPageID)
+        return ReaderPositionAnchor(
+          item: resolvedItem,
+          focusedPageID: focusedPageID,
+          preferredSplitPart: resolvedItem.preferredSplitPart(preserving: target)
+        )
       }
 
       private func clearNavigationTargetIfCurrent(_ target: ReaderPositionAnchor) {
@@ -867,12 +873,16 @@
           return (navigationAnchor, navigationTarget)
         }
 
-        let currentFocusedPageID = parent.viewModel.captureCurrentPositionAnchor().focusedPageID
+        let capturedAnchor = parent.viewModel.captureCurrentPositionAnchor()
         let focusedPageID =
-          currentFocusedPageID.flatMap { item.pageIDs.contains($0) ? $0 : nil }
+          capturedAnchor.focusedPageID.flatMap { item.pageIDs.contains($0) ? $0 : nil }
           ?? item.pageID
         return (
-          ReaderPositionAnchor(item: item, focusedPageID: focusedPageID),
+          ReaderPositionAnchor(
+            item: item,
+            focusedPageID: focusedPageID,
+            preferredSplitPart: item.preferredSplitPart(preserving: capturedAnchor)
+          ),
           nil
         )
       }
