@@ -56,4 +56,16 @@ extension ReaderViewItem {
       return nil
     }
   }
+
+  /// Split side to prefer when this item is re-resolved after a rebuild, given
+  /// the previously committed position. A non-merged split item speaks for
+  /// itself; otherwise the anchor's preference is kept only while it still
+  /// points at a page contained in this item.
+  func preferredSplitPart(preserving anchor: ReaderPositionAnchor?) -> ReaderSplitPart? {
+    if case .split(_, let part) = self, part != .both { return part }
+    guard let anchor, let part = anchor.preferredSplitPart else { return nil }
+    let pageID = anchor.focusedPageID ?? anchor.item?.pageID
+    guard let pageID, pageIDs.contains(pageID) else { return nil }
+    return part
+  }
 }

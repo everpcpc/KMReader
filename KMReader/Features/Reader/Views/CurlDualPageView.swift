@@ -423,12 +423,20 @@
         } else {
           focusedPageID = item.pageID
         }
-        return ReaderPositionAnchor(item: item, focusedPageID: focusedPageID)
+        return ReaderPositionAnchor(
+          item: item,
+          focusedPageID: focusedPageID,
+          preferredSplitPart: item.preferredSplitPart(preserving: anchor)
+        )
       }
 
       private func currentPositionAnchor() -> ReaderPositionAnchor {
-        let focusedPageID = parent.viewModel.captureCurrentPositionAnchor().focusedPageID
-        return ReaderPositionAnchor(item: currentItem, focusedPageID: focusedPageID)
+        let capturedAnchor = parent.viewModel.captureCurrentPositionAnchor()
+        return ReaderPositionAnchor(
+          item: currentItem,
+          focusedPageID: capturedAnchor.focusedPageID,
+          preferredSplitPart: currentItem?.preferredSplitPart(preserving: capturedAnchor)
+        )
       }
 
       private func commitCurrentItem(
@@ -761,9 +769,13 @@
 
       func currentResolvedSpreadIndex() -> Int? {
         guard let currentItem else { return nil }
-        let focusedPageID = parent.viewModel.captureCurrentPositionAnchor().focusedPageID
+        let capturedAnchor = parent.viewModel.captureCurrentPositionAnchor()
         return viewItemsSnapshot.index(
-          for: ReaderPositionAnchor(item: currentItem, focusedPageID: focusedPageID)
+          for: ReaderPositionAnchor(
+            item: currentItem,
+            focusedPageID: capturedAnchor.focusedPageID,
+            preferredSplitPart: currentItem.preferredSplitPart(preserving: capturedAnchor)
+          )
         )
       }
 
