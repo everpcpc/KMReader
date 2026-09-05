@@ -33,20 +33,6 @@ struct SettingsAccountView: View {
               }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-
-            if !current.userId.isEmpty {
-              Button {
-                showingUpdatePassword = true
-              } label: {
-                Label(
-                  String(localized: "account.details.changePassword"),
-                  systemImage: "key"
-                )
-              }
-              .font(.caption)
-              .controlSize(.small)
-              .adaptiveButtonStyle(.bordered)
-            }
           }
 
           if !current.userRoles.isEmpty {
@@ -66,6 +52,18 @@ struct SettingsAccountView: View {
       }
 
       Section {
+        if !current.userId.isEmpty {
+          Button {
+            showingUpdatePassword = true
+          } label: {
+            SettingsBadgeRow(
+              title: String(localized: "account.details.changePassword"),
+              icon: "key",
+              color: .orange
+            )
+          }
+          .adaptiveButtonStyle(.plain)
+        }
         NavigationLink(value: NavDestination.settingsApiKey) {
           SettingsBadgeRow(
             title: ServerSection.apiKeys.title,
