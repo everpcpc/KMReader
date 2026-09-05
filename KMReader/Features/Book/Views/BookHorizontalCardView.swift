@@ -161,9 +161,8 @@ struct BookHorizontalCardView: View {
                     // white text, so light covers still need enough overlay
                     // for the title to stay readable.
                     .init(color: .black.opacity(0.3), location: 0.0),
-                    .init(color: .black.opacity(0.35), location: 0.15),
-                    .init(color: .black.opacity(0.45), location: 0.45),
-                    .init(color: .black.opacity(0.6), location: 1.0),
+                    .init(color: .black.opacity(0.4), location: 0.45),
+                    .init(color: .black.opacity(0.5), location: 1.0),
                   ]),
                   startPoint: .top,
                   endPoint: .bottom
