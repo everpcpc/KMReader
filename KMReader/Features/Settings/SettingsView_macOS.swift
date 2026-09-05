@@ -30,12 +30,17 @@ import SwiftUI
             SettingsSectionRow(section: .sse)
             SettingsSectionRow(section: .sync)
             SettingsSectionRow(section: .spotlight)
+          }
+
+          Section(String(localized: "Advanced")) {
             SettingsSectionRow(section: .network)
             SettingsSectionRow(section: .cache)
             SettingsSectionRow(section: .logs)
           }
 
-          SettingsAboutSection()
+          Section {
+            SettingsSectionRow(section: .about)
+          }
         }
         .listStyle(.sidebar)
         .toolbar(removing: .sidebarToggle)
@@ -43,8 +48,10 @@ import SwiftUI
         .navigationTitle("Settings")
       } detail: {
         if let selectedSection {
-          detailContent(for: selectedSection)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+          NavigationStack {
+            detailContent(for: selectedSection)
+          }
+          .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
           Text("Select a setting")
             .foregroundColor(.secondary)
@@ -89,6 +96,8 @@ import SwiftUI
         SettingsNetworkView()
       case .logs:
         SettingsLogsView()
+      case .about:
+        SettingsAboutView()
       }
     }
   }

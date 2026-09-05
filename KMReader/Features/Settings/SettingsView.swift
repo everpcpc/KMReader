@@ -6,14 +6,13 @@
 import SwiftUI
 
 struct SettingsView: View {
-  let authViewModel: AuthViewModel
-
-  @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("taskQueueStatus") private var taskQueueStatus: TaskQueueSSEDto = TaskQueueSSEDto()
-  @State private var showingUpdatePassword = false
+  #if os(iOS) || os(tvOS)
+    @AppStorage("keepScreenAwakeWhileReading") private var keepScreenAwakeWhileReading: Bool = false
+  #endif
 
-  /// iPhone has no Server tab; the current-server card and the
-  /// management/account entries live at the top of Settings instead.
+  /// iPhone has no Server tab; the current-server card and single-row
+  /// management/account entries live in Settings instead.
   /// iPad keeps the sidebar Server page, tvOS keeps its Server tab.
   private var showsServerSections: Bool {
     #if os(iOS)
@@ -31,12 +30,7 @@ struct SettingsView: View {
         }
       }
 
-      Section(header: Text(String(localized: "Reader"))) {
-        #if os(iOS) || os(tvOS)
-          NavigationLink(value: NavDestination.settingsReading) {
-            SettingsSectionRow(section: .reading)
-          }
-        #endif
+      Section {
         NavigationLink(value: NavDestination.settingsDivinaReader) {
           SettingsSectionRow(section: .divinaReader)
         }
@@ -53,6 +47,18 @@ struct SettingsView: View {
             SettingsSectionRow(section: .epubSettings)
           }
         #endif
+        #if os(iOS) || os(tvOS)
+          Toggle(isOn: $keepScreenAwakeWhileReading) {
+            VStack(alignment: .leading, spacing: 4) {
+              Text(String(localized: "Keep Screen Awake While Reading"))
+              Text(String(localized: "Prevents the screen from dimming or locking while a reader is open."))
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
+          }
+        #endif
+      } header: {
+        Text(String(localized: "Reader"))
       }
 
       Section(header: Text(String(localized: "Display"))) {
@@ -68,59 +74,25 @@ struct SettingsView: View {
       }
 
       if showsServerSections {
-        Section(header: Text(String(localized: "Server"))) {
-          NavigationLink(value: NavDestination.settingsLibraries) {
-            Label(ServerSection.libraries.title, systemImage: ServerSection.libraries.icon)
-          }
-          NavigationLink(value: NavDestination.settingsReadingStats) {
-            Label(ServerSection.readingStats.title, systemImage: ServerSection.readingStats.icon)
-          }
-          if current.isAdmin {
-            NavigationLink(value: NavDestination.settingsServerInfo) {
-              Label(ServerSection.serverInfo.title, systemImage: ServerSection.serverInfo.icon)
-            }
-            NavigationLink(value: NavDestination.settingsTasks) {
-              HStack {
-                Label(ServerSection.tasks.title, systemImage: ServerSection.tasks.icon)
-                Spacer()
-                if taskQueueStatus.count > 0 {
-                  Text("\(taskQueueStatus.count)")
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundColor(Color.accentColor)
-                }
-              }
-            }
-            NavigationLink(value: NavDestination.settingsHistory) {
-              Label(ServerSection.history.title, systemImage: ServerSection.history.icon)
-            }
-            NavigationLink(value: NavDestination.settingsMedia) {
-              Label(ServerSection.media.title, systemImage: ServerSection.media.icon)
-            }
-          }
-        }
-
-        Section(header: Text(ServerSection.account.title)) {
-          if !current.userId.isEmpty {
-            Button {
-              showingUpdatePassword = true
-            } label: {
-              Label(
-                String(localized: "account.details.changePassword"),
-                systemImage: "key"
-              )
-              .foregroundColor(.primary)
-            }
-          }
-          NavigationLink(value: NavDestination.settingsApiKey) {
-            Label(ServerSection.apiKeys.title, systemImage: ServerSection.apiKeys.icon)
-          }
-          NavigationLink(value: NavDestination.settingsAuthenticationActivity) {
-            Label(
-              ServerSection.authenticationActivity.title,
-              systemImage: ServerSection.authenticationActivity.icon
+        Section {
+          NavigationLink(value: NavDestination.settingsManagement) {
+            SettingsBadgeRow(
+              title: String(localized: "Management"),
+              icon: "server.rack",
+              color: .indigo,
+              badge: taskQueueStatus.count > 0 ? "\(taskQueueStatus.count)" : nil,
+              badgeColor: .accentColor
             )
           }
+          NavigationLink(value: NavDestination.settingsAccount) {
+            SettingsBadgeRow(
+              title: ServerSection.account.title,
+              icon: ServerSection.account.icon,
+              color: ServerSection.account.color
+            )
+          }
+        } header: {
+          Text(String(localized: "Server"))
         }
       }
 
@@ -136,6 +108,9 @@ struct SettingsView: View {
             SettingsSectionRow(section: .spotlight)
           }
         #endif
+      }
+
+      Section(header: Text(String(localized: "Advanced"))) {
         #if os(iOS) || os(macOS)
           NavigationLink(value: NavDestination.settingsNetwork) {
             SettingsSectionRow(section: .network)
@@ -150,13 +125,13 @@ struct SettingsView: View {
         }
       }
 
-      SettingsAboutSection()
+      Section {
+        NavigationLink(value: NavDestination.settingsAbout) {
+          SettingsSectionRow(section: .about)
+        }
+      }
     }
     .formStyle(.grouped)
     .inlineNavigationBarTitle(String(localized: "title.settings"))
-    .sheet(isPresented: $showingUpdatePassword) {
-      UpdatePasswordSheet(authViewModel: authViewModel)
-        .presentationDetents([.medium])
-    }
   }
 }

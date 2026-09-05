@@ -39,14 +39,6 @@ struct ServerView: View {
         }
         .adaptiveButtonStyle(.plain)
 
-        NavigationLink(value: NavDestination.settingsReadingStats) {
-          ServerActionTile(
-            title: ServerSection.readingStats.title,
-            systemImage: ServerSection.readingStats.icon
-          )
-        }
-        .adaptiveButtonStyle(.plain)
-
         if current.isAdmin {
           NavigationLink(value: NavDestination.settingsServerInfo) {
             ServerActionTile(
@@ -94,6 +86,18 @@ struct ServerView: View {
       accountDetailsCard
 
       LazyVGrid(columns: actionColumns, spacing: actionGridSpacing) {
+        if !current.userId.isEmpty {
+          Button {
+            showingUpdatePassword = true
+          } label: {
+            ServerActionTile(
+              title: String(localized: "account.details.changePassword"),
+              systemImage: "key"
+            )
+          }
+          .adaptiveButtonStyle(.plain)
+        }
+
         NavigationLink(value: NavDestination.settingsApiKey) {
           ServerActionTile(
             title: ServerSection.apiKeys.title,
@@ -130,22 +134,6 @@ struct ServerView: View {
               .font(.headline)
               .lineLimit(2)
           }
-        }
-
-        Spacer()
-
-        if !current.userId.isEmpty {
-          Button {
-            showingUpdatePassword = true
-          } label: {
-            Label(
-              String(localized: "account.details.changePassword"),
-              systemImage: "key"
-            )
-          }
-          .font(.caption)
-          .controlSize(.mini)
-          .adaptiveButtonStyle(.borderedProminent)
         }
       }
 

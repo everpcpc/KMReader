@@ -3,17 +3,15 @@
 //
 //
 
-import Foundation
+import SwiftUI
 
 enum SettingsSection: String, CaseIterable {
   case appearance
   case browse
   case dashboard
+  case about
   case cache
   case divinaReader
-  #if os(iOS) || os(tvOS)
-    case reading
-  #endif
   #if os(iOS) || os(macOS)
     case pdfReader
   #endif
@@ -37,14 +35,12 @@ enum SettingsSection: String, CaseIterable {
       return "square.grid.2x2"
     case .dashboard:
       return "house"
+    case .about:
+      return "info.circle.fill"
     case .cache:
       return "externaldrive"
     case .divinaReader:
       return "photo.on.rectangle.angled"
-    #if os(iOS) || os(tvOS)
-      case .reading:
-        return "book"
-    #endif
     #if os(iOS) || os(macOS)
       case .pdfReader:
         return "doc.richtext"
@@ -70,6 +66,45 @@ enum SettingsSection: String, CaseIterable {
     }
   }
 
+  var color: Color {
+    switch self {
+    case .appearance:
+      return .blue
+    case .browse:
+      return .purple
+    case .dashboard:
+      return .orange
+    case .about:
+      return .gray
+    case .cache:
+      return .gray
+    case .divinaReader:
+      return .green
+    #if os(iOS) || os(macOS)
+      case .pdfReader:
+        return .red
+    #endif
+    #if os(iOS) || os(macOS)
+      case .epubTheme:
+        return .indigo
+      case .epubSettings:
+        return .mint
+    #endif
+    case .sse:
+      return .orange
+    case .sync:
+      return .blue
+    #if os(iOS) || os(macOS)
+      case .spotlight:
+        return .gray
+    #endif
+    case .network:
+      return .teal
+    case .logs:
+      return .brown
+    }
+  }
+
   var title: String {
     switch self {
     case .appearance:
@@ -78,14 +113,12 @@ enum SettingsSection: String, CaseIterable {
       return String(localized: "Browse")
     case .dashboard:
       return String(localized: "Dashboard")
+    case .about:
+      return String(localized: "About")
     case .cache:
       return String(localized: "Cache")
     case .divinaReader:
       return String(localized: "DIVINA Reader")
-    #if os(iOS) || os(tvOS)
-      case .reading:
-        return String(localized: "Reading")
-    #endif
     #if os(iOS) || os(macOS)
       case .pdfReader:
         return String(localized: "PDF Reader")
