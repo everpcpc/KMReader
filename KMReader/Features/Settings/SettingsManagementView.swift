@@ -21,13 +21,6 @@ struct SettingsManagementView: View {
             color: ServerSection.libraries.color
           )
         }
-        NavigationLink(value: NavDestination.settingsReadingStats) {
-          SettingsBadgeRow(
-            title: ServerSection.readingStats.title,
-            icon: ServerSection.readingStats.icon,
-            color: ServerSection.readingStats.color
-          )
-        }
       }
 
       if current.isAdmin {
