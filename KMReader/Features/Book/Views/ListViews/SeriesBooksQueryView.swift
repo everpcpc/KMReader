@@ -10,6 +10,9 @@ struct SeriesBooksQueryView: View {
   let bookViewModel: BookViewModel
   let browseOpts: BookBrowseOptions
   let browseLayout: BrowseLayoutMode
+  let isSelectionMode: Bool
+  @Binding var selectedBookIds: Set<String>
+  let refreshBooks: () -> Void
 
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
 
@@ -26,11 +29,17 @@ struct SeriesBooksQueryView: View {
     bookViewModel: BookViewModel,
     browseOpts: BookBrowseOptions,
     browseLayout: BrowseLayoutMode,
+    isSelectionMode: Bool,
+    selectedBookIds: Binding<Set<String>>,
+    refreshBooks: @escaping () -> Void
   ) {
     self.seriesId = seriesId
     self.bookViewModel = bookViewModel
     self.browseOpts = browseOpts
     self.browseLayout = browseLayout
+    self.isSelectionMode = isSelectionMode
+    self._selectedBookIds = selectedBookIds
+    self.refreshBooks = refreshBooks
   }
 
   var body: some View {
@@ -44,15 +53,27 @@ struct SeriesBooksQueryView: View {
         case .grid:
           LazyVGrid(columns: columns, spacing: spacing) {
             ForEach(bookViewModel.pagination.items) { book in
-              BookQueryItemView(
-                bookId: book.id,
-                layout: .grid,
-                showSeriesTitle: false,
-                showSeriesNavigation: false,
-                onItemMissing: {
-                  bookViewModel.removeBook(id: book.id)
+              Group {
+                if isSelectionMode {
+                  BookSelectionItemView(
+                    bookId: book.id,
+                    layout: .grid,
+                    selectedBookIds: $selectedBookIds,
+                    refreshBooks: refreshBooks,
+                    showSeriesTitle: false
+                  )
+                } else {
+                  BookQueryItemView(
+                    bookId: book.id,
+                    layout: .grid,
+                    showSeriesTitle: false,
+                    showSeriesNavigation: false,
+                    onItemMissing: {
+                      bookViewModel.removeBook(id: book.id)
+                    }
+                  )
                 }
-              )
+              }
               .padding(.bottom)
               .onAppear {
                 if bookViewModel.pagination.shouldLoadMore(after: book) {
@@ -65,15 +86,27 @@ struct SeriesBooksQueryView: View {
         case .list:
           LazyVStack {
             ForEach(bookViewModel.pagination.items) { book in
-              BookQueryItemView(
-                bookId: book.id,
-                layout: .list,
-                showSeriesTitle: false,
-                showSeriesNavigation: false,
-                onItemMissing: {
-                  bookViewModel.removeBook(id: book.id)
+              Group {
+                if isSelectionMode {
+                  BookSelectionItemView(
+                    bookId: book.id,
+                    layout: .list,
+                    selectedBookIds: $selectedBookIds,
+                    refreshBooks: refreshBooks,
+                    showSeriesTitle: false
+                  )
+                } else {
+                  BookQueryItemView(
+                    bookId: book.id,
+                    layout: .list,
+                    showSeriesTitle: false,
+                    showSeriesNavigation: false,
+                    onItemMissing: {
+                      bookViewModel.removeBook(id: book.id)
+                    }
+                  )
                 }
-              )
+              }
               .onAppear {
                 if bookViewModel.pagination.shouldLoadMore(after: book) {
                   loadBooks(refresh: false)
