@@ -40,6 +40,7 @@ This file provides guidance to coding agents working with code in this repositor
 - **Advanced Filters**: Search with metadata filters (authors, genres, tags, publishers) using all/any logic.
 - **Grid/List Layouts**: Multiple density options (compact, standard, comfortable).
 - **Library Filtering**: Browse per-library or across all libraries.
+- **Series Batch Read Status**: Series detail book lists support a selection mode (Select button in the Books header, iOS/macOS only, hidden while offline) for batch Mark Read/Unread, mirroring the read list selection mode. `ReadStatusSelectionToolbar` reuses `BookSelectionItemView` cells; Select All covers the whole series via GRDB `fetchAllSeriesBookIds`, not just the loaded page. Marking loops per-book `BookService.markAsRead/markAsUnread` calls (Komga has no batch endpoint), tolerates partial failures, then resyncs the series and posts `postSeriesBooksDidChange` + `postReadStatusChanged`.
 
 ### Multi-Server Vault
 
