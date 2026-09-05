@@ -56,11 +56,16 @@ struct SettingsAccountView: View {
           Button {
             showingUpdatePassword = true
           } label: {
-            SettingsBadgeRow(
-              title: String(localized: "account.details.changePassword"),
-              icon: "key",
-              color: .orange
-            )
+            HStack {
+              SettingsBadgeRow(
+                title: String(localized: "account.details.changePassword"),
+                icon: "key",
+                color: .orange
+              )
+              Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
           }
           .adaptiveButtonStyle(.plain)
         }
