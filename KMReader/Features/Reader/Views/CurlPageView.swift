@@ -253,7 +253,11 @@
         } else {
           focusedPageID = item.pageID
         }
-        return ReaderPositionAnchor(item: item, focusedPageID: focusedPageID)
+        return ReaderPositionAnchor(
+          item: item,
+          focusedPageID: focusedPageID,
+          preferredSplitPart: item.preferredSplitPart(preserving: anchor)
+        )
       }
 
       private func applySnapshot(
