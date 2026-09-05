@@ -30,6 +30,9 @@ import SwiftUI
             SettingsSectionRow(section: .sse)
             SettingsSectionRow(section: .sync)
             SettingsSectionRow(section: .spotlight)
+          }
+
+          Section(String(localized: "Advanced")) {
             SettingsSectionRow(section: .network)
             SettingsSectionRow(section: .cache)
             SettingsSectionRow(section: .logs)

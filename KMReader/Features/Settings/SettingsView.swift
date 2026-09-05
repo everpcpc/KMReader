@@ -10,6 +10,9 @@ struct SettingsView: View {
 
   @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("taskQueueStatus") private var taskQueueStatus: TaskQueueSSEDto = TaskQueueSSEDto()
+  #if os(iOS) || os(tvOS)
+    @AppStorage("keepScreenAwakeWhileReading") private var keepScreenAwakeWhileReading: Bool = false
+  #endif
   @State private var showingUpdatePassword = false
 
   /// iPhone has no Server tab; the current-server card and the
@@ -31,12 +34,7 @@ struct SettingsView: View {
         }
       }
 
-      Section(header: Text(String(localized: "Reader"))) {
-        #if os(iOS) || os(tvOS)
-          NavigationLink(value: NavDestination.settingsReading) {
-            SettingsSectionRow(section: .reading)
-          }
-        #endif
+      Section {
         NavigationLink(value: NavDestination.settingsDivinaReader) {
           SettingsSectionRow(section: .divinaReader)
         }
@@ -53,6 +51,18 @@ struct SettingsView: View {
             SettingsSectionRow(section: .epubSettings)
           }
         #endif
+        #if os(iOS) || os(tvOS)
+          Toggle(isOn: $keepScreenAwakeWhileReading) {
+            VStack(alignment: .leading, spacing: 4) {
+              Text(String(localized: "Keep Screen Awake While Reading"))
+              Text(String(localized: "Prevents the screen from dimming or locking while a reader is open."))
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
+          }
+        #endif
+      } header: {
+        Text(String(localized: "Reader"))
       }
 
       Section(header: Text(String(localized: "Display"))) {
@@ -136,6 +146,9 @@ struct SettingsView: View {
             SettingsSectionRow(section: .spotlight)
           }
         #endif
+      }
+
+      Section(header: Text(String(localized: "Advanced"))) {
         #if os(iOS) || os(macOS)
           NavigationLink(value: NavDestination.settingsNetwork) {
             SettingsSectionRow(section: .network)

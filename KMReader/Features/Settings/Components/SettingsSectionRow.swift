@@ -14,7 +14,16 @@ struct SettingsSectionRow: View {
 
   var body: some View {
     HStack {
-      Label(section.title, systemImage: icon ?? section.icon)
+      Label {
+        Text(section.title)
+      } icon: {
+        Image(systemName: icon ?? section.icon)
+          .font(.footnote)
+          .fontWeight(.semibold)
+          .foregroundStyle(.white)
+          .frame(width: 29, height: 29)
+          .background(section.color, in: RoundedRectangle(cornerRadius: 6.5, style: .continuous))
+      }
       Spacer()
       if let subtitle {
         Text(subtitle)
