@@ -13,7 +13,7 @@ final class ScrollReaderEngine {
   private(set) var isUserInteracting = false
   private(set) var isProgrammaticScrolling = false
 
-  private var pendingInitialItem: ReaderViewItem?
+  private var pendingInitialAnchor: ReaderPositionAnchor?
   private var pendingRenderedItems: [ReaderViewItem]?
   private var deferredAnchorItem: ReaderViewItem?
   private var pendingProgrammaticCommitItem: ReaderViewItem?
@@ -31,7 +31,7 @@ final class ScrollReaderEngine {
   }
 
   func teardown() {
-    pendingInitialItem = nil
+    pendingInitialAnchor = nil
     pendingRenderedItems = nil
     deferredAnchorItem = nil
     pendingProgrammaticCommitItem = nil
@@ -50,7 +50,7 @@ final class ScrollReaderEngine {
 
   func replaceRenderedItems(_ items: [ReaderViewItem]) {
     renderedItems = items
-    pendingInitialItem = resolveItem(pendingInitialItem, in: items)
+    pendingInitialAnchor = resolveAnchor(pendingInitialAnchor, in: items)
     pendingProgrammaticCommitItem = resolveItem(pendingProgrammaticCommitItem, in: items)
     committedItem = resolveItem(committedItem, in: items)
   }
@@ -80,25 +80,25 @@ final class ScrollReaderEngine {
     return (pendingRenderedItems, anchor)
   }
 
-  func prepareInitialPosition(currentItem: ReaderViewItem?) -> ReaderViewItem? {
+  func prepareInitialPosition(anchor: ReaderPositionAnchor?) -> ReaderViewItem? {
     guard !hasSyncedInitialPosition else { return nil }
-    if let pendingInitialItem {
-      return resolveItem(pendingInitialItem)
+    if let pendingInitialAnchor {
+      return resolveAnchorItem(pendingInitialAnchor)
     }
-    guard let currentItem else { return nil }
-    let resolvedItem = resolveItem(currentItem)
-    pendingInitialItem = resolvedItem
-    return resolvedItem
+    guard let anchor else { return nil }
+    let resolvedAnchor = resolveAnchor(anchor)
+    pendingInitialAnchor = resolvedAnchor
+    return resolvedAnchor?.item
   }
 
-  func setPendingInitialItem(_ item: ReaderViewItem?) {
-    pendingInitialItem = resolveItem(item)
+  func setPendingInitialAnchor(_ anchor: ReaderPositionAnchor?) {
+    pendingInitialAnchor = anchor.flatMap { resolveAnchor($0) }
   }
 
   func completeInitialPosition() -> ReaderViewItem? {
     guard !hasSyncedInitialPosition else { return nil }
-    guard let item = resolveItem(pendingInitialItem) else { return nil }
-    pendingInitialItem = nil
+    guard let anchor = pendingInitialAnchor, let item = resolveAnchorItem(anchor) else { return nil }
+    pendingInitialAnchor = nil
     committedItem = item
     hasSyncedInitialPosition = true
     return item
@@ -169,5 +169,58 @@ final class ScrollReaderEngine {
     // anchor is discarded instead of falling back to a positional item, which
     // in display order can be another segment's `.end` transition.
     return snapshot.first(where: { $0.pageIDs.contains(item.pageID) })
+  }
+
+  /// Re-resolves a pending initial anchor against a rebuilt snapshot. The item
+  /// identity is refreshed but the anchor's focused page and split side travel
+  /// with it, so a `.dual` pair (whose bare `pageID` is the pair's first page)
+  /// or a merged `.both` split still restores to the committed page/half.
+  private func resolveAnchor(
+    _ anchor: ReaderPositionAnchor?,
+    in snapshot: [ReaderViewItem]
+  ) -> ReaderPositionAnchor? {
+    guard let anchor, let item = resolveAnchorItem(anchor, in: snapshot) else { return nil }
+    return ReaderPositionAnchor(
+      item: item,
+      focusedPageID: anchor.focusedPageID,
+      preferredSplitPart: item.preferredSplitPart(preserving: anchor)
+    )
+  }
+
+  private func resolveAnchorItem(
+    _ anchor: ReaderPositionAnchor,
+    in snapshot: [ReaderViewItem]
+  ) -> ReaderViewItem? {
+    if let item = anchor.item, snapshot.contains(item) {
+      return item
+    }
+    // A remembered split side outranks page-level fallbacks so a wide page
+    // merged into `.both` restores to the same half after the rebuild.
+    let anchorPageID = anchor.focusedPageID ?? anchor.item?.pageID
+    if let anchorPageID, let part = anchor.preferredSplitPart, part != .both {
+      let splitItem = ReaderViewItem.split(id: anchorPageID, part: part)
+      if snapshot.contains(splitItem) {
+        return splitItem
+      }
+    }
+    // Match by the focused page first: for a dual pair the focused page can be
+    // the pair's second page, which the bare `item.pageID` fallback would miss.
+    if let focusedPageID = anchor.focusedPageID,
+      let match = snapshot.first(where: { $0.pageIDs.contains(focusedPageID) })
+    {
+      return match
+    }
+    if let item = anchor.item {
+      return snapshot.first(where: { $0.pageIDs.contains(item.pageID) })
+    }
+    return nil
+  }
+
+  private func resolveAnchor(_ anchor: ReaderPositionAnchor?) -> ReaderPositionAnchor? {
+    resolveAnchor(anchor, in: renderedItems)
+  }
+
+  private func resolveAnchorItem(_ anchor: ReaderPositionAnchor) -> ReaderViewItem? {
+    resolveAnchorItem(anchor, in: renderedItems)
   }
 }

@@ -322,7 +322,7 @@
       private func synchronizeInitialPositionIfPossible(in collectionView: UICollectionView) -> Bool {
         guard
           let currentItem = engine.prepareInitialPosition(
-            currentItem: parent.viewModel.currentViewItem()
+            anchor: parent.viewModel.captureCurrentPositionAnchor()
           )
         else {
           return false
@@ -418,7 +418,7 @@
         pendingNavigationTarget = navigationTarget
 
         guard engine.hasSyncedInitialPosition else {
-          engine.setPendingInitialItem(targetItem)
+          engine.setPendingInitialAnchor(resolvedTarget)
           return
         }
 
