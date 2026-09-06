@@ -56,6 +56,12 @@ import SwiftUI
           }
         }
 
+        Tab(TabItem.library.title, systemImage: TabItem.library.icon, value: TabItem.library) {
+          NavigationStack {
+            rootContent(for: .library)
+          }
+        }
+
         Tab(TabItem.offline.title, systemImage: TabItem.offline.icon, value: TabItem.offline) {
           NavigationStack {
             rootContent(for: .offline)

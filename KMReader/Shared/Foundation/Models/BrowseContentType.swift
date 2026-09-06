@@ -22,6 +22,15 @@ enum BrowseContentType: String, CaseIterable, Identifiable {
     }
   }
 
+  var icon: String {
+    switch self {
+    case .series: return ContentIcon.series
+    case .books: return ContentIcon.book
+    case .collections: return ContentIcon.collection
+    case .readlists: return ContentIcon.readList
+    }
+  }
+
   var supportsReadStatusFilter: Bool {
     switch self {
     case .series, .books:

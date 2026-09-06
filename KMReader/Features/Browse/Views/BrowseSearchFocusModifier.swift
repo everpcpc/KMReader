@@ -7,6 +7,15 @@ import SwiftUI
 
 extension View {
   @ViewBuilder
+  func searchableIfNeeded(text: Binding<String>, enabled: Bool) -> some View {
+    if enabled {
+      searchable(text: text)
+    } else {
+      self
+    }
+  }
+
+  @ViewBuilder
   func browseSearchFocus(_ binding: FocusState<Bool>.Binding, when shouldFocus: Bool) -> some View {
     #if os(iOS) || os(macOS)
       if #available(iOS 18.0, macOS 15.0, *) {

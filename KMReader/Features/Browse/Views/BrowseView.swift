@@ -10,6 +10,13 @@ struct BrowseView: View {
   let fixedContent: BrowseContentType?
   let metadataFilter: MetadataFilterConfig?
   let focusesSearchOnAppear: Bool
+  /// iPhone Library tab root mode: no navigation title, no search field, and
+  /// no built-in toolbar library button (LibraryBrowseView adds its own with a
+  /// scope label). The library scope is the global dashboard selection.
+  let libraryTab: Bool
+  /// Search-tab mode (iPhone): show a search placeholder until a query is
+  /// entered instead of browsing all content.
+  let searchOnly: Bool
 
   @Environment(\.browseLibrarySelection) private var librarySelection
 
@@ -55,16 +62,24 @@ struct BrowseView: View {
     authViewModel: AuthViewModel,
     fixedContent: BrowseContentType? = nil,
     metadataFilter: MetadataFilterConfig? = nil,
-    focusesSearchOnAppear: Bool = false
+    focusesSearchOnAppear: Bool = false,
+    libraryTab: Bool = false,
+    searchOnly: Bool = false
   ) {
     self.authViewModel = authViewModel
     self.fixedContent = fixedContent
     self.metadataFilter = metadataFilter
     self.focusesSearchOnAppear = focusesSearchOnAppear
+    self.libraryTab = libraryTab
+    self.searchOnly = searchOnly
   }
 
   var title: String {
-    if let library = librarySelection {
+    if libraryTab {
+      return String(localized: "tab.library", defaultValue: "Library")
+    } else if searchOnly {
+      return String(localized: "tab.search", defaultValue: "Search")
+    } else if let library = librarySelection {
       return library.name
     } else if let fixedContent {
       return fixedContent.displayName
@@ -113,9 +128,23 @@ struct BrowseView: View {
   }
 
   var body: some View {
+    Group {
+      if libraryTab {
+        // iPhone Library tab: the toolbar scope button carries the context, no
+        // nav title.
+        mainContent
+      } else if searchOnly {
+        mainContent.navigationTitle(title)
+      } else {
+        mainContent.inlineNavigationBarTitle(title)
+      }
+    }
+  }
+
+  private var mainContent: some View {
     ScrollView {
       VStack(spacing: 0) {
-        if let library = librarySelection {
+        if !libraryTab, let library = librarySelection {
           VStack(alignment: .leading) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
               Image(systemName: ContentIcon.library)
@@ -131,31 +160,48 @@ struct BrowseView: View {
           }.padding()
         }
 
-        if fixedContent == nil {
-          HStack {
-            Spacer()
-            Picker("", selection: $browseContent) {
-              ForEach(BrowseContentType.allCases) { type in
-                Text(sectionTitle(browseContent: type)).tag(type)
-              }
+        if fixedContent == nil && !(searchOnly && activeSearchText.isEmpty) {
+          Picker("", selection: $browseContent) {
+            ForEach(BrowseContentType.allCases) { type in
+              Label(sectionTitle(browseContent: type), systemImage: type.icon)
+                .labelStyle(.titleAndIcon)
+                .tag(type)
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            Spacer()
           }
+          .pickerStyle(.segmented)
+          .labelsHidden()
+          .frame(maxWidth: .infinity)
           .padding(.horizontal)
           .padding(.vertical, 8)
         }
 
-        browseContentView
+        if searchOnly && activeSearchText.isEmpty {
+          ContentUnavailableView {
+            Label(String(localized: "tab.search", defaultValue: "Search"), systemImage: "magnifyingglass")
+          } description: {
+            Text(
+              String(
+                localized: "search.empty.hint",
+                defaultValue: "Search series, books, collections, and read lists."))
+          }
+          .frame(maxWidth: .infinity, minHeight: 320)
+        } else {
+          browseContentView
+        }
       }
     }
-    .inlineNavigationBarTitle(title)
-    .searchable(text: $searchQuery)
+    .searchableIfNeeded(text: $searchQuery, enabled: !libraryTab)
     .browseSearchFocus($isSearchFocused, when: focusesSearchOnAppear)
+    .onAppear {
+      // iPhone Search tab: entering the tab with an empty query activates the
+      // search field directly.
+      if searchOnly && searchQuery.isEmpty {
+        isSearchFocused = true
+      }
+    }
     #if os(iOS) || os(macOS)
       .toolbar {
-        if librarySelection == nil {
+        if librarySelection == nil && !libraryTab {
           #if os(macOS)
             ToolbarItem(placement: .navigation) {
               Button {

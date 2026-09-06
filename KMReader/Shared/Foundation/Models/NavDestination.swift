@@ -77,6 +77,17 @@ enum NavDestination: Hashable {
   case settingsAccount
   case settingsAbout
 
+  /// The library selection carried by browse destinations. Pushed
+  /// `.browseLibrary` destinations take their selection from the destination
+  /// value itself, so tab shells (which have no ambient sidebar selection)
+  /// propagate it correctly through `handleNavigation`.
+  var librarySelection: LibrarySelection? {
+    if case .browseLibrary(let selection) = self {
+      return selection
+    }
+    return nil
+  }
+
   @ViewBuilder
   func content(context: AppViewContext) -> some View {
     switch self {

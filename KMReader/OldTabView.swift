@@ -19,6 +19,14 @@ struct OldTabView: View {
       .tabItem { TabItem.home.label }
       .tag(TabItem.home)
 
+      #if os(iOS)
+        NavigationStack {
+          rootContent(for: .library)
+        }
+        .tabItem { TabItem.library.label }
+        .tag(TabItem.library)
+      #endif
+
       NavigationStack {
         rootContent(for: .offline)
       }

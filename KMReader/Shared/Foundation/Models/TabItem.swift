@@ -7,6 +7,7 @@ import SwiftUI
 
 enum TabItem: Hashable, Identifiable {
   case home
+  case library
   case browse
   case offline
   case server
@@ -15,6 +16,7 @@ enum TabItem: Hashable, Identifiable {
   var id: String {
     switch self {
     case .home: return "home"
+    case .library: return "library"
     case .browse: return "browse"
     case .offline: return "offline"
     case .server: return "server"
@@ -26,8 +28,14 @@ enum TabItem: Hashable, Identifiable {
     switch self {
     case .home:
       return String(localized: "tab.home")
+    case .library:
+      return String(localized: "tab.library", defaultValue: "Library")
     case .browse:
-      return String(localized: "tab.browse")
+      #if os(iOS)
+        return String(localized: "tab.search", defaultValue: "Search")
+      #else
+        return String(localized: "tab.browse")
+      #endif
     case .offline:
       return String(localized: "tab.offline")
     case .server:
@@ -41,6 +49,8 @@ enum TabItem: Hashable, Identifiable {
     switch self {
     case .home:
       return "house"
+    case .library:
+      return ContentIcon.library
     case .browse:
       return "magnifyingglass"
     case .offline:
@@ -64,8 +74,15 @@ enum TabItem: Hashable, Identifiable {
         authViewModel: context.authViewModel,
         readerPresentation: context.readerPresentation
       )
+    case .library:
+      LibraryBrowseView(authViewModel: context.authViewModel)
     case .browse:
-      BrowseView(authViewModel: context.authViewModel)
+      #if os(iOS)
+        // iPhone Search tab: search-first, content browses in the Library tab.
+        BrowseView(authViewModel: context.authViewModel, searchOnly: true)
+      #else
+        BrowseView(authViewModel: context.authViewModel)
+      #endif
     case .offline:
       OfflineView(authViewModel: context.authViewModel)
     case .server:
