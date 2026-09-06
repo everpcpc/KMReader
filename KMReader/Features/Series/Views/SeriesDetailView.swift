@@ -28,6 +28,9 @@ struct SeriesDetailView: View {
   @State private var readingTargetIsOffline: Bool?
   @State private var isResolvingReadingTarget = false
   @State private var readingTargetResolutionID = 0
+  /// Gates publishing to the shared reading-bar context: late async
+  /// completions must not resurrect the accessory after the view disappeared.
+  @State private var isReadingBarVisible = false
   @AppStorage("seriesBookBrowseOptions") private var seriesBookBrowseOptions: BookBrowseOptions =
     BookBrowseOptions()
 
@@ -148,9 +151,11 @@ struct SeriesDetailView: View {
       scope: .browse
     )
     .onAppear {
+      isReadingBarVisible = true
       syncReadingBarContext()
     }
     .onDisappear {
+      isReadingBarVisible = false
       readingBarContext.clear(seriesId: seriesId)
     }
     #if os(iOS)
@@ -161,8 +166,14 @@ struct SeriesDetailView: View {
           // fires after teardown. onDidAppear re-syncs so a cancelled
           // interactive pop restores the accessory.
           ViewLifecycleObserver(
-            onWillDisappear: { readingBarContext.clear(seriesId: seriesId) },
-            onDidAppear: { syncReadingBarContext() }
+            onWillDisappear: {
+              isReadingBarVisible = false
+              readingBarContext.clear(seriesId: seriesId)
+            },
+            onDidAppear: {
+              isReadingBarVisible = true
+              syncReadingBarContext()
+            }
           )
         }
       }
@@ -520,6 +531,10 @@ extension SeriesDetailView {
   /// backs the iOS 26 tab bar bottom accessory. On platforms and OS versions
   /// without the accessory this is a no-op.
   private func syncReadingBarContext() {
+    // Never publish while the view is not on screen: the resolver's defer and
+    // unstructured projection/refresh tasks can complete after the lifecycle
+    // hooks cleared the context, and must not resurrect the accessory.
+    guard isReadingBarVisible else { return }
     guard shouldShowReadingBar else {
       readingBarContext.clear(seriesId: seriesId)
       return
