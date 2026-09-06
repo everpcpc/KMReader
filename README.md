@@ -29,8 +29,9 @@
 
 ### Browse and Discovery
 
-- Dashboard sections for Keep Reading, On Deck, Recently Added, Recently Updated, and pinned collections/read lists, with quick offline actions for current or full book sections where supported.
-- Browse Series, Books, Collections, and Read Lists with metadata filters, all/any matching, saved filters, reading history, a 90-day pages-read heatmap, dashboard search access on larger layouts, and optional unread-cover blur.
+- Dashboard sections for Keep Reading, On Deck, Recently Added, Recently Updated, and pinned collections/read lists, with rich cover-tinted cards and quick offline actions for current or full book sections where supported.
+- Browse Series, Books, Collections, and Read Lists with metadata filters, all/any matching, saved filters, reading history, a 90-day pages-read heatmap, dashboard search access on larger layouts, optional unread-cover blur, and batch read-status updates from series pages.
+- iPhone gets a dedicated Library tab for content-first browsing plus a focused Search tab.
 - Local database storage keeps large libraries, dashboards, logs, downloaded content, and offline browsing responsive.
 - Server-specific dashboard library scopes, refreshed widget payloads, Spotlight indexing for downloaded content, plus iOS widgets and Home Screen quick actions for Keep Reading, Search, and Downloads.
 

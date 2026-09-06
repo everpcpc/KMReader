@@ -1,20 +1,17 @@
 New
-- The series reading action bar now docks to the trailing corner on iPad and macOS, and collapses into a compact button while you scroll.
-- Keep the screen awake while reading with a new toggle in Reader > Reading settings.
-- Page rotation in DIVINA now applies to the whole reading session, so you do not need to rotate each page individually.
+- A dedicated Library tab on iPhone for content-first browsing; the Browse tab is now a focused Search tab.
+- Mark multiple books as read or unread at once from a series page.
+- Keep Reading on the Dashboard now shows rich horizontal cards tinted by each book's cover.
 
 Improvements
-- Resume EPUB books from page-based server progress (KOReader, Kindle sync, web UI) instead of losing the position.
-- Offline EPUB reading position now refreshes from the server during sync so it stays current across devices.
-- Transient server failures no longer wipe EPUB reading progress.
-- PDF overlay toggling is smoother on iPadOS 18.
-- DIVINA pinch-to-zoom no longer crashes on iPadOS 18.
-- Page position stays stable across layout rebuilds and Page Curl orientation changes.
-- Share the original un-cropped page image from the page context menu.
-- tvOS login now works correctly with the Siri Remote.
-- Fix macOS freezes when adding books to read lists or collections from the menu bar.
-- Dashboard scrolling is smoother on macOS.
-- Server URLs with trailing slashes are now handled automatically.
+- The series continue-reading bar now docks into the iPhone tab bar and follows navigation instantly.
+- Settings is reorganized into clearer sections, and Reading Stats now lives on the Dashboard.
+- Reading position stays exactly where you left it when rotating between portrait and landscape, including split wide pages and page curl.
+- Dashboard card fonts now scale with the layout density.
 
 Fixes
-- Restore missing Collections and Read Lists sections on series and book detail pages.
+- EPUB books whose table of contents contains heading-only entries now open and download correctly.
+- The end-of-book Close button on macOS responds to clicks again, and the end page typography matches iOS.
+- The continue-reading bar no longer gets stuck on screen after quickly leaving a series page.
+- Locking series metadata no longer drops the reading direction value.
+- Cancelling a download no longer leaves empty folders behind.
