@@ -82,7 +82,9 @@ nonisolated struct WebPubPublication: Codable, Sendable {
 }
 
 nonisolated struct WebPubLink: Codable, Sendable {
-  let href: String
+  /// Komga omits `href` for EPUB toc container headings (title + children, no
+  /// content link), so this must stay optional.
+  let href: String?
   let title: String?
   let type: String?
   let rel: String?

@@ -2833,10 +2833,10 @@ actor OfflineManager {
 
     return collections.flatMap { links in
       links.compactMap { link in
-        guard !link.href.isEmpty else { return nil }
+        guard let href = link.href, !href.isEmpty else { return nil }
         if link.templated == true { return nil }
-        if link.href.hasPrefix("#") || link.href.hasPrefix("data:") { return nil }
-        return link.href
+        if href.hasPrefix("#") || href.hasPrefix("data:") { return nil }
+        return href
       }
     }
   }

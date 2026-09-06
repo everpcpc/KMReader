@@ -362,9 +362,11 @@
 
       func collect(_ links: [WebPubLink]) {
         for link in links {
-          let normalized = normalizedHref(link.href)
-          if let safePath = EpubResourceSafeRelativePath(normalized), let type = link.type {
-            map[safePath] = type
+          if let href = link.href {
+            let normalized = normalizedHref(href)
+            if let safePath = EpubResourceSafeRelativePath(normalized), let type = link.type {
+              map[safePath] = type
+            }
           }
           if let children = link.children {
             collect(children)
@@ -542,7 +544,7 @@
     }
 
     func goToChapter(link: WebPubLink) {
-      guard let chapterIndex = chapterIndexForHref(link.href) else { return }
+      guard let href = link.href, let chapterIndex = chapterIndexForHref(href) else { return }
       setTarget(chapterIndex: chapterIndex, pageIndex: 0)
     }
 
@@ -681,7 +683,7 @@
       updateLocation(chapterIndex: lastPosition.chapterIndex, pageIndex: lastPosition.pageIndex)
 
       Task {
-        let href = readingOrder[lastPosition.chapterIndex].href
+        guard let href = readingOrder[lastPosition.chapterIndex].href else { return }
         let overrideProgression = await maxProgressionOverride(for: href)
         guard let overrideProgression else {
           logger.debug(
@@ -708,11 +710,12 @@
       guard let cachedURL = chapterURLCache[chapterIndex] else { return nil }
 
       let link = readingOrder[chapterIndex]
-      let normalizedHref = Self.normalizedHref(link.href)
+      guard let href = link.href else { return nil }
+      let normalizedHref = Self.normalizedHref(href)
       let title = link.title ?? tocTitleByHref[normalizedHref]
 
       return WebPubPageLocation(
-        href: link.href,
+        href: href,
         title: title,
         type: link.type,
         chapterIndex: chapterIndex,
@@ -778,7 +781,7 @@
 
       // Store in memory cache only (no file persistence)
       let effectiveViewport = viewportSize.width > 0 ? viewportSize : Self.defaultViewportSize
-      let href = readingOrder[chapterIndex].href
+      guard let href = readingOrder[chapterIndex].href else { return }
       let cacheKey = pageCountCacheKey(for: href, viewport: effectiveViewport)
       pageCountCache[cacheKey] = normalizedCount
     }
@@ -900,8 +903,8 @@
       var map: [String: String] = [:]
       func collect(_ links: [WebPubLink]) {
         for link in links {
-          if let title = link.title, !title.isEmpty {
-            map[Self.normalizedHref(link.href)] = title
+          if let href = link.href, let title = link.title, !title.isEmpty {
+            map[Self.normalizedHref(href)] = title
           }
           if let children = link.children {
             collect(children)
@@ -1054,7 +1057,7 @@
       }
 
       for (index, link) in readingOrder.enumerated() {
-        let cacheKey = pageCountCacheKey(for: link.href, viewport: effectiveViewport)
+        let cacheKey = pageCountCacheKey(for: link.href ?? "", viewport: effectiveViewport)
         let cachedCount = pageCountCache[cacheKey]
         chapterPageCounts[index] = max(1, cachedCount ?? 1)
       }
@@ -1068,7 +1071,7 @@
     private func refreshChapterTextWeights() {
       chapterTextWeights = [:]
       for (index, link) in readingOrder.enumerated() {
-        let key = Self.normalizedHref(link.href)
+        let key = Self.normalizedHref(link.href ?? "")
         if let cached = textLengthCache[key] {
           chapterTextWeights[index] = max(1, cached)
         }
@@ -1095,7 +1098,7 @@
 
         for (index, link) in readingOrder.enumerated() {
           if Task.isCancelled { return }
-          let key = Self.normalizedHref(link.href)
+          let key = Self.normalizedHref(link.href ?? "")
           if localCache[key] != nil { continue }
           guard let url = chapterURLCache[index] else { continue }
           guard let data = try? Data(contentsOf: url) else { continue }
@@ -1117,17 +1120,18 @@
     private func cacheChapterURLs() async throws {
       chapterURLCache = [:]
       for (index, link) in readingOrder.enumerated() {
-        let normalizedHref = Self.normalizedHref(link.href)
+        let normalizedHref = Self.normalizedHref(link.href ?? "")
         guard
+          let href = link.href,
           let cachedURL = await OfflineManager.shared.cachedOfflineWebPubResourceURL(
             instanceId: AppConfig.current.instanceId,
             bookId: bookId,
-            href: link.href
+            href: href
           )
         else {
           let rootPath = resourceRootURL?.path ?? "unknown"
           logger.error(
-            "❌ Offline WebPub resource missing for book \(bookId): chapterIndex=\(index), href=\(normalizedHref), originalHref=\(link.href), root=\(rootPath)"
+            "❌ Offline WebPub resource missing for book \(bookId): chapterIndex=\(index), href=\(normalizedHref), originalHref=\(link.href ?? "<missing>"), root=\(rootPath)"
           )
           throw AppErrorType.unknown(message: offlineEpubRecoveryMessage())
         }
@@ -1164,7 +1168,7 @@
 
     private func chapterIndexForHref(_ href: String) -> Int? {
       let normalized = Self.normalizedHref(href)
-      return readingOrder.firstIndex { Self.normalizedHref($0.href) == normalized }
+      return readingOrder.firstIndex { Self.normalizedHref($0.href ?? "") == normalized }
     }
 
     /// Syncs the remote progression into local storage. Returns `true` when the
