@@ -76,29 +76,23 @@ struct NativeEndPageLayoutMetrics {
     static var badgeFont: PlatformFont {
       #if os(tvOS)
         .preferredFont(forTextStyle: .caption2)
-      #elseif os(iOS)
+      #else
         preferredFont(textStyle: .caption1, weight: .semibold)
-      #elseif os(macOS)
-        .preferredFont(forTextStyle: .caption1)
       #endif
     }
 
     static var titleFont: PlatformFont {
       #if os(tvOS)
         .preferredFont(forTextStyle: .headline)
-      #elseif os(iOS)
+      #else
         preferredFont(textStyle: .title3, design: .serif, weight: .bold)
-      #elseif os(macOS)
-        .preferredFont(forTextStyle: .title3)
       #endif
     }
 
     static var detailFont: PlatformFont {
       #if os(tvOS)
         .preferredFont(forTextStyle: .caption2)
-      #elseif os(iOS)
-        .preferredFont(forTextStyle: .caption1)
-      #elseif os(macOS)
+      #else
         .preferredFont(forTextStyle: .caption1)
       #endif
     }
@@ -163,6 +157,23 @@ struct NativeEndPageLayoutMetrics {
           ])
         }
         return UIFont(descriptor: descriptor, size: 0)
+      }
+    #elseif os(macOS)
+      private static func preferredFont(
+        textStyle: NSFont.TextStyle,
+        design: NSFontDescriptor.SystemDesign? = nil,
+        weight: NSFont.Weight? = nil
+      ) -> NSFont {
+        var descriptor = NSFontDescriptor.preferredFontDescriptor(forTextStyle: textStyle)
+        if let design, let designedDescriptor = descriptor.withDesign(design) {
+          descriptor = designedDescriptor
+        }
+        if let weight {
+          descriptor = descriptor.addingAttributes([
+            NSFontDescriptor.AttributeName.traits: [NSFontDescriptor.TraitKey.weight: weight.rawValue]
+          ])
+        }
+        return NSFont(descriptor: descriptor, size: 0) ?? NSFont.preferredFont(forTextStyle: textStyle)
       }
     #endif
   }

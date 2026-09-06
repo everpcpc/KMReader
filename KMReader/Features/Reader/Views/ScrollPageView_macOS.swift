@@ -1052,6 +1052,18 @@
         parent.onTapZoneTap(normalizedX, normalizedY)
       }
 
+      func gestureRecognizerShouldBegin(_ gestureRecognizer: NSGestureRecognizer) -> Bool {
+        // Clicks/presses landing on interactive elements (e.g. the end card's
+        // Close button) must reach the control, not the tap-zone recognizers.
+        if gestureRecognizer is NSClickGestureRecognizer || gestureRecognizer is NSPressGestureRecognizer,
+          let scrollView,
+          isInteractiveElement(at: gestureRecognizer.location(in: scrollView), in: scrollView)
+        {
+          return false
+        }
+        return true
+      }
+
       func gestureRecognizer(
         _ gestureRecognizer: NSGestureRecognizer,
         shouldRecognizeSimultaneouslyWith otherGestureRecognizer: NSGestureRecognizer

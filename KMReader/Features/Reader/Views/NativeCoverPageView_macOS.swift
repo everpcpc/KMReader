@@ -960,7 +960,10 @@
         if gestureRecognizer === panRecognizer {
           return !parent.viewModel.isZoomed && !isAnimatingTransition
         }
-        if gestureRecognizer === longPressRecognizer,
+        // Clicks/presses landing on interactive elements (e.g. the end card's
+        // Close button) must reach the control, not the tap-zone recognizers.
+        if gestureRecognizer === clickRecognizer || gestureRecognizer === doubleClickRecognizer
+          || gestureRecognizer === longPressRecognizer,
           let containerView,
           isInteractiveElement(at: gestureRecognizer.location(in: containerView), in: containerView)
         {
