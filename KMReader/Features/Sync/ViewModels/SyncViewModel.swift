@@ -70,12 +70,39 @@ final class SyncViewModel {
     )
   }
 
-  func syncReadingProgressOnly(force: Bool = false) async {
+  /// Debounce for the foreground catch-up sync. Deliberately independent of the
+  /// user-facing `readingHistoryAutoSyncIntervalHours` (default 24h), which
+  /// throttles the periodic history sync — not the on-activation freshness pull
+  /// that keeps cross-device reading progress current on the dashboard. Short
+  /// enough that picking up a second device shows current progress, long enough
+  /// to coalesce the rapid scene-phase cycles iOS emits (Control Center, app
+  /// switcher, notification banners).
+  private static let foregroundSyncMinimumInterval: TimeInterval = 30
+
+  /// Pull recent cross-device reading progress when the app becomes active.
+  /// Uses the short foreground debounce instead of the 24h periodic cadence and
+  /// stays silent (no completion toast) since it is routine background freshness,
+  /// not an explicit user-triggered sync.
+  func syncReadingProgressOnForeground() async {
+    await syncReadingProgressOnly(
+      minimumInterval: Self.foregroundSyncMinimumInterval,
+      showsCompletionNotice: false
+    )
+  }
+
+  func syncReadingProgressOnly(
+    force: Bool = false,
+    minimumInterval: TimeInterval? = nil,
+    showsCompletionNotice: Bool = true
+  ) async {
     guard !isSyncing, !isSyncingReadingProgress else { return }
     let instanceId = AppConfig.current.instanceId
     guard !instanceId.isEmpty else { return }
     guard force || !AppConfig.isOffline else { return }
-    guard force || !shouldSkipReadingProgressSync(instanceId: instanceId) else { return }
+    guard force || !shouldSkipReadingProgressSync(
+      instanceId: instanceId,
+      minimumInterval: minimumInterval
+    ) else { return }
 
     isSyncingReadingProgress = true
     defer { isSyncingReadingProgress = false }
@@ -84,6 +111,7 @@ final class SyncViewModel {
     guard syncSucceeded else { return }
 
     AppConfig.setReadingProgressSyncTime(Date(), instanceId: instanceId)
+    guard showsCompletionNotice else { return }
     ErrorManager.shared.notify(
       message: String(
         localized: "notification.offline.readHistorySyncCompleted",
@@ -92,9 +120,22 @@ final class SyncViewModel {
     )
   }
 
-  private func shouldSkipReadingProgressSync(instanceId: String) -> Bool {
-    guard let interval = AppConfig.readingHistoryAutoSyncMinimumInterval else {
-      return true
+  /// - Parameter overrideInterval: when non-nil, used in place of the user's
+  ///   `readingHistoryAutoSyncMinimumInterval`, so the foreground catch-up can
+  ///   pull far more often than the 24h periodic cadence while other callers
+  ///   keep honoring the user setting.
+  private func shouldSkipReadingProgressSync(
+    instanceId: String,
+    minimumInterval overrideInterval: TimeInterval?
+  ) -> Bool {
+    let interval: TimeInterval
+    if let overrideInterval {
+      interval = overrideInterval
+    } else {
+      guard let configured = AppConfig.readingHistoryAutoSyncMinimumInterval else {
+        return true
+      }
+      interval = configured
     }
     guard let lastSyncTime = AppConfig.readingProgressSyncTime(instanceId: instanceId) else {
       return false

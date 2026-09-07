@@ -137,6 +137,7 @@ actor SyncWorker {
     var shouldContinue = true
     var latestServerReadDate = marker
     var syncedCount = 0
+    var syncedBookIds: [String] = []
 
     do {
       while shouldContinue {
@@ -180,6 +181,7 @@ actor SyncWorker {
             instanceId: instanceId
           )
           syncedCount += booksToSync.count
+          syncedBookIds.append(contentsOf: booksToSync.map { $0.id })
           await refreshDownloadedEpubProgressions(
             books: booksToSync,
             instanceId: instanceId,
@@ -192,6 +194,18 @@ actor SyncWorker {
 
       if let latestServerReadDate {
         AppConfig.setRecentlyReadRecordTime(latestServerReadDate, instanceId: instanceId)
+      }
+
+      // Notify so dashboard cover badges and any BookQueryItemView reload the
+      // freshly-pulled progress. Without this, the incremental upsert updates the
+      // GRDB cache but the already-rendered cards (which reload on
+      // `.bookProjectionDidChange`, not via live DB observation) keep showing
+      // stale progress until the book is opened.
+      if !syncedBookIds.isEmpty {
+        await ContentProjectionNotifier.postBooksDidChange(
+          bookIds: syncedBookIds,
+          reason: .readingProgress
+        )
       }
 
       logger.debug(

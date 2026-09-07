@@ -220,7 +220,7 @@ struct ContentView: View {
                 OfflineManager.shared.triggerSync(
                   instanceId: AppConfig.current.instanceId, restart: true)
               }
-              await syncViewModel.syncReadingProgressOnly()
+              await syncViewModel.syncReadingProgressOnForeground()
 
               if enableSSE && !isOffline {
                 await SSEService.shared.connect()
