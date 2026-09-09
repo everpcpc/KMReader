@@ -8,7 +8,8 @@ import Foundation
 actor SyncWorker {
   private let logger = AppLogger(.sync)
   private let syncPageSize = 1000
-  private let recentlyReadSyncPageSize = 200
+  private let recentlyReadInitialPageSize = 200
+  private let recentlyReadIncrementalPageSize = 20
 
   func sync(
     request: SyncRequest,
@@ -133,6 +134,10 @@ actor SyncWorker {
     }
 
     let marker = AppConfig.recentlyReadRecordTime(instanceId: instanceId)
+    // Incremental pulls run on a 30s foreground debounce, so keep the page
+    // small; the marker scan paginates when more changed. The initial pull
+    // (no marker) fetches a single larger page of recently-read books.
+    let pageSize = marker == nil ? recentlyReadInitialPageSize : recentlyReadIncrementalPageSize
     var page = 0
     var shouldContinue = true
     var latestServerReadDate = marker
@@ -144,7 +149,7 @@ actor SyncWorker {
         let result = try await BookService.getBooksList(
           search: BookSearch(condition: nil),
           page: page,
-          size: recentlyReadSyncPageSize,
+          size: pageSize,
           sort: "readProgress.readDate,desc"
         )
 
