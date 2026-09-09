@@ -160,7 +160,7 @@ struct ContentView: View {
         }
         .task(id: automaticReadingHistorySyncTrigger) {
           guard !automaticReadingHistorySyncTrigger.isEmpty else { return }
-          await syncViewModel.syncReadingProgressOnly()
+          await syncViewModel.syncReadingProgressOnForeground()
         }
         .onChange(of: isOffline) { oldValue, newValue in
           if oldValue && !newValue {

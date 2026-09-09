@@ -20,7 +20,7 @@ enum SettingsSection: String, CaseIterable {
     case epubSettings
   #endif
   case sse
-  case sync
+  case systemFeatures
   #if os(iOS) || os(macOS)
     case spotlight
   #endif
@@ -53,8 +53,8 @@ enum SettingsSection: String, CaseIterable {
     #endif
     case .sse:
       return "antenna.radiowaves.left.and.right"
-    case .sync:
-      return "arrow.triangle.2.circlepath"
+    case .systemFeatures:
+      return "gearshape.2"
     #if os(iOS) || os(macOS)
       case .spotlight:
         return "magnifyingglass.circle"
@@ -92,7 +92,7 @@ enum SettingsSection: String, CaseIterable {
     #endif
     case .sse:
       return .orange
-    case .sync:
+    case .systemFeatures:
       return .blue
     #if os(iOS) || os(macOS)
       case .spotlight:
@@ -131,8 +131,8 @@ enum SettingsSection: String, CaseIterable {
     #endif
     case .sse:
       return String(localized: "Real-time Updates")
-    case .sync:
-      return String(localized: "Sync & Handoff")
+    case .systemFeatures:
+      return String(localized: "System Features")
     #if os(iOS) || os(macOS)
       case .spotlight:
         return String(localized: "Spotlight")

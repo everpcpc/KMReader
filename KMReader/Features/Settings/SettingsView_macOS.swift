@@ -28,7 +28,7 @@ import SwiftUI
 
           Section(String(localized: "Behavior")) {
             SettingsSectionRow(section: .sse)
-            SettingsSectionRow(section: .sync)
+            SettingsSectionRow(section: .systemFeatures)
             SettingsSectionRow(section: .spotlight)
           }
 
@@ -88,8 +88,8 @@ import SwiftUI
         EpubReaderSettingsView()
       case .sse:
         SettingsSSEView()
-      case .sync:
-        SettingsSyncView()
+      case .systemFeatures:
+        SettingsSystemFeaturesView()
       case .spotlight:
         SettingsSpotlightView()
       case .network:

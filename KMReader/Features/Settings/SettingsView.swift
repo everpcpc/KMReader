@@ -7,9 +7,6 @@ import SwiftUI
 
 struct SettingsView: View {
   @AppStorage("taskQueueStatus") private var taskQueueStatus: TaskQueueSSEDto = TaskQueueSSEDto()
-  #if os(iOS) || os(tvOS)
-    @AppStorage("keepScreenAwakeWhileReading") private var keepScreenAwakeWhileReading: Bool = false
-  #endif
 
   /// iPhone has no Server tab; the current-server card and single-row
   /// management/account entries live in Settings instead.
@@ -45,16 +42,6 @@ struct SettingsView: View {
           }
           NavigationLink(value: NavDestination.settingsEpubSettings) {
             SettingsSectionRow(section: .epubSettings)
-          }
-        #endif
-        #if os(iOS) || os(tvOS)
-          Toggle(isOn: $keepScreenAwakeWhileReading) {
-            VStack(alignment: .leading, spacing: 4) {
-              Text(String(localized: "Keep Screen Awake While Reading"))
-              Text(String(localized: "Prevents the screen from dimming or locking while a reader is open."))
-                .font(.caption)
-                .foregroundColor(.secondary)
-            }
           }
         #endif
       } header: {
@@ -100,8 +87,8 @@ struct SettingsView: View {
         NavigationLink(value: NavDestination.settingsSSE) {
           SettingsSectionRow(section: .sse)
         }
-        NavigationLink(value: NavDestination.settingsSync) {
-          SettingsSectionRow(section: .sync)
+        NavigationLink(value: NavDestination.settingsSystemFeatures) {
+          SettingsSectionRow(section: .systemFeatures)
         }
         #if os(iOS) || os(macOS)
           NavigationLink(value: NavDestination.settingsSpotlight) {
