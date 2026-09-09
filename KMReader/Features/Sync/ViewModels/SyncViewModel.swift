@@ -99,10 +99,13 @@ final class SyncViewModel {
     let instanceId = AppConfig.current.instanceId
     guard !instanceId.isEmpty else { return }
     guard force || !AppConfig.isOffline else { return }
-    guard force || !shouldSkipReadingProgressSync(
-      instanceId: instanceId,
-      minimumInterval: minimumInterval
-    ) else { return }
+    guard
+      force
+        || !shouldSkipReadingProgressSync(
+          instanceId: instanceId,
+          minimumInterval: minimumInterval
+        )
+    else { return }
 
     isSyncingReadingProgress = true
     defer { isSyncingReadingProgress = false }

@@ -12,14 +12,26 @@ actor ProgressSyncService {
 
   private let logger = AppLogger(.sync)
   private var isSyncing = false
+  private var idleWaiters: [CheckedContinuation<Void, Never>] = []
 
   private init() {}
 
+  /// Replays offline-queued progress to the server. When a push is already in
+  /// flight (e.g. the reconnect handler and the foreground handler fired
+  /// together), waits for it instead of skipping, so every caller can treat
+  /// the server state as converged once this returns and safely pull after.
   func syncPendingProgress(instanceId: String) async {
     logger.debug("🚀 Starting pending progress sync for instance \(instanceId)")
 
-    guard !isSyncing else {
-      logger.info("⏭️ Progress sync already in progress, skipping")
+    if isSyncing {
+      logger.info("⏳ Progress sync already in progress, waiting for it")
+      await withCheckedContinuation { continuation in
+        if isSyncing {
+          idleWaiters.append(continuation)
+        } else {
+          continuation.resume()
+        }
+      }
       return
     }
 
@@ -31,6 +43,11 @@ actor ProgressSyncService {
     isSyncing = true
     defer {
       isSyncing = false
+      let waiters = idleWaiters
+      idleWaiters.removeAll()
+      for waiter in waiters {
+        waiter.resume()
+      }
       logger.debug("🏁 Finished pending progress sync for instance \(instanceId)")
     }
 

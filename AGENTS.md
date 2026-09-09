@@ -368,6 +368,7 @@ KMReader/
 - `ProgressSyncService`: Syncs read progress to server
 - `SyncViewModel`: Exposes synchronization state to SwiftUI and delegates work to `SyncWorker`
 - `SyncWorker`: Runs synchronization, pagination, reconciliation, and persistence off the main actor
+- **Progress push/pull ordering**: any path that pulls reading progress after coming online must first `await ProgressSyncService.syncPendingProgress`, which waits for an in-flight push rather than skipping, so a pull never upserts pre-push server state over newer offline-queued local progress. `ContentView`'s reconnect handler additionally follows its push with a forced silent pull, because the push only re-fetches completed or stale-skipped books — replayed non-completed progress would otherwise leave the local cache behind until the next pull.
 
 ## Coding Conventions
 

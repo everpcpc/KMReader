@@ -169,6 +169,10 @@ struct ContentView: View {
               await ProgressSyncService.shared.syncPendingProgress(
                 instanceId: AppConfig.current.instanceId
               )
+              // Pull the converged post-push state: replayed non-completed
+              // progress is not re-fetched by the push itself.
+              await syncViewModel.syncReadingProgressOnly(
+                force: true, showsCompletionNotice: false)
               // Resume offline downloads
               if !AppConfig.offlinePaused {
                 OfflineManager.shared.triggerSync(
@@ -220,6 +224,11 @@ struct ContentView: View {
                 OfflineManager.shared.triggerSync(
                   instanceId: AppConfig.current.instanceId, restart: true)
               }
+              // Push any offline-queued progress first so the pull below
+              // observes the converged server state.
+              await ProgressSyncService.shared.syncPendingProgress(
+                instanceId: AppConfig.current.instanceId
+              )
               await syncViewModel.syncReadingProgressOnForeground()
 
               if enableSSE && !isOffline {
