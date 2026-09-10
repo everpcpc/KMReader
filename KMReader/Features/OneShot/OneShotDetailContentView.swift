@@ -214,7 +214,7 @@ struct OneShotDetailContentView: View {
 
       // Series genres
       if let genres = series.metadata.genres, !genres.isEmpty {
-        CollapsibleChipSection(items: genres.sorted(), collapsedLimit: collapsedMetadataChipLimit) { genre in
+        CollapsibleChipSection(items: genres.localizedSorted(), collapsedLimit: collapsedMetadataChipLimit) { genre in
           TappableInfoChip(
             label: genre,
             systemImage: "theatermasks",
@@ -226,7 +226,7 @@ struct OneShotDetailContentView: View {
 
       // Book tags
       if let tags = book.metadata.tags, !tags.isEmpty {
-        CollapsibleChipSection(items: tags.sorted(), collapsedLimit: collapsedMetadataChipLimit) { tag in
+        CollapsibleChipSection(items: tags.localizedSorted(), collapsedLimit: collapsedMetadataChipLimit) { tag in
           TappableInfoChip(
             label: tag,
             systemImage: "tag",

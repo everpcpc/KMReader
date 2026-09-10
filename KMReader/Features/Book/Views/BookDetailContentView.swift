@@ -178,7 +178,7 @@ struct BookDetailContentView: View {
 
       // Tags
       if let tags = book.metadata.tags, !tags.isEmpty {
-        CollapsibleChipSection(items: tags.sorted(), collapsedLimit: collapsedMetadataChipLimit) { tag in
+        CollapsibleChipSection(items: tags.localizedSorted(), collapsedLimit: collapsedMetadataChipLimit) { tag in
           TappableInfoChip(
             label: tag,
             systemImage: "tag",

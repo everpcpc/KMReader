@@ -82,7 +82,7 @@ struct MetadataFilterSection: View {
         source: .publishers,
         selectedItems: Binding(
           get: { Set(metadataFilter.publishers ?? []) },
-          set: { metadataFilter.publishers = $0.isEmpty ? nil : Array($0).sorted() }
+          set: { metadataFilter.publishers = $0.isEmpty ? nil : Array($0).localizedSorted() }
         ),
         logic: $metadataFilter.publishersLogic,
         emptyDescription: String(localized: "No publishers available")
@@ -115,7 +115,7 @@ struct MetadataFilterSection: View {
         ),
         selectedItems: Binding(
           get: { Set(metadataFilter.authors ?? []) },
-          set: { metadataFilter.authors = $0.isEmpty ? nil : Array($0).sorted() }
+          set: { metadataFilter.authors = $0.isEmpty ? nil : Array($0).localizedSorted() }
         ),
         logic: $metadataFilter.authorsLogic,
         emptyDescription: String(localized: "No authors available")
@@ -143,7 +143,7 @@ struct MetadataFilterSection: View {
         source: .genres(libraryIds: libraryIds, collectionId: collectionId),
         selectedItems: Binding(
           get: { Set(metadataFilter.genres ?? []) },
-          set: { metadataFilter.genres = $0.isEmpty ? nil : Array($0).sorted() }
+          set: { metadataFilter.genres = $0.isEmpty ? nil : Array($0).localizedSorted() }
         ),
         logic: $metadataFilter.genresLogic,
         emptyDescription: String(localized: "No genres available")
@@ -176,7 +176,7 @@ struct MetadataFilterSection: View {
         ),
         selectedItems: Binding(
           get: { Set(metadataFilter.tags ?? []) },
-          set: { metadataFilter.tags = $0.isEmpty ? nil : Array($0).sorted() }
+          set: { metadataFilter.tags = $0.isEmpty ? nil : Array($0).localizedSorted() }
         ),
         logic: $metadataFilter.tagsLogic,
         emptyDescription: String(localized: "No tags available")
@@ -204,7 +204,7 @@ struct MetadataFilterSection: View {
         source: .languages(libraryIds: libraryIds, collectionId: collectionId),
         selectedItems: Binding(
           get: { Set(metadataFilter.languages ?? []) },
-          set: { metadataFilter.languages = $0.isEmpty ? nil : Array($0).sorted() }
+          set: { metadataFilter.languages = $0.isEmpty ? nil : Array($0).localizedSorted() }
         ),
         logic: $metadataFilter.languagesLogic,
         emptyDescription: String(localized: "No languages available"),
@@ -315,7 +315,7 @@ struct MetadataMultiSelectLoader: View {
     do {
       let items = try await source.load()
       withAnimation {
-        cachedItems = items
+        cachedItems = items.localizedSorted()
       }
     } catch {
       withAnimation {

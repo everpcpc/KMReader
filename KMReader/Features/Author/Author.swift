@@ -42,7 +42,15 @@ nonisolated extension Author: Codable {
 
 // MARK: - Array Extension
 extension Array where Element == Author {
+  /// Sorts authors by role order, then by name within the same role using
+  /// locale-aware ICU collation (respects the app language and keeps the
+  /// same-role ordering deterministic).
   func sortedByRole() -> [Author] {
-    sorted(by: { $0.role.sortOrder < $1.role.sortOrder })
+    sorted { lhs, rhs in
+      if lhs.role.sortOrder != rhs.role.sortOrder {
+        return lhs.role.sortOrder < rhs.role.sortOrder
+      }
+      return lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
+    }
   }
 }

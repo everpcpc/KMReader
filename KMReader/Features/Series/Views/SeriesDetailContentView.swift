@@ -288,7 +288,7 @@ struct SeriesDetailContentView: View {
   }
 
   private var sortedGenres: [String] {
-    (series.metadata.genres ?? []).sorted()
+    (series.metadata.genres ?? []).localizedSorted()
   }
 
   private struct TagItem: Hashable {
@@ -300,7 +300,7 @@ struct SeriesDetailContentView: View {
   private var combinedTagItems: [TagItem] {
     var items = [TagItem]()
 
-    let seriesTags = (series.metadata.tags ?? []).filter { !$0.isEmpty }.sorted()
+    let seriesTags = (series.metadata.tags ?? []).filter { !$0.isEmpty }.localizedSorted()
     let bookTags = (series.booksMetadata.tags ?? []).filter { !$0.isEmpty }
 
     // series tags first
@@ -310,7 +310,7 @@ struct SeriesDetailContentView: View {
 
     // book-only tags (exclude those already in seriesTags)
     let seriesSet = Set(seriesTags)
-    let bookOnly = Set(bookTags).subtracting(seriesSet).sorted()
+    let bookOnly = Set(bookTags).subtracting(seriesSet).localizedSorted()
     for t in bookOnly {
       items.append(TagItem(name: t, isBookOnly: true))
     }
