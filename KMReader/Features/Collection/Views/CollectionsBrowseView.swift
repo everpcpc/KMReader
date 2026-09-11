@@ -15,13 +15,8 @@ struct CollectionsBrowseView: View {
     SimpleSortOptions()
   @AppStorage("collectionBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
-  @AppStorage("currentAccount") private var current: Current = .init()
-  @State private var isLoading = false
-  @State private var items: [IdentifiedString] = []
-  @State private var loadID = UUID()
+  @State private var viewModel = CollectionsViewModel()
   @State private var hasInitialized = false
-
-  private let syncPageSize = 200
 
   private var columns: [GridItem] {
     LayoutConfig.adaptiveColumns(for: gridDensity)
@@ -37,8 +32,8 @@ struct CollectionsBrowseView: View {
         .padding(.horizontal)
 
       BrowseStateView(
-        isLoading: isLoading,
-        isEmpty: items.isEmpty,
+        isLoading: viewModel.isLoading,
+        isEmpty: viewModel.pagination.isEmpty,
         emptyIcon: ContentIcon.collection,
         emptyTitle: LocalizedStringKey("No collections found"),
         emptyMessage: LocalizedStringKey("Try selecting a different library."),
@@ -51,28 +46,42 @@ struct CollectionsBrowseView: View {
         switch browseLayout {
         case .grid:
           LazyVGrid(columns: columns, spacing: spacing) {
-            ForEach(items) { collection in
+            ForEach(viewModel.pagination.items) { collection in
               CollectionQueryItemView(
                 collectionId: collection.id,
                 onItemMissing: {
-                  removeCollection(id: collection.id)
+                  viewModel.removeCollection(id: collection.id)
                 }
               )
               .padding(.bottom)
+              .onAppear {
+                if viewModel.pagination.shouldLoadMore(after: collection) {
+                  Task {
+                    await loadCollections(refresh: false)
+                  }
+                }
+              }
             }
           }
           .padding(.horizontal)
         case .list:
           LazyVStack {
-            ForEach(items) { collection in
+            ForEach(viewModel.pagination.items) { collection in
               CollectionQueryItemView(
                 collectionId: collection.id,
                 layout: .list,
                 onItemMissing: {
-                  removeCollection(id: collection.id)
+                  viewModel.removeCollection(id: collection.id)
                 }
               )
-              if items.last != collection {
+              .onAppear {
+                if viewModel.pagination.shouldLoadMore(after: collection) {
+                  Task {
+                    await loadCollections(refresh: false)
+                  }
+                }
+              }
+              if !viewModel.pagination.isLast(collection) {
                 Divider()
               }
             }
@@ -106,75 +115,11 @@ struct CollectionsBrowseView: View {
   }
 
   private func loadCollections(refresh: Bool) async {
-    let currentLoadID = UUID()
-    loadID = currentLoadID
-    withAnimation {
-      isLoading = true
-    }
-
-    do {
-      let ids = try await loadCollectionIds()
-      guard loadID == currentLoadID else { return }
-      withAnimation {
-        items = ids.map(IdentifiedString.init)
-      }
-    } catch {
-      guard loadID == currentLoadID else { return }
-      if refresh {
-        ErrorManager.shared.alert(error: error)
-      }
-    }
-
-    guard loadID == currentLoadID else { return }
-    withAnimation {
-      isLoading = false
-    }
-  }
-
-  private func removeCollection(id: String) {
-    withAnimation {
-      items.removeAll { $0.id == id }
-    }
-  }
-
-  private func loadCollectionIds() async throws -> [String] {
-    let localIds = await localCollectionIds()
-    guard !AppConfig.isOffline else { return localIds }
-
-    let serverIds = Set(try await syncCollectionIds())
-    return localIds.filter { serverIds.contains($0) }
-  }
-
-  private func localCollectionIds() async -> [String] {
-    guard !current.instanceId.isEmpty else { return [] }
-    guard let database = try? await DatabaseOperator.database() else { return [] }
-    return await database.fetchCollectionIds(
-      instanceId: current.instanceId,
+    await viewModel.loadCollections(
       libraryIds: libraryIds,
       searchText: searchText,
       sort: sortOpts.sortString,
-      offset: 0,
-      limit: Int.max
+      refresh: refresh
     )
-  }
-
-  private func syncCollectionIds() async throws -> [String] {
-    var page = 0
-    var ids: [String] = []
-
-    while true {
-      let result = try await SyncService.syncCollections(
-        libraryIds: libraryIds,
-        page: page,
-        size: syncPageSize,
-        sort: sortOpts.sortString,
-        search: searchText.isEmpty ? nil : searchText
-      )
-      ids.append(contentsOf: result.content.map(\.id))
-      guard !result.last else { break }
-      page += 1
-    }
-
-    return ids
   }
 }

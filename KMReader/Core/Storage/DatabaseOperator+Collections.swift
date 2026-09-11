@@ -9,28 +9,55 @@ import GRDB
 extension DatabaseOperator {
   func fetchSidebarCollections(instanceId: String) throws -> [SidebarCollectionItem] {
     try read { db in
-      try orderedCollections(db: db, instanceId: instanceId).map { collection in
-        SidebarCollectionItem(
-          collectionId: collection.collectionId,
-          name: collection.name,
-          seriesCount: collection.seriesIds.count
-        )
+      let items = try sidebarCollectionRows(db: db, instanceId: instanceId)
+      return pinnedFirst(items, isPinned: { $0.isPinned }).map {
+        SidebarCollectionItem(collectionId: $0.id, name: $0.name, seriesCount: $0.seriesCount)
       }
     }
   }
 
   func fetchSidebarCollections(instanceId: String, collectionIds: Set<String>) throws -> [SidebarCollectionItem] {
     try read { db in
-      try orderedCollections(db: db, instanceId: instanceId)
-        .filter { collectionIds.contains($0.collectionId) }
-        .map { collection in
-          SidebarCollectionItem(
-            collectionId: collection.collectionId,
-            name: collection.name,
-            seriesCount: collection.seriesIds.count
-          )
-        }
+      let items = try sidebarCollectionRows(db: db, instanceId: instanceId)
+      return pinnedFirst(items, isPinned: { $0.isPinned })
+        .filter { collectionIds.contains($0.id) }
+        .map { SidebarCollectionItem(collectionId: $0.id, name: $0.name, seriesCount: $0.seriesCount) }
     }
+  }
+
+  /// Lightweight sidebar rows: only the columns needed for display and sorting
+  /// (name ICU order, pinned-first). Avoids decoding the full record.
+  private func sidebarCollectionRows(
+    db: Database,
+    instanceId: String
+  ) throws -> [(id: String, name: String, createdDate: Date, lastModifiedDate: Date, isPinned: Bool, seriesCount: Int)] {
+    let rows = try Row.fetchAll(
+      db,
+      sql: """
+        SELECT collection_id, name, created_date, last_modified_date, is_pinned, series_ids_raw
+        FROM \(KomgaCollection.databaseTableName)
+        WHERE instance_id = ?
+        """,
+      arguments: [instanceId]
+    )
+    let items: [(id: String, name: String, createdDate: Date, lastModifiedDate: Date, isPinned: Bool, seriesCount: Int)] =
+      rows.map { row in
+        (
+          id: row["collection_id"] as! String,
+          name: row["name"] as! String,
+          createdDate: row["created_date"] as! Date,
+          lastModifiedDate: row["last_modified_date"] as! Date,
+          isPinned: row["is_pinned"] as! Bool,
+          seriesCount: Self.decodeJSONStringArray(row["series_ids_raw"] as? Data).count
+        )
+      }
+    return Self.sortedByBrowseOrder(
+      items,
+      sort: nil,
+      name: { $0.name },
+      createdDate: { $0.createdDate },
+      lastModifiedDate: { $0.lastModifiedDate }
+    )
   }
 
   func fetchPinnedCollectionDisplayItems(instanceId: String) throws -> [CollectionDisplayItem] {
@@ -47,21 +74,61 @@ extension DatabaseOperator {
     }
   }
 
-  func fetchCollectionIds(
+  /// Fetches all collection ids in one pass: lightweight rows, in-memory ICU
+  /// name sort (or date sort), pinned-first. Browse pages slice this array, so
+  /// sorting happens once per query change instead of once per page.
+  func fetchAllCollectionIds(
     instanceId: String,
-    libraryIds: [String]?,
     searchText: String,
-    sort: String?,
-    offset: Int,
-    limit: Int
+    sort: String?
   ) -> [String] {
-    guard limit > 0 else { return [] }
+    (try? read { db in
+      let trimmedSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+      let rows = try Row.fetchAll(
+        db,
+        sql: """
+          SELECT collection_id, name, created_date, last_modified_date, is_pinned
+          FROM \(KomgaCollection.databaseTableName)
+          WHERE instance_id = ?
+          """,
+        arguments: [instanceId]
+      )
+      let items: [(id: String, name: String, createdDate: Date, lastModifiedDate: Date, isPinned: Bool)] =
+        rows.map { row in
+          (
+            id: row["collection_id"] as! String,
+            name: row["name"] as! String,
+            createdDate: row["created_date"] as! Date,
+            lastModifiedDate: row["last_modified_date"] as! Date,
+            isPinned: row["is_pinned"] as! Bool
+          )
+        }
+      let filtered = trimmedSearch.isEmpty
+        ? items
+        : items.filter { $0.name.localizedStandardContains(trimmedSearch) }
+      let sorted = Self.sortedByBrowseOrder(
+        filtered,
+        sort: sort,
+        name: { $0.name },
+        createdDate: { $0.createdDate },
+        lastModifiedDate: { $0.lastModifiedDate }
+      )
+      return pinnedFirst(sorted, isPinned: { $0.isPinned }).map { $0.id }
+    }) ?? []
+  }
+
+  func fetchPinnedCollectionIds(
+    instanceId: String,
+    searchText: String,
+    sort: String?
+  ) -> [String] {
+    guard !instanceId.isEmpty else { return [] }
     return
       (try? read { db in
         var sql = """
           SELECT collection_id
           FROM \(KomgaCollection.databaseTableName)
-          WHERE instance_id = ?
+          WHERE instance_id = ? AND is_pinned = 1
           """
         var arguments: StatementArguments = [instanceId]
         let trimmedSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -69,14 +136,8 @@ extension DatabaseOperator {
           sql += "\nAND name LIKE ? ESCAPE char(92)"
           arguments += StatementArguments([Self.sqlContainsPattern(trimmedSearch)])
         }
-        sql += "\nORDER BY is_pinned DESC, \(Self.collectionOrderSQL(sort: sort))"
-        sql += "\nLIMIT ? OFFSET ?"
-        arguments += StatementArguments([limit, max(0, offset)])
-        return try String.fetchAll(
-          db,
-          sql: sql,
-          arguments: arguments
-        )
+        sql += "\nORDER BY \(Self.collectionOrderSQL(sort: sort))"
+        return try String.fetchAll(db, sql: sql, arguments: arguments)
       }) ?? []
   }
 
@@ -173,28 +234,60 @@ extension DatabaseOperator {
 extension DatabaseOperator {
   func fetchSidebarReadLists(instanceId: String) throws -> [SidebarReadListItem] {
     try read { db in
-      try orderedReadLists(db: db, instanceId: instanceId).map { readList in
-        SidebarReadListItem(
-          readListId: readList.readListId,
-          name: readList.name,
-          bookCount: readList.bookIds.count
-        )
+      let items = try sidebarReadListRows(db: db, instanceId: instanceId)
+      return pinnedFirst(items, isPinned: { $0.isPinned }).map {
+        SidebarReadListItem(readListId: $0.id, name: $0.name, bookCount: $0.bookCount)
       }
     }
   }
 
   func fetchSidebarReadLists(instanceId: String, readListIds: Set<String>) throws -> [SidebarReadListItem] {
     try read { db in
-      try orderedReadLists(db: db, instanceId: instanceId)
-        .filter { readListIds.contains($0.readListId) }
-        .map { readList in
-          SidebarReadListItem(
-            readListId: readList.readListId,
-            name: readList.name,
-            bookCount: readList.bookIds.count
-          )
-        }
+      let items = try sidebarReadListRows(db: db, instanceId: instanceId)
+      return pinnedFirst(items, isPinned: { $0.isPinned })
+        .filter { readListIds.contains($0.id) }
+        .map { SidebarReadListItem(readListId: $0.id, name: $0.name, bookCount: $0.bookCount) }
     }
+  }
+
+  /// Lightweight sidebar rows: read list columns plus a membership COUNT instead
+  /// of decoding book_ids_raw. Membership is rebuilt on every write path, so the
+  /// count matches bookIds.count.
+  private func sidebarReadListRows(
+    db: Database,
+    instanceId: String
+  ) throws -> [(id: String, name: String, createdDate: Date, lastModifiedDate: Date, isPinned: Bool, bookCount: Int)] {
+    let rows = try Row.fetchAll(
+      db,
+      sql: """
+        SELECT rl.read_list_id, rl.name, rl.created_date, rl.last_modified_date, rl.is_pinned,
+               COUNT(m.book_id) AS book_count
+        FROM \(KomgaReadList.databaseTableName) rl
+        LEFT JOIN \(ReadListBookMembership.databaseTableName) m
+          ON m.read_list_id = rl.read_list_id AND m.instance_id = rl.instance_id
+        WHERE rl.instance_id = ?
+        GROUP BY rl.id
+        """,
+      arguments: [instanceId]
+    )
+    let items: [(id: String, name: String, createdDate: Date, lastModifiedDate: Date, isPinned: Bool, bookCount: Int)] =
+      rows.map { row in
+        (
+          id: row["read_list_id"] as! String,
+          name: row["name"] as! String,
+          createdDate: row["created_date"] as! Date,
+          lastModifiedDate: row["last_modified_date"] as! Date,
+          isPinned: row["is_pinned"] as! Bool,
+          bookCount: row["book_count"] as! Int
+        )
+      }
+    return Self.sortedByBrowseOrder(
+      items,
+      sort: nil,
+      name: { $0.name },
+      createdDate: { $0.createdDate },
+      lastModifiedDate: { $0.lastModifiedDate }
+    )
   }
 
   func fetchPinnedReadListDisplayItems(instanceId: String) throws -> [ReadListDisplayItem] {
@@ -211,21 +304,63 @@ extension DatabaseOperator {
     }
   }
 
-  func fetchReadListIds(
+  /// Same one-pass fetch as fetchAllCollectionIds, for read lists.
+  func fetchAllReadListIds(
     instanceId: String,
-    libraryIds: [String]?,
     searchText: String,
-    sort: String?,
-    offset: Int,
-    limit: Int
+    sort: String?
   ) -> [String] {
-    guard limit > 0 else { return [] }
+    (try? read { db in
+      let trimmedSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+      let rows = try Row.fetchAll(
+        db,
+        sql: """
+          SELECT read_list_id, name, summary, created_date, last_modified_date, is_pinned
+          FROM \(KomgaReadList.databaseTableName)
+          WHERE instance_id = ?
+          """,
+        arguments: [instanceId]
+      )
+      let items: [(id: String, name: String, summary: String, createdDate: Date, lastModifiedDate: Date, isPinned: Bool)] =
+        rows.map { row in
+          (
+            id: row["read_list_id"] as! String,
+            name: row["name"] as! String,
+            summary: row["summary"] as! String,
+            createdDate: row["created_date"] as! Date,
+            lastModifiedDate: row["last_modified_date"] as! Date,
+            isPinned: row["is_pinned"] as! Bool
+          )
+        }
+      let filtered = trimmedSearch.isEmpty
+        ? items
+        : items.filter {
+          $0.name.localizedStandardContains(trimmedSearch)
+            || $0.summary.localizedStandardContains(trimmedSearch)
+        }
+      let sorted = Self.sortedByBrowseOrder(
+        filtered,
+        sort: sort,
+        name: { $0.name },
+        createdDate: { $0.createdDate },
+        lastModifiedDate: { $0.lastModifiedDate }
+      )
+      return pinnedFirst(sorted, isPinned: { $0.isPinned }).map { $0.id }
+    }) ?? []
+  }
+
+  func fetchPinnedReadListIds(
+    instanceId: String,
+    searchText: String,
+    sort: String?
+  ) -> [String] {
+    guard !instanceId.isEmpty else { return [] }
     return
       (try? read { db in
         var sql = """
           SELECT read_list_id
           FROM \(KomgaReadList.databaseTableName)
-          WHERE instance_id = ?
+          WHERE instance_id = ? AND is_pinned = 1
           """
         var arguments: StatementArguments = [instanceId]
         let trimmedSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -234,14 +369,8 @@ extension DatabaseOperator {
           sql += "\nAND (name LIKE ? ESCAPE char(92) OR summary LIKE ? ESCAPE char(92))"
           arguments += StatementArguments([pattern, pattern])
         }
-        sql += "\nORDER BY is_pinned DESC, \(Self.readListOrderSQL(sort: sort))"
-        sql += "\nLIMIT ? OFFSET ?"
-        arguments += StatementArguments([limit, max(0, offset)])
-        return try String.fetchAll(
-          db,
-          sql: sql,
-          arguments: arguments
-        )
+        sql += "\nORDER BY \(Self.readListOrderSQL(sort: sort))"
+        return try String.fetchAll(db, sql: sql, arguments: arguments)
       }) ?? []
   }
 
@@ -373,7 +502,7 @@ extension DatabaseOperator {
     let collections = try fetchCollections(db: db, instanceId: instanceId).filter { collection in
       searchText.isEmpty || collection.name.localizedStandardContains(searchText)
     }
-    return pinnedFirst(sortCollections(collections, sort: sort))
+    return pinnedFirst(sortCollections(collections, sort: sort), isPinned: { $0.isPinned })
   }
 
   func orderedReadLists(
@@ -387,7 +516,7 @@ extension DatabaseOperator {
         || readList.name.localizedStandardContains(searchText)
         || readList.summary.localizedStandardContains(searchText)
     }
-    return pinnedFirst(sortReadLists(readLists, sort: sort))
+    return pinnedFirst(sortReadLists(readLists, sort: sort), isPinned: { $0.isPinned })
   }
 
   func applyCollection(dto: SeriesCollection, to existing: inout KomgaCollection) {
@@ -577,38 +706,55 @@ extension DatabaseOperator {
     )
   }
 
-  nonisolated func pinnedFirst(_ collections: [KomgaCollection]) -> [KomgaCollection] {
-    collections.filter(\.isPinned) + collections.filter { !$0.isPinned }
+  nonisolated func pinnedFirst<T>(_ items: [T], isPinned: (T) -> Bool) -> [T] {
+    items.filter(isPinned) + items.filter { !isPinned($0) }
   }
 
-  nonisolated func pinnedFirst(_ readLists: [KomgaReadList]) -> [KomgaReadList] {
-    readLists.filter(\.isPinned) + readLists.filter { !$0.isPinned }
+  /// Shared browse-order comparator: createdDate / lastModifiedDate are
+  /// numeric; the default name branch uses locale-aware ICU comparison
+  /// (localizedStandardCompare), matching the LOCALIZED SQL collation.
+  nonisolated static func sortedByBrowseOrder<T>(
+    _ items: [T],
+    sort: String?,
+    name: (T) -> String,
+    createdDate: (T) -> Date,
+    lastModifiedDate: (T) -> Date
+  ) -> [T] {
+    let isAscending = sort?.contains("desc") != true
+    if sort?.contains("createdDate") == true {
+      return items.sorted {
+        isAscending ? createdDate($0) < createdDate($1) : createdDate($0) > createdDate($1)
+      }
+    }
+    if sort?.contains("lastModifiedDate") == true {
+      return items.sorted {
+        isAscending ? lastModifiedDate($0) < lastModifiedDate($1) : lastModifiedDate($0) > lastModifiedDate($1)
+      }
+    }
+    return items.sorted {
+      let result = name($0).localizedStandardCompare(name($1))
+      return isAscending ? result == .orderedAscending : result == .orderedDescending
+    }
   }
 
   nonisolated func sortCollections(_ collections: [KomgaCollection], sort: String?) -> [KomgaCollection] {
-    let isAscending = sort?.contains("desc") != true
-    if sort?.contains("createdDate") == true {
-      return collections.sorted { isAscending ? $0.createdDate < $1.createdDate : $0.createdDate > $1.createdDate }
-    }
-    if sort?.contains("lastModifiedDate") == true {
-      return collections.sorted {
-        isAscending ? $0.lastModifiedDate < $1.lastModifiedDate : $0.lastModifiedDate > $1.lastModifiedDate
-      }
-    }
-    return collections.sorted { isAscending ? $0.name < $1.name : $0.name > $1.name }
+    Self.sortedByBrowseOrder(
+      collections,
+      sort: sort,
+      name: { $0.name },
+      createdDate: { $0.createdDate },
+      lastModifiedDate: { $0.lastModifiedDate }
+    )
   }
 
   nonisolated func sortReadLists(_ readLists: [KomgaReadList], sort: String?) -> [KomgaReadList] {
-    let isAscending = sort?.contains("desc") != true
-    if sort?.contains("createdDate") == true {
-      return readLists.sorted { isAscending ? $0.createdDate < $1.createdDate : $0.createdDate > $1.createdDate }
-    }
-    if sort?.contains("lastModifiedDate") == true {
-      return readLists.sorted {
-        isAscending ? $0.lastModifiedDate < $1.lastModifiedDate : $0.lastModifiedDate > $1.lastModifiedDate
-      }
-    }
-    return readLists.sorted { isAscending ? $0.name < $1.name : $0.name > $1.name }
+    Self.sortedByBrowseOrder(
+      readLists,
+      sort: sort,
+      name: { $0.name },
+      createdDate: { $0.createdDate },
+      lastModifiedDate: { $0.lastModifiedDate }
+    )
   }
 
   nonisolated static func collectionOrderSQL(sort: String?) -> String {
@@ -619,7 +765,7 @@ extension DatabaseOperator {
     if sort?.contains("lastModifiedDate") == true {
       return "last_modified_date \(direction), id ASC"
     }
-    return "name \(direction), id ASC"
+    return "name COLLATE LOCALIZED \(direction), id ASC"
   }
 
   nonisolated static func readListOrderSQL(sort: String?) -> String {
@@ -630,6 +776,6 @@ extension DatabaseOperator {
     if sort?.contains("lastModifiedDate") == true {
       return "last_modified_date \(direction), id ASC"
     }
-    return "name \(direction), id ASC"
+    return "name COLLATE LOCALIZED \(direction), id ASC"
   }
 }

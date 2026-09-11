@@ -264,6 +264,10 @@ extension DatabaseOperator {
       .replacingOccurrences(of: "_", with: "\\_")
   }
 
+  nonisolated static func decodeJSONStringArray(_ data: Data?) -> [String] {
+    data.flatMap { try? JSONDecoder().decode([String].self, from: $0) } ?? []
+  }
+
   nonisolated static func readStatus(completed: Bool?, readDate: Date?) -> ReadStatus {
     if completed == true {
       return .read
