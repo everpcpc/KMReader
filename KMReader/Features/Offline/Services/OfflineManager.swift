@@ -1699,8 +1699,15 @@ actor OfflineManager {
     } catch {
       let fileSize =
         (try? epubFile.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? -1
+      var magicHex = "unreadable"
+      if let handle = try? FileHandle(forReadingFrom: epubFile) {
+        if let head = try? handle.read(upToCount: 16), !head.isEmpty {
+          magicHex = head.map { String(format: "%02x", $0) }.joined()
+        }
+        try? handle.close()
+      }
       logger.error(
-        "❌ EPUB WebPub extraction failed for book \(info.bookId), epubFile=\(epubFile.lastPathComponent), epubFileSize=\(fileSize), error=\(error.diagnosticDescription)"
+        "❌ EPUB WebPub extraction failed for book \(info.bookId), epubFile=\(epubFile.lastPathComponent), epubFileSize=\(fileSize), magic=\(magicHex), error=\(error.diagnosticDescription)"
       )
       throw error
     }
