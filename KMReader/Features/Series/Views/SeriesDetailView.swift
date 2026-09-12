@@ -17,6 +17,7 @@ struct SeriesDetailView: View {
   @Environment(\.readerActions) private var readerActions
 
   @State private var item: SeriesDisplayItem?
+  @State private var collections: [SidebarCollectionItem] = []
   @State private var bookViewModel = BookViewModel()
   @State private var showDeleteConfirmation = false
   @State private var showCollectionPicker = false
@@ -108,8 +109,8 @@ struct SeriesDetailView: View {
 
             SeriesDetailContentView(series: series)
 
-            if let item {
-              SeriesCollectionsSection(collectionIds: item.collectionIds)
+            if item != nil {
+              SeriesCollectionsSection(collections: collections)
             }
 
             Divider()
@@ -286,12 +287,37 @@ extension SeriesDetailView {
   private func loadLocalSeries() async {
     guard let database = try? await DatabaseOperator.database() else {
       item = nil
+      collections = []
       return
     }
     item = try? await database.fetchSeriesDisplayItem(
       seriesId: seriesId,
       instanceId: current.instanceId
     )
+    await loadCollections()
+  }
+
+  private func loadCollections() async {
+    let instanceId = current.instanceId
+    guard let collectionIds = item?.collectionIds, !instanceId.isEmpty, !collectionIds.isEmpty
+    else {
+      collections = []
+      return
+    }
+    do {
+      let database = try await DatabaseOperator.database()
+      let loadedCollections = try await database.fetchSidebarCollections(
+        instanceId: instanceId,
+        collectionIds: Set(collectionIds)
+      )
+      if collections != loadedCollections {
+        withAnimation {
+          collections = loadedCollections
+        }
+      }
+    } catch {
+      ErrorManager.shared.alert(error: error)
+    }
   }
 
   private func analyzeSeries() {

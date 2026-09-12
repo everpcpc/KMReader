@@ -6,27 +6,13 @@
 import SwiftUI
 
 struct BookReadListsSection: View {
-  @AppStorage("currentAccount") private var current: Current = .init()
+  let readLists: [SidebarReadListItem]
 
-  let readListIds: [String]
-
-  @State private var readLists: [SidebarReadListItem] = []
-
-  private var readListIdsKey: String {
-    readListIds.sorted().joined(separator: ",")
-  }
-
+  // Pure display component: loading is hoisted to the parent detail view's
+  // always-realized task. A self-loading .task here never fires while the body
+  // renders empty inside the parent's LazyVStack (#967), and an always-present
+  // zero-height anchor would collapse the surrounding stack spacing (#986).
   var body: some View {
-    sectionContent
-      .task(id: "\(current.instanceId)|\(readListIdsKey)") {
-        await loadReadLists()
-      }
-  }
-
-  // Renders nothing when empty: an always-present zero-height container would
-  // swallow the parent VStack spacing and make adjacent Dividers hug the content.
-  @ViewBuilder
-  private var sectionContent: some View {
     if !readLists.isEmpty {
       VStack(alignment: .leading, spacing: 6) {
         HStack(spacing: 4) {
@@ -56,33 +42,6 @@ struct BookReadListsSection: View {
         }
       }
       .frame(maxWidth: .infinity, alignment: .leading)
-    }
-  }
-
-  private func loadReadLists() async {
-    let instanceId = current.instanceId
-    guard !instanceId.isEmpty, !readListIds.isEmpty else {
-      if !readLists.isEmpty {
-        withAnimation {
-          readLists = []
-        }
-      }
-      return
-    }
-
-    do {
-      let database = try await DatabaseOperator.database()
-      let loadedReadLists = try await database.fetchSidebarReadLists(
-        instanceId: instanceId,
-        readListIds: Set(readListIds)
-      )
-      if readLists != loadedReadLists {
-        withAnimation {
-          readLists = loadedReadLists
-        }
-      }
-    } catch {
-      ErrorManager.shared.alert(error: error)
     }
   }
 }
