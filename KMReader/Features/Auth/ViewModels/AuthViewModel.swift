@@ -70,7 +70,7 @@ class AuthViewModel {
     do {
       let apiKey = try await AuthService.createVerifiedApiKey(
         serverURL: serverURL,
-        comment: "KMReader · \(PlatformHelper.deviceName)"
+        comment: "\(ApiKey.appManagedCommentPrefix)\(PlatformHelper.deviceName)"
       )
       logger.info("🔑 Created API key credential for \(serverURL)")
       return apiKey

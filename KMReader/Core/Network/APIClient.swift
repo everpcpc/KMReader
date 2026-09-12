@@ -273,24 +273,24 @@ nonisolated final class APIClient: Sendable {
 
     configureDefaultHeaders(&request, body: body, headers: headers)
 
-    // Add auth header based on the authentication method
+    // Add auth headers based on the authentication method
     let authMethod = AppConfig.current.authMethod
     let authToken = AppConfig.current.authToken
 
     if !authToken.isEmpty {
-      // Use session token if available for subsequent requests
+      // Always attach the session token when one exists. For API key
+      // instances, also always attach the key: Komga prefers the session
+      // while it is valid (and skips key re-authentication for
+      // API-key-created sessions), and falls back to the key when the
+      // session expired, which also rotates a fresh session token back.
+      // Password logins keep relying on the session/cookies only, since
+      // per-request Basic authentication would flood the server auth log.
       let sessionToken = AppConfig.current.sessionToken
       if !sessionToken.isEmpty {
         request.setValue(sessionToken, forHTTPHeaderField: "X-Auth-Token")
-      } else {
-        // Fallback or specific auth logic if no session token
-        switch authMethod {
-        case .basicAuth:
-          // Basic Auth relies on Cookies if no Session Token (do nothing here)
-          break
-        case .apiKey:
-          request.setValue(authToken, forHTTPHeaderField: "X-API-Key")
-        }
+      }
+      if authMethod == .apiKey {
+        request.setValue(authToken, forHTTPHeaderField: "X-API-Key")
       }
     }
 
