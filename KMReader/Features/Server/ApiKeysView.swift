@@ -46,7 +46,7 @@ struct ApiKeysView: View {
           ForEach(apiKeys) { apiKey in
             VStack(alignment: .leading) {
               HStack {
-                Image(systemName: "key")
+                Image(systemName: apiKey.isAppManaged ? "lock.fill" : "key")
                   .font(.footnote)
                 Text(apiKey.comment.isEmpty ? "No comment" : apiKey.comment)
                   .bold()
@@ -96,13 +96,15 @@ struct ApiKeysView: View {
             }.tvFocusableHighlight()
               #if os(iOS) || os(macOS)
                 .swipeActions {
-                  Button(role: .destructive) {
-                    withAnimation {
-                      keyToDelete = apiKey
-                      showingDeleteConfirmation = true
+                  if !apiKey.isAppManaged {
+                    Button(role: .destructive) {
+                      withAnimation {
+                        keyToDelete = apiKey
+                        showingDeleteConfirmation = true
+                      }
+                    } label: {
+                      Label(String(localized: "Delete"), systemImage: "trash")
                     }
-                  } label: {
-                    Label(String(localized: "Delete"), systemImage: "trash")
                   }
                 }
               #endif
@@ -189,6 +191,9 @@ struct ApiKeysView: View {
   }
 
   private func deleteApiKey(_ apiKey: ApiKey) {
+    // App-managed keys may be in use as an instance credential; they can
+    // only be revoked from the Komga WebUI.
+    guard !apiKey.isAppManaged else { return }
     Task {
       do {
         try await AuthService.deleteApiKey(id: apiKey.id)

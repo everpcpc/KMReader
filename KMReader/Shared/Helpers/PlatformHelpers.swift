@@ -91,6 +91,19 @@ enum PlatformHelper {
     #endif
   }
 
+  /// Device name for display purposes (e.g. API key comments). On iOS 16+
+  /// this is the generic model name ("iPad") unless the app holds the
+  /// user-assigned-device-name entitlement.
+  static nonisolated var deviceName: String {
+    #if os(iOS) || os(tvOS)
+      return UIDevice.current.name
+    #elseif os(macOS)
+      return Host.current().localizedName ?? "Mac"
+    #else
+      return "Unknown"
+    #endif
+  }
+
   @MainActor
   static var defaultDashboardCardWidth: CGFloat {
     #if os(tvOS)

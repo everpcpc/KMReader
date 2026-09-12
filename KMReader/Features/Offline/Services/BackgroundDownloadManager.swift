@@ -43,15 +43,6 @@ import OSLog
       config.allowsCellularAccess = true
       config.httpMaximumConnectionsPerHost = 3
 
-      // Add auth headers
-      var headers: [String: String] = [:]
-      if AppConfig.current.authMethod == .apiKey && !AppConfig.current.authToken.isEmpty {
-        headers["X-API-Key"] = AppConfig.current.authToken
-      }
-      if !headers.isEmpty {
-        config.httpAdditionalHeaders = headers
-      }
-
       return URLSession(configuration: config, delegate: self, delegateQueue: nil)
     }()
 
@@ -199,20 +190,17 @@ import OSLog
     // MARK: - Private Helpers
 
     private func addAuthHeaders(to request: inout URLRequest) {
-      switch AppConfig.current.authMethod {
-      case .basicAuth:
-        // Mirror APIClient: session token header, background sessions cannot
-        // reliably access the shared cookie storage.
-        let sessionToken = AppConfig.current.sessionToken
-        if !sessionToken.isEmpty {
-          request.setValue(sessionToken, forHTTPHeaderField: "X-Auth-Token")
-        } else {
-          logger.warning("⚠️ No session token available for background download auth")
-        }
-      case .apiKey:
-        if !AppConfig.current.authToken.isEmpty {
-          request.setValue(AppConfig.current.authToken, forHTTPHeaderField: "X-API-Key")
-        }
+      // Send both credentials: the server prefers the session token while it
+      // is valid (avoiding per-request API key authentication activity) and
+      // falls back to the API key, which never expires. Password logins only
+      // have the session token; an expired session fails the task (caught by
+      // status validation) until the next foreground refresh.
+      let sessionToken = AppConfig.current.sessionToken
+      if !sessionToken.isEmpty {
+        request.setValue(sessionToken, forHTTPHeaderField: "X-Auth-Token")
+      }
+      if AppConfig.current.authMethod == .apiKey, !AppConfig.current.authToken.isEmpty {
+        request.setValue(AppConfig.current.authToken, forHTTPHeaderField: "X-API-Key")
       }
     }
 

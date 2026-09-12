@@ -83,24 +83,24 @@ struct AccountActivityView: View {
           Text(activity.success ? "Success" : "Failed")
             .font(.headline)
         }
-        if let apiKeyComment = activity.apiKeyComment {
-          HStack(spacing: 4) {
-            Image(systemName: "key")
-              .font(.caption)
-            Text(apiKeyComment)
-              .font(.footnote)
-              .lineLimit(1)
-          }.foregroundColor(.secondary)
-        }
         Spacer()
         Text(activity.dateTime.formattedMediumDateTime)
           .font(.caption)
           .foregroundColor(.secondary)
       }
 
+      if let apiKeyComment = activity.apiKeyComment {
+        HStack {
+          detailRowIcon("key")
+          Text(apiKeyComment)
+        }
+        .font(.caption)
+        .foregroundColor(.secondary)
+      }
+
       if let userAgent = activity.userAgent {
         HStack {
-          Image(systemName: "desktopcomputer")
+          detailRowIcon("desktopcomputer")
           Text(userAgent).lineLimit(1)
         }
         .font(.caption)
@@ -109,7 +109,7 @@ struct AccountActivityView: View {
 
       if let ip = activity.ip {
         HStack {
-          Image(systemName: "network")
+          detailRowIcon("network")
           Text(ip)
         }
         .font(.caption)
@@ -118,7 +118,7 @@ struct AccountActivityView: View {
 
       if let error = activity.error {
         HStack {
-          Image(systemName: "exclamationmark.triangle.fill")
+          detailRowIcon("exclamationmark.triangle.fill")
           Text(error)
         }
         .font(.caption)
@@ -145,6 +145,13 @@ struct AccountActivityView: View {
         await loadMoreActivities()
       }
     }
+  }
+
+  private func detailRowIcon(_ name: String) -> some View {
+    // Fixed width so detail-row texts start at the same x offset despite
+    // SF Symbols having different natural widths.
+    Image(systemName: name)
+      .frame(width: 16)
   }
 
   private func loadActivities(refresh: Bool = false) async {
