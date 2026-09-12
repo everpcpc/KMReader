@@ -1234,6 +1234,16 @@ actor OfflineManager {
     ) async throws {
       let destinationURL = bookDir.appendingPathComponent(Self.epubFileName)
       if FileManager.default.fileExists(atPath: destinationURL.path) {
+        do {
+          try await validateEpubArchiveFile(destinationURL, bookId: info.bookId)
+        } catch {
+          logger.warning(
+            "⚠️ Existing EPUB failed validation, removing and redownloading: \(info.bookId): \(error.diagnosticDescription)"
+          )
+          try? FileManager.default.removeItem(at: destinationURL)
+        }
+      }
+      if FileManager.default.fileExists(atPath: destinationURL.path) {
         logger.info("✅ Background EPUB already exists for book: \(info.bookId)")
         await MainActor.run {
           DownloadProgressTracker.shared.updateProgress(bookId: info.bookId, value: 1.0)
@@ -1708,6 +1718,11 @@ actor OfflineManager {
       }
       logger.error(
         "❌ EPUB WebPub extraction failed for book \(info.bookId), epubFile=\(epubFile.lastPathComponent), epubFileSize=\(fileSize), magic=\(magicHex), error=\(error.diagnosticDescription)"
+      )
+      await discardCorruptEpubIfUnreadable(
+        epubFile: epubFile,
+        bookId: info.bookId,
+        instanceId: instanceId
       )
       throw error
     }
@@ -2361,8 +2376,37 @@ actor OfflineManager {
         }
       }
 
-      // Keep EPUB files intact until the reader opens them and can show processing UI.
+      // Validate EPUB downloads the same way image archives are validated: a
+      // corrupt or non-archive file must fail the download here instead of
+      // surfacing later as a reader error.
       let epubFile = bookDir.appendingPathComponent(Self.epubFileName)
+      if FileManager.default.fileExists(atPath: epubFile.path) {
+        switch info.kind {
+        case .epubWebPub, .epubDivina:
+          do {
+            try await validateEpubArchiveFile(epubFile, bookId: bookId)
+          } catch {
+            let recoveryMessage =
+              "Downloaded EPUB file is corrupt or unreadable. Please retry downloading this book."
+            logger.error(
+              "❌ Background EPUB validation failed for book \(bookId), bookDir=\(bookDir.path), error=\(error.diagnosticDescription)"
+            )
+            try? FileManager.default.removeItem(at: bookDir)
+            try? await DatabaseOperator.database().updateBookDownloadStatus(
+              bookId: bookId, instanceId: info.instanceId, status: .failed(error: recoveryMessage))
+            await postDownloadProjectionDidChange(bookId: bookId, instanceId: info.instanceId)
+            clearBackgroundDownloadContext(bookId: bookId)
+            removeActiveTask(bookId)
+            await refreshQueueStatus(instanceId: info.instanceId)
+            await syncDownloadQueue(instanceId: info.instanceId)
+            return
+          }
+        default:
+          break
+        }
+      }
+
+      // Keep EPUB files intact until the reader opens them and can show processing UI.
       if !FileManager.default.fileExists(atPath: epubFile.path),
         !hasCompletedOfflineResources(kind: info.kind, bookDir: bookDir)
       {
@@ -2526,6 +2570,7 @@ actor OfflineManager {
     let epubFile = bookDir.appendingPathComponent(Self.epubFileName)
     _ = try await BookService.downloadBookFile(bookId: bookId, to: epubFile)
     Self.excludeFromBackupIfNeeded(at: epubFile)
+    try await validateEpubArchiveFile(epubFile, bookId: bookId)
 
     await MainActor.run {
       DownloadProgressTracker.shared.updateProgress(bookId: bookId, value: 1.0)
@@ -2599,6 +2644,45 @@ actor OfflineManager {
     for file in extracted {
       Self.excludeFromBackupIfNeeded(at: file.destination.deletingLastPathComponent())
       Self.excludeFromBackupIfNeeded(at: file.destination)
+    }
+  }
+
+  private func validateEpubArchiveFile(_ epubFile: URL, bookId: String) async throws {
+    let paths = try await archivePathIndex(for: epubFile)
+    guard !paths.isEmpty else {
+      throw AppErrorType.dataCorrupted(
+        message: "Downloaded EPUB archive has no readable entries."
+      )
+    }
+  }
+
+  /// Self-heal after a failed reader-open extraction: if the EPUB file itself
+  /// is not a readable archive, the download is corrupt, so remove it and
+  /// mark the book as failed — the next reader open re-downloads instead of
+  /// failing again on the same file. Extraction failures with a readable
+  /// archive (unsafe paths, disk full, ...) keep the file to avoid an
+  /// endless re-download loop.
+  private func discardCorruptEpubIfUnreadable(
+    epubFile: URL,
+    bookId: String,
+    instanceId: String
+  ) async {
+    do {
+      try await validateEpubArchiveFile(epubFile, bookId: bookId)
+    } catch {
+      logger.warning(
+        "🧹 Removing corrupt EPUB and resetting download state for book \(bookId): \(error.diagnosticDescription)"
+      )
+      try? FileManager.default.removeItem(at: epubFile)
+      try? await DatabaseOperator.database().updateBookDownloadStatus(
+        bookId: bookId,
+        instanceId: instanceId,
+        status: .failed(
+          error: "Downloaded EPUB file is corrupt or unreadable. Please retry downloading this book."
+        )
+      )
+      await postDownloadProjectionDidChange(bookId: bookId, instanceId: instanceId)
+      await refreshQueueStatus(instanceId: instanceId)
     }
   }
 
