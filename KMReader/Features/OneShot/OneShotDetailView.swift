@@ -14,6 +14,8 @@ struct OneshotDetailView: View {
 
   @State private var seriesItem: SeriesDisplayItem?
   @State private var bookItem: BookDisplayItem?
+  @State private var collections: [SidebarCollectionItem] = []
+  @State private var readLists: [SidebarReadListItem] = []
   @State private var isLoading = true
   @State private var hasError = false
   @State private var showDeleteConfirmation = false
@@ -62,12 +64,12 @@ struct OneshotDetailView: View {
             inSheet: false
           )
 
-          if let seriesItem {
-            SeriesCollectionsSection(collectionIds: seriesItem.collectionIds)
+          if seriesItem != nil {
+            SeriesCollectionsSection(collections: collections)
           }
 
-          if let bookItem {
-            BookReadListsSection(readListIds: bookItem.readListIds)
+          if bookItem != nil {
+            BookReadListsSection(readLists: readLists)
           }
         } else if hasError {
           VStack(spacing: 16) {
@@ -170,6 +172,8 @@ struct OneshotDetailView: View {
     guard let database = try? await DatabaseOperator.database() else {
       seriesItem = nil
       bookItem = nil
+      collections = []
+      readLists = []
       return
     }
 
@@ -182,6 +186,54 @@ struct OneshotDetailView: View {
       instanceId: current.instanceId,
       includeOfflineProtection: true
     )
+    await loadCollections()
+    await loadReadLists()
+  }
+
+  private func loadCollections() async {
+    let instanceId = current.instanceId
+    guard let collectionIds = seriesItem?.collectionIds, !instanceId.isEmpty,
+      !collectionIds.isEmpty
+    else {
+      collections = []
+      return
+    }
+    do {
+      let database = try await DatabaseOperator.database()
+      let loadedCollections = try await database.fetchSidebarCollections(
+        instanceId: instanceId,
+        collectionIds: Set(collectionIds)
+      )
+      if collections != loadedCollections {
+        withAnimation {
+          collections = loadedCollections
+        }
+      }
+    } catch {
+      ErrorManager.shared.alert(error: error)
+    }
+  }
+
+  private func loadReadLists() async {
+    let instanceId = current.instanceId
+    guard let readListIds = bookItem?.readListIds, !instanceId.isEmpty, !readListIds.isEmpty else {
+      readLists = []
+      return
+    }
+    do {
+      let database = try await DatabaseOperator.database()
+      let loadedReadLists = try await database.fetchSidebarReadLists(
+        instanceId: instanceId,
+        readListIds: Set(readListIds)
+      )
+      if readLists != loadedReadLists {
+        withAnimation {
+          readLists = loadedReadLists
+        }
+      }
+    } catch {
+      ErrorManager.shared.alert(error: error)
+    }
   }
 
   private func clearCache() {

@@ -13,6 +13,7 @@ struct BookDetailView: View {
   @AppStorage("currentAccount") private var current: Current = .init()
 
   @State private var item: BookDisplayItem?
+  @State private var readLists: [SidebarReadListItem] = []
   @State private var hasError = false
   @State private var showDeleteConfirmation = false
   @State private var showReadListPicker = false
@@ -54,8 +55,8 @@ struct BookDetailView: View {
             inSheet: false
           )
 
-          if let item {
-            BookReadListsSection(readListIds: item.readListIds)
+          if item != nil {
+            BookReadListsSection(readLists: readLists)
           }
         } else if hasError {
           VStack(spacing: 16) {
@@ -246,6 +247,7 @@ struct BookDetailView: View {
   private func loadLocalBook() async {
     guard let database = try? await DatabaseOperator.database() else {
       item = nil
+      readLists = []
       return
     }
     item = try? await database.fetchBookDisplayItem(
@@ -253,6 +255,29 @@ struct BookDetailView: View {
       instanceId: current.instanceId,
       includeOfflineProtection: true
     )
+    await loadReadLists()
+  }
+
+  private func loadReadLists() async {
+    let instanceId = current.instanceId
+    guard let readListIds = item?.readListIds, !instanceId.isEmpty, !readListIds.isEmpty else {
+      readLists = []
+      return
+    }
+    do {
+      let database = try await DatabaseOperator.database()
+      let loadedReadLists = try await database.fetchSidebarReadLists(
+        instanceId: instanceId,
+        readListIds: Set(readListIds)
+      )
+      if readLists != loadedReadLists {
+        withAnimation {
+          readLists = loadedReadLists
+        }
+      }
+    } catch {
+      ErrorManager.shared.alert(error: error)
+    }
   }
 
   private func addToReadList(readListId: String) {

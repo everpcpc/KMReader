@@ -6,27 +6,13 @@
 import SwiftUI
 
 struct SeriesCollectionsSection: View {
-  @AppStorage("currentAccount") private var current: Current = .init()
+  let collections: [SidebarCollectionItem]
 
-  let collectionIds: [String]
-
-  @State private var collections: [SidebarCollectionItem] = []
-
-  private var collectionIdsKey: String {
-    collectionIds.sorted().joined(separator: ",")
-  }
-
+  // Pure display component: loading is hoisted to the parent detail view's
+  // always-realized task. A self-loading .task here never fires while the body
+  // renders empty inside the parent's LazyVStack (#967), and an always-present
+  // zero-height anchor would collapse the surrounding stack spacing (#986).
   var body: some View {
-    sectionContent
-      .task(id: "\(current.instanceId)|\(collectionIdsKey)") {
-        await loadCollections()
-      }
-  }
-
-  // Renders nothing when empty: an always-present zero-height container would
-  // swallow the parent VStack spacing and make the Divider below hug the content above.
-  @ViewBuilder
-  private var sectionContent: some View {
     if !collections.isEmpty {
       VStack(alignment: .leading, spacing: 8) {
         HStack(spacing: 4) {
@@ -56,33 +42,6 @@ struct SeriesCollectionsSection: View {
         }
       }
       .frame(maxWidth: .infinity, alignment: .leading)
-    }
-  }
-
-  private func loadCollections() async {
-    let instanceId = current.instanceId
-    guard !instanceId.isEmpty, !collectionIds.isEmpty else {
-      if !collections.isEmpty {
-        withAnimation {
-          collections = []
-        }
-      }
-      return
-    }
-
-    do {
-      let database = try await DatabaseOperator.database()
-      let loadedCollections = try await database.fetchSidebarCollections(
-        instanceId: instanceId,
-        collectionIds: Set(collectionIds)
-      )
-      if collections != loadedCollections {
-        withAnimation {
-          collections = loadedCollections
-        }
-      }
-    } catch {
-      ErrorManager.shared.alert(error: error)
     }
   }
 }
