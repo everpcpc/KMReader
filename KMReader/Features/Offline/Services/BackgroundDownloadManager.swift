@@ -201,12 +201,46 @@ import OSLog
     private func addAuthHeaders(to request: inout URLRequest) {
       switch AppConfig.current.authMethod {
       case .basicAuth:
-        // For basic auth, cookies from the shared session should work
-        break
+        // Mirror APIClient: session token header, background sessions cannot
+        // reliably access the shared cookie storage.
+        let sessionToken = AppConfig.current.sessionToken
+        if !sessionToken.isEmpty {
+          request.setValue(sessionToken, forHTTPHeaderField: "X-Auth-Token")
+        } else {
+          logger.warning("⚠️ No session token available for background download auth")
+        }
       case .apiKey:
         if !AppConfig.current.authToken.isEmpty {
           request.setValue(AppConfig.current.authToken, forHTTPHeaderField: "X-API-Key")
         }
+      }
+    }
+
+    /// Map a non-2xx download response to an error instead of saving the body
+    /// as the downloaded file.
+    private nonisolated func httpStatusError(for task: URLSessionDownloadTask) -> Error? {
+      guard let httpResponse = task.response as? HTTPURLResponse,
+        !(200...299).contains(httpResponse.statusCode)
+      else { return nil }
+      let urlString = task.originalRequest?.url?.absoluteString ?? ""
+      let code = httpResponse.statusCode
+      let message = HTTPURLResponse.localizedString(forStatusCode: code)
+      switch code {
+      case 401:
+        return APIError.unauthorized(url: urlString)
+      case 403:
+        return APIError.forbidden(message: message, url: urlString, response: nil, request: nil)
+      case 404:
+        return APIError.notFound(message: message, url: urlString, response: nil, request: nil)
+      case 429:
+        return APIError.tooManyRequests(
+          message: message, url: urlString, response: nil, request: nil)
+      case 500...599:
+        return APIError.serverError(
+          code: code, message: message, url: urlString, response: nil, request: nil)
+      default:
+        return APIError.httpError(
+          code: code, message: message, url: urlString, response: nil, request: nil)
       }
     }
 
@@ -320,6 +354,16 @@ import OSLog
       downloadTask: URLSessionDownloadTask,
       didFinishDownloadingTo location: URL
     ) {
+      // Reject error responses before accepting the body as the downloaded file.
+      if let statusError = httpStatusError(for: downloadTask) {
+        try? FileManager.default.removeItem(at: location)
+        Task { @MainActor in
+          self.handleDownloadError(
+            taskIdentifier: downloadTask.taskIdentifier, error: statusError)
+        }
+        return
+      }
+
       // Move the temp file before returning; iOS can purge it after this delegate finishes.
       guard let destinationPath = downloadTask.taskDescription, !destinationPath.isEmpty else {
         let error = AppErrorType.missingRequiredData(
