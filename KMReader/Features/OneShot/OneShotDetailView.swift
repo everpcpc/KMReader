@@ -355,13 +355,25 @@ struct OneshotDetailView: View {
         Divider()
 
         Button {
-          deferMenuActionPresentation { showCollectionPicker = true }
+          #if os(macOS)
+            // Present in a standalone window: a view-attached sheet triggered
+            // from an NSMenu action can wedge the app on macOS 15 (#959).
+            PickerWindowOpener.shared.open(.collection(seriesId: seriesId))
+          #else
+            deferMenuActionPresentation { showCollectionPicker = true }
+          #endif
         } label: {
           Label("Add to Collection", systemImage: ContentIcon.collection)
         }
 
         Button {
-          deferMenuActionPresentation { showReadListPicker = true }
+          #if os(macOS)
+            if let book {
+              PickerWindowOpener.shared.open(.readList(bookId: book.id))
+            }
+          #else
+            deferMenuActionPresentation { showReadListPicker = true }
+          #endif
         } label: {
           Label("Add to Read List", systemImage: ContentIcon.readList)
         }

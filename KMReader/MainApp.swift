@@ -169,6 +169,11 @@ struct MainApp: App {
           }
         )
       )
+      .task {
+        PickerWindowOpener.shared.configure { request in
+          openWindow(value: request)
+        }
+      }
       .overlay(alignment: .bottom) {
         NotificationOverlay()
       }
@@ -429,6 +434,16 @@ struct MainApp: App {
       }
       .windowToolbarStyle(.unifiedCompact)
       .defaultSize(width: 800, height: 600)
+
+      WindowGroup(for: PickerWindowRequest.self) { $request in
+        Group {
+          if let request {
+            PickerWindowView(request: request)
+          }
+        }
+        .preferredColorScheme(appColorScheme.colorScheme)
+      }
+      .defaultSize(width: 720, height: 600)
     #endif
   }
 }

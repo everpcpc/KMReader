@@ -79,7 +79,13 @@ struct BookHorizontalCardView: View {
       downloadStatus: item.downloadStatus,
       onReadBook: onReadBook,
       onShowReadListPicker: {
-        showReadListPicker = true
+        #if os(macOS)
+          // Present in a standalone window: a view-attached sheet triggered
+          // from an NSMenu action can wedge the app on macOS 15 (#959).
+          PickerWindowOpener.shared.open(.readList(bookId: item.bookId))
+        #else
+          showReadListPicker = true
+        #endif
       },
       onDeleteRequested: onDeleteRequested,
       onEditRequested: {
