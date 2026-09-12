@@ -9,6 +9,8 @@ import SwiftUI
 @MainActor
 @Observable
 class AuthViewModel {
+  private let logger = AppLogger(.auth)
+
   enum BootstrapState: Equatable {
     case requiresValidation
     case validating
@@ -37,17 +39,47 @@ class AuthViewModel {
     let result = try await AuthService.login(
       username: username, password: password, serverURL: serverURL, timeout: AppConfig.authTimeout)
 
+    // Prefer an auto-created API key over storing the password credential:
+    // it never expires and works for background downloads without relying on
+    // shared cookies. Falls back to password auth when the server cannot
+    // create keys.
+    var authToken = result.authToken
+    var authMethod = AuthenticationMethod.basicAuth
+    if let apiKey = await createApiKeyCredential(serverURL: serverURL) {
+      authToken = apiKey.key
+      authMethod = .apiKey
+    }
+
     // Apply login configuration
     try await applyLoginConfiguration(
       serverURL: serverURL,
       username: username,
-      authToken: result.authToken,
-      authMethod: .basicAuth,
+      authToken: authToken,
+      authMethod: authMethod,
       user: result.user,
       displayName: displayName,
       shouldPersistInstance: true,
       successMessage: String(localized: "Logged in successfully")
     )
+  }
+
+  /// Create and verify an API key while a password-based session is still
+  /// valid. Returns nil (and keeps the caller on password auth) when key
+  /// creation or verification fails, e.g. on older servers.
+  private func createApiKeyCredential(serverURL: String) async -> ApiKey? {
+    do {
+      let apiKey = try await AuthService.createVerifiedApiKey(
+        serverURL: serverURL,
+        comment: "KMReader · \(PlatformHelper.deviceName)"
+      )
+      logger.info("🔑 Created API key credential for \(serverURL)")
+      return apiKey
+    } catch {
+      logger.warning(
+        "⚠️ API key creation failed, keeping password authentication for \(serverURL): \(error.diagnosticDescription)"
+      )
+      return nil
+    }
   }
 
   func loginWithAPIKey(
@@ -176,12 +208,31 @@ class AuthViewModel {
         timeout: AppConfig.authTimeout
       )
 
+      // Migrate legacy password-auth instances to an auto-created API key on
+      // switch, so subsequent requests stop depending on expiring sessions
+      // and shared cookies.
+      var authToken = instance.authToken
+      var authMethod = instance.authMethod
+      if authMethod == .basicAuth,
+        let apiKey = await createApiKeyCredential(serverURL: instance.serverURL)
+      {
+        authToken = apiKey.key
+        authMethod = .apiKey
+        try? await DatabaseOperator.database().upsertInstance(
+          serverURL: instance.serverURL,
+          username: instance.username,
+          authToken: authToken,
+          isAdmin: validatedUser.isAdmin,
+          authMethod: .apiKey
+        )
+      }
+
       // Apply switch configuration
       try await applyLoginConfiguration(
         serverURL: instance.serverURL,
         username: instance.username,
-        authToken: instance.authToken,
-        authMethod: instance.authMethod,
+        authToken: authToken,
+        authMethod: authMethod,
         user: validatedUser,
         displayName: instance.displayName,
         instanceId: instance.instanceId,

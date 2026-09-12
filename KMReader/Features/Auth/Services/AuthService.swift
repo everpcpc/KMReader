@@ -189,6 +189,14 @@ nonisolated enum AuthService {
     )
   }
 
+  /// Create an API key and verify it actually authenticates before it gets
+  /// persisted as the instance credential.
+  static func createVerifiedApiKey(serverURL: String, comment: String) async throws -> ApiKey {
+    let apiKey = try await createApiKey(comment: comment)
+    _ = try await testCredentials(serverURL: serverURL, authToken: apiKey.key, authMethod: .apiKey)
+    return apiKey
+  }
+
   static func deleteApiKey(id: String) async throws {
     let _: EmptyResponse = try await apiClient.request(
       path: "/api/v2/users/me/api-keys/\(id)",
