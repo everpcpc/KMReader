@@ -94,6 +94,12 @@
         contentView
 
         controlsOverlay
+          .simultaneousGesture(
+            // Touching the controls (close button, title, ⋯ menu, page jump)
+            // is explicit intent to keep the overlay: cancel the post-resume
+            // auto-hide instead of letting it dismiss an open menu (#1022).
+            TapGesture().onEnded { cancelAutoHideAfterResume() }
+          )
 
         keyboardHelpOverlay
       }
@@ -201,6 +207,13 @@
       .onChange(of: scenePhase) { oldPhase, newPhase in
         handleScenePhaseChange(from: oldPhase, to: newPhase)
       }
+      .onChange(of: isPresentingModalSheet) { _, presenting in
+        // A sheet opening (menu action, keyboard command) is controls
+        // interaction: the post-resume glance window ends here (#1022).
+        if presenting {
+          cancelAutoHideAfterResume()
+        }
+      }
       .background(
         KeyboardEventHandler(
           isEnabled: isKeyboardCaptureEnabled,
@@ -272,6 +285,12 @@
       autoHideAfterResumeTask = Task { @MainActor in
         try? await Task.sleep(for: .seconds(1))
         guard !Task.isCancelled else { return }
+        // Belt and braces: never pull the overlay out from under an open
+        // sheet or menu interaction (#1022).
+        guard !isPresentingModalSheet else {
+          autoHideAfterResumeTask = nil
+          return
+        }
         withAnimation {
           showingControls = false
         }
