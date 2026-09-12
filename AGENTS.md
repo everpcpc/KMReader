@@ -376,7 +376,7 @@ KMReader/
 ## Coding Conventions
 
 1. **Comments**: Minimal, in English only
-2. **Commit messages**: Concise, clear, semantic format, in English
+2. **Commit messages**: Concise, clear, semantic format, in English. All GitHub-facing text follows the same rule: PR titles, PR bodies, issue/PR comments, and review replies are always written in English, regardless of the conversation language.
 3. **UI framework choice**: SwiftUI, UIKit, and AppKit may all be used. Pick the approach that best fits the feature, platform APIs, and maintainability.
 4. **No inline Binding**: Avoid inline Binding usage
 5. **No confirmationDialog**: Do not use confirmationDialog
