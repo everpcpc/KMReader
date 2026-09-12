@@ -44,12 +44,17 @@ extension DatabaseOperator {
     let items:
       [(id: String, name: String, createdDate: Date, lastModifiedDate: Date, isPinned: Bool, seriesCount: Int)] =
         rows.map { row in
-          (
-            id: row["collection_id"] as! String,
-            name: row["name"] as! String,
-            createdDate: row["created_date"] as! Date,
-            lastModifiedDate: row["last_modified_date"] as! Date,
-            isPinned: row["is_pinned"] as! Bool,
+          let id: String = row["collection_id"]
+          let name: String = row["name"]
+          let createdDate: Date = row["created_date"]
+          let lastModifiedDate: Date = row["last_modified_date"]
+          let isPinned: Bool = row["is_pinned"]
+          return (
+            id: id,
+            name: name,
+            createdDate: createdDate,
+            lastModifiedDate: lastModifiedDate,
+            isPinned: isPinned,
             seriesCount: Self.decodeJSONStringArray(row["series_ids_raw"] as? Data).count
           )
         }
@@ -97,12 +102,17 @@ extension DatabaseOperator {
       )
       let items: [(id: String, name: String, createdDate: Date, lastModifiedDate: Date, isPinned: Bool)] =
         rows.map { row in
-          (
-            id: row["collection_id"] as! String,
-            name: row["name"] as! String,
-            createdDate: row["created_date"] as! Date,
-            lastModifiedDate: row["last_modified_date"] as! Date,
-            isPinned: row["is_pinned"] as! Bool
+          let id: String = row["collection_id"]
+          let name: String = row["name"]
+          let createdDate: Date = row["created_date"]
+          let lastModifiedDate: Date = row["last_modified_date"]
+          let isPinned: Bool = row["is_pinned"]
+          return (
+            id: id,
+            name: name,
+            createdDate: createdDate,
+            lastModifiedDate: lastModifiedDate,
+            isPinned: isPinned
           )
         }
       let filtered =
@@ -275,13 +285,19 @@ extension DatabaseOperator {
     )
     let items: [(id: String, name: String, createdDate: Date, lastModifiedDate: Date, isPinned: Bool, bookCount: Int)] =
       rows.map { row in
-        (
-          id: row["read_list_id"] as! String,
-          name: row["name"] as! String,
-          createdDate: row["created_date"] as! Date,
-          lastModifiedDate: row["last_modified_date"] as! Date,
-          isPinned: row["is_pinned"] as! Bool,
-          bookCount: row["book_count"] as! Int
+        let id: String = row["read_list_id"]
+        let name: String = row["name"]
+        let createdDate: Date = row["created_date"]
+        let lastModifiedDate: Date = row["last_modified_date"]
+        let isPinned: Bool = row["is_pinned"]
+        let bookCount: Int = row["book_count"]
+        return (
+          id: id,
+          name: name,
+          createdDate: createdDate,
+          lastModifiedDate: lastModifiedDate,
+          isPinned: isPinned,
+          bookCount: bookCount
         )
       }
     return Self.sortedByBrowseOrder(
@@ -327,13 +343,19 @@ extension DatabaseOperator {
       let items:
         [(id: String, name: String, summary: String, createdDate: Date, lastModifiedDate: Date, isPinned: Bool)] =
           rows.map { row in
-            (
-              id: row["read_list_id"] as! String,
-              name: row["name"] as! String,
-              summary: row["summary"] as! String,
-              createdDate: row["created_date"] as! Date,
-              lastModifiedDate: row["last_modified_date"] as! Date,
-              isPinned: row["is_pinned"] as! Bool
+            let id: String = row["read_list_id"]
+            let name: String = row["name"]
+            let summary: String = row["summary"]
+            let createdDate: Date = row["created_date"]
+            let lastModifiedDate: Date = row["last_modified_date"]
+            let isPinned: Bool = row["is_pinned"]
+            return (
+              id: id,
+              name: name,
+              summary: summary,
+              createdDate: createdDate,
+              lastModifiedDate: lastModifiedDate,
+              isPinned: isPinned
             )
           }
       let filtered =
