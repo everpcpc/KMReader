@@ -72,6 +72,17 @@ class AuthViewModel {
         serverURL: serverURL,
         comment: "\(ApiKey.appManagedCommentPrefix)\(PlatformHelper.deviceName)"
       )
+      // Replace the password-established session with an API-key-established
+      // one. Requests carrying both X-Auth-Token and X-API-Key only skip
+      // server-side API key re-authentication when the session itself holds
+      // an ApiKeyAuthenticationToken; riding the password session would
+      // re-authenticate every request and flood the authentication activity
+      // log.
+      _ = try await AuthService.establishSession(
+        serverURL: serverURL,
+        authToken: apiKey.key,
+        authMethod: .apiKey
+      )
       logger.info("🔑 Created API key credential for \(serverURL)")
       return apiKey
     } catch {
@@ -340,6 +351,12 @@ class AuthViewModel {
       finalProtected = protected
     }
 
+    // Carry the session token established during login/switch into the new
+    // Current instead of dropping it. Without it every request would go out
+    // session-less, forcing full server-side re-authentication (one
+    // authentication activity row per request for API key requests).
+    let sessionToken = AppConfig.current.sessionToken
+
     AppConfig.current = Current(
       serverURL: serverURL,
       serverDisplayName: finalDisplayName,
@@ -347,7 +364,8 @@ class AuthViewModel {
       authMethod: authMethod,
       username: user.email,
       isAdmin: user.isAdmin,
-      instanceId: finalInstanceId
+      instanceId: finalInstanceId,
+      sessionToken: sessionToken
     )
 
     AppConfig.isLoggedIn = true
