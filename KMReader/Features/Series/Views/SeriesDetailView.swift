@@ -234,7 +234,7 @@ struct SeriesDetailView: View {
       guard shouldRefreshForSeriesProjection(notification) else { return }
       Task {
         await refreshLocalSeriesData()
-        await refreshSeriesBooks()
+        await revalidateSeriesBooksIfNeeded(for: notification)
       }
     }
     .onReceive(NotificationCenter.default.publisher(for: .bookProjectionDidChange)) {
@@ -242,7 +242,7 @@ struct SeriesDetailView: View {
       guard shouldRefreshForBookProjection(notification) else { return }
       Task {
         await refreshLocalSeriesData()
-        await refreshSeriesBooks()
+        await revalidateSeriesBooksIfNeeded(for: notification)
       }
     }
   }
@@ -270,11 +270,16 @@ extension SeriesDetailView {
     await refreshReadingTargetBook()
   }
 
-  private func refreshSeriesBooks() async {
-    await bookViewModel.loadSeriesBooks(
+  /// Pure reading-progress changes (e.g. reader closed) are applied by the
+  /// item rows themselves from GRDB; the ID list is only revalidated when the
+  /// change can alter membership or ordering for the current browse options.
+  private func revalidateSeriesBooksIfNeeded(for notification: Notification) async {
+    let reasons = ContentProjectionNotifier.changeReasons(from: notification)
+    guard !reasons.isSubset(of: [.readingProgress]) || seriesBookBrowseOptions.isSensitiveToReadingProgress
+    else { return }
+    await bookViewModel.revalidateSeriesBooks(
       seriesId: seriesId,
-      browseOpts: seriesBookBrowseOptions,
-      refresh: true
+      browseOpts: seriesBookBrowseOptions
     )
   }
 

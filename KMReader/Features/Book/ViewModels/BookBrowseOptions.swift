@@ -21,6 +21,13 @@ nonisolated struct BookBrowseOptions: Equatable, RawRepresentable, Sendable {
     return "\(sortField.rawValue),\(sortDirection.rawValue)"
   }
 
+  /// Whether a pure reading-progress change can alter list membership or
+  /// ordering. When false, item rows self-update from GRDB and the ID list
+  /// does not need to be revalidated at all.
+  var isSensitiveToReadingProgress: Bool {
+    sortField == .dateRead || !includeReadStatuses.isEmpty || !excludeReadStatuses.isEmpty
+  }
+
   var filtersCleared: BookBrowseOptions {
     var options = self
     options.includeReadStatuses = []

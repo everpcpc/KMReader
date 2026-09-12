@@ -148,12 +148,12 @@ struct BooksListViewForReadList: View {
     .onReceive(NotificationCenter.default.publisher(for: .bookProjectionDidChange)) {
       notification in
       guard shouldRefreshForBookProjection(notification) else { return }
-      Task { await refreshBooks() }
+      Task { await revalidateBooksIfNeeded(for: notification) }
     }
     .onReceive(NotificationCenter.default.publisher(for: .readListProjectionDidChange)) {
       notification in
       guard notification.userInfo?["readListId"] as? String == readListId else { return }
-      Task { await refreshBooks() }
+      Task { await revalidateBooks() }
     }
   }
 
@@ -175,6 +175,29 @@ struct BooksListViewForReadList: View {
     readListItem = try? await database.fetchReadListDisplayItem(
       readListId: readListId,
       instanceId: current.instanceId
+    )
+  }
+
+  /// Pure reading-progress changes (e.g. reader closed) are applied by the
+  /// item rows themselves from GRDB; the ID list is only revalidated when the
+  /// change can alter membership for the current browse options.
+  private func revalidateBooksIfNeeded(for notification: Notification) async {
+    let reasons = ContentProjectionNotifier.changeReasons(from: notification)
+    if reasons.isSubset(of: [.readingProgress]) && !browseOpts.isSensitiveToReadingProgress {
+      await loadReadList()
+      return
+    }
+    await revalidateBooks()
+  }
+
+  /// Projection-change-driven refresh: revalidates the loaded window in place
+  /// so the scroll position and loaded pages are preserved.
+  private func revalidateBooks() async {
+    await loadReadList()
+    guard readListItem != nil else { return }
+    await bookViewModel.revalidateReadListBooks(
+      readListId: readListId,
+      browseOpts: browseOpts
     )
   }
 

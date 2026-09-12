@@ -80,7 +80,7 @@ struct DashboardSectionDetailView: View {
         return
       }
       guard command.includes(section) else { return }
-      Task { await loadItems(refresh: true) }
+      Task { await revalidateItems() }
     }
     #if os(iOS) || os(macOS)
       .toolbar {
@@ -446,6 +446,88 @@ struct DashboardSectionDetailView: View {
       _ = pagination.applyPage(wrappedIds)
     }
     pagination.advance(moreAvailable: moreAvailable)
+  }
+
+  /// Notification-driven refresh: re-fetches the already-loaded page window
+  /// and replaces items in place so the scroll position and loaded pages are
+  /// preserved. Explicit user actions still use `loadItems(refresh: true)`.
+  private func revalidateItems() async {
+    guard !isLoading else { return }
+    let windowSize = pagination.currentPage * pagination.pageSize
+    guard windowSize > 0 else {
+      await loadItems(refresh: true)
+      return
+    }
+
+    let loadID = pagination.loadID
+    withAnimation {
+      isLoading = true
+    }
+    defer {
+      if loadID == pagination.loadID {
+        withAnimation {
+          isLoading = false
+        }
+      }
+    }
+
+    let libraryIds = dashboard.libraryIds
+
+    if AppConfig.isOffline {
+      let ids: [String]
+      switch section.contentKind {
+      case .books:
+        ids = await section.fetchOfflineBookIds(
+          libraryIds: libraryIds,
+          offset: 0,
+          limit: windowSize
+        )
+      case .series:
+        ids = await section.fetchOfflineSeriesIds(
+          libraryIds: libraryIds,
+          offset: 0,
+          limit: windowSize
+        )
+      case .collections, .readLists:
+        ids = []
+      }
+      guard loadID == pagination.loadID else { return }
+      applyRevalidatedWindow(ids: ids, moreAvailable: ids.count == windowSize)
+    } else {
+      do {
+        switch section.contentKind {
+        case .books:
+          if let page = try await section.fetchBooks(
+            libraryIds: libraryIds,
+            page: 0,
+            size: windowSize
+          ) {
+            guard loadID == pagination.loadID else { return }
+            applyRevalidatedWindow(ids: page.content.map { $0.id }, moreAvailable: !page.last)
+          }
+        case .series:
+          if let page = try await section.fetchSeries(
+            libraryIds: libraryIds,
+            page: 0,
+            size: windowSize
+          ) {
+            guard loadID == pagination.loadID else { return }
+            applyRevalidatedWindow(ids: page.content.map { $0.id }, moreAvailable: !page.last)
+          }
+        case .collections, .readLists:
+          break
+        }
+      } catch {
+        // Silent: notification-driven revalidation must not interrupt with alerts.
+      }
+    }
+  }
+
+  private func applyRevalidatedWindow(ids: [String], moreAvailable: Bool) {
+    let wrappedIds = ids.map(IdentifiedString.init)
+    withAnimation {
+      _ = pagination.replaceItems(wrappedIds, moreAvailable: moreAvailable)
+    }
   }
 
   private func setBrowseLayout(_ layout: BrowseLayoutMode) {
