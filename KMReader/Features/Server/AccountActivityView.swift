@@ -83,19 +83,19 @@ struct AccountActivityView: View {
           Text(activity.success ? "Success" : "Failed")
             .font(.headline)
         }
-        if let apiKeyComment = activity.apiKeyComment {
-          HStack(spacing: 4) {
-            Image(systemName: "key")
-              .font(.caption)
-            Text(apiKeyComment)
-              .font(.footnote)
-              .lineLimit(1)
-          }.foregroundColor(.secondary)
-        }
         Spacer()
         Text(activity.dateTime.formattedMediumDateTime)
           .font(.caption)
           .foregroundColor(.secondary)
+      }
+
+      if let apiKeyComment = activity.apiKeyComment {
+        HStack {
+          Image(systemName: "key")
+          Text(apiKeyComment)
+        }
+        .font(.caption)
+        .foregroundColor(.secondary)
       }
 
       if let userAgent = activity.userAgent {

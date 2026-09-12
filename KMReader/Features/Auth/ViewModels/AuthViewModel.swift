@@ -68,14 +68,14 @@ class AuthViewModel {
   /// creation or verification fails, e.g. on older servers.
   private func createApiKeyCredential(serverURL: String) async -> ApiKey? {
     do {
-      let apiKey = try await AuthService.createVerifiedApiKey(
-        serverURL: serverURL,
+      let apiKey = try await AuthService.createApiKey(
         comment: "\(ApiKey.appManagedCommentPrefix)\(PlatformHelper.deviceName)"
       )
       // Replace the password-established session with an API-key-established
-      // one. Requests carrying both X-Auth-Token and X-API-Key only skip
-      // server-side API key re-authentication when the session itself holds
-      // an ApiKeyAuthenticationToken; riding the password session would
+      // one; this also verifies the key authenticates. Requests carrying
+      // both X-Auth-Token and X-API-Key only skip server-side API key
+      // re-authentication when the session itself holds an
+      // ApiKeyAuthenticationToken; riding the password session would
       // re-authenticate every request and flood the authentication activity
       // log.
       _ = try await AuthService.establishSession(
