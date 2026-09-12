@@ -1719,6 +1719,11 @@ actor OfflineManager {
       logger.error(
         "❌ EPUB WebPub extraction failed for book \(info.bookId), epubFile=\(epubFile.lastPathComponent), epubFileSize=\(fileSize), magic=\(magicHex), error=\(error.diagnosticDescription)"
       )
+      await discardCorruptEpubIfUnreadable(
+        epubFile: epubFile,
+        bookId: info.bookId,
+        instanceId: instanceId
+      )
       throw error
     }
     try Task.checkCancellation()
@@ -2648,6 +2653,36 @@ actor OfflineManager {
       throw AppErrorType.dataCorrupted(
         message: "Downloaded EPUB archive has no readable entries."
       )
+    }
+  }
+
+  /// Self-heal after a failed reader-open extraction: if the EPUB file itself
+  /// is not a readable archive, the download is corrupt, so remove it and
+  /// mark the book as failed — the next reader open re-downloads instead of
+  /// failing again on the same file. Extraction failures with a readable
+  /// archive (unsafe paths, disk full, ...) keep the file to avoid an
+  /// endless re-download loop.
+  private func discardCorruptEpubIfUnreadable(
+    epubFile: URL,
+    bookId: String,
+    instanceId: String
+  ) async {
+    do {
+      try await validateEpubArchiveFile(epubFile, bookId: bookId)
+    } catch {
+      logger.warning(
+        "🧹 Removing corrupt EPUB and resetting download state for book \(bookId): \(error.diagnosticDescription)"
+      )
+      try? FileManager.default.removeItem(at: epubFile)
+      try? await DatabaseOperator.database().updateBookDownloadStatus(
+        bookId: bookId,
+        instanceId: instanceId,
+        status: .failed(
+          error: "Downloaded EPUB file is corrupt or unreadable. Please retry downloading this book."
+        )
+      )
+      await postDownloadProjectionDidChange(bookId: bookId, instanceId: instanceId)
+      await refreshQueueStatus(instanceId: instanceId)
     }
   }
 
