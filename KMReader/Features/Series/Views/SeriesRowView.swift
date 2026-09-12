@@ -111,7 +111,14 @@ struct SeriesRowView: View {
               booksReadCount: item.booksReadCount,
               booksInProgressCount: item.booksInProgressCount,
               onShowCollectionPicker: {
-                showCollectionPicker = true
+                #if os(macOS)
+                  // Present in a standalone window: a view-attached sheet
+                  // triggered from an NSMenu action can wedge the app on
+                  // macOS 15 (#959).
+                  PickerWindowOpener.shared.open(.collection(seriesId: item.seriesId))
+                #else
+                  showCollectionPicker = true
+                #endif
               },
               onDeleteRequested: onDeleteRequested,
               onEditRequested: {

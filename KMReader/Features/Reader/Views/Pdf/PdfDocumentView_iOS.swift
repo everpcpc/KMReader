@@ -193,9 +193,11 @@
       private var singleTapStartTime: TimeInterval = 0
 
       // Stricter than UITapGestureRecognizer's built-in slop: slow/short drags
-      // must not toggle the reader overlays (#957).
+      // must not toggle the reader overlays (#957). The duration budget includes
+      // the wait for the double-tap/long-press failure requirements, so it must
+      // stay comfortably above a quick tap's handler delivery latency.
       private let singleTapMaximumMovement: CGFloat = 10
-      private let singleTapMaximumDuration: TimeInterval = 0.5
+      private let singleTapMaximumDuration: TimeInterval = 0.75
 
       init(
         onPageChange: @escaping (Int, Int) -> Void,
@@ -345,8 +347,12 @@
 
       func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
         hadSelectionAtTouchStart = (observedPDFView?.currentSelection != nil)
-        if gestureRecognizer === singleTapRecognizer, let view = touch.view {
-          singleTapStartPoint = touch.location(in: view)
+        // Record the start point in the PDFView's coordinate space, matching
+        // the end point measured in handleSingleTap. touch.view is a private
+        // subview with its own origin/scroll offset, so mixing the two spaces
+        // inflates the movement and rejects every tap (#956, #957).
+        if gestureRecognizer === singleTapRecognizer, let pdfView = gestureRecognizer.view {
+          singleTapStartPoint = touch.location(in: pdfView)
           singleTapStartTime = touch.timestamp
         }
         return !isInteractiveElement(touch.view)

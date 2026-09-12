@@ -463,7 +463,13 @@ extension SeriesDetailView {
         Divider()
 
         Button {
-          deferMenuActionPresentation { showCollectionPicker = true }
+          #if os(macOS)
+            // Present in a standalone window: a view-attached sheet triggered
+            // from an NSMenu action can wedge the app on macOS 15 (#959).
+            PickerWindowOpener.shared.open(.collection(seriesId: seriesId))
+          #else
+            deferMenuActionPresentation { showCollectionPicker = true }
+          #endif
         } label: {
           Label("Add to Collection", systemImage: ContentIcon.collection)
         }

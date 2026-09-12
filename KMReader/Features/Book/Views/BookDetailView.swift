@@ -308,7 +308,13 @@ struct BookDetailView: View {
         Divider()
 
         Button {
-          deferMenuActionPresentation { showReadListPicker = true }
+          #if os(macOS)
+            // Present in a standalone window: a view-attached sheet triggered
+            // from an NSMenu action can wedge the app on macOS 15 (#959).
+            PickerWindowOpener.shared.open(.readList(bookId: bookId))
+          #else
+            deferMenuActionPresentation { showReadListPicker = true }
+          #endif
         } label: {
           Label("Add to Read List", systemImage: ContentIcon.readList)
         }
