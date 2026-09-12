@@ -52,6 +52,16 @@ struct PaginationState<Item: Identifiable & Equatable> {
     return true
   }
 
+  /// Replaces the loaded window after revalidating already-loaded pages.
+  /// Keeps currentPage and loadID so the list does not collapse back to
+  /// the first page and the scroll position is preserved.
+  mutating func replaceItems(_ newItems: [Item], moreAvailable: Bool) -> Bool {
+    hasMorePages = moreAvailable
+    guard newItems != items else { return false }
+    items = newItems
+    return true
+  }
+
   mutating func removeItems(withIDs ids: Set<Item.ID>) -> Bool {
     guard !ids.isEmpty else { return false }
     let originalCount = items.count

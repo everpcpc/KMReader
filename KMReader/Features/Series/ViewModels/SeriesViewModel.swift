@@ -140,6 +140,70 @@ class SeriesViewModel {
     pagination.advance(moreAvailable: moreAvailable)
   }
 
+  /// Re-fetches the already-loaded page window in place, preserving scroll
+  /// position. Used for projection-change-driven refreshes; explicit user
+  /// actions (filter changes) still use a full refresh.
+  func revalidateCollectionSeries(
+    collectionId: String,
+    browseOpts: CollectionSeriesBrowseOptions,
+    libraryIds: [String]? = nil
+  ) async {
+    guard !isLoading else { return }
+    let windowSize = pagination.currentPage * pagination.pageSize
+    guard windowSize > 0 else {
+      await loadCollectionSeries(
+        collectionId: collectionId,
+        browseOpts: browseOpts,
+        libraryIds: libraryIds,
+        refresh: true
+      )
+      return
+    }
+
+    let loadID = pagination.loadID
+    withAnimation {
+      isLoading = true
+    }
+    defer {
+      if loadID == pagination.loadID {
+        withAnimation {
+          isLoading = false
+        }
+      }
+    }
+
+    let result: (ids: [String], moreAvailable: Bool)?
+    if AppConfig.isOffline {
+      guard let database = try? await DatabaseOperator.database() else { return }
+      let ids = await database.fetchCollectionSeriesIds(
+        collectionId: collectionId,
+        browseOpts: browseOpts,
+        page: 0,
+        size: windowSize
+      )
+      result = (ids, ids.count == windowSize)
+    } else {
+      do {
+        let page = try await SyncService.syncCollectionSeries(
+          collectionId: collectionId,
+          page: 0,
+          size: windowSize,
+          browseOpts: browseOpts,
+          libraryIds: libraryIds
+        )
+        result = (page.content.map { $0.id }, !page.last)
+      } catch {
+        return
+      }
+    }
+
+    guard loadID == pagination.loadID, let result else { return }
+    let wrappedIds = result.ids.map(IdentifiedString.init)
+    withAnimation {
+      _ = pagination.replaceItems(wrappedIds, moreAvailable: result.moreAvailable)
+    }
+  }
+
   func removeSeries(id: String) {
     withAnimation {
       _ = pagination.removeItems(withIDs: [id])

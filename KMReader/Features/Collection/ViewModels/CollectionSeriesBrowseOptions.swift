@@ -19,6 +19,13 @@ nonisolated struct CollectionSeriesBrowseOptions: Equatable, RawRepresentable, S
   var deletedFilter: TriStateFilter<BoolTriStateFlag> = TriStateFilter()
   var metadataFilter: MetadataFilterConfig = MetadataFilterConfig()
 
+  /// Whether a pure reading-progress change can alter list membership.
+  /// Collection series keep their manual ordering, so only read-status
+  /// filters make the ID list sensitive to progress changes.
+  var isSensitiveToReadingProgress: Bool {
+    !includeReadStatuses.isEmpty || !excludeReadStatuses.isEmpty
+  }
+
   var rawValue: String {
     let dict: [String: String] = [
       "includeReadStatuses": includeReadStatuses.map { $0.rawValue }.sorted().joined(

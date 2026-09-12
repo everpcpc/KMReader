@@ -30,7 +30,8 @@ extension DatabaseOperator {
   private func sidebarCollectionRows(
     db: Database,
     instanceId: String
-  ) throws -> [(id: String, name: String, createdDate: Date, lastModifiedDate: Date, isPinned: Bool, seriesCount: Int)] {
+  ) throws -> [(id: String, name: String, createdDate: Date, lastModifiedDate: Date, isPinned: Bool, seriesCount: Int)]
+  {
     let rows = try Row.fetchAll(
       db,
       sql: """
@@ -40,17 +41,18 @@ extension DatabaseOperator {
         """,
       arguments: [instanceId]
     )
-    let items: [(id: String, name: String, createdDate: Date, lastModifiedDate: Date, isPinned: Bool, seriesCount: Int)] =
-      rows.map { row in
-        (
-          id: row["collection_id"] as! String,
-          name: row["name"] as! String,
-          createdDate: row["created_date"] as! Date,
-          lastModifiedDate: row["last_modified_date"] as! Date,
-          isPinned: row["is_pinned"] as! Bool,
-          seriesCount: Self.decodeJSONStringArray(row["series_ids_raw"] as? Data).count
-        )
-      }
+    let items:
+      [(id: String, name: String, createdDate: Date, lastModifiedDate: Date, isPinned: Bool, seriesCount: Int)] =
+        rows.map { row in
+          (
+            id: row["collection_id"] as! String,
+            name: row["name"] as! String,
+            createdDate: row["created_date"] as! Date,
+            lastModifiedDate: row["last_modified_date"] as! Date,
+            isPinned: row["is_pinned"] as! Bool,
+            seriesCount: Self.decodeJSONStringArray(row["series_ids_raw"] as? Data).count
+          )
+        }
     return Self.sortedByBrowseOrder(
       items,
       sort: nil,
@@ -103,7 +105,8 @@ extension DatabaseOperator {
             isPinned: row["is_pinned"] as! Bool
           )
         }
-      let filtered = trimmedSearch.isEmpty
+      let filtered =
+        trimmedSearch.isEmpty
         ? items
         : items.filter { $0.name.localizedStandardContains(trimmedSearch) }
       let sorted = Self.sortedByBrowseOrder(
@@ -321,18 +324,20 @@ extension DatabaseOperator {
           """,
         arguments: [instanceId]
       )
-      let items: [(id: String, name: String, summary: String, createdDate: Date, lastModifiedDate: Date, isPinned: Bool)] =
-        rows.map { row in
-          (
-            id: row["read_list_id"] as! String,
-            name: row["name"] as! String,
-            summary: row["summary"] as! String,
-            createdDate: row["created_date"] as! Date,
-            lastModifiedDate: row["last_modified_date"] as! Date,
-            isPinned: row["is_pinned"] as! Bool
-          )
-        }
-      let filtered = trimmedSearch.isEmpty
+      let items:
+        [(id: String, name: String, summary: String, createdDate: Date, lastModifiedDate: Date, isPinned: Bool)] =
+          rows.map { row in
+            (
+              id: row["read_list_id"] as! String,
+              name: row["name"] as! String,
+              summary: row["summary"] as! String,
+              createdDate: row["created_date"] as! Date,
+              lastModifiedDate: row["last_modified_date"] as! Date,
+              isPinned: row["is_pinned"] as! Bool
+            )
+          }
+      let filtered =
+        trimmedSearch.isEmpty
         ? items
         : items.filter {
           $0.name.localizedStandardContains(trimmedSearch)

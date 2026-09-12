@@ -126,12 +126,12 @@ struct CollectionSeriesListView: View {
     .onReceive(NotificationCenter.default.publisher(for: .seriesProjectionDidChange)) {
       notification in
       guard shouldRefreshForSeriesProjection(notification) else { return }
-      Task { await refreshSeries() }
+      Task { await revalidateSeriesIfNeeded(for: notification) }
     }
     .onReceive(NotificationCenter.default.publisher(for: .collectionProjectionDidChange)) {
       notification in
       guard notification.userInfo?["collectionId"] as? String == collectionId else { return }
-      Task { await refreshSeries() }
+      Task { await revalidateSeries() }
     }
   }
 
@@ -153,6 +153,29 @@ struct CollectionSeriesListView: View {
     collectionItem = try? await database.fetchCollectionDisplayItem(
       collectionId: collectionId,
       instanceId: current.instanceId
+    )
+  }
+
+  /// Pure reading-progress changes (e.g. reader closed) are applied by the
+  /// item rows themselves from GRDB; the ID list is only revalidated when the
+  /// change can alter membership for the current browse options.
+  private func revalidateSeriesIfNeeded(for notification: Notification) async {
+    let reasons = ContentProjectionNotifier.changeReasons(from: notification)
+    if reasons.isSubset(of: [.readingProgress]) && !browseOpts.isSensitiveToReadingProgress {
+      await loadCollection()
+      return
+    }
+    await revalidateSeries()
+  }
+
+  /// Projection-change-driven refresh: revalidates the loaded window in place
+  /// so the scroll position and loaded pages are preserved.
+  private func revalidateSeries() async {
+    await loadCollection()
+    guard collectionItem != nil else { return }
+    await seriesViewModel.revalidateCollectionSeries(
+      collectionId: collectionId,
+      browseOpts: browseOpts
     )
   }
 

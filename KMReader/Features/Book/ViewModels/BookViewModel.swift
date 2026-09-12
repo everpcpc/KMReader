@@ -62,6 +62,43 @@ class BookViewModel {
     }
   }
 
+  /// Re-fetches the already-loaded page window in place, preserving scroll
+  /// position. Used for projection-change-driven refreshes; explicit user
+  /// actions (pull-to-refresh, filter changes) still use a full refresh.
+  func revalidateSeriesBooks(
+    seriesId: String,
+    browseOpts: BookBrowseOptions
+  ) async {
+    await revalidateWindow(
+      fetchWindow: { windowSize in
+        if AppConfig.isOffline {
+          guard let database = try? await DatabaseOperator.database() else { return nil }
+          let ids = await database.fetchSeriesBookIds(
+            seriesId: seriesId,
+            browseOpts: browseOpts,
+            page: 0,
+            size: windowSize
+          )
+          return (ids, ids.count == windowSize)
+        }
+        do {
+          let page = try await SyncService.syncBooks(
+            seriesId: seriesId,
+            page: 0,
+            size: windowSize,
+            browseOpts: normalizedRemoteBrowseOptions(browseOpts)
+          )
+          return (page.content.map { $0.id }, !page.last)
+        } catch {
+          return nil
+        }
+      },
+      refreshFallback: {
+        await loadSeriesBooks(seriesId: seriesId, browseOpts: browseOpts, refresh: true)
+      }
+    )
+  }
+
   private func applyPage(ids: [String], moreAvailable: Bool) {
     let wrappedIds = ids.map(IdentifiedString.init)
     withAnimation {
@@ -73,6 +110,40 @@ class BookViewModel {
   func removeBook(id: String) {
     withAnimation {
       _ = pagination.removeItems(withIDs: [id])
+    }
+  }
+
+  /// Shared windowing for revalidation: re-fetches pages 0..<currentPage as a
+  /// single window and replaces the loaded items in place, keeping currentPage
+  /// and loadID so scroll position and item identity survive the update.
+  private func revalidateWindow(
+    fetchWindow: (Int) async -> (ids: [String], moreAvailable: Bool)?,
+    refreshFallback: () async -> Void
+  ) async {
+    guard !isLoading else { return }
+    let windowSize = pagination.currentPage * pagination.pageSize
+    guard windowSize > 0 else {
+      await refreshFallback()
+      return
+    }
+
+    let loadID = pagination.loadID
+    withAnimation {
+      isLoading = true
+    }
+    defer {
+      if loadID == pagination.loadID {
+        withAnimation {
+          isLoading = false
+        }
+      }
+    }
+
+    guard let result = await fetchWindow(windowSize) else { return }
+    guard loadID == pagination.loadID else { return }
+    let wrappedIds = result.ids.map(IdentifiedString.init)
+    withAnimation {
+      _ = pagination.replaceItems(wrappedIds, moreAvailable: result.moreAvailable)
     }
   }
 
@@ -266,5 +337,48 @@ class BookViewModel {
         ErrorManager.shared.alert(error: error)
       }
     }
+  }
+
+  /// Re-fetches the already-loaded page window in place, preserving scroll
+  /// position. See `revalidateSeriesBooks`.
+  func revalidateReadListBooks(
+    readListId: String,
+    browseOpts: ReadListBookBrowseOptions,
+    libraryIds: [String]? = nil
+  ) async {
+    await revalidateWindow(
+      fetchWindow: { windowSize in
+        if AppConfig.isOffline {
+          guard let database = try? await DatabaseOperator.database() else { return nil }
+          let ids = await database.fetchReadListBookIds(
+            readListId: readListId,
+            browseOpts: browseOpts,
+            page: 0,
+            size: windowSize
+          )
+          return (ids, ids.count == windowSize)
+        }
+        do {
+          let page = try await SyncService.syncReadListBooks(
+            readListId: readListId,
+            page: 0,
+            size: windowSize,
+            browseOpts: browseOpts,
+            libraryIds: libraryIds
+          )
+          return (page.content.map { $0.id }, !page.last)
+        } catch {
+          return nil
+        }
+      },
+      refreshFallback: {
+        await loadReadListBooks(
+          readListId: readListId,
+          browseOpts: browseOpts,
+          libraryIds: libraryIds,
+          refresh: true
+        )
+      }
+    )
   }
 }
