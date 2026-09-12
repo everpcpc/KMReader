@@ -91,7 +91,7 @@ struct AccountActivityView: View {
 
       if let apiKeyComment = activity.apiKeyComment {
         HStack {
-          Image(systemName: "key")
+          detailRowIcon("key")
           Text(apiKeyComment)
         }
         .font(.caption)
@@ -100,7 +100,7 @@ struct AccountActivityView: View {
 
       if let userAgent = activity.userAgent {
         HStack {
-          Image(systemName: "desktopcomputer")
+          detailRowIcon("desktopcomputer")
           Text(userAgent).lineLimit(1)
         }
         .font(.caption)
@@ -109,7 +109,7 @@ struct AccountActivityView: View {
 
       if let ip = activity.ip {
         HStack {
-          Image(systemName: "network")
+          detailRowIcon("network")
           Text(ip)
         }
         .font(.caption)
@@ -118,7 +118,7 @@ struct AccountActivityView: View {
 
       if let error = activity.error {
         HStack {
-          Image(systemName: "exclamationmark.triangle.fill")
+          detailRowIcon("exclamationmark.triangle.fill")
           Text(error)
         }
         .font(.caption)
@@ -145,6 +145,13 @@ struct AccountActivityView: View {
         await loadMoreActivities()
       }
     }
+  }
+
+  private func detailRowIcon(_ name: String) -> some View {
+    // Fixed width so detail-row texts start at the same x offset despite
+    // SF Symbols having different natural widths.
+    Image(systemName: name)
+      .frame(width: 16)
   }
 
   private func loadActivities(refresh: Bool = false) async {
