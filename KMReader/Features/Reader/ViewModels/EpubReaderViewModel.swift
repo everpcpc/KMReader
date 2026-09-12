@@ -348,12 +348,12 @@
         loadingStage = .idle
         isLoading = false
       } catch {
-        let message = error.localizedDescription
+        let message = error.diagnosticDescription
         errorMessage = message
         ErrorManager.shared.alert(error: error)
         loadingStage = .idle
         isLoading = false
-        logger.error("WebPub load failed: \(message)")
+        logger.error("WebPub load failed for book \(bookId): \(error.diagnosticDescription)")
       }
     }
 

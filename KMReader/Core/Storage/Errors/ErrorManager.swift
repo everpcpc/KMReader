@@ -77,6 +77,12 @@ class ErrorManager {
       return appError.description
     }
 
+    // Pure Swift errors without LocalizedError (e.g. LibArchive.ArchiveError)
+    // bridge to a generic message that hides the case name and payload.
+    if error.isGenericBridgedSwiftError {
+      return String(describing: error)
+    }
+
     // Convert NSError to AppErrorType and handle
     if let nsError = error as NSError? {
       let appError = AppErrorType.from(nsError)

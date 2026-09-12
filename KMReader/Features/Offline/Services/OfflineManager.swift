@@ -1036,7 +1036,7 @@ actor OfflineManager {
         try? await DatabaseOperator.database().updateBookDownloadStatus(
           bookId: info.bookId,
           instanceId: instanceId,
-          status: .failed(error: error.localizedDescription)
+          status: .failed(error: error.diagnosticDescription)
         )
         await postDownloadProjectionDidChange(bookId: info.bookId, instanceId: instanceId)
         await refreshQueueStatus(instanceId: instanceId)
@@ -1392,7 +1392,7 @@ actor OfflineManager {
             try? await DatabaseOperator.database().updateBookDownloadStatus(
               bookId: info.bookId,
               instanceId: instanceId,
-              status: .failed(error: error.localizedDescription)
+              status: .failed(error: error.diagnosticDescription)
             )
             await self.postDownloadProjectionDidChange(bookId: info.bookId, instanceId: instanceId)
             await self.refreshQueueStatus(instanceId: instanceId)
@@ -1689,12 +1689,21 @@ actor OfflineManager {
     }
 
     try Task.checkCancellation()
-    try extractEpubToWebPub(
-      epubFile: epubFile,
-      bookId: info.bookId,
-      manifest: manifest,
-      bookDir: bookDir
-    )
+    do {
+      try extractEpubToWebPub(
+        epubFile: epubFile,
+        bookId: info.bookId,
+        manifest: manifest,
+        bookDir: bookDir
+      )
+    } catch {
+      let fileSize =
+        (try? epubFile.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? -1
+      logger.error(
+        "❌ EPUB WebPub extraction failed for book \(info.bookId), epubFile=\(epubFile.lastPathComponent), epubFileSize=\(fileSize), error=\(error.diagnosticDescription)"
+      )
+      throw error
+    }
     try Task.checkCancellation()
     do {
       try FileManager.default.removeItem(at: epubFile)
@@ -2193,7 +2202,7 @@ actor OfflineManager {
       try? await DatabaseOperator.database().updateBookDownloadStatus(
         bookId: bookId,
         instanceId: info.instanceId,
-        status: .failed(error: error.localizedDescription)
+        status: .failed(error: error.diagnosticDescription)
       )
       await postDownloadProjectionDidChange(bookId: bookId, instanceId: info.instanceId)
       await refreshQueueStatus(instanceId: info.instanceId)
