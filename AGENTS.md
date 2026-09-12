@@ -376,7 +376,7 @@ KMReader/
 ## Coding Conventions
 
 1. **Comments**: Minimal, in English only
-2. **Commit messages**: Concise, clear, semantic format, in English
+2. **Commit messages**: Concise, clear, semantic format, in English. All GitHub-facing text follows the same rule: PR titles, PR bodies, issue/PR comments, and review replies are always written in English, regardless of the conversation language.
 3. **UI framework choice**: SwiftUI, UIKit, and AppKit may all be used. Pick the approach that best fits the feature, platform APIs, and maintainability.
 4. **No inline Binding**: Avoid inline Binding usage
 5. **No confirmationDialog**: Do not use confirmationDialog
@@ -396,6 +396,7 @@ KMReader/
 19. **If a temporary compatibility layer is unavoidable, mark it explicitly**: State why it exists, what the intended final design is, and what should be removed later. Temporary layers should be rare and treated as debt, not as the default implementation style.
 20. **Keep boundary documentation current**: When a change introduces or changes a lifetime, ownership, persistence, navigation, platform, reader-mode, or UI-placement boundary, update `AGENTS.md` in the same change so the boundary remains explicit and enforceable.
 21. **No compatibility shims for OS-gated features**: Unless a feature is explicitly required, do not hand-roll fallback implementations of newer system APIs for older OS versions. Gate the feature to the OS version that supports it natively and omit it on older systems, instead of building and maintaining a parallel custom implementation.
+22. **No force casts**: Do not use `as!` in app code. A force cast that passes compilation can still crash at runtime on real data (e.g. `row["created_date"] as! Date` on a GRDB `Row` subscript, which returns the raw storage value — `String`/`Int64`/`Double`/`Data` — without conversion). For GRDB rows, bind through the generic converting subscript instead (`let created: Date = row["created_date"]`), which decodes TEXT/INTEGER storage into `Date`/`Bool`/etc. For other casts, use `as?` with an explicit fallback or `guard`.
 
 Additional patterns:
 

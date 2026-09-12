@@ -68,11 +68,13 @@ class ReadListsViewModel {
       if refresh {
         serverPage = 0
         if let database = try? await DatabaseOperator.database() {
-          pinnedIds = await database.fetchPinnedReadListIds(
+          let pinned = await database.fetchPinnedReadListIds(
             instanceId: instanceId,
             searchText: searchText,
             sort: sort
           )
+          guard loadID == pagination.loadID else { return }
+          pinnedIds = pinned
         }
       }
       do {
@@ -93,6 +95,8 @@ class ReadListsViewModel {
         guard loadID == pagination.loadID else { return }
         if refresh {
           ErrorManager.shared.alert(error: error)
+        } else {
+          pagination.hasMorePages = false
         }
       }
     }
@@ -128,7 +132,15 @@ class ReadListsViewModel {
   }
 
   private func applyPage(ids: [String], moreAvailable: Bool) {
-    let wrappedIds = ids.map(IdentifiedString.init)
+    // Appended pages dedupe against loaded items: the server stream can shift
+    // between page fetches, and duplicate ids break ForEach.
+    let wrappedIds: [IdentifiedString]
+    if pagination.currentPage == 0 {
+      wrappedIds = ids.map(IdentifiedString.init)
+    } else {
+      let loaded = Set(pagination.items.map(\.id))
+      wrappedIds = ids.filter { !loaded.contains($0) }.map(IdentifiedString.init)
+    }
     withAnimation {
       _ = pagination.applyPage(wrappedIds)
     }
