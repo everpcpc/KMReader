@@ -90,6 +90,19 @@ struct SeriesDetailView: View {
     return true
   }
 
+  /// iPhone on iOS 26.1+ renders the continue-reading entry through the system
+  /// tab bar bottom accessory; everywhere else (iPad, macOS, tvOS, older iOS)
+  /// uses the inline header button instead.
+  private var showsInlineReadingAction: Bool {
+    guard shouldShowReadingBar else { return false }
+    #if os(iOS)
+      if !PlatformHelper.isPad, #available(iOS 26.1, *) {
+        return false
+      }
+    #endif
+    return true
+  }
+
   private var readingTargetBookForCurrentContext: Book? {
     guard readingTargetInstanceId == current.instanceId, readingTargetIsOffline == isOffline else {
       return nil
@@ -108,6 +121,17 @@ struct SeriesDetailView: View {
             #endif
 
             SeriesDetailContentView(series: series)
+
+            if showsInlineReadingAction {
+              SeriesReadingActionButton(
+                caption: readingActionCaption,
+                title: readingDisplayTitle,
+                isResolving: isResolvingReadingTarget
+              ) {
+                continueReading()
+              }
+              .padding(.top, 4)
+            }
 
             if item != nil {
               SeriesCollectionsSection(collections: collections)
@@ -616,8 +640,10 @@ extension SeriesDetailView {
       isResolvingReadingTarget = false
       return
     }
-    updateReadingTarget(book, instanceId: instanceId, isOffline: offline)
-    isResolvingReadingTarget = false
+    withAnimation(.easeInOut(duration: 0.25)) {
+      updateReadingTarget(book, instanceId: instanceId, isOffline: offline)
+      isResolvingReadingTarget = false
+    }
   }
 
   private func resolveReadingTargetBook(instanceId: String, isOffline: Bool) async -> Book? {
