@@ -94,7 +94,8 @@ enum PlatformHelper {
   /// Device name for display purposes (e.g. API key comments). On iOS 16+
   /// this is the generic model name ("iPad") unless the app holds the
   /// user-assigned-device-name entitlement.
-  static nonisolated var deviceName: String {
+  @MainActor
+  static var deviceName: String {
     #if os(iOS) || os(tvOS)
       return UIDevice.current.name
     #elseif os(macOS)

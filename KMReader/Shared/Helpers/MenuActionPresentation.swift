@@ -10,6 +10,8 @@ import Foundation
 /// macOS stuck mid-presentation (menu bar disabled, beachball) while the menu
 /// tracking loop is still active. Running the mutation on the next runloop lets
 /// the menu finish dismissing first. Safe no-op timing-wise on other platforms.
-func deferMenuActionPresentation(_ action: @escaping () -> Void) {
-  DispatchQueue.main.async(execute: action)
+func deferMenuActionPresentation(_ action: @escaping @MainActor () -> Void) {
+  Task { @MainActor in
+    action()
+  }
 }

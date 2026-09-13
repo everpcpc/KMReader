@@ -229,7 +229,7 @@ class AuthViewModel {
       {
         authToken = apiKey.key
         authMethod = .apiKey
-        try? await DatabaseOperator.database().upsertInstance(
+        _ = try? await DatabaseOperator.database().upsertInstance(
           serverURL: instance.serverURL,
           username: instance.username,
           authToken: authToken,

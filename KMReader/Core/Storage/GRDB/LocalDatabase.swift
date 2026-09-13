@@ -14,7 +14,7 @@ nonisolated enum LocalDatabase {
     var configuration = Configuration()
     configuration.prepareDatabase { db in
       try db.execute(sql: "PRAGMA foreign_keys = ON")
-      try db.add(
+      db.add(
         collation: DatabaseCollation("LOCALIZED") { lhs, rhs in
           lhs.localizedStandardCompare(rhs)
         }
