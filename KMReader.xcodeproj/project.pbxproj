@@ -455,6 +455,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = KMReader;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Use Face ID to unlock protected Komga servers.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Save images from books to your photo library";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -516,6 +517,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = KMReader;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Use Face ID to unlock protected Komga servers.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Save images from books to your photo library";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

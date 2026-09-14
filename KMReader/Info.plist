@@ -2,13 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>NSAppTransportSecurity</key>
-	<dict>
-		<key>NSAllowsArbitraryLoads</key>
-		<true/>
-	</dict>
-	<key>NSFaceIDUsageDescription</key>
-	<string>Use Face ID to unlock protected Komga servers.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -20,31 +13,36 @@
 			</array>
 		</dict>
 	</array>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
 	<key>UIApplicationShortcutItems</key>
 	<array>
 		<dict>
-			<key>UIApplicationShortcutItemType</key>
-			<string>com.everpcpc.Komga.continueReading</string>
-			<key>UIApplicationShortcutItemTitle</key>
-			<string>quick_action.continue_reading</string>
 			<key>UIApplicationShortcutItemIconType</key>
 			<string>UIApplicationShortcutIconTypeBookmark</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>quick_action.continue_reading</string>
+			<key>UIApplicationShortcutItemType</key>
+			<string>com.everpcpc.Komga.continueReading</string>
 		</dict>
 		<dict>
-			<key>UIApplicationShortcutItemType</key>
-			<string>com.everpcpc.Komga.search</string>
-			<key>UIApplicationShortcutItemTitle</key>
-			<string>quick_action.search</string>
 			<key>UIApplicationShortcutItemIconType</key>
 			<string>UIApplicationShortcutIconTypeSearch</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>quick_action.search</string>
+			<key>UIApplicationShortcutItemType</key>
+			<string>com.everpcpc.Komga.search</string>
 		</dict>
 		<dict>
-			<key>UIApplicationShortcutItemType</key>
-			<string>com.everpcpc.Komga.downloads</string>
-			<key>UIApplicationShortcutItemTitle</key>
-			<string>quick_action.downloads</string>
 			<key>UIApplicationShortcutItemIconType</key>
 			<string>UIApplicationShortcutIconTypeCloud</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>quick_action.downloads</string>
+			<key>UIApplicationShortcutItemType</key>
+			<string>com.everpcpc.Komga.downloads</string>
 		</dict>
 	</array>
 </dict>
