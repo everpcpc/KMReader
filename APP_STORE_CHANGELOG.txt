@@ -1,17 +1,17 @@
 New
-- A dedicated Library tab on iPhone for content-first browsing; the Browse tab is now a focused Search tab.
-- Mark multiple books as read or unread at once from a series page.
-- Keep Reading on the Dashboard now shows rich horizontal cards tinted by each book's cover.
+- Continue reading right from a series page on iPad, Mac, and Apple TV with the restored inline resume button.
 
 Improvements
-- The series continue-reading bar now docks into the iPhone tab bar and follows navigation instantly.
-- Settings is reorganized into clearer sections, and Reading Stats now lives on the Dashboard.
-- Reading position stays exactly where you left it when rotating between portrait and landscape, including split wide pages and page curl.
-- Dashboard card fonts now scale with the layout density.
+- Password logins now automatically upgrade to app-specific API keys, making background downloads and syncing more reliable.
+- Collections and read lists now load in pages as you scroll, and tags, authors, publishers, and genres sort in your locale's order.
+- Reading progress updates faster when you return to the app, and offline progress is always pushed to the server before pulling.
+- Handoff, reading Live Activities, and keep-screen-awake settings now live together in a new System Features page.
 
 Fixes
-- EPUB books whose table of contents contains heading-only entries now open and download correctly.
-- The end-of-book Close button on macOS responds to clicks again, and the end page typography matches iOS.
-- The continue-reading bar no longer gets stuck on screen after quickly leaving a series page.
-- Locking series metadata no longer drops the reading direction value.
-- Cancelling a download no longer leaves empty folders behind.
+- Fixed dual-page Page Curl freezing after the first turn in landscape.
+- Fixed a Mac and iPad crash at launch when collections or read lists existed.
+- Hardened downloads against unauthorized or corrupt files; broken EPUB downloads are now detected and re-downloaded.
+- Fixed PDF single-tap navigation, controls hiding while a menu is open, and read list/collection pickers freezing on macOS.
+- Collections and read lists appear reliably on series and book pages again, and lists keep their scroll position when refreshing after reading.
+- EPUB open failures now report the actual cause instead of a generic error.
+- Fixed dashboard cards looking darker at the trailing edge.
