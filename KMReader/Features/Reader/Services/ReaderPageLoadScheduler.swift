@@ -138,7 +138,7 @@ final class ReaderPageLoadScheduler {
     let pagesToPreload = pageWindowEntries(
       around: currentPageID,
       before: preloadWindow.preloadBefore,
-      after: max(preloadWindow.preloadAfter - 1, 0)
+      after: preloadWindow.preloadAfter
     )
     guard !pagesToPreload.isEmpty else { return }
 

@@ -527,8 +527,7 @@
           parent.viewModel.clearNavigationTarget(matching: requestedTarget)
           commitCurrentPosition(
             to: targetItem,
-            preserving: requestedTarget,
-            preloadPages: false
+            preserving: requestedTarget
           )
           scheduleNavigationContinuation(consuming: nil, on: pageViewController)
           return
@@ -542,6 +541,7 @@
         }
 
         let targetController = makeContentController(for: targetItem)
+
         let shouldAnimateTransition = hasCompletedInitialUpdate && parent.animateTapTurns
         let transitionControllers = pageCurlControllers(
           primary: targetController,
@@ -572,8 +572,7 @@
             )
             self.commitCurrentPosition(
               to: targetItem,
-              preserving: requestedTarget,
-              preloadPages: false
+              preserving: requestedTarget
             )
             self.applyPendingSnapshotIfNeeded(
               preserving: self.parent.viewModel.captureCurrentPositionAnchor(),
@@ -627,14 +626,12 @@
 
       private func commitCurrentPosition(
         to item: ReaderViewItem,
-        preserving preferredAnchor: ReaderPositionAnchor?,
-        preloadPages: Bool
+        preserving preferredAnchor: ReaderPositionAnchor?
       ) {
         let anchor = localAnchor(for: item, preserving: preferredAnchor)
         parent.viewModel.updateCurrentPosition(anchor: anchor)
         currentAnchor = parent.viewModel.matchingPositionAnchor(for: anchor) ?? anchor
 
-        guard preloadPages else { return }
         preloadTask?.cancel()
         let viewModel = parent.viewModel
         preloadTask = Task { @MainActor [weak self] in
@@ -736,8 +733,7 @@
           }
           commitCurrentPosition(
             to: item,
-            preserving: currentAnchor,
-            preloadPages: true
+            preserving: currentAnchor
           )
         } else {
           synchronizeCurrentAnchorWithVisibleController()
