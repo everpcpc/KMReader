@@ -519,12 +519,18 @@
         let currentIndex = currentResolvedIndex() ?? targetIndex
         guard targetIndex != currentIndex else {
           retriedNavigationTarget = nil
+          // Clear before committing: the commit publishes observable position
+          // writes that re-enter updateUIViewController inside the same
+          // SwiftUI flush, and a still-set navigationTarget would loop this
+          // path forever (the deferred clearing continuation never runs on
+          // the blocked main actor).
+          parent.viewModel.clearNavigationTarget(matching: requestedTarget)
           commitCurrentPosition(
             to: targetItem,
             preserving: requestedTarget,
             preloadPages: false
           )
-          scheduleNavigationContinuation(consuming: requestedTarget, on: pageViewController)
+          scheduleNavigationContinuation(consuming: nil, on: pageViewController)
           return
         }
 

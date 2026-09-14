@@ -136,6 +136,9 @@
       private var navigationContinuationTask: Task<Void, Never>?
       private var consumedNavigationTarget: ReaderPositionAnchor?
       private var retriedNavigationTarget: ReaderPositionAnchor?
+      private var programmaticTransitionToken: Int?
+      private var programmaticTargetItem: ReaderViewItem?
+      private var transitionWatchdogTask: Task<Void, Never>?
 
       init(_ parent: CurlDualPageView) {
         self.parent = parent
@@ -228,6 +231,49 @@
         return transitionToken
       }
 
+      private func clearProgrammaticTransition() {
+        programmaticTransitionToken = nil
+        programmaticTargetItem = nil
+        transitionWatchdogTask?.cancel()
+        transitionWatchdogTask = nil
+      }
+
+      // UIKit can drop the completion/delegate callbacks of a programmatic
+      // page-curl turn (observed on iPadOS 17 in dual-page mode). Recover
+      // through the normal finish path instead of leaving the reader frozen
+      // with isTransitioning stuck.
+      private func scheduleProgrammaticTransitionWatchdog(
+        token: Int,
+        targetItem: ReaderViewItem,
+        targetAnchor: ReaderPositionAnchor,
+        explicitTarget: ReaderPositionAnchor?,
+        direction: UIPageViewController.NavigationDirection,
+        on pageViewController: UIPageViewController
+      ) {
+        transitionWatchdogTask?.cancel()
+        transitionWatchdogTask = Task { @MainActor [weak self, weak pageViewController] in
+          try? await Task.sleep(for: .seconds(1.5))
+          guard !Task.isCancelled,
+            let self,
+            let pageViewController,
+            self.isActive,
+            self.pageViewController === pageViewController,
+            self.isTransitioning,
+            self.transitionToken == token,
+            self.programmaticTransitionToken == token
+          else { return }
+          self.finishProgrammaticTransition(
+            token: token,
+            completed: true,
+            targetItem: targetItem,
+            targetAnchor: targetAnchor,
+            consumedNavigationTarget: explicitTarget,
+            pageViewController: pageViewController,
+            direction: direction
+          )
+        }
+      }
+
       func processNavigationTarget(
         on pageViewController: UIPageViewController,
         restoreModelPosition: Bool = false
@@ -268,9 +314,15 @@
           currentItem = target.item
           if let explicitTarget {
             retriedNavigationTarget = nil
+            // Clear before committing: the commit publishes observable position
+            // writes that re-enter updateUIViewController inside the same
+            // SwiftUI flush, and a still-set navigationTarget would loop this
+            // path forever (the deferred clearing continuation never runs on
+            // the blocked main actor).
+            parent.viewModel.clearNavigationTarget(matching: explicitTarget)
             commitCurrentItem(target.item, preserving: explicitTarget)
             scheduleNavigationContinuation(
-              consuming: explicitTarget,
+              consuming: nil,
               on: pageViewController
             )
           }
@@ -296,6 +348,16 @@
         }
 
         let token = beginTransition()
+        programmaticTransitionToken = token
+        programmaticTargetItem = target.item
+        scheduleProgrammaticTransitionWatchdog(
+          token: token,
+          targetItem: target.item,
+          targetAnchor: target.anchor,
+          explicitTarget: explicitTarget,
+          direction: direction,
+          on: pageViewController
+        )
         let shouldAnimateTransition = hasCompletedInitialUpdate && parent.animateTapTurns
         PageCurlControllerPlanner.safeSetViewControllers(
           targetPair,
@@ -329,6 +391,7 @@
           token == transitionToken,
           self.pageViewController === pageViewController
         else { return }
+        clearProgrammaticTransition()
         isTransitioning = false
         transitionTargetItem = nil
 
@@ -478,6 +541,7 @@
         navigationContinuationTask = nil
         consumedNavigationTarget = nil
         retriedNavigationTarget = nil
+        clearProgrammaticTransition()
 
         pageViewController.dataSource = nil
         pageViewController.delegate = nil
@@ -886,13 +950,19 @@
         willTransitionTo pendingViewControllers: [UIViewController]
       ) {
         guard isActive, self.pageViewController === pageViewController else { return }
-        _ = beginTransition()
         let pendingItems = spreadItems(from: pendingViewControllers)
-        if let explicitTarget = pendingItems.first(where: { $0 != currentItem }) {
-          transitionTargetItem = explicitTarget
-        } else {
-          transitionTargetItem = pendingItems.first
+        let pendingTarget =
+          pendingItems.first(where: { $0 != currentItem }) ?? pendingItems.first
+        // UIKit also fires willTransitionTo for programmatic turns. Bumping the
+        // token there would orphan the in-flight completion handler, so only
+        // gesture-driven turns supersede the current transition.
+        if let programmaticTargetItem, pendingItems.contains(programmaticTargetItem) {
+          transitionTargetItem = pendingTarget
+          return
         }
+        clearProgrammaticTransition()
+        _ = beginTransition()
+        transitionTargetItem = pendingTarget
       }
 
       func pageViewController(
@@ -902,6 +972,7 @@
         transitionCompleted completed: Bool
       ) {
         guard isActive, self.pageViewController === pageViewController else { return }
+        clearProgrammaticTransition()
         isTransitioning = false
         syncCurrentItemWithVisibleController()
 
