@@ -188,7 +188,7 @@ struct DashboardView: View {
       }
       .padding(.vertical)
     }
-    .inlineNavigationBarTitle(String(localized: "title.dashboard"))
+    .tabRootNavigationBarTitle(String(localized: "title.dashboard"))
     .onChange(of: authViewModel.isSwitching) { oldValue, newValue in
       // Refresh when server switch completes (transitions from switching to not switching)
       // This avoids race condition where refresh happens after logout but before new auth is ready
@@ -286,8 +286,6 @@ struct DashboardView: View {
                 )
               }.pickerStyle(.menu)
 
-              Divider()
-
               Menu {
                 ForEach(DashboardSection.latestOfflineQueueSections) { section in
                   Button {
@@ -308,8 +306,6 @@ struct DashboardView: View {
               }
               .disabled(isOffline || isQueueingDashboardOffline)
 
-              Divider()
-
               Button {
                 Task {
                   await refreshDashboard(reason: "Manual toolbar button")
@@ -317,8 +313,6 @@ struct DashboardView: View {
               } label: {
                 Label(String(localized: "Refresh Dashboard"), systemImage: "arrow.clockwise")
               }
-
-              Divider()
 
               Button {
                 enterOfflineMode()

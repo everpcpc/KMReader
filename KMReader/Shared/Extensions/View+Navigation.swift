@@ -20,6 +20,20 @@ extension View {
     #endif
   }
 
+  /// Apply an inline navigation bar title, hiding it on iOS tab roots.
+  /// On iOS the centered inline title is squeezed between leading and
+  /// trailing toolbar items and never sits centered; the tab bar label
+  /// already identifies the page. macOS keeps the title.
+  func tabRootNavigationBarTitle(_ title: String) -> some View {
+    #if os(iOS)
+      return self.navigationTitle("").navigationBarTitleDisplayMode(.inline)
+    #elseif os(macOS)
+      return self.navigationTitle(title)
+    #else
+      return self
+    #endif
+  }
+
   func inlineNavigationBarTitle(_ title: String, systemImage: String) -> some View {
     #if os(iOS)
       return self.navigationTitle(Text("\(Image(systemName: systemImage)) ") + Text(title))

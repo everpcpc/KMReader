@@ -10,7 +10,7 @@ import Foundation
 final class ReadingStatsViewModel {
   var payload: ReadingStatsPayload?
   var lastUpdatedAt: Date?
-  var selectedTimeRange: ReadingStatsTimeRange = .last90Days
+  var selectedTimeRange: ReadingStatsTimeRange = .last6Months
   var isLoading = false
   var isRefreshing = false
   var errorMessage: String?
