@@ -23,8 +23,6 @@ actor SSEService {
 
   private var isConnected = false
   private var streamTask: Task<Void, Never>?
-  private var lastServerUpdateAt = Date(timeIntervalSince1970: 0)
-  private let serverUpdateThrottle: TimeInterval = 1.0
 
   var connected: Bool {
     isConnected
@@ -186,7 +184,6 @@ actor SSEService {
 
   private func handleSSEEvent(type: String, data: String) async {
     logger.debug("SSE event received: \(type), data: \(data)")
-    recordServerUpdate()
 
     guard let eventType = SSEEventType(rawValue: type) else {
       logger.debug("Unknown SSE event type: \(type)")
@@ -345,13 +342,5 @@ actor SSEService {
     else { return nil }
 
     return object
-  }
-
-  private func recordServerUpdate() {
-    let now = Date()
-    if now.timeIntervalSince1970 - lastServerUpdateAt.timeIntervalSince1970 >= serverUpdateThrottle {
-      lastServerUpdateAt = now
-      AppConfig.serverLastUpdate = now
-    }
   }
 }

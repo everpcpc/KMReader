@@ -166,6 +166,11 @@ struct ContentView: View {
           if oldValue && !newValue {
             // Just came back online - sync pending progress and resume downloads
             Task {
+              // Re-establish SSE after auto-offline recovery; without this the
+              // connection stays down until the next foreground transition.
+              if enableSSE {
+                await SSEService.shared.connect()
+              }
               await ProgressSyncService.shared.syncPendingProgress(
                 instanceId: AppConfig.current.instanceId
               )

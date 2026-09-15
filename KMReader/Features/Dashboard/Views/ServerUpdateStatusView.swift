@@ -6,7 +6,6 @@
 import SwiftUI
 
 struct ServerUpdateStatusView: View {
-  @AppStorage("serverLastUpdate") private var serverLastUpdateInterval: TimeInterval = 0
   @AppStorage("taskQueueStatus") private var taskQueueStatusRaw: String = ""
   @AppStorage("isOffline") private var isOffline: Bool = false
 
@@ -29,8 +28,6 @@ struct ServerUpdateStatusView: View {
       } else {
         Image(systemName: "antenna.radiowaves.left.and.right")
           .foregroundColor(.secondary)
-        lastServerEventText
-          .foregroundColor(.secondary)
         if taskStatus.count > 0 {
           Text("•")
             .foregroundColor(.secondary)
@@ -50,15 +47,5 @@ struct ServerUpdateStatusView: View {
     }
     .font(.footnote)
     .monospacedDigit()
-  }
-
-  private var lastServerEventText: Text {
-    guard serverLastUpdateInterval > 0 else { return Text("Server not updated yet") }
-    let lastEventTime = Date(timeIntervalSince1970: serverLastUpdateInterval)
-    return Text("Server updated \(lastEventTime, style: .relative) ago")
-  }
-
-  static func recordUpdate(date: Date = Date()) {
-    AppConfig.serverLastUpdate = date
   }
 }

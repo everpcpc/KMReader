@@ -273,7 +273,6 @@ class AuthViewModel {
         AppConfig.isLoggedIn = true
 
         await DashboardLibrarySelectionStore.loadSelection(for: instance.instanceId)
-        AppConfig.serverLastUpdate = nil
 
         // Switch to offline mode
         AppConfig.enterAutoOfflineMode()
@@ -376,7 +375,6 @@ class AuthViewModel {
     }
 
     await DashboardLibrarySelectionStore.loadSelection(for: finalInstanceId)
-    AppConfig.serverLastUpdate = nil
 
     // Load libraries
     await LibraryManager.shared.loadLibraries()

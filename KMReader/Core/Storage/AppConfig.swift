@@ -394,24 +394,6 @@ enum AppConfig {
     }
   }
 
-  static nonisolated var serverLastUpdate: Date? {
-    get {
-      guard
-        let timeInterval = UserDefaults.standard.object(forKey: "serverLastUpdate") as? TimeInterval
-      else {
-        return nil
-      }
-      return Date(timeIntervalSince1970: timeInterval)
-    }
-    set {
-      if let date = newValue {
-        UserDefaults.standard.set(date.timeIntervalSince1970, forKey: "serverLastUpdate")
-      } else {
-        UserDefaults.standard.removeObject(forKey: "serverLastUpdate")
-      }
-    }
-  }
-
   // MARK: - Custom Fonts
   static nonisolated var customFontNames: [String] {
     get {
@@ -1299,7 +1281,6 @@ enum AppConfig {
       current = new
     }
 
-    serverLastUpdate = nil
     showProtectedServers = false
     dashboard.libraryIds = []
     DashboardSectionCacheStore.shared.reset()

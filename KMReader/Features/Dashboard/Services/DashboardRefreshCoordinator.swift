@@ -80,7 +80,6 @@ final class DashboardRefreshCoordinator {
     reason: String
   ) {
     logger.debug("Dashboard manual refresh requested: \(reason)")
-    AppConfig.serverLastUpdate = Date()
 
     if sections == nil {
       cancelPendingAutoRefresh(clearDeferred: true)
@@ -101,7 +100,6 @@ final class DashboardRefreshCoordinator {
     reason: String
   ) {
     logger.debug("Dashboard projection refresh requested: \(reason)")
-    AppConfig.serverLastUpdate = Date()
 
     if activeReaderSessionID != nil {
       mergeDeferredProjectionSections(sections)
@@ -226,7 +224,6 @@ final class DashboardRefreshCoordinator {
     guard pendingAutoRefreshTask != nil else { return }
     mergeDeferredAutoSections(pendingAutoSections)
     cancelPendingAutoRefresh()
-    AppConfig.serverLastUpdate = Date()
   }
 
   private func flushDeferredAutoRefresh() {
@@ -247,7 +244,6 @@ final class DashboardRefreshCoordinator {
     hasDeferredProjectionRefresh = false
     deferredProjectionSections = nil
 
-    AppConfig.serverLastUpdate = Date()
     DashboardSectionRefreshNotifier.postReload(
       command: DashboardSectionReloadCommand(
         id: UUID(),

@@ -121,9 +121,6 @@ struct DashboardView: View {
   private func refreshDashboard(reason: String) async {
     logger.debug("Dashboard refresh requested: \(reason)")
 
-    // Update last event time for manual refreshes
-    AppConfig.serverLastUpdate = Date()
-
     // Check SSE connection status and reconnect if disconnected
     if enableSSE {
       await SSEService.shared.connect()
