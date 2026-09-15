@@ -142,7 +142,7 @@ struct OfflineView: View {
         browseContentView
       }
     }
-    .inlineNavigationBarTitle(title)
+    .tabRootNavigationBarTitle(title)
     .searchable(text: $searchQuery)
     #if os(iOS) || os(macOS)
       .refreshable {
