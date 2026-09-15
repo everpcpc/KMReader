@@ -33,20 +33,7 @@ enum PlatformHelper {
   @MainActor
   static func setup() {
     // 1. Detect device model
-    let detectedModel: String
-    #if os(iOS) || os(tvOS)
-      var systemInfo = utsname()
-      uname(&systemInfo)
-      let machineMirror = Mirror(reflecting: systemInfo.machine)
-      detectedModel = machineMirror.children.reduce("") { identifier, element in
-        guard let value = element.value as? Int8, value != 0 else { return identifier }
-        return identifier + String(UnicodeScalar(UInt8(value)))
-      }
-    #elseif os(macOS)
-      detectedModel = "Mac"
-    #else
-      detectedModel = "Unknown"
-    #endif
+    let detectedModel = machineIdentifier
 
     // 2. Detect OS version
     let version = ProcessInfo.processInfo.operatingSystemVersion
@@ -91,18 +78,46 @@ enum PlatformHelper {
     #endif
   }
 
-  /// Device name for display purposes (e.g. API key comments). On iOS 16+
-  /// this is the generic model name ("iPad") unless the app holds the
-  /// user-assigned-device-name entitlement.
+  /// Darwin machine identifier (e.g. "iPhone18,1"), stable across OS
+  /// releases and usable without any entitlement.
+  static var machineIdentifier: String {
+    #if os(iOS) || os(tvOS)
+      var systemInfo = utsname()
+      uname(&systemInfo)
+      let machineMirror = Mirror(reflecting: systemInfo.machine)
+      return machineMirror.children.reduce("") { identifier, element in
+        guard let value = element.value as? Int8, value != 0 else { return identifier }
+        return identifier + String(UnicodeScalar(UInt8(value)))
+      }
+    #elseif os(macOS)
+      return "Mac"
+    #else
+      return "Unknown"
+    #endif
+  }
+
+  /// Device name for display purposes (e.g. API key comments). Built from
+  /// the machine identifier plus a short stable suffix: since iOS 16,
+  /// `UIDevice.current.name` returns only a generic model name ("iPhone")
+  /// without the restricted user-assigned-device-name entitlement, so it is
+  /// not usable for telling devices apart.
   @MainActor
   static var deviceName: String {
     #if os(iOS) || os(tvOS)
-      return UIDevice.current.name
+      return "\(machineIdentifier) · \(deviceNameSuffix)"
     #elseif os(macOS)
       return Host.current().localizedName ?? "Mac"
     #else
       return "Unknown"
     #endif
+  }
+
+  /// Short, stable suffix derived from the per-install device identifier.
+  @MainActor
+  private static var deviceNameSuffix: String {
+    let id = AppConfig.deviceIdentifier
+    guard !id.isEmpty else { return "KMReader" }
+    return String(id.prefix(6)).uppercased()
   }
 
   @MainActor
