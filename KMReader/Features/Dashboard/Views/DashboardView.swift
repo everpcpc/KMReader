@@ -22,6 +22,9 @@ struct DashboardView: View {
   @AppStorage("enableSSEAutoRefresh") private var enableSSEAutoRefresh: Bool = true
   @AppStorage("enableSSE") private var enableSSE: Bool = true
   @AppStorage("isOffline") private var isOffline: Bool = false
+  #if os(iOS) || os(macOS)
+    @AppStorage("taskQueueStatus") private var taskQueueStatusRaw: String = ""
+  #endif
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
 
   private let sseService = SSEService.shared
@@ -68,10 +71,21 @@ struct DashboardView: View {
     }
   }
 
+  #if os(iOS) || os(macOS)
+    /// The iOS/macOS header only hosts the server status view, and the
+    /// toolbar already carries the offline/reconnect button — show the
+    /// header only when there are running tasks to report.
+    private var showsServerStatusHeader: Bool {
+      guard enableSSE, !isOffline else { return false }
+      let status = TaskQueueSSEDto(rawValue: taskQueueStatusRaw) ?? TaskQueueSSEDto()
+      return status.count > 0
+    }
+  #endif
+
   @ViewBuilder
   private var dashboardHeader: some View {
-    HStack {
-      #if os(tvOS)
+    #if os(tvOS)
+      HStack {
         Button {
           showLibraryPicker = true
         } label: {
@@ -84,10 +98,8 @@ struct DashboardView: View {
             systemImage: ServerSection.readingStats.icon
           )
         }
-      #endif
 
-      if enableSSE {
-        #if os(tvOS)
+        if enableSSE {
           if isOffline {
             Button {
               Task {
@@ -112,12 +124,20 @@ struct DashboardView: View {
             }
             .disabled(isRefreshing)
           }
-        #endif
-        ServerUpdateStatusView()
+          ServerUpdateStatusView()
+        }
+        Spacer()
       }
-      Spacer()
-    }
-    .padding()
+      .padding()
+    #else
+      if showsServerStatusHeader {
+        HStack {
+          ServerUpdateStatusView()
+          Spacer()
+        }
+        .padding()
+      }
+    #endif
   }
 
   @MainActor
@@ -156,13 +176,7 @@ struct DashboardView: View {
   var body: some View {
     ScrollView {
       VStack(alignment: .leading, spacing: 0) {
-        #if os(tvOS)
-          dashboardHeader
-        #else
-          if enableSSE {
-            dashboardHeader
-          }
-        #endif
+        dashboardHeader
 
         ForEach(dashboard.sections, id: \.id) { section in
           if section.isLocalSection {

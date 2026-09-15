@@ -18,17 +18,23 @@ struct ServerUpdateStatusView: View {
     TaskQueueSSEDto(rawValue: taskQueueStatusRaw) ?? TaskQueueSSEDto()
   }
 
+  /// Renders nothing when there is no status to report, so hosts never lay
+  /// out an empty row.
+  private var hasContent: Bool {
+    isOffline || taskStatus.count > 0
+  }
+
   var body: some View {
-    HStack {
-      if isOffline {
-        Image(systemName: "wifi.slash")
-          .foregroundColor(.orange)
-        Text(String(localized: "settings.offline"))
-          .foregroundColor(.orange)
-      } else {
-        Image(systemName: "antenna.radiowaves.left.and.right")
-          .foregroundColor(.secondary)
-        if taskStatus.count > 0 {
+    if hasContent {
+      HStack {
+        if isOffline {
+          Image(systemName: "wifi.slash")
+            .foregroundColor(.orange)
+          Text(String(localized: "settings.offline"))
+            .foregroundColor(.orange)
+        } else {
+          Image(systemName: "antenna.radiowaves.left.and.right")
+            .foregroundColor(.secondary)
           Text("•")
             .foregroundColor(.secondary)
           if showsTasksLink {
@@ -44,8 +50,8 @@ struct ServerUpdateStatusView: View {
           }
         }
       }
+      .font(.footnote)
+      .monospacedDigit()
     }
-    .font(.footnote)
-    .monospacedDigit()
   }
 }
