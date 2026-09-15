@@ -19,7 +19,6 @@ struct OfflineView: View {
   @State private var refreshTrigger = UUID()
   @State private var searchQuery: String = ""
   @State private var activeSearchText: String = ""
-  @State private var showLibraryPicker = false
   @State private var showFilterSheet = false
   @State private var showSavedFilters = false
   @State private var showSyncConfirmation = false
@@ -149,19 +148,11 @@ struct OfflineView: View {
         if librarySelection == nil {
           #if os(macOS)
             ToolbarItem(placement: .navigation) {
-              Button {
-                showLibraryPicker = true
-              } label: {
-                Image(systemName: ContentIcon.library)
-              }
+              LibraryScopeToolbarButton()
             }
           #else
             ToolbarItem(placement: .cancellationAction) {
-              Button {
-                showLibraryPicker = true
-              } label: {
-                Image(systemName: ContentIcon.library)
-              }
+              LibraryScopeToolbarButton()
             }
           #endif
         }
@@ -188,9 +179,6 @@ struct OfflineView: View {
             Image(systemName: "ellipsis")
           }
         }
-      }
-      .sheet(isPresented: $showLibraryPicker) {
-        LibraryPickerSheet()
       }
       .sheet(isPresented: $showSavedFilters) {
         SavedFiltersView(filterType: savedFilterType)

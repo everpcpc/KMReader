@@ -209,19 +209,11 @@ struct DashboardView: View {
       .toolbar {
         #if os(macOS)
           ToolbarItem(placement: .navigation) {
-            Button {
-              showLibraryPicker = true
-            } label: {
-              Image(systemName: ContentIcon.library)
-            }
+            LibraryScopeToolbarButton()
           }
         #else
           ToolbarItem(placement: .cancellationAction) {
-            Button {
-              showLibraryPicker = true
-            } label: {
-              Image(systemName: ContentIcon.library)
-            }
+            LibraryScopeToolbarButton()
           }
         #endif
 
@@ -311,9 +303,6 @@ struct DashboardView: View {
       }
       .refreshable {
         await refreshDashboard(reason: "Pull to refresh")
-      }
-      .sheet(isPresented: $showLibraryPicker) {
-        LibraryPickerSheet()
       }
     #endif
     #if os(tvOS)
