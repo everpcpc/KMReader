@@ -13,6 +13,9 @@ struct DashboardView: View {
   @State private var showLibraryPicker = false
   @State private var isCheckingConnection = false
   @State private var offlineQueueingSections: Set<DashboardSection> = []
+  #if os(iOS) || os(macOS)
+    @State private var scopeLibraries: [SidebarLibraryItem] = []
+  #endif
 
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("currentAccount") private var current: Current = .init()
@@ -206,14 +209,27 @@ struct DashboardView: View {
       DashboardRefreshCoordinator.shared.setAutoRefreshEnabled(newValue)
     }
     #if os(iOS) || os(macOS)
+      .task(id: current.instanceId) {
+        await refreshScopeLibraries()
+      }
+      .onReceive(NotificationCenter.default.publisher(for: .sidebarProjectionDidChange)) { notification in
+        guard notification.userInfo?["instanceId"] as? String == current.instanceId else { return }
+        Task {
+          await loadScopeLibraries()
+        }
+      }
       .toolbar {
         #if os(macOS)
-          ToolbarItem(placement: .navigation) {
-            LibraryScopeToolbarButton()
+          if scopeLibraries.count > 1 {
+            ToolbarItem(placement: .navigation) {
+              LibraryScopeToolbarButton(libraries: scopeLibraries, isPresented: $showLibraryPicker)
+            }
           }
         #else
-          ToolbarItem(placement: .cancellationAction) {
-            LibraryScopeToolbarButton()
+          if scopeLibraries.count > 1 {
+            ToolbarItem(placement: .cancellationAction) {
+              LibraryScopeToolbarButton(libraries: scopeLibraries, isPresented: $showLibraryPicker)
+            }
           }
         #endif
 
@@ -304,6 +320,9 @@ struct DashboardView: View {
       .refreshable {
         await refreshDashboard(reason: "Pull to refresh")
       }
+      .sheet(isPresented: $showLibraryPicker) {
+        LibraryPickerSheet()
+      }
     #endif
     #if os(tvOS)
       .sheet(isPresented: $showLibraryPicker) {
@@ -311,6 +330,30 @@ struct DashboardView: View {
       }
     #endif
   }
+
+  #if os(iOS) || os(macOS)
+    private func refreshScopeLibraries() async {
+      do {
+        let loaded = try await LibraryScopeLoader.refresh(instanceId: current.instanceId)
+        if scopeLibraries != loaded {
+          scopeLibraries = loaded
+        }
+      } catch {
+        ErrorManager.shared.alert(error: error)
+      }
+    }
+
+    private func loadScopeLibraries() async {
+      do {
+        let loaded = try await LibraryScopeLoader.load(instanceId: current.instanceId)
+        if scopeLibraries != loaded {
+          scopeLibraries = loaded
+        }
+      } catch {
+        ErrorManager.shared.alert(error: error)
+      }
+    }
+  #endif
 
   private func tryReconnect() async {
     withAnimation {

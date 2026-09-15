@@ -19,6 +19,10 @@ struct OfflineView: View {
   @State private var refreshTrigger = UUID()
   @State private var searchQuery: String = ""
   @State private var activeSearchText: String = ""
+  #if os(iOS) || os(macOS)
+    @State private var showLibraryPicker = false
+    @State private var scopeLibraries: [SidebarLibraryItem] = []
+  #endif
   @State private var showFilterSheet = false
   @State private var showSavedFilters = false
   @State private var showSyncConfirmation = false
@@ -144,15 +148,24 @@ struct OfflineView: View {
       .refreshable {
         await refreshOfflinePage()
       }
+      .task(id: current.instanceId) {
+        await refreshScopeLibraries()
+      }
+      .onReceive(NotificationCenter.default.publisher(for: .sidebarProjectionDidChange)) { notification in
+        guard notification.userInfo?["instanceId"] as? String == current.instanceId else { return }
+        Task {
+          await loadScopeLibraries()
+        }
+      }
       .toolbar {
-        if librarySelection == nil {
+        if librarySelection == nil && scopeLibraries.count > 1 {
           #if os(macOS)
             ToolbarItem(placement: .navigation) {
-              LibraryScopeToolbarButton()
+              LibraryScopeToolbarButton(libraries: scopeLibraries, isPresented: $showLibraryPicker)
             }
           #else
             ToolbarItem(placement: .cancellationAction) {
-              LibraryScopeToolbarButton()
+              LibraryScopeToolbarButton(libraries: scopeLibraries, isPresented: $showLibraryPicker)
             }
           #endif
         }
@@ -179,6 +192,9 @@ struct OfflineView: View {
             Image(systemName: "ellipsis")
           }
         }
+      }
+      .sheet(isPresented: $showLibraryPicker) {
+        LibraryPickerSheet()
       }
       .sheet(isPresented: $showSavedFilters) {
         SavedFiltersView(filterType: savedFilterType)
@@ -374,6 +390,30 @@ struct OfflineView: View {
     refreshBrowse()
     await loadSyncInfo()
   }
+
+  #if os(iOS) || os(macOS)
+    private func refreshScopeLibraries() async {
+      do {
+        let loaded = try await LibraryScopeLoader.refresh(instanceId: current.instanceId)
+        if scopeLibraries != loaded {
+          scopeLibraries = loaded
+        }
+      } catch {
+        ErrorManager.shared.alert(error: error)
+      }
+    }
+
+    private func loadScopeLibraries() async {
+      do {
+        let loaded = try await LibraryScopeLoader.load(instanceId: current.instanceId)
+        if scopeLibraries != loaded {
+          scopeLibraries = loaded
+        }
+      } catch {
+        ErrorManager.shared.alert(error: error)
+      }
+    }
+  #endif
 
   private func loadSyncInfo() async {
     guard !current.instanceId.isEmpty else {
