@@ -134,7 +134,7 @@ struct BrowseView: View {
         // nav title.
         mainContent
       } else if searchOnly {
-        mainContent.navigationTitle(title)
+        mainContent.tabRootNavigationBarTitle(title)
       } else {
         mainContent.inlineNavigationBarTitle(title)
       }
