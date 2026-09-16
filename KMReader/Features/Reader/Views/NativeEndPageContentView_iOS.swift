@@ -204,7 +204,10 @@
       nextDownloadStack.axis = .vertical
       nextDownloadStack.alignment = .center
       nextDownloadStack.spacing = 6
-      nextMetadataStack.addArrangedSubview(nextDownloadStack)
+      nextDownloadStack.isHidden = true
+      // Overlay, not part of the section stack: toggling the download state
+      // must not re-lay out (and visibly shift) the end page content.
+      addSubview(nextDownloadStack)
 
       nextProgressView.translatesAutoresizingMaskIntoConstraints = false
       nextProgressView.widthAnchor.constraint(equalToConstant: 180).isActive = true
@@ -215,6 +218,12 @@
       nextDownloadLabel.adjustsFontForContentSizeCategory = true
       NativeEndPageLayoutMetrics.protectVerticalText(nextDownloadLabel)
       nextDownloadStack.addArrangedSubview(nextDownloadLabel)
+
+      nextDownloadStack.translatesAutoresizingMaskIntoConstraints = false
+      NSLayoutConstraint.activate([
+        nextDownloadStack.centerXAnchor.constraint(equalTo: nextContainer.centerXAnchor),
+        nextDownloadStack.topAnchor.constraint(equalTo: nextContainer.bottomAnchor, constant: 8),
+      ])
 
       caughtUpStack.axis = .horizontal
       caughtUpStack.alignment = .center

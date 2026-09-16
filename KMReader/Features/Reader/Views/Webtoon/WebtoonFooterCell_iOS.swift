@@ -146,7 +146,10 @@
       nextDownloadStack.axis = .vertical
       nextDownloadStack.alignment = .center
       nextDownloadStack.spacing = 6
-      nextBookStack.addArrangedSubview(nextDownloadStack)
+      nextDownloadStack.isHidden = true
+      // Overlay pinned under the next-book block: the footer cell has a fixed
+      // height, so the download UI must not participate in the stack layout.
+      bottomRegionView.addSubview(nextDownloadStack)
 
       nextProgressView.translatesAutoresizingMaskIntoConstraints = false
       nextProgressView.widthAnchor.constraint(equalToConstant: 180).isActive = true
@@ -156,6 +159,12 @@
       nextDownloadLabel.textAlignment = .center
       nextDownloadLabel.adjustsFontForContentSizeCategory = true
       nextDownloadStack.addArrangedSubview(nextDownloadLabel)
+
+      nextDownloadStack.translatesAutoresizingMaskIntoConstraints = false
+      NSLayoutConstraint.activate([
+        nextDownloadStack.centerXAnchor.constraint(equalTo: bottomRegionView.centerXAnchor),
+        nextDownloadStack.topAnchor.constraint(equalTo: nextBookStack.bottomAnchor, constant: 8),
+      ])
 
       caughtUpLabel.numberOfLines = 0
       caughtUpLabel.textAlignment = .center
