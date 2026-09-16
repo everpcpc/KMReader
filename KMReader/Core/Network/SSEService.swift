@@ -87,6 +87,12 @@ actor SSEService {
 
     request.setValue(AppConfig.userAgent, forHTTPHeaderField: "User-Agent")
 
+    // Authenticate from the same single credential source as every other
+    // outbound request: the SSE endpoint is not covered by cookies under
+    // stateless API-key auth (and session cookies are memory-only), so an
+    // explicit X-Auth-Token / X-API-Key header is required.
+    APIClient.applyAuthHeaders(to: &request)
+
     do {
       let (asyncBytes, response) = try await URLSession.shared.bytes(for: request)
 

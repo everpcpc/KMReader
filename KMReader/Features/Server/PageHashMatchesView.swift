@@ -42,26 +42,14 @@ struct PageHashMatchesView: View {
   @ViewBuilder
   private func matchRow(match: PageHashMatch) -> some View {
     HStack(spacing: 12) {
-      // Page thumbnail
-      if let url = BookService.getBookPageThumbnailURL(
-        bookId: match.bookId, page: match.pageNumber)
-      {
-        AsyncImage(url: url) { phase in
-          switch phase {
-          case .success(let image):
-            image
-              .resizable()
-              .aspectRatio(contentMode: .fit)
-              .frame(width: 50, height: 70)
-              .clipShape(RoundedRectangle(cornerRadius: 4))
-          case .failure:
-            placeholderImage
-          default:
-            ProgressView()
-              .frame(width: 50, height: 70)
-          }
-        }
-      }
+      // Page thumbnail (downloaded through ThumbnailCache so the request
+      // carries the same auth headers as every other API call; AsyncImage has
+      // no way to attach X-Auth-Token / X-API-Key and would 401 under
+      // stateless API-key auth).
+      PageHashMatchThumbnailView(
+        bookId: match.bookId,
+        pageNumber: match.pageNumber
+      )
 
       VStack(alignment: .leading, spacing: 4) {
         Text(match.fileName)
@@ -105,15 +93,6 @@ struct PageHashMatchesView: View {
     }
   }
 
-  private var placeholderImage: some View {
-    RoundedRectangle(cornerRadius: 4)
-      .fill(.secondary.opacity(0.2))
-      .frame(width: 50, height: 70)
-      .overlay {
-        Image(systemName: "photo")
-          .foregroundColor(.secondary)
-      }
-  }
 
   private func deleteMatch(_ match: PageHashMatch) async {
     do {
@@ -145,5 +124,64 @@ struct PageHashMatchesView: View {
     withAnimation {
       isLoading = false
     }
+  }
+}
+
+/// Thumbnail for a single page-hash match, loaded via ThumbnailCache so the
+/// download carries the same authentication headers as every other API request.
+private struct PageHashMatchThumbnailView: View {
+  let bookId: String
+  let pageNumber: Int
+
+  private enum LoadState {
+    case loading
+    case loaded(URL)
+    case failed
+  }
+
+  @State private var state: LoadState = .loading
+
+  var body: some View {
+    Group {
+      switch state {
+      case .loading:
+        // Keep the same spinner the previous AsyncImage showed while loading.
+        ProgressView()
+          .frame(width: 50, height: 70)
+      case .loaded(let url):
+        if let image = PlatformImage(contentsOfFile: url.path) {
+          Image(platformImage: image)
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .frame(width: 50, height: 70)
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+        } else {
+          placeholder
+        }
+      case .failed:
+        placeholder
+      }
+    }
+    .task(id: "\(bookId)#\(pageNumber)") {
+      state = .loading
+      do {
+        let url = try await ThumbnailCache.shared.ensureThumbnail(
+          id: bookId, type: .page, page: pageNumber
+        )
+        state = .loaded(url)
+      } catch {
+        state = .failed
+      }
+    }
+  }
+
+  private var placeholder: some View {
+    RoundedRectangle(cornerRadius: 4)
+      .fill(.secondary.opacity(0.2))
+      .frame(width: 50, height: 70)
+      .overlay {
+        Image(systemName: "photo")
+          .foregroundColor(.secondary)
+      }
   }
 }

@@ -273,28 +273,37 @@ nonisolated final class APIClient: Sendable {
 
     configureDefaultHeaders(&request, body: body, headers: headers)
 
-    // Add auth headers based on the authentication method
+    Self.applyAuthHeaders(to: &request)
+
+    return request
+  }
+
+  /// Add auth headers based on the authentication method.
+  ///
+  /// Always attach the session token when one exists. For API key
+  /// instances, also always attach the key: Komga prefers the session
+  /// while it is valid (and skips key re-authentication for
+  /// API-key-created sessions), and falls back to the key when the
+  /// session expired, which also rotates a fresh session token back.
+  /// Password logins keep relying on the session/cookies only, since
+  /// per-request Basic authentication would flood the server auth log.
+  ///
+  /// Shared by every outbound request (JSON API, URL-based resource
+  /// downloads, SSE) so all channels authenticate from the same single
+  /// credential source instead of relying on implicit cookie storage.
+  nonisolated static func applyAuthHeaders(to request: inout URLRequest) {
     let authMethod = AppConfig.current.authMethod
     let authToken = AppConfig.current.authToken
 
-    if !authToken.isEmpty {
-      // Always attach the session token when one exists. For API key
-      // instances, also always attach the key: Komga prefers the session
-      // while it is valid (and skips key re-authentication for
-      // API-key-created sessions), and falls back to the key when the
-      // session expired, which also rotates a fresh session token back.
-      // Password logins keep relying on the session/cookies only, since
-      // per-request Basic authentication would flood the server auth log.
-      let sessionToken = AppConfig.current.sessionToken
-      if !sessionToken.isEmpty {
-        request.setValue(sessionToken, forHTTPHeaderField: "X-Auth-Token")
-      }
-      if authMethod == .apiKey {
-        request.setValue(authToken, forHTTPHeaderField: "X-API-Key")
-      }
-    }
+    guard !authToken.isEmpty else { return }
 
-    return request
+    let sessionToken = AppConfig.current.sessionToken
+    if !sessionToken.isEmpty {
+      request.setValue(sessionToken, forHTTPHeaderField: "X-Auth-Token")
+    }
+    if authMethod == .apiKey {
+      request.setValue(authToken, forHTTPHeaderField: "X-API-Key")
+    }
   }
 
   private func resolveTimeout(
@@ -390,6 +399,7 @@ nonisolated final class APIClient: Sendable {
     request.httpBody = body
     request.timeoutInterval = resolveTimeout(nil, category: category)
     configureDefaultHeaders(&request, body: body, headers: headers)
+    Self.applyAuthHeaders(to: &request)
     return request
   }
 
