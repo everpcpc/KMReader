@@ -467,99 +467,100 @@ extension SeriesDetailView {
 
   @ViewBuilder
   private var seriesToolbarContent: some View {
-    HStack {
+    Menu {
       #if os(iOS) || os(macOS)
         if let shareURL {
           ShareLink(item: shareURL, subject: Text(navigationTitle)) {
-            Image(systemName: "square.and.arrow.up")
+            Label(String(localized: "Share"), systemImage: "square.and.arrow.up")
           }
+
+          Divider()
         }
       #endif
 
       Button {
-        showSavedFilters = true
+        deferMenuActionPresentation { showFilterSheet = true }
       } label: {
-        Image(systemName: "bookmark")
+        Label(String(localized: "Filter"), systemImage: "line.3.horizontal.decrease.circle")
       }
 
       Button {
-        showFilterSheet = true
+        deferMenuActionPresentation { showSavedFilters = true }
       } label: {
-        Image(systemName: "line.3.horizontal.decrease.circle")
+        Label(String(localized: "Saved Filters"), systemImage: "bookmark")
       }
 
-      Menu {
-        LayoutModePicker(selection: $seriesDetailLayout)
+      LayoutModePicker(selection: $seriesDetailLayout)
 
-        Divider()
+      Divider()
 
-        if current.isAdmin {
-          Button {
-            deferMenuActionPresentation { showEditSheet = true }
-          } label: {
-            Label("Edit", systemImage: "pencil")
-          }
-
-          Divider()
-
-          Button {
-            analyzeSeries()
-          } label: {
-            Label("Analyze", systemImage: "waveform.path.ecg")
-          }
-
-          Button {
-            refreshSeriesMetadata()
-          } label: {
-            Label("Refresh Metadata", systemImage: "arrow.clockwise")
-          }
+      if current.isAdmin {
+        Button {
+          deferMenuActionPresentation { showEditSheet = true }
+        } label: {
+          Label("Edit", systemImage: "pencil")
         }
 
         Divider()
 
         Button {
-          #if os(macOS)
-            // Present in a standalone window: a view-attached sheet triggered
-            // from an NSMenu action can wedge the app on macOS 15 (#959).
-            PickerWindowOpener.shared.open(.collection(seriesId: seriesId))
-          #else
-            deferMenuActionPresentation { showCollectionPicker = true }
-          #endif
+          analyzeSeries()
         } label: {
-          Label("Add to Collection", systemImage: ContentIcon.collection)
+          Label("Analyze", systemImage: "waveform.path.ecg")
         }
 
-        if series != nil {
-          if canMarkSeriesAsRead {
-            Button {
-              markSeriesAsRead()
-            } label: {
-              Label("Mark as Read", systemImage: "checkmark")
-            }
-          }
-
-          if canMarkSeriesAsUnread {
-            Button {
-              markSeriesAsUnread()
-            } label: {
-              Label("Mark as Unread", systemImage: "circle")
-            }
-          }
+        Button {
+          refreshSeriesMetadata()
+        } label: {
+          Label("Refresh Metadata", systemImage: "arrow.clockwise")
         }
-
-        Divider()
-
-        if current.isAdmin {
-          Button(role: .destructive) {
-            deferMenuActionPresentation { showDeleteConfirmation = true }
-          } label: {
-            Label("Delete Series", systemImage: "trash")
-          }
-        }
-      } label: {
-        Image(systemName: "ellipsis")
       }
-    }.toolbarButtonStyle()
+
+      Divider()
+
+      Button {
+        #if os(macOS)
+          // Present in a standalone window: a view-attached sheet triggered
+          // from an NSMenu action can wedge the app on macOS 15 (#959).
+          PickerWindowOpener.shared.open(.collection(seriesId: seriesId))
+        #else
+          deferMenuActionPresentation { showCollectionPicker = true }
+        #endif
+      } label: {
+        Label("Add to Collection", systemImage: ContentIcon.collection)
+      }
+
+      if series != nil {
+        if canMarkSeriesAsRead {
+          Button {
+            markSeriesAsRead()
+          } label: {
+            Label("Mark as Read", systemImage: "checkmark")
+          }
+        }
+
+        if canMarkSeriesAsUnread {
+          Button {
+            markSeriesAsUnread()
+          } label: {
+            Label("Mark as Unread", systemImage: "circle")
+          }
+        }
+      }
+
+      Divider()
+
+      if current.isAdmin {
+        Button(role: .destructive) {
+          deferMenuActionPresentation { showDeleteConfirmation = true }
+        } label: {
+          Label("Delete Series", systemImage: "trash")
+        }
+      }
+    } label: {
+      Image(systemName: "ellipsis")
+    }
+    .toolbarButtonStyle()
   }
 
   private var readingProgressSummary: String? {

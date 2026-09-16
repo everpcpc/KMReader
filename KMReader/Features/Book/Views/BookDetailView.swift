@@ -298,92 +298,92 @@ struct BookDetailView: View {
 
   @ViewBuilder
   private var bookToolbarContent: some View {
-    HStack {
+    Menu {
       #if os(iOS) || os(macOS)
         if let shareURL {
           ShareLink(item: shareURL, subject: Text(navigationTitle)) {
-            Image(systemName: "square.and.arrow.up")
-          }
-        }
-      #endif
-
-      Menu {
-        if current.isAdmin {
-          Button {
-            deferMenuActionPresentation { showEditSheet = true }
-          } label: {
-            Label("Edit", systemImage: "pencil")
+            Label(String(localized: "Share"), systemImage: "square.and.arrow.up")
           }
 
           Divider()
+        }
+      #endif
 
-          Button {
-            analyzeBook()
-          } label: {
-            Label("Analyze", systemImage: "waveform.path.ecg")
-          }
-
-          Button {
-            refreshMetadata()
-          } label: {
-            Label("Refresh Metadata", systemImage: "arrow.clockwise")
-          }
+      if current.isAdmin {
+        Button {
+          deferMenuActionPresentation { showEditSheet = true }
+        } label: {
+          Label("Edit", systemImage: "pencil")
         }
 
         Divider()
 
         Button {
-          #if os(macOS)
-            // Present in a standalone window: a view-attached sheet triggered
-            // from an NSMenu action can wedge the app on macOS 15 (#959).
-            PickerWindowOpener.shared.open(.readList(bookId: bookId))
-          #else
-            deferMenuActionPresentation { showReadListPicker = true }
-          #endif
+          analyzeBook()
         } label: {
-          Label("Add to Read List", systemImage: ContentIcon.readList)
+          Label("Analyze", systemImage: "waveform.path.ecg")
         }
 
-        if let book = book {
-          if !book.isCompleted {
-            Button {
-              markBookAsRead()
-            } label: {
-              Label("Mark as Read", systemImage: "checkmark")
-            }
-          }
-
-          if book.hasStartedReading {
-            Button {
-              markBookAsUnread()
-            } label: {
-              Label("Mark as Unread", systemImage: "circle")
-            }
-          }
+        Button {
+          refreshMetadata()
+        } label: {
+          Label("Refresh Metadata", systemImage: "arrow.clockwise")
         }
-
-        Divider()
-
-        if current.isAdmin {
-          Button(role: .destructive) {
-            deferMenuActionPresentation { showDeleteConfirmation = true }
-          } label: {
-            Label("Delete Book", systemImage: "trash")
-          }
-        }
-
-        // Only show Clear Cache for non-EPUB books
-        if let book = book, book.isDivina {
-          Button(role: .destructive) {
-            clearCache()
-          } label: {
-            Label("Clear Cache", systemImage: "xmark")
-          }
-        }
-      } label: {
-        Image(systemName: "ellipsis")
       }
-      .toolbarButtonStyle()
+
+      Divider()
+
+      Button {
+        #if os(macOS)
+          // Present in a standalone window: a view-attached sheet triggered
+          // from an NSMenu action can wedge the app on macOS 15 (#959).
+          PickerWindowOpener.shared.open(.readList(bookId: bookId))
+        #else
+          deferMenuActionPresentation { showReadListPicker = true }
+        #endif
+      } label: {
+        Label("Add to Read List", systemImage: ContentIcon.readList)
+      }
+
+      if let book = book {
+        if !book.isCompleted {
+          Button {
+            markBookAsRead()
+          } label: {
+            Label("Mark as Read", systemImage: "checkmark")
+          }
+        }
+
+        if book.hasStartedReading {
+          Button {
+            markBookAsUnread()
+          } label: {
+            Label("Mark as Unread", systemImage: "circle")
+          }
+        }
+      }
+
+      Divider()
+
+      if current.isAdmin {
+        Button(role: .destructive) {
+          deferMenuActionPresentation { showDeleteConfirmation = true }
+        } label: {
+          Label("Delete Book", systemImage: "trash")
+        }
+      }
+
+      // Only show Clear Cache for non-EPUB books
+      if let book = book, book.isDivina {
+        Button(role: .destructive) {
+          clearCache()
+        } label: {
+          Label("Clear Cache", systemImage: "xmark")
+        }
+      }
+    } label: {
+      Image(systemName: "ellipsis")
     }
+    .toolbarButtonStyle()
   }
 }

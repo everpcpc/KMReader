@@ -372,105 +372,105 @@ struct OneshotDetailView: View {
 
   @ViewBuilder
   private var oneshotToolbarContent: some View {
-    HStack {
+    Menu {
       #if os(iOS) || os(macOS)
         if let shareURL {
           ShareLink(item: shareURL, subject: Text(navigationTitle)) {
-            Image(systemName: "square.and.arrow.up")
-          }
-        }
-      #endif
-
-      Menu {
-        if current.isAdmin {
-          Button {
-            deferMenuActionPresentation { showEditSheet = true }
-          } label: {
-            Label("Edit", systemImage: "pencil")
+            Label(String(localized: "Share"), systemImage: "square.and.arrow.up")
           }
 
           Divider()
+        }
+      #endif
 
-          Button {
-            analyzeOneshot()
-          } label: {
-            Label("Analyze", systemImage: "waveform.path.ecg")
-          }
-
-          Button {
-            refreshMetadata()
-          } label: {
-            Label("Refresh Metadata", systemImage: "arrow.clockwise")
-          }
+      if current.isAdmin {
+        Button {
+          deferMenuActionPresentation { showEditSheet = true }
+        } label: {
+          Label("Edit", systemImage: "pencil")
         }
 
         Divider()
 
         Button {
-          #if os(macOS)
-            // Present in a standalone window: a view-attached sheet triggered
-            // from an NSMenu action can wedge the app on macOS 15 (#959).
-            PickerWindowOpener.shared.open(.collection(seriesId: seriesId))
-          #else
-            deferMenuActionPresentation { showCollectionPicker = true }
-          #endif
+          analyzeOneshot()
         } label: {
-          Label("Add to Collection", systemImage: ContentIcon.collection)
+          Label("Analyze", systemImage: "waveform.path.ecg")
         }
 
         Button {
-          #if os(macOS)
-            if let book {
-              PickerWindowOpener.shared.open(.readList(bookId: book.id))
-            }
-          #else
-            deferMenuActionPresentation { showReadListPicker = true }
-          #endif
+          refreshMetadata()
         } label: {
-          Label("Add to Read List", systemImage: ContentIcon.readList)
+          Label("Refresh Metadata", systemImage: "arrow.clockwise")
         }
-
-        Divider()
-
-        if let book = book {
-          if !book.isCompleted {
-            Button {
-              markOneshotAsRead()
-            } label: {
-              Label("Mark as Read", systemImage: "checkmark")
-            }
-          }
-
-          if book.hasStartedReading {
-            Button {
-              markOneshotAsUnread()
-            } label: {
-              Label("Mark as Unread", systemImage: "circle")
-            }
-          }
-        }
-
-        Divider()
-
-        if current.isAdmin {
-          Button(role: .destructive) {
-            deferMenuActionPresentation { showDeleteConfirmation = true }
-          } label: {
-            Label("Delete Oneshot", systemImage: "trash")
-          }
-        }
-
-        if let book = book, book.isDivina {
-          Button(role: .destructive) {
-            clearCache()
-          } label: {
-            Label("Clear Cache", systemImage: "xmark")
-          }
-        }
-      } label: {
-        Image(systemName: "ellipsis")
       }
-      .toolbarButtonStyle()
+
+      Divider()
+
+      Button {
+        #if os(macOS)
+          // Present in a standalone window: a view-attached sheet triggered
+          // from an NSMenu action can wedge the app on macOS 15 (#959).
+          PickerWindowOpener.shared.open(.collection(seriesId: seriesId))
+        #else
+          deferMenuActionPresentation { showCollectionPicker = true }
+        #endif
+      } label: {
+        Label("Add to Collection", systemImage: ContentIcon.collection)
+      }
+
+      Button {
+        #if os(macOS)
+          if let book {
+            PickerWindowOpener.shared.open(.readList(bookId: book.id))
+          }
+        #else
+          deferMenuActionPresentation { showReadListPicker = true }
+        #endif
+      } label: {
+        Label("Add to Read List", systemImage: ContentIcon.readList)
+      }
+
+      Divider()
+
+      if let book = book {
+        if !book.isCompleted {
+          Button {
+            markOneshotAsRead()
+          } label: {
+            Label("Mark as Read", systemImage: "checkmark")
+          }
+        }
+
+        if book.hasStartedReading {
+          Button {
+            markOneshotAsUnread()
+          } label: {
+            Label("Mark as Unread", systemImage: "circle")
+          }
+        }
+      }
+
+      Divider()
+
+      if current.isAdmin {
+        Button(role: .destructive) {
+          deferMenuActionPresentation { showDeleteConfirmation = true }
+        } label: {
+          Label("Delete Oneshot", systemImage: "trash")
+        }
+      }
+
+      if let book = book, book.isDivina {
+        Button(role: .destructive) {
+          clearCache()
+        } label: {
+          Label("Clear Cache", systemImage: "xmark")
+        }
+      }
+    } label: {
+      Image(systemName: "ellipsis")
     }
+    .toolbarButtonStyle()
   }
 }

@@ -20,6 +20,7 @@ struct BrowseView: View {
 
   @Environment(\.browseLibrarySelection) private var librarySelection
 
+  @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("browseContent") private var browseContent: BrowseContentType = .series
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
@@ -38,6 +39,7 @@ struct BrowseView: View {
   @State private var showLibraryPicker = false
   @State private var showFilterSheet = false
   @State private var showSavedFilters = false
+  @State private var scopeLibraries: [SidebarLibraryItem] = []
   @FocusState private var isSearchFocused: Bool
 
   private var effectiveContent: BrowseContentType {
@@ -201,42 +203,34 @@ struct BrowseView: View {
     }
     #if os(iOS) || os(macOS)
       .toolbar {
-        if librarySelection == nil && !libraryTab {
+        if librarySelection == nil && !libraryTab && scopeLibraries.count > 1 {
           #if os(macOS)
             ToolbarItem(placement: .navigation) {
-              Button {
-                showLibraryPicker = true
-              } label: {
-                Image(systemName: ContentIcon.library)
-              }
+              LibraryScopeToolbarButton(libraries: scopeLibraries, isPresented: $showLibraryPicker)
             }
           #else
             ToolbarItem(placement: .cancellationAction) {
-              Button {
-                showLibraryPicker = true
-              } label: {
-                Image(systemName: ContentIcon.library)
-              }
+              LibraryScopeToolbarButton(libraries: scopeLibraries, isPresented: $showLibraryPicker)
             }
           #endif
         }
 
-        ToolbarItemGroup(placement: .confirmationAction) {
-          if effectiveContent == .series || effectiveContent == .books {
-            Button {
-              showSavedFilters = true
-            } label: {
-              Image(systemName: "bookmark")
-            }
-          }
-
-          Button {
-            showFilterSheet = true
-          } label: {
-            Image(systemName: "line.3.horizontal.decrease.circle")
-          }
-
+        ToolbarItem(placement: .confirmationAction) {
           Menu {
+            Button {
+              deferMenuActionPresentation { showFilterSheet = true }
+            } label: {
+              Label(String(localized: "Filter"), systemImage: "line.3.horizontal.decrease.circle")
+            }
+
+            if effectiveContent == .series || effectiveContent == .books {
+              Button {
+                deferMenuActionPresentation { showSavedFilters = true }
+              } label: {
+                Label(String(localized: "Saved Filters"), systemImage: "bookmark")
+              }
+            }
+
             LayoutModePicker(
               selection: layoutModeBinding,
               showGridDensity: true
@@ -251,6 +245,15 @@ struct BrowseView: View {
       }
       .sheet(isPresented: $showSavedFilters) {
         SavedFiltersView(filterType: effectiveContent == .series ? .series : .books)
+      }
+      .task(id: current.instanceId) {
+        await refreshScopeLibraries()
+      }
+      .onReceive(NotificationCenter.default.publisher(for: .sidebarProjectionDidChange)) { notification in
+        guard notification.userInfo?["instanceId"] as? String == current.instanceId else { return }
+        Task {
+          await loadScopeLibraries()
+        }
       }
     #endif
     .onSubmit(of: .search) {
@@ -282,6 +285,28 @@ struct BrowseView: View {
     Task {
       try? await Task.sleep(nanoseconds: 2_000_000_000)  // 2 seconds
       isRefreshDisabled = false
+    }
+  }
+
+  private func refreshScopeLibraries() async {
+    do {
+      let loaded = try await LibraryScopeLoader.refresh(instanceId: current.instanceId)
+      if scopeLibraries != loaded {
+        scopeLibraries = loaded
+      }
+    } catch {
+      ErrorManager.shared.alert(error: error)
+    }
+  }
+
+  private func loadScopeLibraries() async {
+    do {
+      let loaded = try await LibraryScopeLoader.load(instanceId: current.instanceId)
+      if scopeLibraries != loaded {
+        scopeLibraries = loaded
+      }
+    } catch {
+      ErrorManager.shared.alert(error: error)
     }
   }
 

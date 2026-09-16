@@ -49,14 +49,6 @@ struct DashboardView: View {
     #endif
   }
 
-  private var readingStatsButton: some View {
-    NavigationLink(value: NavDestination.settingsReadingStats) {
-      Image(systemName: "chart.bar.doc.horizontal")
-    }
-    .help(ServerSection.readingStats.title)
-    .accessibilityLabel(ServerSection.readingStats.title)
-  }
-
   @ViewBuilder
   private var browseSearchButton: some View {
     if showsBrowseSearchButton {
@@ -225,8 +217,6 @@ struct DashboardView: View {
         #endif
 
         ToolbarItemGroup(placement: .confirmationAction) {
-          readingStatsButton
-
           browseSearchButton
 
           if isOffline {
@@ -252,6 +242,12 @@ struct DashboardView: View {
             }
           } else {
             Menu {
+              NavigationLink(value: NavDestination.settingsReadingStats) {
+                Label(ServerSection.readingStats.title, systemImage: "chart.bar.doc.horizontal")
+              }
+
+              Divider()
+
               Picker(selection: gridDensityBinding) {
                 ForEach(GridDensity.allCases, id: \.self) { density in
                   Text(density.label).tag(density)

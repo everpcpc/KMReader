@@ -170,20 +170,20 @@ struct OfflineView: View {
           #endif
         }
 
-        ToolbarItemGroup(placement: .confirmationAction) {
-          Button {
-            showSavedFilters = true
-          } label: {
-            Image(systemName: "bookmark")
-          }
-
-          Button {
-            showFilterSheet = true
-          } label: {
-            Image(systemName: "line.3.horizontal.decrease.circle")
-          }
-
+        ToolbarItem(placement: .confirmationAction) {
           Menu {
+            Button {
+              deferMenuActionPresentation { showFilterSheet = true }
+            } label: {
+              Label(String(localized: "Filter"), systemImage: "line.3.horizontal.decrease.circle")
+            }
+
+            Button {
+              deferMenuActionPresentation { showSavedFilters = true }
+            } label: {
+              Label(String(localized: "Saved Filters"), systemImage: "bookmark")
+            }
+
             LayoutModePicker(
               selection: layoutModeBinding,
               showGridDensity: true

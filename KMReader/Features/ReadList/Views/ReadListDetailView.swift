@@ -205,53 +205,52 @@ extension ReadListDetailView {
 
   @ViewBuilder
   private var readListToolbarContent: some View {
-    HStack {
+    Menu {
       Button {
-        showSavedFilters = true
+        deferMenuActionPresentation { showFilterSheet = true }
       } label: {
-        Image(systemName: "bookmark")
+        Label(String(localized: "Filter"), systemImage: "line.3.horizontal.decrease.circle")
       }
 
       Button {
-        showFilterSheet = true
+        deferMenuActionPresentation { showSavedFilters = true }
       } label: {
-        Image(systemName: "line.3.horizontal.decrease.circle")
+        Label(String(localized: "Saved Filters"), systemImage: "bookmark")
       }
 
-      Menu {
-        LayoutModePicker(selection: $readListDetailLayout)
+      LayoutModePicker(selection: $readListDetailLayout)
 
+      Divider()
+
+      Button {
+        togglePinned()
+      } label: {
+        Label(
+          isPinned ? String(localized: "action.unpinFromTop") : String(localized: "action.pinToTop"),
+          systemImage: isPinned ? "pin.slash" : "pin"
+        )
+      }
+
+      if current.isAdmin {
         Divider()
 
         Button {
-          togglePinned()
+          showEditSheet = true
         } label: {
-          Label(
-            isPinned ? String(localized: "action.unpinFromTop") : String(localized: "action.pinToTop"),
-            systemImage: isPinned ? "pin.slash" : "pin"
-          )
+          Label("Edit", systemImage: "pencil")
         }
 
-        if current.isAdmin {
-          Divider()
+        Divider()
 
-          Button {
-            showEditSheet = true
-          } label: {
-            Label("Edit", systemImage: "pencil")
-          }
-
-          Divider()
-
-          Button(role: .destructive) {
-            showDeleteConfirmation = true
-          } label: {
-            Label("Delete Read List", systemImage: "trash")
-          }
+        Button(role: .destructive) {
+          showDeleteConfirmation = true
+        } label: {
+          Label("Delete Read List", systemImage: "trash")
         }
-      } label: {
-        Image(systemName: "ellipsis")
       }
-    }.toolbarButtonStyle()
+    } label: {
+      Image(systemName: "ellipsis")
+    }
+    .toolbarButtonStyle()
   }
 }
