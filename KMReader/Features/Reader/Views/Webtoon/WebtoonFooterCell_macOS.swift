@@ -14,6 +14,7 @@
 
     private var previousBook: Book?
     private var nextBook: Book?
+    private var nextBookDownload: PendingNextBookDownload?
     private var readListContext: ReaderReadListContext?
     private var onDismiss: (() -> Void)?
 
@@ -33,6 +34,9 @@
     private let nextBadgeLabel = NSTextField(labelWithString: "")
     private let nextTitleLabel = NSTextField(labelWithString: "")
     private let nextDetailLabel = NSTextField(labelWithString: "")
+    private let nextDownloadStack = NSStackView()
+    private let nextProgressView = NSProgressIndicator()
+    private let nextDownloadLabel = NSTextField(labelWithString: "")
     private let caughtUpLabel = NSTextField(labelWithString: "")
 
     private let closeButton = NSButton()
@@ -47,10 +51,12 @@
       previousBook: Book?,
       nextBook: Book?,
       readListContext: ReaderReadListContext?,
+      nextBookDownload: PendingNextBookDownload? = nil,
       onDismiss: (() -> Void)?
     ) {
       self.previousBook = previousBook
       self.nextBook = nextBook
+      self.nextBookDownload = nextBookDownload
       self.readListContext = readListContext
       self.onDismiss = onDismiss
       applyContent()
@@ -133,6 +139,24 @@
       nextDetailLabel.font = NSFont.preferredFont(forTextStyle: .caption1)
       nextBookStack.addArrangedSubview(nextDetailLabel)
 
+      nextDownloadStack.orientation = .vertical
+      nextDownloadStack.alignment = .centerX
+      nextDownloadStack.spacing = 6
+      nextDownloadStack.translatesAutoresizingMaskIntoConstraints = false
+      nextDownloadStack.widthAnchor.constraint(equalToConstant: 180).isActive = true
+      nextBookStack.addArrangedSubview(nextDownloadStack)
+
+      nextProgressView.style = .bar
+      nextProgressView.isIndeterminate = false
+      nextProgressView.minValue = 0
+      nextProgressView.maxValue = 1
+      nextDownloadStack.addArrangedSubview(nextProgressView)
+
+      nextDownloadLabel.alignment = .center
+      nextDownloadLabel.maximumNumberOfLines = 1
+      nextDownloadLabel.font = NSFont.preferredFont(forTextStyle: .caption1)
+      nextDownloadStack.addArrangedSubview(nextDownloadLabel)
+
       caughtUpLabel.alignment = .center
       caughtUpLabel.maximumNumberOfLines = 2
       caughtUpLabel.font = NSFont.preferredFont(forTextStyle: .headline)
@@ -189,6 +213,7 @@
       nextBadgeLabel.textColor = textColor.withAlphaComponent(0.55)
       nextTitleLabel.textColor = textColor
       nextDetailLabel.textColor = textColor.withAlphaComponent(0.6)
+      nextDownloadLabel.textColor = textColor.withAlphaComponent(0.6)
       caughtUpLabel.textColor = textColor
       EndPageCloseButtonStyle.apply(to: closeButton, textColor: textColor)
     }
@@ -213,6 +238,7 @@
         nextDetailLabel.isHidden = false
         nextTitleLabel.stringValue = nextBook.readerChapterTitle
         nextDetailLabel.stringValue = nextBook.readerChapterDetail
+        applyNextDownload(nextBookDownload)
       } else {
         closeButton.isHidden = false
         nextBadgeLabel.isHidden = true
@@ -220,11 +246,26 @@
         nextDetailLabel.isHidden = true
         nextTitleLabel.stringValue = ""
         nextDetailLabel.stringValue = ""
+        applyNextDownload(nil)
         caughtUpLabel.isHidden = false
         caughtUpLabel.stringValue = String(localized: "You're all caught up!")
       }
 
       EndPageCloseButtonStyle.apply(to: closeButton, textColor: NSColor(readerBackground.contentColor))
+    }
+
+    private func applyNextDownload(_ download: PendingNextBookDownload?) {
+      nextDownloadStack.isHidden = download == nil
+      guard let download else { return }
+      if let progress = download.progress {
+        nextProgressView.isHidden = false
+        nextProgressView.doubleValue = progress
+        let percent = progress.formatted(.percent.precision(.fractionLength(0)))
+        nextDownloadLabel.stringValue = String(localized: "Downloading next book… \(percent)")
+      } else {
+        nextProgressView.isHidden = true
+        nextDownloadLabel.stringValue = String(localized: "Downloading next book…")
+      }
     }
 
     func isInteractingWithCloseButton(at point: NSPoint, in sourceView: NSView) -> Bool {

@@ -824,6 +824,7 @@
             readListContext: parent.readListContext,
             readingDirection: parent.readingDirection,
             renderConfig: parent.renderConfig,
+            nextBookDownload: parent.viewModel.pendingNextBookDownload(forSegmentBookId: segmentBookId),
             onDismiss: parent.onDismiss
           )
           return

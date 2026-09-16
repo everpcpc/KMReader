@@ -28,6 +28,7 @@
       readListContext: ReaderReadListContext?,
       readingDirection: ReadingDirection,
       renderConfig: ReaderRenderConfig,
+      nextBookDownload: PendingNextBookDownload? = nil,
       onDismiss: (() -> Void)?
     ) {
       endPageView.configure(
@@ -36,6 +37,7 @@
         readListContext: readListContext,
         readingDirection: readingDirection,
         renderConfig: renderConfig,
+        nextBookDownload: nextBookDownload,
         onDismiss: onDismiss
       )
     }

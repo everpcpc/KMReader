@@ -94,6 +94,8 @@
       private weak var singleTapRecognizer: UITapGestureRecognizer?
       private weak var doubleTapRecognizer: UITapGestureRecognizer?
       private weak var longPressRecognizer: UILongPressGestureRecognizer?
+      private weak var observedViewModel: ReaderViewModel?
+      private var pagePresentationObserverToken: UUID?
 
       init(_ parent: CurlPageView) {
         self.parent = parent
@@ -129,6 +131,7 @@
 
       func update(parent: CurlPageView, pageViewController: UIPageViewController) {
         self.parent = parent
+        updateViewModelObservation(parent.viewModel)
         if !isCurrentAttachment(pageViewController) {
           attach(to: pageViewController)
         }
@@ -173,6 +176,7 @@
       func teardown(from pageViewController: UIPageViewController) {
         guard self.pageViewController === pageViewController else { return }
 
+        unregisterViewModelObservation()
         isActive = false
         preloadTask?.cancel()
         preloadTask = nil
@@ -369,6 +373,7 @@
           readListContext: parent.readListContext,
           readingDirection: parent.readingDirection,
           renderConfig: parent.renderConfig,
+          nextBookDownload: parent.viewModel.pendingNextBookDownload(forSegmentBookId: segmentBookId),
           onDismiss: parent.onDismiss
         )
       }
@@ -461,6 +466,28 @@
           direction: .forward,
           animated: false
         )
+      }
+
+      private func updateViewModelObservation(_ viewModel: ReaderViewModel) {
+        guard observedViewModel !== viewModel || pagePresentationObserverToken == nil else { return }
+        unregisterViewModelObservation()
+        observedViewModel = viewModel
+        pagePresentationObserverToken = viewModel.addPagePresentationInvalidationObserver {
+          [weak self] _ in
+          guard let self else { return }
+          self.refreshVisibleControllerConfiguration()
+        }
+      }
+
+      private func unregisterViewModelObservation() {
+        guard let observedViewModel, let pagePresentationObserverToken else {
+          self.observedViewModel = nil
+          self.pagePresentationObserverToken = nil
+          return
+        }
+        observedViewModel.removePagePresentationInvalidationObserver(pagePresentationObserverToken)
+        self.observedViewModel = nil
+        self.pagePresentationObserverToken = nil
       }
 
       private func refreshVisibleControllerConfiguration() {

@@ -27,6 +27,9 @@ class ReaderViewModel {
   var loadingDetail = String(localized: "Resolving page metadata")
   var loadingProgress: Double?
   var isDismissing = false
+  /// Next-book download currently blocking a segment preload (offline-first mode).
+  /// Surfaced on the end page so a slow download never looks like a dead tap.
+  private(set) var pendingNextBookDownload: PendingNextBookDownload?
   var incognitoMode: Bool = false
   var isZoomed: Bool = false
 
@@ -378,6 +381,18 @@ class ReaderViewModel {
   func nextBook(forSegmentBookId bookId: String) -> Book? {
     guard let segmentIndex = segmentIndex(forSegmentBookId: bookId) else { return nil }
     return segments[segmentIndex].nextBook
+  }
+
+  /// Download state for the segment's next book, non-nil only while a
+  /// next-segment preload is blocked waiting for that download (offline-first).
+  func pendingNextBookDownload(forSegmentBookId bookId: String) -> PendingNextBookDownload? {
+    guard let pendingNextBookDownload,
+      let nextBook = nextBook(forSegmentBookId: bookId),
+      nextBook.id == pendingNextBookDownload.bookId
+    else {
+      return nil
+    }
+    return pendingNextBookDownload
   }
 
   func currentBook(forSegmentBookId bookId: String) -> Book? {
@@ -764,6 +779,7 @@ class ReaderViewModel {
     currentPageID = nil
     currentViewItemID = nil
     navigationTarget = nil
+    pendingNextBookDownload = nil
     readerPagesVersion &+= 1
   }
 
@@ -931,6 +947,7 @@ class ReaderViewModel {
       }
       return
     }
+    defer { clearPendingNextBookDownload(bookId: book.id) }
 
     if AppConfig.isOffline {
       throw AppErrorType.networkUnavailable
@@ -948,6 +965,7 @@ class ReaderViewModel {
         instanceId: AppConfig.current.instanceId,
         info: downloadInfo
       )
+      updatePendingNextBookDownload(bookId: book.id, progress: nil)
     case .downloaded:
       updateLoadingProgress(ReaderLoadingProgress.complete)
       updateLoadingDetail(String(localized: "Using downloaded book files"))
@@ -974,8 +992,10 @@ class ReaderViewModel {
           message: String(localized: "Download did not start. Please try again.")
         )
       case .pending:
+        let progress = DownloadProgressTracker.shared.progress[book.id]
+        updatePendingNextBookDownload(bookId: book.id, progress: progress)
         if updatesLoadingState,
-          let progress = DownloadProgressTracker.shared.progress[book.id]
+          let progress
         {
           if progress >= 1 {
             updateLoadingProgress(ReaderLoadingProgress.complete)
@@ -996,6 +1016,19 @@ class ReaderViewModel {
 
       try await Task.sleep(for: .milliseconds(200))
     }
+  }
+
+  private func updatePendingNextBookDownload(bookId: String, progress: Double?) {
+    let state = PendingNextBookDownload(bookId: bookId, progress: progress)
+    guard pendingNextBookDownload != state else { return }
+    pendingNextBookDownload = state
+    notifyPagePresentationInvalidation(.all)
+  }
+
+  private func clearPendingNextBookDownload(bookId: String) {
+    guard pendingNextBookDownload?.bookId == bookId else { return }
+    pendingNextBookDownload = nil
+    notifyPagePresentationInvalidation(.all)
   }
 
   private func ensureOfflinePDFMetadataForDivina(book: Book) async {

@@ -1460,7 +1460,9 @@ struct DivinaReaderView: View {
   }
 
   private var segmentPreloadTriggerDistance: Int {
-    2
+    // Next-segment preload must also cover an offline-first download, so it
+    // starts early enough to finish before the reader reaches the end page.
+    5
   }
 
   private func resolveSegmentPreloadContext(for segmentBookId: String) async -> (

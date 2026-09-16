@@ -27,6 +27,7 @@
       readingDirection: ReadingDirection,
       sectionDisplayMode: SectionDisplayMode = .both,
       renderConfig: ReaderRenderConfig,
+      nextBookDownload: PendingNextBookDownload? = nil,
       onDismiss: @escaping () -> Void
     ) {
       endPageView.configure(
@@ -36,6 +37,7 @@
         readingDirection: readingDirection,
         sectionDisplayMode: presentationSectionDisplayMode(for: sectionDisplayMode),
         renderConfig: renderConfig,
+        nextBookDownload: nextBookDownload,
         onDismiss: onDismiss
       )
     }

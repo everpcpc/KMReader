@@ -24,6 +24,8 @@ struct NativeEndPagePresentation {
     let showsCover: Bool
     let showsMetadata: Bool
     let showsCaughtUp: Bool
+    /// Non-nil while this section's book is downloading for a segment preload.
+    let nextBookDownload: PendingNextBookDownload?
   }
 
   let relationTitle: String
@@ -35,7 +37,8 @@ struct NativeEndPagePresentation {
     previousBook: Book?,
     nextBook: Book?,
     readListContext: ReaderReadListContext?,
-    sectionDisplayMode: SectionDisplayMode = .both
+    sectionDisplayMode: SectionDisplayMode = .both,
+    nextBookDownload: PendingNextBookDownload? = nil
   ) -> NativeEndPagePresentation {
     // End page sits between the finished book and its next sibling.
     // `previousBook` intentionally represents the finished/current segment book shown on the leading side.
@@ -51,7 +54,8 @@ struct NativeEndPagePresentation {
       detail: previousVisible ? previousBook?.readerChapterDetail : nil,
       showsCover: previousVisible,
       showsMetadata: previousVisible,
-      showsCaughtUp: false
+      showsCaughtUp: false,
+      nextBookDownload: nil
     )
 
     let nextSection = Section(
@@ -62,7 +66,8 @@ struct NativeEndPagePresentation {
       detail: nextVisible ? nextBook?.readerChapterDetail : nil,
       showsCover: nextBook != nil && nextVisible,
       showsMetadata: nextBook != nil && nextVisible,
-      showsCaughtUp: nextBook == nil && nextVisible
+      showsCaughtUp: nextBook == nil && nextVisible,
+      nextBookDownload: nextBook != nil ? nextBookDownload : nil
     )
 
     return NativeEndPagePresentation(

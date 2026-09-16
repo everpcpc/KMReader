@@ -6,6 +6,7 @@
   final class NativeEndPageContentView: NSView {
     private var previousBook: Book?
     private var nextBook: Book?
+    private var nextBookDownload: PendingNextBookDownload?
     private var readListContext: ReaderReadListContext?
     private var readingDirection: ReadingDirection = .ltr
     private var sectionDisplayMode: NativeEndPagePresentation.SectionDisplayMode = .both
@@ -42,6 +43,9 @@
     private let nextMetadataStack = NSStackView()
     private let nextTitleLabel = NSTextField(labelWithString: "")
     private let nextDetailLabel = NSTextField(labelWithString: "")
+    private let nextDownloadStack = NSStackView()
+    private let nextProgressView = NSProgressIndicator()
+    private let nextDownloadLabel = NSTextField(labelWithString: "")
     private let caughtUpStack = NSStackView()
     private let caughtUpIconView = NSImageView()
     private let caughtUpLabel = NSTextField(labelWithString: "")
@@ -113,10 +117,12 @@
       readingDirection: ReadingDirection,
       sectionDisplayMode: NativeEndPagePresentation.SectionDisplayMode = .both,
       renderConfig: ReaderRenderConfig,
+      nextBookDownload: PendingNextBookDownload? = nil,
       onDismiss: (() -> Void)?
     ) {
       self.previousBook = previousBook
       self.nextBook = nextBook
+      self.nextBookDownload = nextBookDownload
       self.readListContext = readListContext
       self.readingDirection = readingDirection
       self.sectionDisplayMode = sectionDisplayMode
@@ -204,6 +210,24 @@
       nextDetailLabel.lineBreakMode = .byTruncatingTail
       nextDetailLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
       nextMetadataStack.addArrangedSubview(nextDetailLabel)
+
+      nextDownloadStack.orientation = .vertical
+      nextDownloadStack.alignment = .centerX
+      nextDownloadStack.spacing = 6
+      nextDownloadStack.translatesAutoresizingMaskIntoConstraints = false
+      nextDownloadStack.widthAnchor.constraint(equalToConstant: 180).isActive = true
+      nextMetadataStack.addArrangedSubview(nextDownloadStack)
+
+      nextProgressView.style = .bar
+      nextProgressView.isIndeterminate = false
+      nextProgressView.minValue = 0
+      nextProgressView.maxValue = 1
+      nextDownloadStack.addArrangedSubview(nextProgressView)
+
+      nextDownloadLabel.alignment = .center
+      nextDownloadLabel.maximumNumberOfLines = 1
+      nextDownloadLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+      nextDownloadStack.addArrangedSubview(nextDownloadLabel)
 
       caughtUpStack.orientation = .horizontal
       caughtUpStack.alignment = .centerY
@@ -333,7 +357,8 @@
         previousBook: previousBook,
         nextBook: nextBook,
         readListContext: readListContext,
-        sectionDisplayMode: sectionDisplayMode
+        sectionDisplayMode: sectionDisplayMode,
+        nextBookDownload: nextBookDownload
       )
       let relationTitle = presentation.relationTitle
 
@@ -349,6 +374,7 @@
       nextBadgeLabel.font = metrics.badgeFont
       nextTitleLabel.font = metrics.titleFont
       nextDetailLabel.font = metrics.detailFont
+      nextDownloadLabel.font = metrics.detailFont
       caughtUpLabel.font = NSFont.preferredFont(forTextStyle: .headline)
       dividerTitleLabel.font = NSFont.preferredFont(forTextStyle: .caption1)
 
@@ -358,6 +384,7 @@
       nextBadgeLabel.textColor = textColor.withAlphaComponent(0.55)
       nextTitleLabel.textColor = textColor
       nextDetailLabel.textColor = textColor.withAlphaComponent(0.6)
+      nextDownloadLabel.textColor = textColor.withAlphaComponent(0.6)
       caughtUpIconView.contentTintColor = textColor
       caughtUpLabel.textColor = textColor
       dividerTitleLabel.textColor = textColor.withAlphaComponent(0.8)
@@ -391,6 +418,7 @@
         nextTitleLabel.stringValue = presentation.next.title ?? ""
         nextDetailLabel.stringValue = presentation.next.detail ?? ""
         nextCoverView.configure(bookID: presentation.next.bookID)
+        applyNextDownload(presentation.next.nextBookDownload)
       } else {
         nextContainer.isHidden = true
         nextBadgeLabel.isHidden = true
@@ -401,6 +429,7 @@
         nextTitleLabel.stringValue = ""
         nextDetailLabel.stringValue = ""
         nextCoverView.configure(bookID: nil)
+        applyNextDownload(nil)
       }
 
       EndPageCloseButtonStyle.apply(to: closeButton, textColor: textColor)
@@ -536,6 +565,20 @@
 
     @objc private func handleClose() {
       onDismiss?()
+    }
+
+    private func applyNextDownload(_ download: PendingNextBookDownload?) {
+      nextDownloadStack.isHidden = download == nil
+      guard let download else { return }
+      if let progress = download.progress {
+        nextProgressView.isHidden = false
+        nextProgressView.doubleValue = progress
+        let percent = progress.formatted(.percent.precision(.fractionLength(0)))
+        nextDownloadLabel.stringValue = String(localized: "Downloading next book… \(percent)")
+      } else {
+        nextProgressView.isHidden = true
+        nextDownloadLabel.stringValue = String(localized: "Downloading next book…")
+      }
     }
   }
 #endif

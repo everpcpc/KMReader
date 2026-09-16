@@ -166,6 +166,7 @@
       weak var pressGesture: NSPressGestureRecognizer?
       private var sizeProbeTasks: [ReaderPageID: Task<Void, Never>] = [:]
       private var pendingMeasuredPageIDs: Set<ReaderPageID> = []
+      private var pagePresentationObserverToken: UUID?
 
       private struct ScrollAnchor {
         let pageID: ReaderPageID
@@ -202,6 +203,7 @@
       }
 
       func teardown() {
+        unregisterViewModelObservation()
         scrollController?.clearTarget(self)
         singleClickWorkItem?.cancel()
         singleClickWorkItem = nil
@@ -210,6 +212,41 @@
         sizeProbeTasks.removeAll()
         pendingMeasuredPageIDs.removeAll()
         NotificationCenter.default.removeObserver(self)
+      }
+
+      private func updateViewModelObservation(_ viewModel: ReaderViewModel) {
+        guard pagePresentationObserverToken == nil || self.viewModel !== viewModel else { return }
+        unregisterViewModelObservation()
+        pagePresentationObserverToken = viewModel.addPagePresentationInvalidationObserver {
+          [weak self] _ in
+          guard let self, let collectionView else { return }
+          self.refreshVisibleFooterCells(in: collectionView)
+        }
+      }
+
+      private func unregisterViewModelObservation() {
+        guard let token = pagePresentationObserverToken else { return }
+        viewModel?.removePagePresentationInvalidationObserver(token)
+        pagePresentationObserverToken = nil
+      }
+
+      private func refreshVisibleFooterCells(in collectionView: NSCollectionView) {
+        for indexPath in collectionView.indexPathsForVisibleItems() {
+          guard indexPath.item < scrollEngine.contentItems.count,
+            case .end(let segmentBookId) = scrollEngine.contentItems[indexPath.item],
+            let cell = collectionView.item(at: indexPath) as? WebtoonFooterCell
+          else {
+            continue
+          }
+          cell.readerBackground = readerBackground
+          cell.configure(
+            previousBook: viewModel?.endPagePreviousBook(forSegmentBookId: segmentBookId),
+            nextBook: viewModel?.nextBook(forSegmentBookId: segmentBookId),
+            readListContext: readListContext,
+            nextBookDownload: viewModel?.pendingNextBookDownload(forSegmentBookId: segmentBookId),
+            onDismiss: onDismiss
+          )
+        }
       }
 
       private func itemIndex(forPageID pageID: ReaderPageID?) -> Int? {
@@ -386,6 +423,7 @@
         renderConfig: ReaderRenderConfig
       ) {
         self.viewModel = viewModel
+        updateViewModelObservation(viewModel)
         self.readListContext = readListContext
         self.onDismiss = onDismiss
         self.onTapZoneTap = onTapZoneTap
@@ -423,19 +461,9 @@
           {
             cell.readerBackground = renderConfig.readerBackground
             cell.showPageNumber = renderConfig.showPageNumber
-          } else if let cell = collectionView.item(at: ip) as? WebtoonFooterCell,
-            ip.item < scrollEngine.contentItems.count,
-            case .end(let segmentBookId) = scrollEngine.contentItems[ip.item]
-          {
-            cell.readerBackground = renderConfig.readerBackground
-            cell.configure(
-              previousBook: viewModel.endPagePreviousBook(forSegmentBookId: segmentBookId),
-              nextBook: viewModel.nextBook(forSegmentBookId: segmentBookId),
-              readListContext: readListContext,
-              onDismiss: onDismiss
-            )
           }
         }
+        refreshVisibleFooterCells(in: collectionView)
 
         if !scrollEngine.hasScrolledToInitialPage && scrollEngine.itemCount > 0 && currentPageID != nil {
           scrollToInitialPage(currentPageID)
@@ -715,6 +743,7 @@
             previousBook: viewModel?.endPagePreviousBook(forSegmentBookId: segmentBookId),
             nextBook: viewModel?.nextBook(forSegmentBookId: segmentBookId),
             readListContext: readListContext,
+            nextBookDownload: viewModel?.pendingNextBookDownload(forSegmentBookId: segmentBookId),
             onDismiss: onDismiss
           )
           return cell

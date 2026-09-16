@@ -93,6 +93,7 @@
     func updateUIViewController(_ pageVC: UIPageViewController, context: Context) {
       context.coordinator.parent = self
       context.coordinator.pageViewController = pageVC
+      context.coordinator.updateViewModelObservation(viewModel)
       context.coordinator.applyDoubleTapRecognizerState()
       defer { context.coordinator.hasCompletedInitialUpdate = true }
 
@@ -139,6 +140,8 @@
       private var programmaticTransitionToken: Int?
       private var programmaticTargetItem: ReaderViewItem?
       private var transitionWatchdogTask: Task<Void, Never>?
+      private weak var observedViewModel: ReaderViewModel?
+      private var pagePresentationObserverToken: UUID?
 
       init(_ parent: CurlDualPageView) {
         self.parent = parent
@@ -529,6 +532,7 @@
       func teardown(pageViewController: UIPageViewController) {
         guard isActive else { return }
         isActive = false
+        unregisterViewModelObservation()
         transitionToken += 1
         isTransitioning = false
         hasCompletedInitialUpdate = false
@@ -556,6 +560,28 @@
         controllerIdentities.removeAllObjects()
         currentItem = nil
         self.pageViewController = nil
+      }
+
+      fileprivate func updateViewModelObservation(_ viewModel: ReaderViewModel) {
+        guard observedViewModel !== viewModel || pagePresentationObserverToken == nil else { return }
+        unregisterViewModelObservation()
+        observedViewModel = viewModel
+        pagePresentationObserverToken = viewModel.addPagePresentationInvalidationObserver {
+          [weak self] _ in
+          guard let self else { return }
+          self.refreshVisibleControllerConfiguration()
+        }
+      }
+
+      fileprivate func unregisterViewModelObservation() {
+        guard let observedViewModel, let pagePresentationObserverToken else {
+          self.observedViewModel = nil
+          self.pagePresentationObserverToken = nil
+          return
+        }
+        observedViewModel.removePagePresentationInvalidationObserver(pagePresentationObserverToken)
+        self.observedViewModel = nil
+        self.pagePresentationObserverToken = nil
       }
 
       private func beforeSpreadIndex(from spreadIndex: Int) -> Int {
@@ -739,6 +765,7 @@
           readingDirection: parent.readingDirection,
           sectionDisplayMode: sectionDisplayMode,
           renderConfig: parent.renderConfig,
+          nextBookDownload: parent.viewModel.pendingNextBookDownload(forSegmentBookId: segmentBookId),
           onDismiss: parent.onDismiss
         )
       }

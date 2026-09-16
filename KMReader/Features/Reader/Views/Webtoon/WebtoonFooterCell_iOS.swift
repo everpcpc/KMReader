@@ -14,6 +14,7 @@
 
     private var previousBook: Book?
     private var nextBook: Book?
+    private var nextBookDownload: PendingNextBookDownload?
     private var readListContext: ReaderReadListContext?
     private var onDismiss: (() -> Void)?
 
@@ -33,6 +34,9 @@
     private let nextBadgeLabel = UILabel()
     private let nextTitleLabel = UILabel()
     private let nextDetailLabel = UILabel()
+    private let nextDownloadStack = UIStackView()
+    private let nextProgressView = UIProgressView(progressViewStyle: .default)
+    private let nextDownloadLabel = UILabel()
     private let caughtUpLabel = UILabel()
     private let closeButton = UIButton(type: .system)
 
@@ -49,10 +53,12 @@
       previousBook: Book?,
       nextBook: Book?,
       readListContext: ReaderReadListContext?,
+      nextBookDownload: PendingNextBookDownload? = nil,
       onDismiss: (() -> Void)?
     ) {
       self.previousBook = previousBook
       self.nextBook = nextBook
+      self.nextBookDownload = nextBookDownload
       self.readListContext = readListContext
       self.onDismiss = onDismiss
       applyContent()
@@ -137,6 +143,20 @@
       nextDetailLabel.lineBreakMode = .byTruncatingTail
       nextBookStack.addArrangedSubview(nextDetailLabel)
 
+      nextDownloadStack.axis = .vertical
+      nextDownloadStack.alignment = .center
+      nextDownloadStack.spacing = 6
+      nextBookStack.addArrangedSubview(nextDownloadStack)
+
+      nextProgressView.translatesAutoresizingMaskIntoConstraints = false
+      nextProgressView.widthAnchor.constraint(equalToConstant: 180).isActive = true
+      nextDownloadStack.addArrangedSubview(nextProgressView)
+
+      nextDownloadLabel.numberOfLines = 1
+      nextDownloadLabel.textAlignment = .center
+      nextDownloadLabel.adjustsFontForContentSizeCategory = true
+      nextDownloadStack.addArrangedSubview(nextDownloadLabel)
+
       caughtUpLabel.numberOfLines = 0
       caughtUpLabel.textAlignment = .center
       caughtUpLabel.adjustsFontForContentSizeCategory = true
@@ -189,6 +209,7 @@
       nextBadgeLabel.font = preferredFont(textStyle: .caption1, weight: .semibold)
       nextTitleLabel.font = preferredFont(textStyle: .title3, design: .serif, weight: .bold)
       nextDetailLabel.font = .preferredFont(forTextStyle: .caption1)
+      nextDownloadLabel.font = .preferredFont(forTextStyle: .caption1)
       caughtUpLabel.font = .preferredFont(forTextStyle: .headline)
       previousBadgeLabel.textColor = textColor.withAlphaComponent(0.55)
       previousTitleLabel.textColor = textColor
@@ -199,6 +220,9 @@
       nextBadgeLabel.textColor = textColor.withAlphaComponent(0.55)
       nextTitleLabel.textColor = textColor
       nextDetailLabel.textColor = textColor.withAlphaComponent(0.6)
+      nextProgressView.progressTintColor = textColor
+      nextProgressView.trackTintColor = textColor.withAlphaComponent(0.2)
+      nextDownloadLabel.textColor = textColor.withAlphaComponent(0.6)
       caughtUpLabel.textColor = textColor
       EndPageCloseButtonStyle.apply(to: closeButton, textColor: textColor)
     }
@@ -222,6 +246,7 @@
         nextDetailLabel.isHidden = false
         nextTitleLabel.text = nextBook.readerChapterTitle
         nextDetailLabel.text = nextBook.readerChapterDetail
+        applyNextDownload(nextBookDownload)
       } else {
         closeButton.isHidden = false
         nextBadgeLabel.isHidden = true
@@ -229,11 +254,26 @@
         nextDetailLabel.isHidden = true
         nextTitleLabel.text = nil
         nextDetailLabel.text = nil
+        applyNextDownload(nil)
         caughtUpLabel.isHidden = false
         caughtUpLabel.text = String(localized: "You're all caught up!")
       }
 
       EndPageCloseButtonStyle.apply(to: closeButton, textColor: UIColor(readerBackground.contentColor))
+    }
+
+    private func applyNextDownload(_ download: PendingNextBookDownload?) {
+      nextDownloadStack.isHidden = download == nil
+      guard let download else { return }
+      if let progress = download.progress {
+        nextProgressView.isHidden = false
+        nextProgressView.setProgress(Float(progress), animated: true)
+        let percent = progress.formatted(.percent.precision(.fractionLength(0)))
+        nextDownloadLabel.text = String(localized: "Downloading next book… \(percent)")
+      } else {
+        nextProgressView.isHidden = true
+        nextDownloadLabel.text = String(localized: "Downloading next book…")
+      }
     }
 
     @objc private func handleClose() {

@@ -150,6 +150,7 @@
       private var deferredCleanupWorkItem: DispatchWorkItem?
       private var sizeProbeTasks: [ReaderPageID: Task<Void, Never>] = [:]
       private var pendingMeasuredPageIDs: Set<ReaderPageID> = []
+      private var pagePresentationObserverToken: UUID?
 
       private struct ScrollAnchor {
         let pageID: ReaderPageID
@@ -381,6 +382,7 @@
       ) {
         resetContentInsetsIfNeeded(for: collectionView)
         self.viewModel = viewModel
+        updateViewModelObservation(viewModel)
         self.readListContext = readListContext
         self.onDismiss = onDismiss
         self.onTapZoneTap = onTapZoneTap
@@ -417,20 +419,9 @@
           if let pageCell = cell as? WebtoonPageCell {
             pageCell.readerBackground = renderConfig.readerBackground
             pageCell.showPageNumber = renderConfig.showPageNumber
-          } else if let footerCell = cell as? WebtoonFooterCell,
-            let indexPath = collectionView.indexPath(for: footerCell),
-            indexPath.item < scrollEngine.contentItems.count,
-            case .end(let segmentBookId) = scrollEngine.contentItems[indexPath.item]
-          {
-            footerCell.readerBackground = renderConfig.readerBackground
-            footerCell.configure(
-              previousBook: viewModel.endPagePreviousBook(forSegmentBookId: segmentBookId),
-              nextBook: viewModel.nextBook(forSegmentBookId: segmentBookId),
-              readListContext: readListContext,
-              onDismiss: onDismiss
-            )
           }
         }
+        refreshVisibleFooterCells(in: collectionView)
 
         if !scrollEngine.hasScrolledToInitialPage, scrollEngine.itemCount > 0, currentPageID != nil {
           scrollToInitialPage(currentPageID)
@@ -608,11 +599,48 @@
       }
 
       func teardown() {
+        unregisterViewModelObservation()
         scrollController?.clearTarget(self)
         cancelDeferredMaintenance()
         sizeProbeTasks.values.forEach { $0.cancel() }
         sizeProbeTasks.removeAll()
         pendingMeasuredPageIDs.removeAll()
+      }
+
+      private func updateViewModelObservation(_ viewModel: ReaderViewModel) {
+        guard pagePresentationObserverToken == nil || self.viewModel !== viewModel else { return }
+        unregisterViewModelObservation()
+        pagePresentationObserverToken = viewModel.addPagePresentationInvalidationObserver {
+          [weak self] _ in
+          guard let self, let collectionView else { return }
+          self.refreshVisibleFooterCells(in: collectionView)
+        }
+      }
+
+      private func unregisterViewModelObservation() {
+        guard let token = pagePresentationObserverToken else { return }
+        viewModel?.removePagePresentationInvalidationObserver(token)
+        pagePresentationObserverToken = nil
+      }
+
+      private func refreshVisibleFooterCells(in collectionView: UICollectionView) {
+        for cell in collectionView.visibleCells {
+          guard let footerCell = cell as? WebtoonFooterCell,
+            let indexPath = collectionView.indexPath(for: footerCell),
+            indexPath.item < scrollEngine.contentItems.count,
+            case .end(let segmentBookId) = scrollEngine.contentItems[indexPath.item]
+          else {
+            continue
+          }
+          footerCell.readerBackground = readerBackground
+          footerCell.configure(
+            previousBook: viewModel?.endPagePreviousBook(forSegmentBookId: segmentBookId),
+            nextBook: viewModel?.nextBook(forSegmentBookId: segmentBookId),
+            readListContext: readListContext,
+            nextBookDownload: viewModel?.pendingNextBookDownload(forSegmentBookId: segmentBookId),
+            onDismiss: onDismiss
+          )
+        }
       }
 
       private func scheduleDeferredPendingReloadIfNeeded() {
@@ -735,6 +763,7 @@
             previousBook: viewModel?.endPagePreviousBook(forSegmentBookId: segmentBookId),
             nextBook: viewModel?.nextBook(forSegmentBookId: segmentBookId),
             readListContext: readListContext,
+            nextBookDownload: viewModel?.pendingNextBookDownload(forSegmentBookId: segmentBookId),
             onDismiss: onDismiss
           )
           return cell
