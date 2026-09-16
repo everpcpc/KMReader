@@ -214,9 +214,10 @@
       nextDownloadStack.orientation = .vertical
       nextDownloadStack.alignment = .centerX
       nextDownloadStack.spacing = 6
-      nextDownloadStack.translatesAutoresizingMaskIntoConstraints = false
-      nextDownloadStack.widthAnchor.constraint(equalToConstant: 180).isActive = true
-      nextMetadataStack.addArrangedSubview(nextDownloadStack)
+      nextDownloadStack.isHidden = true
+      // Overlay, not part of the section stack: toggling the download state
+      // must not re-lay out (and visibly shift) the end page content.
+      addSubview(nextDownloadStack)
 
       nextProgressView.style = .bar
       nextProgressView.isIndeterminate = false
@@ -228,6 +229,12 @@
       nextDownloadLabel.maximumNumberOfLines = 1
       nextDownloadLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
       nextDownloadStack.addArrangedSubview(nextDownloadLabel)
+
+      nextDownloadStack.translatesAutoresizingMaskIntoConstraints = false
+      NSLayoutConstraint.activate([
+        nextDownloadStack.centerXAnchor.constraint(equalTo: nextContainer.centerXAnchor),
+        nextDownloadStack.topAnchor.constraint(equalTo: nextContainer.bottomAnchor, constant: 8),
+      ])
 
       caughtUpStack.orientation = .horizontal
       caughtUpStack.alignment = .centerY
@@ -465,21 +472,28 @@
       switch presentation.layoutMode(for: bounds.size, readingDirection: readingDirection) {
       case .singlePrevious:
         sectionsStack.orientation = .vertical
+        sectionsStack.alignment = .centerX
         previousCoverView.isHidden = previousBook == nil
         setArrangedSubviews(of: sectionsStack, with: [previousContainer])
       case .singleNext:
         sectionsStack.orientation = .vertical
+        sectionsStack.alignment = .centerX
         previousCoverView.isHidden = true
         setArrangedSubviews(of: sectionsStack, with: [nextContainer])
       case .stacked:
         sectionsStack.orientation = .vertical
+        sectionsStack.alignment = .centerX
         previousCoverView.isHidden = true
         setArrangedSubviews(
           of: sectionsStack,
           with: [previousContainer, horizontalDividerStack, nextContainer]
         )
       case .sideBySide(let nextOnLeadingSide, _):
+        // Top-align the columns: the next-book side can grow a download
+        // progress row, and center alignment would lift its cover/title
+        // above the previous book's.
         sectionsStack.orientation = .horizontal
+        sectionsStack.alignment = .top
         previousCoverView.isHidden = previousBook == nil
         if nextOnLeadingSide {
           setArrangedSubviews(
