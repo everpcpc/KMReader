@@ -36,9 +36,12 @@
     private let nextDetailLabel = NSTextField(labelWithString: "")
     private let nextDownloadStack = NSStackView()
     private let nextStatusContainer = NSView()
+    private let nextProgressRow = NSStackView()
     private let nextProgressView = NSProgressIndicator()
-    private let nextReadyIconView = NSImageView()
     private let nextDownloadLabel = NSTextField(labelWithString: "")
+    private let nextReadyRow = NSStackView()
+    private let nextReadyIconView = NSImageView()
+    private let nextReadyLabel = NSTextField(labelWithString: "")
     private let caughtUpLabel = NSTextField(labelWithString: "")
 
     private let closeButton = NSButton()
@@ -152,22 +155,39 @@
       nextDownloadStack.widthAnchor.constraint(equalToConstant: 180).isActive = true
       nextBookStack.addArrangedSubview(nextDownloadStack)
 
-      // Fixed-height status row: the progress bar and the ready checkmark
-      // share one slot so every state keeps the exact same height.
+      // Fixed-height status row: downloading shows the progress bar with a
+      // short label, ready shows an inline checkmark + label. Every state
+      // keeps the exact same height so the footer layout never shifts.
       nextStatusContainer.translatesAutoresizingMaskIntoConstraints = false
-      nextStatusContainer.heightAnchor.constraint(equalToConstant: 18).isActive = true
+      nextStatusContainer.heightAnchor.constraint(equalToConstant: 20).isActive = true
       nextDownloadStack.addArrangedSubview(nextStatusContainer)
+      NSLayoutConstraint.activate([
+        nextStatusContainer.leadingAnchor.constraint(equalTo: nextDownloadStack.leadingAnchor),
+        nextStatusContainer.trailingAnchor.constraint(equalTo: nextDownloadStack.trailingAnchor),
+      ])
 
       nextProgressView.style = .bar
       nextProgressView.isIndeterminate = false
       nextProgressView.minValue = 0
       nextProgressView.maxValue = 1
       nextProgressView.translatesAutoresizingMaskIntoConstraints = false
-      nextStatusContainer.addSubview(nextProgressView)
+      nextProgressView.widthAnchor.constraint(equalToConstant: 110).isActive = true
+
+      nextDownloadLabel.alignment = .center
+      nextDownloadLabel.maximumNumberOfLines = 1
+      nextDownloadLabel.font = NSFont.preferredFont(forTextStyle: .caption1)
+      nextDownloadLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+      nextProgressRow.orientation = .horizontal
+      nextProgressRow.alignment = .centerY
+      nextProgressRow.spacing = 6
+      nextProgressRow.translatesAutoresizingMaskIntoConstraints = false
+      nextStatusContainer.addSubview(nextProgressRow)
+      nextProgressRow.addArrangedSubview(nextProgressView)
+      nextProgressRow.addArrangedSubview(nextDownloadLabel)
       NSLayoutConstraint.activate([
-        nextProgressView.leadingAnchor.constraint(equalTo: nextStatusContainer.leadingAnchor),
-        nextProgressView.trailingAnchor.constraint(equalTo: nextStatusContainer.trailingAnchor),
-        nextProgressView.centerYAnchor.constraint(equalTo: nextStatusContainer.centerYAnchor),
+        nextProgressRow.centerXAnchor.constraint(equalTo: nextStatusContainer.centerXAnchor),
+        nextProgressRow.centerYAnchor.constraint(equalTo: nextStatusContainer.centerYAnchor),
       ])
 
       nextReadyIconView.image = NSImage(
@@ -175,19 +195,28 @@
         accessibilityDescription: nil
       )
       nextReadyIconView.translatesAutoresizingMaskIntoConstraints = false
-      nextReadyIconView.alphaValue = 0
-      nextStatusContainer.addSubview(nextReadyIconView)
       NSLayoutConstraint.activate([
-        nextReadyIconView.centerXAnchor.constraint(equalTo: nextStatusContainer.centerXAnchor),
-        nextReadyIconView.centerYAnchor.constraint(equalTo: nextStatusContainer.centerYAnchor),
         nextReadyIconView.widthAnchor.constraint(equalToConstant: 16),
         nextReadyIconView.heightAnchor.constraint(equalToConstant: 16),
       ])
 
-      nextDownloadLabel.alignment = .center
-      nextDownloadLabel.maximumNumberOfLines = 1
-      nextDownloadLabel.font = NSFont.preferredFont(forTextStyle: .caption1)
-      nextDownloadStack.addArrangedSubview(nextDownloadLabel)
+      nextReadyLabel.alignment = .center
+      nextReadyLabel.maximumNumberOfLines = 1
+      nextReadyLabel.font = NSFont.preferredFont(forTextStyle: .caption1)
+      nextReadyLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+      nextReadyRow.orientation = .horizontal
+      nextReadyRow.alignment = .centerY
+      nextReadyRow.spacing = 4
+      nextReadyRow.alphaValue = 0
+      nextReadyRow.translatesAutoresizingMaskIntoConstraints = false
+      nextStatusContainer.addSubview(nextReadyRow)
+      nextReadyRow.addArrangedSubview(nextReadyIconView)
+      nextReadyRow.addArrangedSubview(nextReadyLabel)
+      NSLayoutConstraint.activate([
+        nextReadyRow.centerXAnchor.constraint(equalTo: nextStatusContainer.centerXAnchor),
+        nextReadyRow.centerYAnchor.constraint(equalTo: nextStatusContainer.centerYAnchor),
+      ])
 
       caughtUpLabel.alignment = .center
       caughtUpLabel.maximumNumberOfLines = 2
@@ -246,6 +275,7 @@
       nextTitleLabel.textColor = textColor
       nextDetailLabel.textColor = textColor.withAlphaComponent(0.6)
       nextDownloadLabel.textColor = textColor.withAlphaComponent(0.6)
+      nextReadyLabel.textColor = textColor.withAlphaComponent(0.6)
       nextReadyIconView.contentTintColor = textColor.withAlphaComponent(0.6)
       caughtUpLabel.textColor = textColor
       EndPageCloseButtonStyle.apply(to: closeButton, textColor: textColor)
@@ -298,22 +328,22 @@
       nextDownloadStack.alphaValue = 1
       // Alpha, never isHidden below this point: the reserved slot must keep
       // the exact same height in every state, or the footer layout shifts.
-      nextReadyIconView.alphaValue = 0
-      nextProgressView.alphaValue = 1
+      nextReadyRow.alphaValue = 0
+      nextProgressRow.alphaValue = 1
+      nextReadyLabel.stringValue = String(localized: "Ready for offline reading")
       switch state {
       case .downloading(_, let progress):
         if let progress {
+          nextProgressView.isHidden = false
           nextProgressView.doubleValue = progress
-          let percent = progress.formatted(.percent.precision(.fractionLength(0)))
-          nextDownloadLabel.stringValue = String(localized: "Downloading next book… \(percent)")
+          nextDownloadLabel.stringValue = progress.formatted(.percent.precision(.fractionLength(0)))
         } else {
-          nextProgressView.alphaValue = 0
+          nextProgressView.isHidden = true
           nextDownloadLabel.stringValue = String(localized: "Downloading next book…")
         }
       case .ready:
-        nextProgressView.alphaValue = 0
-        nextReadyIconView.alphaValue = 1
-        nextDownloadLabel.stringValue = String(localized: "Ready for offline reading")
+        nextProgressRow.alphaValue = 0
+        nextReadyRow.alphaValue = 1
       }
     }
 
