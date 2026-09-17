@@ -214,10 +214,12 @@
       nextDownloadStack.orientation = .vertical
       nextDownloadStack.alignment = .centerX
       nextDownloadStack.spacing = 6
-      nextDownloadStack.isHidden = true
-      // Overlay, not part of the section stack: toggling the download state
-      // must not re-lay out (and visibly shift) the end page content.
-      addSubview(nextDownloadStack)
+      // Reserved slot: always occupies its space so toggling the download
+      // state never re-lays out (and visibly shifts) the end page content.
+      nextDownloadStack.alphaValue = 0
+      nextDownloadStack.translatesAutoresizingMaskIntoConstraints = false
+      nextDownloadStack.widthAnchor.constraint(equalToConstant: 180).isActive = true
+      nextMetadataStack.addArrangedSubview(nextDownloadStack)
 
       nextProgressView.style = .bar
       nextProgressView.isIndeterminate = false
@@ -229,12 +231,6 @@
       nextDownloadLabel.maximumNumberOfLines = 1
       nextDownloadLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
       nextDownloadStack.addArrangedSubview(nextDownloadLabel)
-
-      nextDownloadStack.translatesAutoresizingMaskIntoConstraints = false
-      NSLayoutConstraint.activate([
-        nextDownloadStack.centerXAnchor.constraint(equalTo: nextContainer.centerXAnchor),
-        nextDownloadStack.topAnchor.constraint(equalTo: nextContainer.bottomAnchor, constant: 8),
-      ])
 
       caughtUpStack.orientation = .horizontal
       caughtUpStack.alignment = .centerY
@@ -582,7 +578,7 @@
     }
 
     private func applyNextDownload(_ download: PendingNextBookDownload?) {
-      nextDownloadStack.isHidden = download == nil
+      nextDownloadStack.alphaValue = download == nil ? 0 : 1
       guard let download else { return }
       if let progress = download.progress {
         nextProgressView.isHidden = false

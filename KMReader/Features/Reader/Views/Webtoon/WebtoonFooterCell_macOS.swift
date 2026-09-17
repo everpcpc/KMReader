@@ -142,10 +142,13 @@
       nextDownloadStack.orientation = .vertical
       nextDownloadStack.alignment = .centerX
       nextDownloadStack.spacing = 6
-      nextDownloadStack.isHidden = true
-      // Overlay pinned under the next-book block: the footer cell has a fixed
-      // height, so the download UI must not participate in the stack layout.
-      bottomRegionView.addSubview(nextDownloadStack)
+      // Reserved slot inside the stack: the footer has a fixed height, and
+      // the slot always occupies its space so the download state never
+      // re-lays out (and visibly shifts) the next-book block.
+      nextDownloadStack.alphaValue = 0
+      nextDownloadStack.translatesAutoresizingMaskIntoConstraints = false
+      nextDownloadStack.widthAnchor.constraint(equalToConstant: 180).isActive = true
+      nextBookStack.addArrangedSubview(nextDownloadStack)
 
       nextProgressView.style = .bar
       nextProgressView.isIndeterminate = false
@@ -157,12 +160,6 @@
       nextDownloadLabel.maximumNumberOfLines = 1
       nextDownloadLabel.font = NSFont.preferredFont(forTextStyle: .caption1)
       nextDownloadStack.addArrangedSubview(nextDownloadLabel)
-
-      nextDownloadStack.translatesAutoresizingMaskIntoConstraints = false
-      NSLayoutConstraint.activate([
-        nextDownloadStack.centerXAnchor.constraint(equalTo: bottomRegionView.centerXAnchor),
-        nextDownloadStack.topAnchor.constraint(equalTo: nextBookStack.bottomAnchor, constant: 8),
-      ])
 
       caughtUpLabel.alignment = .center
       caughtUpLabel.maximumNumberOfLines = 2
@@ -262,7 +259,7 @@
     }
 
     private func applyNextDownload(_ download: PendingNextBookDownload?) {
-      nextDownloadStack.isHidden = download == nil
+      nextDownloadStack.alphaValue = download == nil ? 0 : 1
       guard let download else { return }
       if let progress = download.progress {
         nextProgressView.isHidden = false
