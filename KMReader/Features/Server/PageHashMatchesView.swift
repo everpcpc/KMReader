@@ -93,7 +93,6 @@ struct PageHashMatchesView: View {
     }
   }
 
-
   private func deleteMatch(_ match: PageHashMatch) async {
     do {
       try await MediaManagementService.deleteMatchByHash(hash, match: match)
