@@ -106,6 +106,12 @@ def main():
     update_parser.add_argument("--zh-hans", help="Simplified Chinese translation")
     update_parser.add_argument("--zh-hant", help="Traditional Chinese translation")
 
+    # Remove command
+    remove_parser = subparsers.add_parser(
+        "remove", help="Remove a key and all its translations"
+    )
+    remove_parser.add_argument("key", help="The key to remove")
+
     args = parser.parse_args()
 
     project_root = get_project_root()
@@ -171,6 +177,15 @@ def main():
             eprint(f"Final translations list: {list(localizations.keys())}")
         else:
             eprint("No translations provided. Nothing updated.")
+
+    elif args.command == "remove":
+        key = args.key
+        if key not in data["strings"]:
+            eprint(f"Key '{key}' not found in strings. Nothing to remove.")
+            sys.exit(1)
+        del data["strings"][key]
+        save_data(file_path, data)
+        eprint(f"Removed key '{key}'. Remaining keys: {len(data['strings'])}")
 
     else:
         parser.print_help()

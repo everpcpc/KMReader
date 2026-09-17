@@ -204,7 +204,7 @@ format: ## Format Swift files with swift-format
 	@find . -name "*.swift" -not -path "./DerivedData/*" -not -path "./.build/*" -not -path "./packages/*" | xargs swift-format -i
 	@echo "$(GREEN)Formatted Swift files successfully!$(NC)"
 
-localize: ## Sync Localizable.xcstrings from stringsdata
+localize: build ## Sync Localizable.xcstrings from stringsdata (builds first so extracted strings are current)
 	@echo "$(GREEN)Syncing Localizable.xcstrings from stringsdata...$(NC)"
 	@python3 $(MISC_DIR)/localize.py
 	@echo "$(GREEN)Sync localizable strings successfully!$(NC)"

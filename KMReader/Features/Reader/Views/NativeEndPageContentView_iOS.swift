@@ -44,7 +44,9 @@
     private let nextTitleLabel = UILabel()
     private let nextDetailLabel = UILabel()
     private let nextDownloadStack = UIStackView()
+    private let nextStatusContainer = UIView()
     private let nextProgressView = UIProgressView(progressViewStyle: .default)
+    private let nextReadyIconView = UIImageView(image: UIImage(systemName: "checkmark.circle.fill"))
     private let nextDownloadLabel = UILabel()
     private let caughtUpStack = UIStackView()
     private let caughtUpIconView = UIImageView()
@@ -204,14 +206,36 @@
       nextDownloadStack.axis = .vertical
       nextDownloadStack.alignment = .center
       nextDownloadStack.spacing = 6
-      // Reserved slot: always occupies its space so toggling the download
-      // state never re-lays out (and visibly shifts) the end page content.
+      // Reserved slot (offline-first only): always occupies its space so
+      // toggling the download state never re-lays out the end page content.
       nextDownloadStack.alpha = 0
       nextMetadataStack.addArrangedSubview(nextDownloadStack)
 
+      // Fixed-height status row: the progress bar and the ready checkmark
+      // share one slot so every state keeps the exact same height.
+      nextStatusContainer.translatesAutoresizingMaskIntoConstraints = false
+      nextStatusContainer.heightAnchor.constraint(equalToConstant: 18).isActive = true
+      nextStatusContainer.widthAnchor.constraint(equalToConstant: 180).isActive = true
+      nextDownloadStack.addArrangedSubview(nextStatusContainer)
+
       nextProgressView.translatesAutoresizingMaskIntoConstraints = false
-      nextProgressView.widthAnchor.constraint(equalToConstant: 180).isActive = true
-      nextDownloadStack.addArrangedSubview(nextProgressView)
+      NSLayoutConstraint.activate([
+        nextProgressView.leadingAnchor.constraint(equalTo: nextStatusContainer.leadingAnchor),
+        nextProgressView.trailingAnchor.constraint(equalTo: nextStatusContainer.trailingAnchor),
+        nextProgressView.centerYAnchor.constraint(equalTo: nextStatusContainer.centerYAnchor),
+      ])
+      nextStatusContainer.addSubview(nextProgressView)
+
+      nextReadyIconView.translatesAutoresizingMaskIntoConstraints = false
+      nextReadyIconView.contentMode = .scaleAspectFit
+      nextReadyIconView.alpha = 0
+      nextStatusContainer.addSubview(nextReadyIconView)
+      NSLayoutConstraint.activate([
+        nextReadyIconView.centerXAnchor.constraint(equalTo: nextStatusContainer.centerXAnchor),
+        nextReadyIconView.centerYAnchor.constraint(equalTo: nextStatusContainer.centerYAnchor),
+        nextReadyIconView.widthAnchor.constraint(equalToConstant: 16),
+        nextReadyIconView.heightAnchor.constraint(equalToConstant: 16),
+      ])
 
       nextDownloadLabel.numberOfLines = 1
       nextDownloadLabel.textAlignment = .center
@@ -384,6 +408,7 @@
       nextDetailLabel.textColor = textColor.withAlphaComponent(0.6)
       nextProgressView.progressTintColor = textColor
       nextProgressView.trackTintColor = textColor.withAlphaComponent(0.2)
+      nextReadyIconView.tintColor = textColor.withAlphaComponent(0.6)
       nextDownloadLabel.textColor = textColor.withAlphaComponent(0.6)
       caughtUpIconView.tintColor = textColor
       caughtUpLabel.textColor = textColor
@@ -627,13 +652,17 @@
     }
 
     private func applyNextDownload(_ state: NextBookOfflineState?) {
-      guard let state else {
+      // Streaming readers never download ahead: collapse the slot entirely
+      // instead of leaving a permanent empty band under the next book.
+      nextDownloadStack.isHidden = !AppConfig.offlineFirstReading
+      guard AppConfig.offlineFirstReading, let state else {
         nextDownloadStack.alpha = 0
         return
       }
       nextDownloadStack.alpha = 1
-      // Alpha, never isHidden: the reserved slot must keep the exact same
-      // height in every state, or the end page layout would shift.
+      // Alpha, never isHidden below this point: the reserved slot must keep
+      // the exact same height in every state, or the end page layout shifts.
+      nextReadyIconView.alpha = 0
       nextProgressView.alpha = 1
       switch state {
       case .downloading(_, let progress):
@@ -647,7 +676,8 @@
         }
       case .ready:
         nextProgressView.alpha = 0
-        nextDownloadLabel.text = String(localized: "✓ Ready for offline reading")
+        nextReadyIconView.alpha = 1
+        nextDownloadLabel.text = String(localized: "Ready for offline reading")
       }
     }
   }
