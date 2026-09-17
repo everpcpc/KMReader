@@ -234,12 +234,12 @@
       nextProgressView.minValue = 0
       nextProgressView.maxValue = 1
       nextProgressView.translatesAutoresizingMaskIntoConstraints = false
+      nextStatusContainer.addSubview(nextProgressView)
       NSLayoutConstraint.activate([
         nextProgressView.leadingAnchor.constraint(equalTo: nextStatusContainer.leadingAnchor),
         nextProgressView.trailingAnchor.constraint(equalTo: nextStatusContainer.trailingAnchor),
         nextProgressView.centerYAnchor.constraint(equalTo: nextStatusContainer.centerYAnchor),
       ])
-      nextStatusContainer.addSubview(nextProgressView)
 
       nextReadyIconView.image = NSImage(
         systemSymbolName: "checkmark.circle.fill",
