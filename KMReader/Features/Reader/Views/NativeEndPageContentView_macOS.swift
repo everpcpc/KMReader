@@ -6,7 +6,7 @@
   final class NativeEndPageContentView: NSView {
     private var previousBook: Book?
     private var nextBook: Book?
-    private var nextBookDownload: PendingNextBookDownload?
+    private var nextBookOfflineState: NextBookOfflineState?
     private var readListContext: ReaderReadListContext?
     private var readingDirection: ReadingDirection = .ltr
     private var sectionDisplayMode: NativeEndPagePresentation.SectionDisplayMode = .both
@@ -117,12 +117,12 @@
       readingDirection: ReadingDirection,
       sectionDisplayMode: NativeEndPagePresentation.SectionDisplayMode = .both,
       renderConfig: ReaderRenderConfig,
-      nextBookDownload: PendingNextBookDownload? = nil,
+      nextBookOfflineState: NextBookOfflineState? = nil,
       onDismiss: (() -> Void)?
     ) {
       self.previousBook = previousBook
       self.nextBook = nextBook
-      self.nextBookDownload = nextBookDownload
+      self.nextBookOfflineState = nextBookOfflineState
       self.readListContext = readListContext
       self.readingDirection = readingDirection
       self.sectionDisplayMode = sectionDisplayMode
@@ -361,7 +361,7 @@
         nextBook: nextBook,
         readListContext: readListContext,
         sectionDisplayMode: sectionDisplayMode,
-        nextBookDownload: nextBookDownload
+        nextBookOfflineState: nextBookOfflineState
       )
       let relationTitle = presentation.relationTitle
 
@@ -421,7 +421,7 @@
         nextTitleLabel.stringValue = presentation.next.title ?? ""
         nextDetailLabel.stringValue = presentation.next.detail ?? ""
         nextCoverView.configure(bookID: presentation.next.bookID)
-        applyNextDownload(presentation.next.nextBookDownload)
+        applyNextDownload(presentation.next.nextBookOfflineState)
       } else {
         nextContainer.isHidden = true
         nextBadgeLabel.isHidden = true
@@ -577,17 +577,28 @@
       onDismiss?()
     }
 
-    private func applyNextDownload(_ download: PendingNextBookDownload?) {
-      nextDownloadStack.alphaValue = download == nil ? 0 : 1
-      guard let download else { return }
-      if let progress = download.progress {
-        nextProgressView.isHidden = false
-        nextProgressView.doubleValue = progress
-        let percent = progress.formatted(.percent.precision(.fractionLength(0)))
-        nextDownloadLabel.stringValue = String(localized: "Downloading next book… \(percent)")
-      } else {
-        nextProgressView.isHidden = true
-        nextDownloadLabel.stringValue = String(localized: "Downloading next book…")
+    private func applyNextDownload(_ state: NextBookOfflineState?) {
+      guard let state else {
+        nextDownloadStack.alphaValue = 0
+        return
+      }
+      nextDownloadStack.alphaValue = 1
+      // Alpha, never isHidden: the reserved slot must keep the exact same
+      // height in every state, or the end page layout would shift.
+      nextProgressView.alphaValue = 1
+      switch state {
+      case .downloading(_, let progress):
+        if let progress {
+          nextProgressView.doubleValue = progress
+          let percent = progress.formatted(.percent.precision(.fractionLength(0)))
+          nextDownloadLabel.stringValue = String(localized: "Downloading next book… \(percent)")
+        } else {
+          nextProgressView.alphaValue = 0
+          nextDownloadLabel.stringValue = String(localized: "Downloading next book…")
+        }
+      case .ready:
+        nextProgressView.alphaValue = 0
+        nextDownloadLabel.stringValue = String(localized: "✓ Ready for offline reading")
       }
     }
   }
