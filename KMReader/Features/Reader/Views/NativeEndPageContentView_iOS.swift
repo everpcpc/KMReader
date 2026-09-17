@@ -219,12 +219,12 @@
       nextDownloadStack.addArrangedSubview(nextStatusContainer)
 
       nextProgressView.translatesAutoresizingMaskIntoConstraints = false
+      nextStatusContainer.addSubview(nextProgressView)
       NSLayoutConstraint.activate([
         nextProgressView.leadingAnchor.constraint(equalTo: nextStatusContainer.leadingAnchor),
         nextProgressView.trailingAnchor.constraint(equalTo: nextStatusContainer.trailingAnchor),
         nextProgressView.centerYAnchor.constraint(equalTo: nextStatusContainer.centerYAnchor),
       ])
-      nextStatusContainer.addSubview(nextProgressView)
 
       nextReadyIconView.translatesAutoresizingMaskIntoConstraints = false
       nextReadyIconView.contentMode = .scaleAspectFit
