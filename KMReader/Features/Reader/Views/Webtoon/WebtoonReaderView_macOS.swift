@@ -243,7 +243,7 @@
             previousBook: viewModel?.endPagePreviousBook(forSegmentBookId: segmentBookId),
             nextBook: viewModel?.nextBook(forSegmentBookId: segmentBookId),
             readListContext: readListContext,
-            nextBookDownload: viewModel?.pendingNextBookDownload(forSegmentBookId: segmentBookId),
+            nextBookOfflineState: viewModel?.nextBookOfflineState(forSegmentBookId: segmentBookId),
             onDismiss: onDismiss
           )
         }
@@ -743,7 +743,7 @@
             previousBook: viewModel?.endPagePreviousBook(forSegmentBookId: segmentBookId),
             nextBook: viewModel?.nextBook(forSegmentBookId: segmentBookId),
             readListContext: readListContext,
-            nextBookDownload: viewModel?.pendingNextBookDownload(forSegmentBookId: segmentBookId),
+            nextBookOfflineState: viewModel?.nextBookOfflineState(forSegmentBookId: segmentBookId),
             onDismiss: onDismiss
           )
           return cell

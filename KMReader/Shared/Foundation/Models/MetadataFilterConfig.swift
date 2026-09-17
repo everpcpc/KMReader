@@ -59,7 +59,7 @@ nonisolated struct MetadataFilterConfig: Equatable, RawRepresentable, Sendable {
   /// Check if any filter is active
   var hasAnyFilter: Bool {
     return publishers != nil || authors != nil || genres != nil || tags != nil || languages != nil
-    || ageRatings != nil || releaseYears != nil
+      || ageRatings != nil || releaseYears != nil
   }
 
   var rawValue: String {

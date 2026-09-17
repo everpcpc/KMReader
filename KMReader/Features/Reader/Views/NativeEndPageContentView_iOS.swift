@@ -6,7 +6,7 @@
   final class NativeEndPageContentView: UIView {
     private var previousBook: Book?
     private var nextBook: Book?
-    private var nextBookDownload: PendingNextBookDownload?
+    private var nextBookOfflineState: NextBookOfflineState?
     private var readListContext: ReaderReadListContext?
     private var readingDirection: ReadingDirection = .ltr
     private var sectionDisplayMode: NativeEndPagePresentation.SectionDisplayMode = .both
@@ -44,7 +44,9 @@
     private let nextTitleLabel = UILabel()
     private let nextDetailLabel = UILabel()
     private let nextDownloadStack = UIStackView()
+    private let nextStatusContainer = UIView()
     private let nextProgressView = UIProgressView(progressViewStyle: .default)
+    private let nextReadyIconView = UIImageView(image: UIImage(systemName: "checkmark.circle.fill"))
     private let nextDownloadLabel = UILabel()
     private let caughtUpStack = UIStackView()
     private let caughtUpIconView = UIImageView()
@@ -95,12 +97,12 @@
       readingDirection: ReadingDirection,
       sectionDisplayMode: NativeEndPagePresentation.SectionDisplayMode = .both,
       renderConfig: ReaderRenderConfig,
-      nextBookDownload: PendingNextBookDownload? = nil,
+      nextBookOfflineState: NextBookOfflineState? = nil,
       onDismiss: (() -> Void)?
     ) {
       self.previousBook = previousBook
       self.nextBook = nextBook
-      self.nextBookDownload = nextBookDownload
+      self.nextBookOfflineState = nextBookOfflineState
       self.readListContext = readListContext
       self.readingDirection = readingDirection
       self.sectionDisplayMode = sectionDisplayMode
@@ -204,26 +206,42 @@
       nextDownloadStack.axis = .vertical
       nextDownloadStack.alignment = .center
       nextDownloadStack.spacing = 6
-      nextDownloadStack.isHidden = true
-      // Overlay, not part of the section stack: toggling the download state
-      // must not re-lay out (and visibly shift) the end page content.
-      addSubview(nextDownloadStack)
+      // Reserved slot (offline-first only): always occupies its space so
+      // toggling the download state never re-lays out the end page content.
+      nextDownloadStack.alpha = 0
+      nextMetadataStack.addArrangedSubview(nextDownloadStack)
+
+      // Fixed-height status row: the progress bar and the ready checkmark
+      // share one slot so every state keeps the exact same height.
+      nextStatusContainer.translatesAutoresizingMaskIntoConstraints = false
+      nextStatusContainer.heightAnchor.constraint(equalToConstant: 18).isActive = true
+      nextStatusContainer.widthAnchor.constraint(equalToConstant: 180).isActive = true
+      nextDownloadStack.addArrangedSubview(nextStatusContainer)
 
       nextProgressView.translatesAutoresizingMaskIntoConstraints = false
-      nextProgressView.widthAnchor.constraint(equalToConstant: 180).isActive = true
-      nextDownloadStack.addArrangedSubview(nextProgressView)
+      NSLayoutConstraint.activate([
+        nextProgressView.leadingAnchor.constraint(equalTo: nextStatusContainer.leadingAnchor),
+        nextProgressView.trailingAnchor.constraint(equalTo: nextStatusContainer.trailingAnchor),
+        nextProgressView.centerYAnchor.constraint(equalTo: nextStatusContainer.centerYAnchor),
+      ])
+      nextStatusContainer.addSubview(nextProgressView)
+
+      nextReadyIconView.translatesAutoresizingMaskIntoConstraints = false
+      nextReadyIconView.contentMode = .scaleAspectFit
+      nextReadyIconView.alpha = 0
+      nextStatusContainer.addSubview(nextReadyIconView)
+      NSLayoutConstraint.activate([
+        nextReadyIconView.centerXAnchor.constraint(equalTo: nextStatusContainer.centerXAnchor),
+        nextReadyIconView.centerYAnchor.constraint(equalTo: nextStatusContainer.centerYAnchor),
+        nextReadyIconView.widthAnchor.constraint(equalToConstant: 16),
+        nextReadyIconView.heightAnchor.constraint(equalToConstant: 16),
+      ])
 
       nextDownloadLabel.numberOfLines = 1
       nextDownloadLabel.textAlignment = .center
       nextDownloadLabel.adjustsFontForContentSizeCategory = true
       NativeEndPageLayoutMetrics.protectVerticalText(nextDownloadLabel)
       nextDownloadStack.addArrangedSubview(nextDownloadLabel)
-
-      nextDownloadStack.translatesAutoresizingMaskIntoConstraints = false
-      NSLayoutConstraint.activate([
-        nextDownloadStack.centerXAnchor.constraint(equalTo: nextContainer.centerXAnchor),
-        nextDownloadStack.topAnchor.constraint(equalTo: nextContainer.bottomAnchor, constant: 8),
-      ])
 
       caughtUpStack.axis = .horizontal
       caughtUpStack.alignment = .center
@@ -362,7 +380,7 @@
         nextBook: nextBook,
         readListContext: readListContext,
         sectionDisplayMode: sectionDisplayMode,
-        nextBookDownload: nextBookDownload
+        nextBookOfflineState: nextBookOfflineState
       )
       let relationTitle = presentation.relationTitle
 
@@ -390,6 +408,7 @@
       nextDetailLabel.textColor = textColor.withAlphaComponent(0.6)
       nextProgressView.progressTintColor = textColor
       nextProgressView.trackTintColor = textColor.withAlphaComponent(0.2)
+      nextReadyIconView.tintColor = textColor.withAlphaComponent(0.6)
       nextDownloadLabel.textColor = textColor.withAlphaComponent(0.6)
       caughtUpIconView.tintColor = textColor
       caughtUpLabel.textColor = textColor
@@ -429,7 +448,7 @@
         nextCoverView.configure(bookID: presentation.next.bookID)
         nextTitleLabel.text = presentation.next.title
         nextDetailLabel.text = presentation.next.detail
-        applyNextDownload(presentation.next.nextBookDownload)
+        applyNextDownload(presentation.next.nextBookOfflineState)
       } else {
         nextContainer.isHidden = true
         nextBadgeLabel.isHidden = true
@@ -632,17 +651,33 @@
       onDismiss?()
     }
 
-    private func applyNextDownload(_ download: PendingNextBookDownload?) {
-      nextDownloadStack.isHidden = download == nil
-      guard let download else { return }
-      if let progress = download.progress {
-        nextProgressView.isHidden = false
-        nextProgressView.setProgress(Float(progress), animated: true)
-        let percent = progress.formatted(.percent.precision(.fractionLength(0)))
-        nextDownloadLabel.text = String(localized: "Downloading next book… \(percent)")
-      } else {
-        nextProgressView.isHidden = true
-        nextDownloadLabel.text = String(localized: "Downloading next book…")
+    private func applyNextDownload(_ state: NextBookOfflineState?) {
+      // Streaming readers never download ahead: collapse the slot entirely
+      // instead of leaving a permanent empty band under the next book.
+      nextDownloadStack.isHidden = !AppConfig.offlineFirstReading
+      guard AppConfig.offlineFirstReading, let state else {
+        nextDownloadStack.alpha = 0
+        return
+      }
+      nextDownloadStack.alpha = 1
+      // Alpha, never isHidden below this point: the reserved slot must keep
+      // the exact same height in every state, or the end page layout shifts.
+      nextReadyIconView.alpha = 0
+      nextProgressView.alpha = 1
+      switch state {
+      case .downloading(_, let progress):
+        if let progress {
+          nextProgressView.setProgress(Float(progress), animated: true)
+          let percent = progress.formatted(.percent.precision(.fractionLength(0)))
+          nextDownloadLabel.text = String(localized: "Downloading next book… \(percent)")
+        } else {
+          nextProgressView.alpha = 0
+          nextDownloadLabel.text = String(localized: "Downloading next book…")
+        }
+      case .ready:
+        nextProgressView.alpha = 0
+        nextReadyIconView.alpha = 1
+        nextDownloadLabel.text = String(localized: "Ready for offline reading")
       }
     }
   }

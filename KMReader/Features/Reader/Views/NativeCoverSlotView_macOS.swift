@@ -193,7 +193,7 @@
           readListContext: readListContext,
           readingDirection: readingDirection,
           renderConfig: renderConfig,
-          nextBookDownload: viewModel.pendingNextBookDownload(forSegmentBookId: id.bookId),
+          nextBookOfflineState: viewModel.nextBookOfflineState(forSegmentBookId: id.bookId),
           onDismiss: onDismiss
         )
         return

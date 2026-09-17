@@ -765,7 +765,7 @@
           readingDirection: parent.readingDirection,
           sectionDisplayMode: sectionDisplayMode,
           renderConfig: parent.renderConfig,
-          nextBookDownload: parent.viewModel.pendingNextBookDownload(forSegmentBookId: segmentBookId),
+          nextBookOfflineState: parent.viewModel.nextBookOfflineState(forSegmentBookId: segmentBookId),
           onDismiss: parent.onDismiss
         )
       }

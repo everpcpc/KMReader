@@ -27,9 +27,10 @@ class ReaderViewModel {
   var loadingDetail = String(localized: "Resolving page metadata")
   var loadingProgress: Double?
   var isDismissing = false
-  /// Next-book download currently blocking a segment preload (offline-first mode).
-  /// Surfaced on the end page so a slow download never looks like a dead tap.
-  private(set) var pendingNextBookDownload: PendingNextBookDownload?
+  /// Offline readiness of the next book relative to the segment being read.
+  /// Surfaced on the end page so a slow download never looks like a dead tap,
+  /// and a finished download reads as "ready" instead of going blank.
+  private(set) var nextBookOfflineState: NextBookOfflineState?
   var incognitoMode: Bool = false
   var isZoomed: Bool = false
 
@@ -383,16 +384,20 @@ class ReaderViewModel {
     return segments[segmentIndex].nextBook
   }
 
-  /// Download state for the segment's next book, non-nil only while a
-  /// next-segment preload is blocked waiting for that download (offline-first).
-  func pendingNextBookDownload(forSegmentBookId bookId: String) -> PendingNextBookDownload? {
-    guard let pendingNextBookDownload,
-      let nextBook = nextBook(forSegmentBookId: bookId),
-      nextBook.id == pendingNextBookDownload.bookId
+  /// Offline state for the segment's next book: live download progress while a
+  /// next-segment preload is blocked, then "ready" once it is available offline
+  /// (also when it was already downloaded before the preload ran).
+  func nextBookOfflineState(forSegmentBookId bookId: String) -> NextBookOfflineState? {
+    guard let nextBookOfflineState,
+      let nextBook = nextBook(forSegmentBookId: bookId)
     else {
       return nil
     }
-    return pendingNextBookDownload
+    switch nextBookOfflineState {
+    case .downloading(let stateBookId, _), .ready(let stateBookId):
+      guard nextBook.id == stateBookId else { return nil }
+    }
+    return nextBookOfflineState
   }
 
   func currentBook(forSegmentBookId bookId: String) -> Book? {
@@ -779,7 +784,7 @@ class ReaderViewModel {
     currentPageID = nil
     currentViewItemID = nil
     navigationTarget = nil
-    pendingNextBookDownload = nil
+    nextBookOfflineState = nil
     readerPagesVersion &+= 1
   }
 
@@ -944,10 +949,12 @@ class ReaderViewModel {
       if updatesLoadingState {
         updateLoadingProgress(ReaderLoadingProgress.complete)
         updateLoadingDetail(String(localized: "Using downloaded book files"))
+      } else {
+        updateNextBookOfflineState(.ready(bookId: book.id))
       }
       return
     }
-    defer { clearPendingNextBookDownload(bookId: book.id) }
+    defer { clearDownloadingNextBook(bookId: book.id) }
 
     if AppConfig.isOffline {
       throw AppErrorType.networkUnavailable
@@ -965,7 +972,7 @@ class ReaderViewModel {
         instanceId: AppConfig.current.instanceId,
         info: downloadInfo
       )
-      updatePendingNextBookDownload(bookId: book.id, progress: nil)
+      updateNextBookOfflineState(.downloading(bookId: book.id, progress: nil))
     case .downloaded:
       updateLoadingProgress(ReaderLoadingProgress.complete)
       updateLoadingDetail(String(localized: "Using downloaded book files"))
@@ -983,6 +990,8 @@ class ReaderViewModel {
         if updatesLoadingState {
           updateLoadingProgress(ReaderLoadingProgress.complete)
           updateLoadingDetail(String(localized: "Using downloaded book files"))
+        } else {
+          updateNextBookOfflineState(.ready(bookId: book.id))
         }
         return
       case .failed(let error):
@@ -993,7 +1002,7 @@ class ReaderViewModel {
         )
       case .pending:
         let progress = DownloadProgressTracker.shared.progress[book.id]
-        updatePendingNextBookDownload(bookId: book.id, progress: progress)
+        updateNextBookOfflineState(.downloading(bookId: book.id, progress: progress))
         if updatesLoadingState,
           let progress
         {
@@ -1018,16 +1027,22 @@ class ReaderViewModel {
     }
   }
 
-  private func updatePendingNextBookDownload(bookId: String, progress: Double?) {
-    let state = PendingNextBookDownload(bookId: bookId, progress: progress)
-    guard pendingNextBookDownload != state else { return }
-    pendingNextBookDownload = state
+  private func updateNextBookOfflineState(_ state: NextBookOfflineState) {
+    guard nextBookOfflineState != state else { return }
+    nextBookOfflineState = state
     notifyPagePresentationInvalidation(.all)
   }
 
-  private func clearPendingNextBookDownload(bookId: String) {
-    guard pendingNextBookDownload?.bookId == bookId else { return }
-    pendingNextBookDownload = nil
+  /// Clears a stale in-flight download marker on the preload error paths. A
+  /// published `.ready` state is kept: the end page should keep showing
+  /// "ready" until the reader moves on to another book.
+  private func clearDownloadingNextBook(bookId: String) {
+    guard case .downloading(let stateBookId, _) = nextBookOfflineState,
+      stateBookId == bookId
+    else {
+      return
+    }
+    nextBookOfflineState = nil
     notifyPagePresentationInvalidation(.all)
   }
 
