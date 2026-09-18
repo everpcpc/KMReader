@@ -113,9 +113,9 @@ struct SeriesCardView: View {
               Text("\(item.booksCount) books")
                 .lineLimit(1)
             }
-            if item.downloadStatus != .notDownloaded {
+            if let icon = item.downloadStatus.icon {
               Spacer()
-              Image(systemName: item.downloadStatus.icon)
+              Image(systemName: icon)
                 .foregroundColor(item.downloadStatus.color)
                 .font(.caption2)
             }
@@ -162,9 +162,9 @@ struct SeriesCardView: View {
           Text("\(item.booksCount) books")
             .lineLimit(1)
         }
-        if item.downloadStatus != .notDownloaded {
+        if let icon = item.downloadStatus.icon {
           Spacer()
-          Image(systemName: item.downloadStatus.icon)
+          Image(systemName: icon)
             .foregroundColor(item.downloadStatus.color)
             .font(.caption2)
         }

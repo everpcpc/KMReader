@@ -7,7 +7,7 @@ import SwiftUI
 
 struct OfflineProtectionStatusChip: View {
   let label: String
-  let systemImage: String
+  let systemImage: String?
   let backgroundColor: Color
   let foregroundColor: Color
   let sources: [OfflineProtectionSource]
@@ -29,8 +29,10 @@ struct OfflineProtectionStatusChip: View {
         }
       } label: {
         HStack(spacing: 5) {
-          Image(systemName: systemImage)
-            .font(.caption2)
+          if let systemImage {
+            Image(systemName: systemImage)
+              .font(.caption2)
+          }
           Text(label)
             .font(.caption)
             .lineLimit(1)

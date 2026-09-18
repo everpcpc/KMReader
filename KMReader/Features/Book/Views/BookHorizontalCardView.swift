@@ -238,9 +238,9 @@ struct BookHorizontalCardView: View {
         }
         Text(progress == 1 ? completedMetaText : "\(item.mediaPagesCount) pages")
       }
-      if item.downloadStatus != .notDownloaded {
+      if let icon = item.downloadStatus.displayIcon {
         Spacer()
-        Image(systemName: item.downloadStatus.displayIcon)
+        Image(systemName: icon)
           .foregroundColor(item.downloadStatus.displayColor)
           .font(.system(tertiaryTextStyle))
       }
