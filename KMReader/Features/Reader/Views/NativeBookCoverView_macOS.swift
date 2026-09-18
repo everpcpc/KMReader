@@ -4,7 +4,7 @@
   @MainActor
   final class NativeBookCoverView: NSView {
     private let coverContainerView = NSView()
-    private let coverImageView = NSImageView()
+    private let coverImageView = NativeBookCoverImageView()
     private let sepiaOverlayView = NSView()
 
     private var coverImageTask: Task<Void, Never>?
@@ -39,11 +39,6 @@
       fatalError("init(coder:) has not been implemented")
     }
 
-    override func layout() {
-      super.layout()
-      updateCoverImageDecoration()
-    }
-
     deinit {
       coverImageTask?.cancel()
     }
@@ -68,6 +63,9 @@
       coverImageView.imageScaling = .scaleProportionallyUpOrDown
       coverImageView.wantsLayer = true
       coverImageView.layer?.masksToBounds = true
+      coverImageView.onDidLayout = { [weak self] in
+        self?.updateCoverImageDecoration()
+      }
       coverContainerView.addSubview(coverImageView)
 
       sepiaOverlayView.translatesAutoresizingMaskIntoConstraints = false
@@ -120,7 +118,7 @@
         coverContainerView.layer?.shadowOpacity = 0
         coverContainerView.layer?.shadowPath = nil
         failedCoverImageBookID = nil
-        needsLayout = true
+        coverImageView.needsLayout = true
         return
       }
 
@@ -150,7 +148,7 @@
     private func updateRenderedCoverImage() {
       coverImageView.image = sourceCoverImage
       updateSepiaOverlay()
-      needsLayout = true
+      coverImageView.needsLayout = true
     }
 
     private func updateCoverImageDecoration() {
