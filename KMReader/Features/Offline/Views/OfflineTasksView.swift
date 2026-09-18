@@ -346,27 +346,17 @@ struct OfflineTaskRow: View {
         Text("#\(task.metaNumber) - \(task.metaTitle)")
           .lineLimit(1)
 
-        if task.isPending || task.isDownloading {
-          if let progress = progress {
-            if progress >= 1 {
-              Text(postDownloadStatusText)
+        if task.isPending || task.isDownloading, let progress = progress {
+          if progress >= 1 {
+            Text(postDownloadStatusText)
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          } else {
+            ProgressView(value: progress) {
+              Text("Downloading \(progress.formatted(.percent.precision(.fractionLength(0))))")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            } else {
-              ProgressView(value: progress) {
-                Text("Downloading \(progress.formatted(.percent.precision(.fractionLength(0))))")
-                  .font(.caption)
-                  .foregroundStyle(.secondary)
-              }
             }
-          } else {
-            Text(
-              task.isDownloading
-                ? String(localized: "Downloading")
-                : String(localized: "Pending in queue...")
-            )
-            .font(.caption)
-            .foregroundColor(.secondary)
           }
         } else if case .failed(let error) = task.downloadStatus {
           Text(error)
