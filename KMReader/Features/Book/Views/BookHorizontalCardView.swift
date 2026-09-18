@@ -34,8 +34,8 @@ struct BookHorizontalCardView: View {
     isCoverTinted ? .white.opacity(0.65) : .secondary
   }
 
-  /// Compact density shows the title on a single line so the card height can
-  /// actually shrink with the cover instead of being held up by reserved text space.
+  /// Compact density caps the title at a single line so the card height can
+  /// shrink with the cover instead of being held up by a second title line.
   private var titleLineLimit: Int {
     gridDensity < GridDensity.standard.rawValue ? 1 : 2
   }
@@ -137,7 +137,7 @@ struct BookHorizontalCardView: View {
           Text(bookTitleLine)
             .font(.system(titleTextStyle))
             .foregroundColor(item.isCompleted ? secondaryTextColor : primaryTextColor)
-            .lineLimit(titleLineLimit, reservesSpace: true)
+            .lineLimit(titleLineLimit)
             .multilineTextAlignment(.leading)
 
           Spacer(minLength: 2)

@@ -62,7 +62,7 @@ struct CollectionSeriesListView: View {
                 isSelectionMode = true
               }
             } label: {
-              Image(systemName: "square.and.pencil")
+              Image(systemName: "checkmark.circle")
             }
             .adaptiveButtonStyle(.borderedProminent)
             .optimizedControlSize()

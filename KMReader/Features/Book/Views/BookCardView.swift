@@ -12,6 +12,7 @@ struct BookCardView: View {
   var onDeleteRequested: (() -> Void)? = nil
   var showSeriesTitle: Bool = false
   var showSeriesNavigation: Bool = true
+  var showUnreadIndicator: Bool = true
 
   @AppStorage("showBookCardSeriesTitle") private var showBookCardSeriesTitle: Bool = true
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
@@ -79,7 +80,7 @@ struct BookCardView: View {
             }
           }
 
-          if item.isUnread && thumbnailShowUnreadIndicator {
+          if item.isUnread && thumbnailShowUnreadIndicator && showUnreadIndicator {
             UnreadIndicator()
               .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
           }

@@ -9,6 +9,7 @@ struct SeriesCardView: View {
   let item: SeriesDisplayItem
   var onMutationCompleted: (() -> Void)? = nil
   var onDeleteRequested: (() -> Void)? = nil
+  var showUnreadIndicator: Bool = true
 
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
   @AppStorage("cardTextOverlayMode") private var cardTextOverlayMode: Bool = false
@@ -56,7 +57,7 @@ struct SeriesCardView: View {
               overlayTextContent
             }
           }
-          if thumbnailShowUnreadIndicator && item.booksUnreadCount > 0 {
+          if thumbnailShowUnreadIndicator && showUnreadIndicator && item.booksUnreadCount > 0 {
             VStack(alignment: .trailing) {
               UnreadCountBadge(count: item.booksUnreadCount)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)

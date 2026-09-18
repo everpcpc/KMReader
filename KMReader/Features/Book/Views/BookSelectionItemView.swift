@@ -36,15 +36,8 @@ struct BookSelectionItemView: View {
   }
 
   var body: some View {
-    selectionContent
+    selectionBody
       .allowsHitTesting(false)
-      .scaleEffect(isSelected ? 0.96 : 1.0)
-      .overlay {
-        if isSelected {
-          RoundedRectangle(cornerRadius: 12)
-            .stroke(Color.accentColor, lineWidth: 2)
-        }
-      }
       .animation(.default, value: isSelected)
       .contentShape(Rectangle())
       .highPriorityGesture(
@@ -67,6 +60,22 @@ struct BookSelectionItemView: View {
   }
 
   @ViewBuilder
+  private var selectionBody: some View {
+    switch layout {
+    case .grid:
+      selectionContent
+        .overlay(alignment: .topLeading) {
+          SelectionBadge(isSelected: isSelected, onCover: true)
+        }
+    case .list:
+      HStack(spacing: 12) {
+        SelectionBadge(isSelected: isSelected)
+        selectionContent
+      }
+    }
+  }
+
+  @ViewBuilder
   private var selectionContent: some View {
     if let item {
       switch layout {
@@ -74,7 +83,8 @@ struct BookSelectionItemView: View {
         BookCardView(
           item: item,
           onReadBook: { _ in },
-          showSeriesTitle: showSeriesTitle
+          showSeriesTitle: showSeriesTitle,
+          showUnreadIndicator: false
         )
       case .list:
         BookRowView(
