@@ -35,6 +35,12 @@
 
       for recognizer in pageViewController.gestureRecognizers {
         recognizer.delegate = context.coordinator
+        if recognizer is UIPanGestureRecognizer {
+          recognizer.addTarget(
+            context.coordinator,
+            action: #selector(Coordinator.handlePagePanGesture(_:))
+          )
+        }
         if recognizer is UITapGestureRecognizer {
           recognizer.isEnabled = false
         }
@@ -109,6 +115,17 @@
         pageViewController.delegate = self
       }
 
+      // UIKit fires willTransitionTo only once a curl actually starts, so a
+      // programmatic setViewControllers landing during the pan's
+      // pre-transition window corrupts the gesture and crashes the next
+      // _handlePanGesture validation. Treat an active pan like a transition.
+      private var isPanGestureActive: Bool {
+        pageViewController?.gestureRecognizers.contains { recognizer in
+          guard let pan = recognizer as? UIPanGestureRecognizer else { return false }
+          return pan.state == .began || pan.state == .changed
+        } ?? false
+      }
+
       func installInitialControllers(on pageViewController: UIPageViewController) {
         guard isCurrentAttachment(pageViewController) else { return }
 
@@ -155,7 +172,7 @@
 
         let newSnapshot = PageCurlViewItemsSnapshot(items: parent.viewModel.viewItems)
         var didInstallSnapshot = false
-        if isTransitioning {
+        if isTransitioning || isPanGestureActive {
           pendingSnapshot = newSnapshot == renderedSnapshot ? nil : newSnapshot
         } else if newSnapshot != renderedSnapshot {
           applySnapshot(
@@ -166,7 +183,7 @@
           didInstallSnapshot = true
         }
 
-        guard !isTransitioning else { return }
+        guard !isTransitioning, !isPanGestureActive else { return }
         if !didInstallSnapshot {
           refreshVisibleControllerConfiguration()
         }
@@ -187,8 +204,13 @@
 
         pageViewController.dataSource = nil
         pageViewController.delegate = nil
-        for recognizer in pageViewController.gestureRecognizers where recognizer.delegate === self {
-          recognizer.delegate = nil
+        for recognizer in pageViewController.gestureRecognizers {
+          if recognizer is UIPanGestureRecognizer {
+            recognizer.removeTarget(self, action: #selector(handlePagePanGesture(_:)))
+          }
+          if recognizer.delegate === self {
+            recognizer.delegate = nil
+          }
         }
 
         let ownedRecognizers: [UIGestureRecognizer?] = [
@@ -491,7 +513,7 @@
       }
 
       private func refreshVisibleControllerConfiguration() {
-        guard !isTransitioning else { return }
+        guard !isTransitioning, !isPanGestureActive else { return }
         guard let pageViewController else { return }
         guard let visibleController = pageViewController.viewControllers?.first else { return }
         guard let visibleItem = identity(for: visibleController)?.item,
@@ -528,7 +550,7 @@
       }
 
       private func processNavigationTarget(on pageViewController: UIPageViewController) {
-        guard isCurrentAttachment(pageViewController), !isTransitioning else { return }
+        guard isCurrentAttachment(pageViewController), !isTransitioning, !isPanGestureActive else { return }
         guard let requestedTarget = parent.viewModel.navigationTarget else { return }
         guard !renderedSnapshot.isEmpty else { return }
 
@@ -766,7 +788,17 @@
           synchronizeCurrentAnchorWithVisibleController()
         }
 
+        if !isPanGestureActive {
+          applyPendingSnapshotIfNeeded(on: pageViewController)
+          scheduleNavigationContinuation(consuming: nil, on: pageViewController)
+        }
+      }
+
+      @objc fileprivate func handlePagePanGesture(_ pan: UIPanGestureRecognizer) {
+        guard pan.state == .ended || pan.state == .cancelled || pan.state == .failed else { return }
+        guard !isTransitioning, !isPanGestureActive, let pageViewController else { return }
         applyPendingSnapshotIfNeeded(on: pageViewController)
+        refreshVisibleControllerConfiguration()
         scheduleNavigationContinuation(consuming: nil, on: pageViewController)
       }
 
