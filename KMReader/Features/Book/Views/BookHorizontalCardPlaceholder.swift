@@ -21,6 +21,8 @@ struct BookHorizontalCardPlaceholder: View {
         .frame(width: coverWidth)
 
       VStack(alignment: .leading, spacing: 2) {
+        Spacer(minLength: 0)
+
         placeholderLine(
           textStyle: LayoutConfig.horizontalCardSecondaryTextStyle(for: gridDensity),
           text: "Series Title", widthScale: 0.45, opacity: 0.18)
