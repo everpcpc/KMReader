@@ -794,7 +794,7 @@
         }
       }
 
-      @objc private func handlePagePanGesture(_ pan: UIPanGestureRecognizer) {
+      @objc fileprivate func handlePagePanGesture(_ pan: UIPanGestureRecognizer) {
         guard pan.state == .ended || pan.state == .cancelled || pan.state == .failed else { return }
         guard !isTransitioning, !isPanGestureActive, let pageViewController else { return }
         applyPendingSnapshotIfNeeded(on: pageViewController)

@@ -14,8 +14,8 @@
       let descriptor = fontDescriptor.addingAttributes([
         UIFontDescriptor.AttributeName.featureSettings: [
           [
-            UIFontDescriptor.FeatureKey.featureIdentifier: kNumberSpacingType,
-            UIFontDescriptor.FeatureKey.typeIdentifier: kMonospacedNumbersSelector,
+            UIFontDescriptor.FeatureKey(kCTFontFeatureTypeIdentifierKey): kNumberSpacingType,
+            UIFontDescriptor.FeatureKey(kCTFontFeatureSelectorIdentifierKey): kMonospacedNumbersSelector,
           ]
         ]
       ])

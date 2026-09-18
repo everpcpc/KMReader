@@ -192,7 +192,7 @@
       // programmatic setViewControllers landing during the pan's
       // pre-transition window corrupts the gesture and crashes the next
       // _handlePanGesture validation. Treat an active pan like a transition.
-      private var isPanGestureActive: Bool {
+      fileprivate var isPanGestureActive: Bool {
         pageViewController?.gestureRecognizers.contains { recognizer in
           guard let pan = recognizer as? UIPanGestureRecognizer else { return false }
           return pan.state == .began || pan.state == .changed
@@ -1098,7 +1098,7 @@
 
       @objc private func handleLongPress(_: UILongPressGestureRecognizer) {}
 
-      @objc private func handlePagePanGesture(_ pan: UIPanGestureRecognizer) {
+      @objc fileprivate func handlePagePanGesture(_ pan: UIPanGestureRecognizer) {
         guard pan.state == .ended || pan.state == .cancelled || pan.state == .failed else { return }
         guard !isTransitioning, !isPanGestureActive, let pageViewController else { return }
         let anchor = currentPositionAnchor()
