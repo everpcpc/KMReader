@@ -119,6 +119,9 @@ struct BookHorizontalCardView: View {
         .frame(width: coverWidth)
 
         VStack(alignment: .leading, spacing: 2) {
+          // Balances the Spacer above bottomBar so series/title center in the slack.
+          Spacer(minLength: 0)
+
           if item.oneshot {
             Text("Oneshot")
               .font(.system(secondaryTextStyle))
