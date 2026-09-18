@@ -100,7 +100,7 @@ struct OfflineDownloadedBookGroupView: View {
 
         Spacer()
         if book.isReadCompleted {
-          Image(systemName: "checkmark.circle.fill")
+          Image(systemName: "checkmark.circle")
             .font(.caption)
             .foregroundColor(.secondary)
         }

@@ -232,7 +232,7 @@ struct BookHorizontalCardView: View {
           Text("•")
         }
         if progress == 1 {
-          Image(systemName: "checkmark.circle.fill")
+          Image(systemName: "checkmark.circle")
             .foregroundColor(secondaryTextColor)
             .font(.system(tertiaryTextStyle))
         }
@@ -240,8 +240,7 @@ struct BookHorizontalCardView: View {
       }
       if let icon = item.downloadStatus.displayIcon {
         Spacer()
-        Image(systemName: icon)
-          .foregroundColor(item.downloadStatus.displayColor)
+        DownloadStatusIcon(systemName: icon, spinning: item.downloadStatus.isPending)
           .font(.system(tertiaryTextStyle))
       }
     }

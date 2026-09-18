@@ -107,7 +107,7 @@ struct SeriesCardView: View {
                 Text("•")
               }
               if progress == 1 {
-                Image(systemName: "checkmark.circle.fill")
+                Image(systemName: "checkmark.circle")
                   .foregroundColor(.secondary)
                   .font(.caption2)
               }
@@ -116,8 +116,7 @@ struct SeriesCardView: View {
             }
             if let icon = item.downloadStatus.icon {
               Spacer()
-              Image(systemName: icon)
-                .foregroundColor(item.downloadStatus.color)
+              DownloadStatusIcon(systemName: icon, spinning: item.downloadStatus.isPending)
                 .font(.caption2)
             }
           }
@@ -156,7 +155,7 @@ struct SeriesCardView: View {
             Text("•")
           }
           if progress == 1 {
-            Image(systemName: "checkmark.circle.fill")
+            Image(systemName: "checkmark.circle")
               .foregroundColor(style.secondaryColor)
               .font(.caption2)
           }
@@ -165,8 +164,7 @@ struct SeriesCardView: View {
         }
         if let icon = item.downloadStatus.icon {
           Spacer()
-          Image(systemName: icon)
-            .foregroundColor(item.downloadStatus.color)
+          DownloadStatusIcon(systemName: icon, spinning: item.downloadStatus.isPending)
             .font(.caption2)
         }
       }

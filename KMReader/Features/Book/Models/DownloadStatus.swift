@@ -34,24 +34,11 @@ nonisolated enum DownloadStatus: Equatable, Sendable {
     case .notDownloaded:
       return nil
     case .pending:
-      return "arrow.clockwise.icloud.fill"
+      return "arrow.clockwise"
     case .downloaded:
       return "checkmark.icloud.fill"
     case .failed:
-      return "exclamationmark.icloud.fill"
-    }
-  }
-
-  var displayColor: Color {
-    switch self {
-    case .notDownloaded:
-      return .secondary
-    case .pending:
-      return .orange
-    case .downloaded:
-      return .green
-    case .failed:
-      return .red
+      return "exclamationmark.circle.fill"
     }
   }
 
