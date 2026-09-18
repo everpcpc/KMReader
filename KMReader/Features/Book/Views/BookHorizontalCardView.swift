@@ -240,8 +240,10 @@ struct BookHorizontalCardView: View {
       }
       if let icon = item.downloadStatus.displayIcon {
         Spacer()
-        DownloadStatusIcon(systemName: icon, spinning: item.downloadStatus.isPending)
-          .font(.system(tertiaryTextStyle))
+        DownloadStatusIcon(
+          systemName: icon, spinning: item.downloadStatus.isPending, color: secondaryTextColor
+        )
+        .font(.system(tertiaryTextStyle))
       }
     }
     .font(.system(secondaryTextStyle))

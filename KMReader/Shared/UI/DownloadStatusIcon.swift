@@ -8,13 +8,14 @@ import SwiftUI
 struct DownloadStatusIcon: View {
   let systemName: String
   let spinning: Bool
+  var color: Color = .secondary
 
   var body: some View {
     if spinning {
       spinningContent
     } else {
       Image(systemName: systemName)
-        .foregroundColor(.secondary)
+        .foregroundColor(color)
     }
   }
 
@@ -23,12 +24,12 @@ struct DownloadStatusIcon: View {
     if #available(iOS 18.0, macOS 15.0, tvOS 18.0, *) {
       Image(systemName: systemName)
         .symbolEffect(.rotate)
-        .foregroundColor(.secondary)
+        .foregroundColor(color)
     } else {
       // Older OSes get a real spinner: symbolEffect(.rotate) is iOS 18+.
       ProgressView()
         .controlSize(.mini)
-        .tint(.secondary)
+        .tint(color)
     }
   }
 }

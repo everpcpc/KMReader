@@ -164,8 +164,10 @@ struct SeriesCardView: View {
         }
         if let icon = item.downloadStatus.icon {
           Spacer()
-          DownloadStatusIcon(systemName: icon, spinning: item.downloadStatus.isPending)
-            .font(.caption2)
+          DownloadStatusIcon(
+            systemName: icon, spinning: item.downloadStatus.isPending, color: style.secondaryColor
+          )
+          .font(.caption2)
         }
       }
     }

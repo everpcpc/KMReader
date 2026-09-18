@@ -213,8 +213,10 @@ struct BookCardView: View {
         }
         if let icon = downloadIcon, !showProgressBar {
           Spacer()
-          DownloadStatusIcon(systemName: icon, spinning: item.downloadStatus.isPending)
-            .font(.caption2)
+          DownloadStatusIcon(
+            systemName: icon, spinning: item.downloadStatus.isPending, color: style.secondaryColor
+          )
+          .font(.caption2)
         }
       }
     } progress: {
@@ -224,8 +226,11 @@ struct BookCardView: View {
             .padding(.top, 2)
             .layoutPriority(1)
           if let icon = downloadIcon {
-            DownloadStatusIcon(systemName: icon, spinning: item.downloadStatus.isPending)
-              .font(.caption2)
+            DownloadStatusIcon(
+              systemName: icon, spinning: item.downloadStatus.isPending,
+              color: style.secondaryColor
+            )
+            .font(.caption2)
           }
         }
       }
