@@ -41,13 +41,6 @@ struct ReadStatusSelectionToolbar: View {
       }
       .adaptiveButtonStyle(.bordered)
 
-      if selectedCount > 0 {
-        Text("\(selectedCount) / \(totalCount)")
-          .font(.footnote)
-          .foregroundStyle(.secondary)
-          .transition(.opacity)
-      }
-
       Spacer()
 
       Button {
@@ -55,7 +48,7 @@ struct ReadStatusSelectionToolbar: View {
       } label: {
         Image(systemName: "checkmark.circle")
       }
-      .adaptiveButtonStyle(.borderedProminent)
+      .adaptiveButtonStyle(.bordered)
       .disabled(submitDisabled)
       .accessibilityLabel(String(localized: "Mark Read"))
 
@@ -64,7 +57,7 @@ struct ReadStatusSelectionToolbar: View {
       } label: {
         Image(systemName: "circle")
       }
-      .adaptiveButtonStyle(.borderedProminent)
+      .adaptiveButtonStyle(.bordered)
       .disabled(submitDisabled)
       .accessibilityLabel(String(localized: "Mark Unread"))
 
