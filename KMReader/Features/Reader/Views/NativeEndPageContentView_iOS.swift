@@ -45,7 +45,7 @@
     private let nextDetailLabel = UILabel()
     private let nextDownloadStack = UIStackView()
     private let nextStatusContainer = UIView()
-    private let nextProgressRow = UIStackView()
+    private let nextProgressRow = UIView()
     private let nextProgressView = UIProgressView(progressViewStyle: .default)
     private let nextDownloadLabel = UILabel()
     private let nextReadyRow = UIStackView()
@@ -54,6 +54,7 @@
     private let caughtUpStack = UIStackView()
     private let caughtUpIconView = UIImageView()
     private let caughtUpLabel = UILabel()
+    private var lastAppliedProgress: Float?
 
     private let horizontalDividerStack = UIStackView()
     private let leadingDivider = UIView()
@@ -225,26 +226,37 @@
         nextStatusContainer.trailingAnchor.constraint(equalTo: nextDownloadStack.trailingAnchor),
       ])
 
-      nextProgressRow.axis = .horizontal
-      nextProgressRow.alignment = .center
-      nextProgressRow.spacing = 6
+      // The bar anchors the row at a fixed centered position with the label
+      // trailing it, so per-tick text updates never move the bar.
       nextProgressRow.translatesAutoresizingMaskIntoConstraints = false
       nextStatusContainer.addSubview(nextProgressRow)
       NSLayoutConstraint.activate([
-        nextProgressRow.centerXAnchor.constraint(equalTo: nextStatusContainer.centerXAnchor),
-        nextProgressRow.centerYAnchor.constraint(equalTo: nextStatusContainer.centerYAnchor),
+        nextProgressRow.leadingAnchor.constraint(equalTo: nextStatusContainer.leadingAnchor),
+        nextProgressRow.trailingAnchor.constraint(equalTo: nextStatusContainer.trailingAnchor),
+        nextProgressRow.topAnchor.constraint(equalTo: nextStatusContainer.topAnchor),
+        nextProgressRow.bottomAnchor.constraint(equalTo: nextStatusContainer.bottomAnchor),
       ])
 
       nextProgressView.translatesAutoresizingMaskIntoConstraints = false
-      nextProgressRow.addArrangedSubview(nextProgressView)
-      nextProgressView.widthAnchor.constraint(equalToConstant: 110).isActive = true
+      nextProgressRow.addSubview(nextProgressView)
+      NSLayoutConstraint.activate([
+        nextProgressView.centerXAnchor.constraint(equalTo: nextProgressRow.centerXAnchor),
+        nextProgressView.centerYAnchor.constraint(equalTo: nextProgressRow.centerYAnchor),
+        nextProgressView.widthAnchor.constraint(equalToConstant: 110),
+      ])
 
       nextDownloadLabel.numberOfLines = 1
-      nextDownloadLabel.textAlignment = .center
+      nextDownloadLabel.textAlignment = .natural
       nextDownloadLabel.adjustsFontForContentSizeCategory = true
       nextDownloadLabel.lineBreakMode = .byTruncatingTail
       NativeEndPageLayoutMetrics.protectVerticalText(nextDownloadLabel)
-      nextProgressRow.addArrangedSubview(nextDownloadLabel)
+      nextDownloadLabel.translatesAutoresizingMaskIntoConstraints = false
+      nextProgressRow.addSubview(nextDownloadLabel)
+      NSLayoutConstraint.activate([
+        nextDownloadLabel.leadingAnchor.constraint(equalTo: nextProgressView.trailingAnchor, constant: 6),
+        nextDownloadLabel.trailingAnchor.constraint(lessThanOrEqualTo: nextProgressRow.trailingAnchor),
+        nextDownloadLabel.centerYAnchor.constraint(equalTo: nextProgressView.centerYAnchor),
+      ])
 
       nextReadyRow.axis = .horizontal
       nextReadyRow.alignment = .center
@@ -425,7 +437,7 @@
       nextBadgeLabel.font = metrics.badgeFont
       nextTitleLabel.font = metrics.titleFont
       nextDetailLabel.font = metrics.detailFont
-      nextDownloadLabel.font = metrics.detailFont
+      nextDownloadLabel.font = metrics.detailFont.withMonospacedDigits
       nextReadyLabel.font = metrics.detailFont
       caughtUpLabel.font = .preferredFont(forTextStyle: .headline)
       dividerTitleLabel.font = .preferredFont(forTextStyle: .caption1)
@@ -688,6 +700,7 @@
       nextDownloadStack.isHidden = !AppConfig.offlineFirstReading
       guard AppConfig.offlineFirstReading, let state else {
         nextDownloadStack.alpha = 0
+        lastAppliedProgress = nil
         return
       }
       nextDownloadStack.alpha = 1
@@ -699,14 +712,23 @@
       switch state {
       case .downloading(_, let progress):
         if let progress {
-          nextProgressView.isHidden = false
-          nextProgressView.setProgress(Float(progress), animated: true)
+          let target = Float(progress)
+          // Duplicate reconfigures would restart the progress animation, so
+          // only advance the bar when the value actually changes.
+          if target != lastAppliedProgress {
+            lastAppliedProgress = target
+            nextProgressView.setProgress(target, animated: true)
+          }
           nextDownloadLabel.text = progress.formatted(.percent.precision(.fractionLength(0)))
         } else {
-          nextProgressView.isHidden = true
+          if lastAppliedProgress != nil {
+            lastAppliedProgress = nil
+            nextProgressView.setProgress(0, animated: false)
+          }
           nextDownloadLabel.text = String(localized: "Downloading next book…")
         }
       case .ready:
+        lastAppliedProgress = nil
         nextProgressRow.alpha = 0
         nextReadyRow.alpha = 1
       }

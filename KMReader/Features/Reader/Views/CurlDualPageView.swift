@@ -49,6 +49,12 @@
 
       for recognizer in pageVC.gestureRecognizers {
         recognizer.delegate = context.coordinator
+        if recognizer is UIPanGestureRecognizer {
+          recognizer.addTarget(
+            context.coordinator,
+            action: #selector(Coordinator.handlePagePanGesture(_:))
+          )
+        }
         if recognizer is UITapGestureRecognizer {
           recognizer.isEnabled = false
         }
@@ -107,7 +113,7 @@
         PageCurlViewItemsSnapshot(items: viewModel.viewItems),
         preferredAnchor: viewModel.captureCurrentPositionAnchor()
       )
-      guard !context.coordinator.isTransitioning else { return }
+      guard !context.coordinator.isTransitioning, !context.coordinator.isPanGestureActive else { return }
       context.coordinator.refreshVisibleControllerConfiguration()
       context.coordinator.processNavigationTarget(
         on: pageVC,
@@ -182,6 +188,17 @@
         viewItemsSnapshot.count
       }
 
+      // UIKit fires willTransitionTo only once a curl actually starts, so a
+      // programmatic setViewControllers landing during the pan's
+      // pre-transition window corrupts the gesture and crashes the next
+      // _handlePanGesture validation. Treat an active pan like a transition.
+      private var isPanGestureActive: Bool {
+        pageViewController?.gestureRecognizers.contains { recognizer in
+          guard let pan = recognizer as? UIPanGestureRecognizer else { return false }
+          return pan.state == .began || pan.state == .changed
+        } ?? false
+      }
+
       @discardableResult
       func updateViewItemsSnapshot(
         _ snapshot: PageCurlViewItemsSnapshot,
@@ -191,7 +208,7 @@
           pendingViewItemsSnapshot = nil
           return false
         }
-        guard !isTransitioning else {
+        guard !isTransitioning, !isPanGestureActive else {
           pendingViewItemsSnapshot = snapshot
           return false
         }
@@ -281,7 +298,9 @@
         on pageViewController: UIPageViewController,
         restoreModelPosition: Bool = false
       ) {
-        guard isActive, self.pageViewController === pageViewController, !isTransitioning else {
+        guard isActive, self.pageViewController === pageViewController, !isTransitioning,
+          !isPanGestureActive
+        else {
           return
         }
 
@@ -549,8 +568,13 @@
 
         pageViewController.dataSource = nil
         pageViewController.delegate = nil
-        for recognizer in pageViewController.gestureRecognizers where recognizer.delegate === self {
-          recognizer.delegate = nil
+        for recognizer in pageViewController.gestureRecognizers {
+          if recognizer is UIPanGestureRecognizer {
+            recognizer.removeTarget(self, action: #selector(handlePagePanGesture(_:)))
+          }
+          if recognizer.delegate === self {
+            recognizer.delegate = nil
+          }
         }
         for recognizer in installedTapRecognizers {
           recognizer.view?.removeGestureRecognizer(recognizer)
@@ -897,7 +921,7 @@
       }
 
       func refreshVisibleControllerConfiguration() {
-        guard !isTransitioning else { return }
+        guard !isTransitioning, !isPanGestureActive else { return }
         guard let pageViewController else { return }
         guard let visibleControllers = pageViewController.viewControllers else { return }
         guard let spreadIndex = resolvedVisibleSpreadIndex() ?? currentResolvedSpreadIndex() else { return }
@@ -1073,6 +1097,15 @@
       @objc private func handleDoubleTap(_: UITapGestureRecognizer) {}
 
       @objc private func handleLongPress(_: UILongPressGestureRecognizer) {}
+
+      @objc private func handlePagePanGesture(_ pan: UIPanGestureRecognizer) {
+        guard pan.state == .ended || pan.state == .cancelled || pan.state == .failed else { return }
+        guard !isTransitioning, !isPanGestureActive, let pageViewController else { return }
+        let anchor = currentPositionAnchor()
+        applyPendingViewItemsSnapshot(preferredAnchor: anchor)
+        refreshVisibleControllerConfiguration()
+        scheduleNavigationContinuation(consuming: nil, on: pageViewController)
+      }
 
       private var isTapZoneSuppressed: Bool {
         isTransitioning

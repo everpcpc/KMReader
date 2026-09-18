@@ -36,7 +36,7 @@
     private let nextDetailLabel = NSTextField(labelWithString: "")
     private let nextDownloadStack = NSStackView()
     private let nextStatusContainer = NSView()
-    private let nextProgressRow = NSStackView()
+    private let nextProgressRow = NSView()
     private let nextProgressView = NSProgressIndicator()
     private let nextDownloadLabel = NSTextField(labelWithString: "")
     private let nextReadyRow = NSStackView()
@@ -45,6 +45,7 @@
     private let caughtUpLabel = NSTextField(labelWithString: "")
 
     private let closeButton = NSButton()
+    private var lastAppliedProgress: Double?
 
     override func loadView() {
       view = NSView()
@@ -152,7 +153,7 @@
       // state never re-lays out (and visibly shifts) the next-book block.
       nextDownloadStack.alphaValue = 0
       nextDownloadStack.translatesAutoresizingMaskIntoConstraints = false
-      nextDownloadStack.widthAnchor.constraint(equalToConstant: 180).isActive = true
+      nextDownloadStack.widthAnchor.constraint(equalToConstant: 240).isActive = true
       nextBookStack.addArrangedSubview(nextDownloadStack)
 
       // Fixed-height status row: downloading shows the progress bar with a
@@ -171,23 +172,30 @@
       nextProgressView.minValue = 0
       nextProgressView.maxValue = 1
       nextProgressView.translatesAutoresizingMaskIntoConstraints = false
-      nextProgressView.widthAnchor.constraint(equalToConstant: 110).isActive = true
 
-      nextDownloadLabel.alignment = .center
+      nextDownloadLabel.alignment = .natural
       nextDownloadLabel.maximumNumberOfLines = 1
-      nextDownloadLabel.font = NSFont.preferredFont(forTextStyle: .caption1)
+      nextDownloadLabel.font = NSFont.preferredFont(forTextStyle: .caption1).withMonospacedDigits
+      nextDownloadLabel.translatesAutoresizingMaskIntoConstraints = false
       nextDownloadLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
-      nextProgressRow.orientation = .horizontal
-      nextProgressRow.alignment = .centerY
-      nextProgressRow.spacing = 6
+      // The bar anchors the row at a fixed centered position with the label
+      // trailing it, so per-tick text updates never move the bar.
       nextProgressRow.translatesAutoresizingMaskIntoConstraints = false
       nextStatusContainer.addSubview(nextProgressRow)
-      nextProgressRow.addArrangedSubview(nextProgressView)
-      nextProgressRow.addArrangedSubview(nextDownloadLabel)
+      nextProgressRow.addSubview(nextProgressView)
+      nextProgressRow.addSubview(nextDownloadLabel)
       NSLayoutConstraint.activate([
-        nextProgressRow.centerXAnchor.constraint(equalTo: nextStatusContainer.centerXAnchor),
-        nextProgressRow.centerYAnchor.constraint(equalTo: nextStatusContainer.centerYAnchor),
+        nextProgressRow.leadingAnchor.constraint(equalTo: nextStatusContainer.leadingAnchor),
+        nextProgressRow.trailingAnchor.constraint(equalTo: nextStatusContainer.trailingAnchor),
+        nextProgressRow.topAnchor.constraint(equalTo: nextStatusContainer.topAnchor),
+        nextProgressRow.bottomAnchor.constraint(equalTo: nextStatusContainer.bottomAnchor),
+        nextProgressView.centerXAnchor.constraint(equalTo: nextProgressRow.centerXAnchor),
+        nextProgressView.centerYAnchor.constraint(equalTo: nextProgressRow.centerYAnchor),
+        nextProgressView.widthAnchor.constraint(equalToConstant: 110),
+        nextDownloadLabel.leadingAnchor.constraint(equalTo: nextProgressView.trailingAnchor, constant: 6),
+        nextDownloadLabel.trailingAnchor.constraint(lessThanOrEqualTo: nextProgressRow.trailingAnchor),
+        nextDownloadLabel.centerYAnchor.constraint(equalTo: nextProgressView.centerYAnchor),
       ])
 
       nextReadyIconView.image = NSImage(
@@ -323,6 +331,7 @@
       nextDownloadStack.isHidden = !AppConfig.offlineFirstReading
       guard AppConfig.offlineFirstReading, let state else {
         nextDownloadStack.alphaValue = 0
+        lastAppliedProgress = nil
         return
       }
       nextDownloadStack.alphaValue = 1
@@ -334,14 +343,22 @@
       switch state {
       case .downloading(_, let progress):
         if let progress {
-          nextProgressView.isHidden = false
-          nextProgressView.doubleValue = progress
+          // Duplicate reconfigures would restart the progress animation, so
+          // only advance the bar when the value actually changes.
+          if progress != lastAppliedProgress {
+            lastAppliedProgress = progress
+            nextProgressView.animator().doubleValue = progress
+          }
           nextDownloadLabel.stringValue = progress.formatted(.percent.precision(.fractionLength(0)))
         } else {
-          nextProgressView.isHidden = true
+          if lastAppliedProgress != nil {
+            lastAppliedProgress = nil
+            nextProgressView.doubleValue = 0
+          }
           nextDownloadLabel.stringValue = String(localized: "Downloading next book…")
         }
       case .ready:
+        lastAppliedProgress = nil
         nextProgressRow.alphaValue = 0
         nextReadyRow.alphaValue = 1
       }
