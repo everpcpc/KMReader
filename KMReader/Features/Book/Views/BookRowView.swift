@@ -130,8 +130,8 @@ struct BookRowView: View {
 
           Spacer()
 
-          if item.downloadStatus != .notDownloaded {
-            Image(systemName: item.downloadStatus.displayIcon)
+          if let icon = item.downloadStatus.displayIcon {
+            Image(systemName: icon)
               .foregroundColor(item.downloadStatus.displayColor)
           }
           EllipsisMenuButton {

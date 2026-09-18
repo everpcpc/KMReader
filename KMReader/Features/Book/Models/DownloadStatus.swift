@@ -29,10 +29,10 @@ nonisolated enum DownloadStatus: Equatable, Sendable {
     }
   }
 
-  var displayIcon: String {
+  var displayIcon: String? {
     switch self {
     case .notDownloaded:
-      return "icloud.and.arrow.down"
+      return nil
     case .pending:
       return "arrow.clockwise.icloud.fill"
     case .downloaded:

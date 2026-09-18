@@ -151,9 +151,9 @@ struct BookCardView: View {
               Text(progress == 1 ? completedMetaText : "\(item.mediaPagesCount) pages")
                 .lineLimit(1)
             }
-            if item.downloadStatus != .notDownloaded {
+            if let icon = item.downloadStatus.displayIcon {
               Spacer()
-              Image(systemName: item.downloadStatus.displayIcon)
+              Image(systemName: icon)
                 .foregroundColor(item.downloadStatus.displayColor)
                 .font(.caption2)
             }
@@ -181,7 +181,7 @@ struct BookCardView: View {
   @ViewBuilder
   private var overlayTextContent: some View {
     let style = CardOverlayTextStyle.standard
-    let showDownloadIcon = item.downloadStatus != .notDownloaded
+    let downloadIcon = item.downloadStatus.displayIcon
     let showProgressBar = item.isInProgress && thumbnailShowProgressBar
 
     CardOverlayTextStack(
@@ -211,9 +211,9 @@ struct BookCardView: View {
           Text(progress == 1 ? completedMetaText : "\(item.mediaPagesCount) pages")
             .lineLimit(1)
         }
-        if showDownloadIcon && !showProgressBar {
+        if let icon = downloadIcon, !showProgressBar {
           Spacer()
-          Image(systemName: item.downloadStatus.displayIcon)
+          Image(systemName: icon)
             .foregroundColor(item.downloadStatus.displayColor)
             .font(.caption2)
         }
@@ -224,8 +224,8 @@ struct BookCardView: View {
           ReadingProgressBar(progress: progress, type: .card)
             .padding(.top, 2)
             .layoutPriority(1)
-          if showDownloadIcon {
-            Image(systemName: item.downloadStatus.displayIcon)
+          if let icon = downloadIcon {
+            Image(systemName: icon)
               .foregroundColor(item.downloadStatus.displayColor)
               .font(.caption2)
           }

@@ -26,12 +26,12 @@ nonisolated enum SeriesDownloadStatus: Equatable, Sendable {
     }
   }
 
-  var icon: String {
+  var icon: String? {
     switch self {
     case .notDownloaded:
-      return "icloud.and.arrow.down"
+      return nil
     case .partiallyDownloaded:
-      return "icloud.and.arrow.down.fill"
+      return "icloud"
     case .downloaded:
       return "checkmark.icloud.fill"
     case .pending:
@@ -44,7 +44,7 @@ nonisolated enum SeriesDownloadStatus: Equatable, Sendable {
     case .notDownloaded:
       return .secondary
     case .partiallyDownloaded:
-      return .blue
+      return .secondary
     case .downloaded:
       return .green
     case .pending:

@@ -96,8 +96,8 @@ struct SeriesRowView: View {
 
           Spacer()
 
-          if downloadStatus != .notDownloaded {
-            Image(systemName: downloadStatus.icon)
+          if let icon = downloadStatus.icon {
+            Image(systemName: icon)
               .foregroundColor(downloadStatus.color)
           }
           EllipsisMenuButton {

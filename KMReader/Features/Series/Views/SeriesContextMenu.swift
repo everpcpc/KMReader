@@ -163,7 +163,7 @@ struct SeriesContextMenu: View {
       Menu {
         actionsView(actions: SeriesDownloadAction.availableActions(for: status))
       } label: {
-        Label("Download", systemImage: status.icon)
+        Label("Download", systemImage: status.icon ?? "icloud.and.arrow.down")
       }
 
       if !isOffline {

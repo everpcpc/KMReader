@@ -87,7 +87,7 @@ struct ReadListContextMenu: View {
         Menu {
           actionsView(actions: SeriesDownloadAction.availableReadListActions(for: status))
         } label: {
-          Label("Offline", systemImage: status.icon)
+          Label("Offline", systemImage: status.icon ?? "icloud.and.arrow.down")
         }
 
         if current.isAdmin {
