@@ -31373,7 +31373,13 @@
         }
       }
     },
+    "HTTP" : {
+      "shouldTranslate" : false
+    },
     "http://" : {
+      "shouldTranslate" : false
+    },
+    "HTTPS" : {
       "shouldTranslate" : false
     },
     "https://" : {

@@ -175,6 +175,8 @@ struct LoginView: View {
         containerBackground: fieldBackgroundColor
       ) {
         HStack(spacing: 8) {
+          Text(usesHTTPS ? "https://" : "http://")
+            .foregroundStyle(.secondary)
           TextField(String(localized: "Enter your server URL"), text: $serverURLText)
             .textContentType(.URL)
             #if os(iOS) || os(tvOS)
