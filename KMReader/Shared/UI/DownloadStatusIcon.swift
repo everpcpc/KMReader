@@ -17,7 +17,6 @@ struct DownloadStatusIcon: View {
           .transition(.opacity)
       } else {
         Image(systemName: systemName)
-          .contentTransition(.symbolEffect(.replace, options: .nonRepeating))
           .foregroundColor(color)
           .transition(.opacity)
       }
