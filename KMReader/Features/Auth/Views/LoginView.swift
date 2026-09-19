@@ -14,10 +14,12 @@ struct LoginView: View {
   @State private var serverURLText: String = ""
   @State private var usernameText: String = ""
   @State private var password = ""
+  @State private var confirmPassword = ""
   @State private var apiKey = ""
   @State private var instanceName = ""
   @State private var loginErrorMessage: String?
   @State private var authMethod: AuthenticationMethod = .basicAuth
+  @State private var isUnclaimedServer = false
 
   var body: some View {
     ScrollView {
@@ -36,15 +38,42 @@ struct LoginView: View {
       serverURLText = current.serverURL.isEmpty ? "https://demo.komga.org" : current.serverURL
       usernameText = current.username
     }
+    .task(id: serverURLText) {
+      await probeClaimStatus()
+    }
   }
 
   private var isFormValid: Bool {
     guard !serverURLText.isEmpty else { return false }
+    if isUnclaimedServer {
+      return isValidEmail(usernameText) && !password.isEmpty && password == confirmPassword
+    }
     switch authMethod {
     case .basicAuth:
       return !usernameText.isEmpty && !password.isEmpty
     case .apiKey:
       return !apiKey.isEmpty
+    }
+  }
+
+  private func isValidEmail(_ email: String) -> Bool {
+    email.wholeMatch(of: /^[^\s@]+@[^\s@]+\.[^\s@]+$/) != nil
+  }
+
+  private func probeClaimStatus() async {
+    let serverURL = serverURLText.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !serverURL.isEmpty, URL(string: serverURL) != nil else {
+      isUnclaimedServer = false
+      return
+    }
+    try? await Task.sleep(for: .milliseconds(500))
+    guard !Task.isCancelled else { return }
+    do {
+      let status = try await AuthService.getClaimStatus(serverURL: serverURL)
+      isUnclaimedServer = !status.isClaimed
+    } catch {
+      // Unreachable or invalid servers stay on the regular login form
+      isUnclaimedServer = false
     }
   }
 
@@ -55,20 +84,31 @@ struct LoginView: View {
       let displayName = trimmedName.isEmpty ? nil : trimmedName
 
       do {
-        switch authMethod {
-        case .basicAuth:
+        if isUnclaimedServer {
+          _ = try await AuthService.claimServer(
+            serverURL: serverURLText, email: usernameText, password: password)
           try await authViewModel.login(
             username: usernameText,
             password: password,
             serverURL: serverURLText,
             displayName: displayName
           )
-        case .apiKey:
-          try await authViewModel.loginWithAPIKey(
-            apiKey: apiKey,
-            serverURL: serverURLText,
-            displayName: displayName
-          )
+        } else {
+          switch authMethod {
+          case .basicAuth:
+            try await authViewModel.login(
+              username: usernameText,
+              password: password,
+              serverURL: serverURLText,
+              displayName: displayName
+            )
+          case .apiKey:
+            try await authViewModel.loginWithAPIKey(
+              apiKey: apiKey,
+              serverURL: serverURLText,
+              displayName: displayName
+            )
+          }
         }
         dismiss()
       } catch {
@@ -124,28 +164,27 @@ struct LoginView: View {
           .autocorrectionDisabled()
       }
 
-      // Auth method picker
-      Picker(String(localized: "Authentication Method"), selection: $authMethod) {
-        Text(String(localized: "Username & Password")).tag(AuthenticationMethod.basicAuth)
-        Text(String(localized: "API Key")).tag(AuthenticationMethod.apiKey)
-      }
-      .pickerStyle(.segmented)
-      .onChange(of: authMethod) { _, _ in
-        setLoginErrorMessage(nil)
-      }
+      if isUnclaimedServer {
+        Text(
+          String(
+            localized:
+              "This server has not been initialized yet. Create the first administrator account to get started."
+          )
+        )
+        .font(.callout)
+        .foregroundStyle(.secondary)
+        .frame(maxWidth: .infinity, alignment: .leading)
 
-      // Conditional fields based on auth method
-      switch authMethod {
-      case .basicAuth:
         FieldContainer(
-          title: "Username",
-          systemImage: "person",
+          title: "Email",
+          systemImage: "envelope",
           containerBackground: fieldBackgroundColor
         ) {
-          TextField(String(localized: "Enter your username"), text: $usernameText)
-            .textContentType(.username)
+          TextField(String(localized: "Enter your email"), text: $usernameText)
+            .textContentType(.emailAddress)
             #if os(iOS) || os(tvOS)
               .autocapitalization(.none)
+              .keyboardType(.emailAddress)
             #endif
             .autocorrectionDisabled()
             .onChange(of: usernameText) { _, _ in
@@ -159,27 +198,94 @@ struct LoginView: View {
           containerBackground: fieldBackgroundColor
         ) {
           SecureField(String(localized: "Enter your password"), text: $password)
-            .textContentType(.password)
+            .textContentType(.newPassword)
             .onChange(of: password) { _, _ in
               setLoginErrorMessage(nil)
             }
         }
 
-      case .apiKey:
         FieldContainer(
-          title: "API Key",
-          systemImage: "key",
+          title: "Confirm Password",
+          systemImage: "lock",
           containerBackground: fieldBackgroundColor
         ) {
-          SecureField(String(localized: "Enter your API Key"), text: $apiKey)
-            .textContentType(.password)
-            #if os(iOS) || os(tvOS)
-              .autocapitalization(.none)
-            #endif
-            .autocorrectionDisabled()
-            .onChange(of: apiKey) { _, _ in
+          SecureField(String(localized: "Confirm your password"), text: $confirmPassword)
+            .textContentType(.newPassword)
+            .onChange(of: confirmPassword) { _, _ in
               setLoginErrorMessage(nil)
             }
+        }
+
+        if !confirmPassword.isEmpty && confirmPassword != password {
+          HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+              .foregroundStyle(.red)
+            Text(String(localized: "Passwords do not match"))
+              .font(.footnote)
+              .foregroundStyle(.red)
+              .multilineTextAlignment(.leading)
+          }
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .padding(.top, 4)
+        }
+      } else {
+        // Auth method picker
+        Picker(String(localized: "Authentication Method"), selection: $authMethod) {
+          Text(String(localized: "Username & Password")).tag(AuthenticationMethod.basicAuth)
+          Text(String(localized: "API Key")).tag(AuthenticationMethod.apiKey)
+        }
+        .pickerStyle(.segmented)
+        .onChange(of: authMethod) { _, _ in
+          setLoginErrorMessage(nil)
+        }
+
+        // Conditional fields based on auth method
+        switch authMethod {
+        case .basicAuth:
+          FieldContainer(
+            title: "Username",
+            systemImage: "person",
+            containerBackground: fieldBackgroundColor
+          ) {
+            TextField(String(localized: "Enter your username"), text: $usernameText)
+              .textContentType(.username)
+              #if os(iOS) || os(tvOS)
+                .autocapitalization(.none)
+              #endif
+              .autocorrectionDisabled()
+              .onChange(of: usernameText) { _, _ in
+                setLoginErrorMessage(nil)
+              }
+          }
+
+          FieldContainer(
+            title: "Password",
+            systemImage: "lock",
+            containerBackground: fieldBackgroundColor
+          ) {
+            SecureField(String(localized: "Enter your password"), text: $password)
+              .textContentType(.password)
+              .onChange(of: password) { _, _ in
+                setLoginErrorMessage(nil)
+              }
+          }
+
+        case .apiKey:
+          FieldContainer(
+            title: "API Key",
+            systemImage: "key",
+            containerBackground: fieldBackgroundColor
+          ) {
+            SecureField(String(localized: "Enter your API Key"), text: $apiKey)
+              .textContentType(.password)
+              #if os(iOS) || os(tvOS)
+                .autocapitalization(.none)
+              #endif
+              .autocorrectionDisabled()
+              .onChange(of: apiKey) { _, _ in
+                setLoginErrorMessage(nil)
+              }
+          }
         }
       }
 
@@ -202,7 +308,11 @@ struct LoginView: View {
           if authViewModel.isLoading {
             LoadingIcon()
           } else {
-            Text(String(localized: "Login"))
+            if isUnclaimedServer {
+              Text(String(localized: "Create Account"))
+            } else {
+              Text(String(localized: "Login"))
+            }
             Image(systemName: "arrow.right.circle.fill")
           }
         }

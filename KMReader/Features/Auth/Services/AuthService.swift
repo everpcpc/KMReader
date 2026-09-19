@@ -123,6 +123,25 @@ nonisolated enum AuthService {
     logger.info("✅ Server connection successful")
   }
 
+  static func getClaimStatus(serverURL: String) async throws -> ClaimStatus {
+    try await apiClient.performLoginTemporary(
+      serverURL: serverURL,
+      path: "/api/v1/claim",
+      method: "GET"
+    )
+  }
+
+  // Komga passes the initial admin credentials as headers, not a body
+  static func claimServer(serverURL: String, email: String, password: String) async throws -> User {
+    let headers = ["X-Komga-Email": email, "X-Komga-Password": password]
+    return try await apiClient.performLoginTemporary(
+      serverURL: serverURL,
+      path: "/api/v1/claim",
+      method: "POST",
+      headers: headers
+    )
+  }
+
   static func testCredentials(
     serverURL: String, authToken: String, authMethod: AuthenticationMethod = .basicAuth
   ) async throws -> User {
