@@ -20,6 +20,7 @@ struct LoginView: View {
   @State private var loginErrorMessage: String?
   @State private var authMethod: AuthenticationMethod = .basicAuth
   @State private var isUnclaimedServer = false
+  @State private var lastProbedServerURL: String?
 
   var body: some View {
     ScrollView {
@@ -62,19 +63,32 @@ struct LoginView: View {
 
   private func probeClaimStatus() async {
     let serverURL = serverURLText.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !serverURL.isEmpty, URL(string: serverURL) != nil else {
+    guard isCompleteServerURL(serverURL) else {
       isUnclaimedServer = false
+      lastProbedServerURL = nil
       return
     }
+    guard serverURL != lastProbedServerURL else { return }
     try? await Task.sleep(for: .milliseconds(500))
     guard !Task.isCancelled else { return }
     do {
       let status = try await AuthService.getClaimStatus(serverURL: serverURL)
+      lastProbedServerURL = serverURL
       isUnclaimedServer = !status.isClaimed
     } catch {
       // Unreachable or invalid servers stay on the regular login form
       isUnclaimedServer = false
     }
+  }
+
+  // Partial input while typing must not fire requests; only a full http(s) URL with a host is probeable.
+  private func isCompleteServerURL(_ string: String) -> Bool {
+    guard let components = URLComponents(string: string),
+      let scheme = components.scheme?.lowercased(),
+      scheme == "http" || scheme == "https",
+      let host = components.host, !host.isEmpty
+    else { return false }
+    return true
   }
 
   private func login() {
