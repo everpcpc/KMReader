@@ -7,8 +7,8 @@ import Foundation
 
 nonisolated struct AuthenticationActivity: Codable, Identifiable, Equatable, Sendable {
   let id: UUID
-  let userId: String
-  let email: String
+  let userId: String?
+  let email: String?
   let apiKeyId: String?
   let apiKeyComment: String?
   let ip: String?
@@ -34,8 +34,8 @@ nonisolated struct AuthenticationActivity: Codable, Identifiable, Equatable, Sen
   init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
     id = UUID()
-    userId = try container.decode(String.self, forKey: .userId)
-    email = try container.decode(String.self, forKey: .email)
+    userId = try container.decodeIfPresent(String.self, forKey: .userId)
+    email = try container.decodeIfPresent(String.self, forKey: .email)
     apiKeyId = try container.decodeIfPresent(String.self, forKey: .apiKeyId)
     apiKeyComment = try container.decodeIfPresent(String.self, forKey: .apiKeyComment)
     ip = try container.decodeIfPresent(String.self, forKey: .ip)
@@ -48,8 +48,8 @@ nonisolated struct AuthenticationActivity: Codable, Identifiable, Equatable, Sen
 
   func encode(to encoder: Encoder) throws {
     var container = encoder.container(keyedBy: CodingKeys.self)
-    try container.encode(userId, forKey: .userId)
-    try container.encode(email, forKey: .email)
+    try container.encodeIfPresent(userId, forKey: .userId)
+    try container.encodeIfPresent(email, forKey: .email)
     try container.encodeIfPresent(apiKeyId, forKey: .apiKeyId)
     try container.encodeIfPresent(apiKeyComment, forKey: .apiKeyComment)
     try container.encodeIfPresent(ip, forKey: .ip)
