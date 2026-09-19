@@ -962,12 +962,12 @@ extension DatabaseOperator {
   func removeSeriesBooksOffline(seriesId: String, instanceId: String, readOnly: Bool) {
     do {
       var bookIdsToRemove: [String] = []
+      var affectedBookIds: [String] = []
       try write { db in
         guard var series = try fetchSeriesRecord(db: db, id: seriesId, instanceId: instanceId) else {
           return
         }
         series.offlinePolicy = .manual
-        var affectedBookIds: [String] = []
         var books = try fetchBooks(db: db, instanceId: instanceId, seriesId: seriesId)
         let readListSources = try fetchReadListsAndMembershipsContainingBooks(
           db: db,
@@ -1007,6 +1007,13 @@ extension DatabaseOperator {
         try save(series, db: db)
       }
       Task {
+        if !affectedBookIds.isEmpty {
+          await ContentProjectionNotifier.postBooksAndSeriesDidChange(
+            bookIds: affectedBookIds,
+            instanceId: instanceId,
+            reason: .downloadStatus
+          )
+        }
         for bookId in bookIdsToRemove {
           await OfflineManager.shared.deleteBook(
             instanceId: instanceId, bookId: bookId, commit: false, syncSeriesStatus: false)
@@ -1072,12 +1079,12 @@ extension DatabaseOperator {
   func removeReadListBooksOffline(readListId: String, instanceId: String, readOnly: Bool) {
     do {
       var bookIdsToRemove: [String] = []
+      var affectedBookIds: [String] = []
       try write { db in
         guard var readList = try fetchReadListRecord(db: db, id: readListId, instanceId: instanceId) else {
           return
         }
         var seriesIdsToSync = Set<String>()
-        var affectedBookIds: [String] = []
         readList.offlinePolicy = .manual
         var books = try fetchBooksByIds(db: db, ids: readList.bookIds, instanceId: instanceId)
         let readListSources = try fetchReadListsAndMembershipsContainingBooks(
@@ -1131,6 +1138,14 @@ extension DatabaseOperator {
         try save(readList, db: db)
       }
       Task {
+        if !affectedBookIds.isEmpty {
+          await ContentProjectionNotifier.postBooksAndSeriesDidChange(
+            bookIds: affectedBookIds,
+            instanceId: instanceId,
+            reason: .downloadStatus
+          )
+          await ContentProjectionNotifier.postReadListDidChange(readListId: readListId)
+        }
         for bookId in bookIdsToRemove {
           await OfflineManager.shared.deleteBook(
             instanceId: instanceId, bookId: bookId, commit: false, syncSeriesStatus: false)

@@ -139,6 +139,14 @@ struct OneshotDetailView: View {
     .task {
       await refreshOneshotData()
     }
+    .onReceive(NotificationCenter.default.publisher(for: .bookProjectionDidChange)) {
+      notification in
+      let changedIds = ContentProjectionNotifier.bookIds(from: notification)
+      guard changedIds.isEmpty || changedIds.contains(book?.id ?? "") else { return }
+      Task {
+        await loadLocalOneshot()
+      }
+    }
   }
 
   private func refreshOneshotData() async {

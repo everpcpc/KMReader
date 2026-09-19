@@ -295,6 +295,32 @@ nonisolated enum ContentProjectionNotifier {
     return [.content]
   }
 
+  static func bookIds(from notification: Notification) -> Set<String> {
+    if let ids = notification.userInfo?["bookIds"] as? Set<String> {
+      return ids
+    }
+    if let ids = notification.userInfo?["bookIds"] as? [String] {
+      return Set(ids)
+    }
+    if let id = notification.userInfo?["bookId"] as? String {
+      return [id]
+    }
+    return []
+  }
+
+  static func seriesIds(from notification: Notification) -> Set<String> {
+    if let ids = notification.userInfo?["seriesIds"] as? Set<String> {
+      return ids
+    }
+    if let ids = notification.userInfo?["seriesIds"] as? [String] {
+      return Set(ids)
+    }
+    if let id = notification.userInfo?["seriesId"] as? String {
+      return [id]
+    }
+    return []
+  }
+
   private static func parsedChangeReasons(from rawValues: Set<String>) -> Set<ContentProjectionChangeReason> {
     var reasons = Set(rawValues.compactMap(ContentProjectionChangeReason.init(rawValue:)))
     if reasons.count != rawValues.count {
