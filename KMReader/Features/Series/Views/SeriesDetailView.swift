@@ -676,7 +676,7 @@ extension SeriesDetailView {
   }
 
   private func shouldRefreshForBookProjection(_ notification: Notification) -> Bool {
-    let changedIds = changedBookIds(from: notification)
+    let changedIds = ContentProjectionNotifier.bookIds(from: notification)
     guard !changedIds.isEmpty else { return true }
     if let readingTargetBook = readingTargetBookForCurrentContext,
       changedIds.contains(readingTargetBook.id)
@@ -689,34 +689,8 @@ extension SeriesDetailView {
   }
 
   private func shouldRefreshForSeriesProjection(_ notification: Notification) -> Bool {
-    let changedIds = changedSeriesIds(from: notification)
+    let changedIds = ContentProjectionNotifier.seriesIds(from: notification)
     guard !changedIds.isEmpty else { return true }
     return changedIds.contains(seriesId)
-  }
-
-  private func changedSeriesIds(from notification: Notification) -> Set<String> {
-    if let ids = notification.userInfo?["seriesIds"] as? Set<String> {
-      return ids
-    }
-    if let ids = notification.userInfo?["seriesIds"] as? [String] {
-      return Set(ids)
-    }
-    if let id = notification.userInfo?["seriesId"] as? String {
-      return [id]
-    }
-    return []
-  }
-
-  private func changedBookIds(from notification: Notification) -> Set<String> {
-    if let ids = notification.userInfo?["bookIds"] as? Set<String> {
-      return ids
-    }
-    if let ids = notification.userInfo?["bookIds"] as? [String] {
-      return Set(ids)
-    }
-    if let id = notification.userInfo?["bookId"] as? String {
-      return [id]
-    }
-    return []
   }
 }

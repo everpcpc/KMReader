@@ -34,9 +34,6 @@ struct BooksListViewForSeries: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
       HStack {
-        Text("Books")
-          .font(.headline)
-
         Button {
           Task {
             await refreshBooks(refresh: true)

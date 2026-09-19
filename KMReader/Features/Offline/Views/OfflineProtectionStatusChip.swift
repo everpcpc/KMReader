@@ -7,19 +7,15 @@ import SwiftUI
 
 struct OfflineProtectionStatusChip: View {
   let label: String
-  let systemImage: String?
-  let backgroundColor: Color
-  let foregroundColor: Color
+  let systemImage: String
+  let spinning: Bool
   let sources: [OfflineProtectionSource]
 
   var body: some View {
     if sources.isEmpty {
-      InfoChip(
-        label: label,
-        systemImage: systemImage,
-        backgroundColor: backgroundColor,
-        foregroundColor: foregroundColor
-      )
+      DownloadStatusIcon(systemName: systemImage, spinning: spinning)
+        .font(.caption)
+        .accessibilityLabel(label)
     } else {
       Menu {
         ForEach(sources) { source in
@@ -28,25 +24,13 @@ struct OfflineProtectionStatusChip: View {
           }
         }
       } label: {
-        HStack(spacing: 5) {
-          if let systemImage {
-            Image(systemName: systemImage)
-              .font(.caption2)
-          }
-          Text(label)
-            .font(.caption)
-            .lineLimit(1)
+        HStack(spacing: 3) {
+          DownloadStatusIcon(systemName: systemImage, spinning: spinning)
           Image(systemName: "lock.fill")
-            .font(.caption)
         }
-        .foregroundColor(foregroundColor)
-        .padding(.horizontal, 9)
-        .padding(.vertical, 5)
-        .background(backgroundColor, in: Capsule())
-        .overlay {
-          Capsule()
-            .stroke(foregroundColor.opacity(0.3), lineWidth: 1)
-        }
+        .font(.caption)
+        .foregroundColor(.secondary)
+        .accessibilityLabel(label)
       }
       .buttonStyle(.plain)
     }

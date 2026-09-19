@@ -116,6 +116,14 @@ struct BookDetailView: View {
     .task {
       await loadBook()
     }
+    .onReceive(NotificationCenter.default.publisher(for: .bookProjectionDidChange)) {
+      notification in
+      let changedIds = ContentProjectionNotifier.bookIds(from: notification)
+      guard changedIds.isEmpty || changedIds.contains(bookId) else { return }
+      Task {
+        await loadLocalBook()
+      }
+    }
   }
 
   private func analyzeBook() {

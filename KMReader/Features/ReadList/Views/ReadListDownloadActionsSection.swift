@@ -25,64 +25,66 @@ struct ReadListDownloadActionsSection: View {
     SeriesDownloadAction.availableReadListActions(for: status)
   }
 
-  private var policyLabel: Text {
-    Text("Offline Policy") + Text(" : ") + Text(policy.title(limit: offlinePolicyLimit))
-  }
-
   var body: some View {
-    VStack(spacing: 12) {
-      HStack(spacing: 12) {
-        Menu {
-          actionsView(actions: actions)
-        } label: {
-          HStack(spacing: 4) {
-            Text(String(localized: "Download"))
-            Image(systemName: "chevron.down")
-          }
+    HStack(spacing: 12) {
+      Menu {
+        actionsView(actions: actions)
+      } label: {
+        HStack(spacing: 4) {
+          Image(systemName: "icloud.and.arrow.down")
+            .font(.caption2)
+          Text(String(localized: "Download"))
+            .font(.caption)
+            .fontWeight(.medium)
+            .lineLimit(1)
         }
-        .font(.caption)
-        .adaptiveButtonStyle(.bordered)
+      }
+      .adaptiveButtonStyle(.bordered)
+      .optimizedControlSize()
+
+      Menu {
+        Button {
+          updatePolicy(.manual)
+        } label: {
+          offlinePolicyLabel(.manual)
+        }
 
         Menu {
-          Button {
-            updatePolicy(.manual)
-          } label: {
-            offlinePolicyLabel(.manual)
-          }
-
-          Menu {
-            ForEach(limitPresets, id: \.self) { value in
-              Button {
-                updatePolicyAndLimit(.unreadOnly, limit: value)
-              } label: {
-                limitOptionLabel(policy: .unreadOnly, limit: value)
-              }
+          ForEach(limitPresets, id: \.self) { value in
+            Button {
+              updatePolicyAndLimit(.unreadOnly, limit: value)
+            } label: {
+              limitOptionLabel(policy: .unreadOnly, limit: value)
             }
-          } label: {
-            offlinePolicyLabel(.unreadOnly)
-          }
-
-          Button {
-            updatePolicy(.all)
-          } label: {
-            offlinePolicyLabel(.all)
           }
         } label: {
-          HStack(spacing: 4) {
-            Image(systemName: policy.icon)
-            policyLabel.lineLimit(1)
-            Image(systemName: "chevron.down")
-          }
+          offlinePolicyLabel(.unreadOnly)
         }
-        .font(.caption)
-        .adaptiveButtonStyle(.bordered)
 
-        Spacer()
+        Button {
+          updatePolicy(.all)
+        } label: {
+          offlinePolicyLabel(.all)
+        }
+      } label: {
+        HStack(spacing: 4) {
+          Image(systemName: policy.icon)
+            .font(.caption2)
+          Text(String(localized: "Offline Policy"))
+            .font(.caption)
+            .fontWeight(.medium)
+            .lineLimit(1)
+        }
+      }
+      .adaptiveButtonStyle(.bordered)
+      .optimizedControlSize()
 
-        InfoChip(
-          label: status.label,
-          systemImage: status.icon
-        )
+      Spacer()
+
+      if let icon = status.icon {
+        DownloadStatusIcon(systemName: icon, spinning: status.isPending)
+          .font(.caption)
+          .accessibilityLabel(status.label)
       }
     }
     .padding(.vertical, 4)
