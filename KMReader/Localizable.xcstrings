@@ -31373,6 +31373,12 @@
         }
       }
     },
+    "http://" : {
+      "shouldTranslate" : false
+    },
+    "https://" : {
+      "shouldTranslate" : false
+    },
     "Idle" : {
       "localizations" : {
         "de" : {
