@@ -12,6 +12,7 @@ struct LoginView: View {
   @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("isLoggedInV2") private var isLoggedIn: Bool = false
   @State private var serverURLText: String = ""
+  @State private var usesHTTPS = true
   @State private var usernameText: String = ""
   @State private var password = ""
   @State private var confirmPassword = ""
@@ -36,12 +37,19 @@ struct LoginView: View {
       #endif
     }
     .task {
-      serverURLText = current.serverURL.isEmpty ? "https://demo.komga.org" : current.serverURL
+      let stored = current.serverURL.isEmpty ? "https://demo.komga.org" : current.serverURL
+      if !absorbSchemePrefix(from: stored) {
+        serverURLText = stored
+      }
       usernameText = current.username
     }
-    .task(id: serverURLText) {
+    .task(id: serverURL) {
       await probeClaimStatus()
     }
+  }
+
+  private var serverURL: String {
+    "\(usesHTTPS ? "https" : "http")://\(serverURLText.trimmingCharacters(in: .whitespacesAndNewlines))"
   }
 
   private var isFormValid: Bool {
@@ -61,8 +69,21 @@ struct LoginView: View {
     email.wholeMatch(of: /^[^\s@]+@[^\s@]+\.[^\s@]+$/) != nil
   }
 
+  // The field holds host[:port][/path] only; pasted full URLs donate their scheme to the toggle.
+  @discardableResult
+  private func absorbSchemePrefix(from text: String) -> Bool {
+    for (prefix, secure) in [("https://", true), ("http://", false)] {
+      if text.hasPrefix(prefix) {
+        usesHTTPS = secure
+        serverURLText = String(text.dropFirst(prefix.count))
+        return true
+      }
+    }
+    return false
+  }
+
   private func probeClaimStatus() async {
-    let serverURL = serverURLText.trimmingCharacters(in: .whitespacesAndNewlines)
+    let serverURL = serverURL
     guard isCompleteServerURL(serverURL) else {
       isUnclaimedServer = false
       lastProbedServerURL = nil
@@ -81,14 +102,10 @@ struct LoginView: View {
     }
   }
 
-  // Partial input while typing must not fire requests; only a full http(s) URL with a host is probeable.
+  // Partial input while typing must not fire requests; only a parseable host is probeable.
   private func isCompleteServerURL(_ string: String) -> Bool {
-    guard let components = URLComponents(string: string),
-      let scheme = components.scheme?.lowercased(),
-      scheme == "http" || scheme == "https",
-      let host = components.host, !host.isEmpty
-    else { return false }
-    return true
+    guard let host = URLComponents(string: string)?.host else { return false }
+    return !host.isEmpty
   }
 
   private func login() {
@@ -100,11 +117,11 @@ struct LoginView: View {
       do {
         if isUnclaimedServer {
           _ = try await AuthService.claimServer(
-            serverURL: serverURLText, email: usernameText, password: password)
+            serverURL: serverURL, email: usernameText, password: password)
           try await authViewModel.login(
             username: usernameText,
             password: password,
-            serverURL: serverURLText,
+            serverURL: serverURL,
             displayName: displayName
           )
         } else {
@@ -113,13 +130,13 @@ struct LoginView: View {
             try await authViewModel.login(
               username: usernameText,
               password: password,
-              serverURL: serverURLText,
+              serverURL: serverURL,
               displayName: displayName
             )
           case .apiKey:
             try await authViewModel.loginWithAPIKey(
               apiKey: apiKey,
-              serverURL: serverURLText,
+              serverURL: serverURL,
               displayName: displayName
             )
           }
@@ -157,16 +174,30 @@ struct LoginView: View {
         systemImage: "server.rack",
         containerBackground: fieldBackgroundColor
       ) {
-        TextField(String(localized: "Enter your server URL"), text: $serverURLText)
-          .textContentType(.URL)
-          #if os(iOS) || os(tvOS)
-            .autocapitalization(.none)
-            .keyboardType(.URL)
-          #endif
-          .autocorrectionDisabled()
-          .onChange(of: serverURLText) { _, _ in
-            setLoginErrorMessage(nil)
+        HStack(spacing: 8) {
+          Button {
+            usesHTTPS.toggle()
+          } label: {
+            HStack(spacing: 2) {
+              Text(usesHTTPS ? "https://" : "http://")
+              Image(systemName: "chevron.up.chevron.down")
+                .font(.caption2)
+            }
+            .foregroundStyle(.secondary)
           }
+          .buttonStyle(.plain)
+          TextField(String(localized: "Enter your server URL"), text: $serverURLText)
+            .textContentType(.URL)
+            #if os(iOS) || os(tvOS)
+              .autocapitalization(.none)
+              .keyboardType(.URL)
+            #endif
+            .autocorrectionDisabled()
+            .onChange(of: serverURLText) { _, newValue in
+              setLoginErrorMessage(nil)
+              absorbSchemePrefix(from: newValue)
+            }
+        }
       }
 
       FieldContainer(
