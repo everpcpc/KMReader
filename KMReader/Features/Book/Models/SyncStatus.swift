@@ -23,13 +23,4 @@ enum SyncStatus {
     case .idle: return "play.circle.fill"
     }
   }
-
-  var color: Color {
-    switch self {
-    case .paused: return .orange
-    case .downloading: return .blue
-    case .syncing: return .green
-    case .idle: return .secondary
-    }
-  }
 }

@@ -35,20 +35,7 @@ nonisolated enum SeriesDownloadStatus: Equatable, Sendable {
     case .downloaded:
       return "checkmark.icloud.fill"
     case .pending:
-      return "arrow.clockwise.icloud.fill"
-    }
-  }
-
-  var color: Color {
-    switch self {
-    case .notDownloaded:
-      return .secondary
-    case .partiallyDownloaded:
-      return .secondary
-    case .downloaded:
-      return .green
-    case .pending:
-      return .orange
+      return "arrow.clockwise"
     }
   }
 

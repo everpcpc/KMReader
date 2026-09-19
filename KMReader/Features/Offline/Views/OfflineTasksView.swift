@@ -113,7 +113,6 @@ struct OfflineTasksView: View {
           isOn: downloadsEnabledBinding
         ) {
           Label(currentStatus.label, systemImage: currentStatus.icon)
-            .foregroundColor(currentStatus.color)
         }
       }
 

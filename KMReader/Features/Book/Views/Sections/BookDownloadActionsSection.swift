@@ -46,8 +46,8 @@ struct BookDownloadActionsSection: View {
       OfflineProtectionStatusChip(
         label: status.displayLabel,
         systemImage: status.displayIcon,
-        backgroundColor: status.displayColor.opacity(0.2),
-        foregroundColor: status.displayColor,
+        backgroundColor: Color.secondary.opacity(0.2),
+        foregroundColor: .primary,
         sources: protectionSources
       )
     }

@@ -81,9 +81,7 @@ struct SeriesDownloadActionsSection: View {
 
         InfoChip(
           label: status.label,
-          systemImage: status.icon,
-          backgroundColor: status.color.opacity(0.2),
-          foregroundColor: status.color
+          systemImage: status.icon
         )
       }
     }

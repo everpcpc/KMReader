@@ -145,7 +145,7 @@ struct BookCardView: View {
                 Text("•")
               }
               if progress == 1 {
-                Image(systemName: "checkmark.circle.fill")
+                Image(systemName: "checkmark.circle")
                   .foregroundColor(.secondary)
                   .font(.caption2)
               }
@@ -154,8 +154,7 @@ struct BookCardView: View {
             }
             if let icon = item.downloadStatus.displayIcon {
               Spacer()
-              Image(systemName: icon)
-                .foregroundColor(item.downloadStatus.displayColor)
+              DownloadStatusIcon(systemName: icon, spinning: item.downloadStatus.isPending)
                 .font(.caption2)
             }
           }
@@ -205,7 +204,7 @@ struct BookCardView: View {
             Text("•")
           }
           if progress == 1 {
-            Image(systemName: "checkmark.circle.fill")
+            Image(systemName: "checkmark.circle")
               .foregroundColor(style.secondaryColor)
               .font(.caption2)
           }
@@ -214,9 +213,10 @@ struct BookCardView: View {
         }
         if let icon = downloadIcon, !showProgressBar {
           Spacer()
-          Image(systemName: icon)
-            .foregroundColor(item.downloadStatus.displayColor)
-            .font(.caption2)
+          DownloadStatusIcon(
+            systemName: icon, spinning: item.downloadStatus.isPending, color: style.secondaryColor
+          )
+          .font(.caption2)
         }
       }
     } progress: {
@@ -226,9 +226,11 @@ struct BookCardView: View {
             .padding(.top, 2)
             .layoutPriority(1)
           if let icon = downloadIcon {
-            Image(systemName: icon)
-              .foregroundColor(item.downloadStatus.displayColor)
-              .font(.caption2)
+            DownloadStatusIcon(
+              systemName: icon, spinning: item.downloadStatus.isPending,
+              color: style.secondaryColor
+            )
+            .font(.caption2)
           }
         }
       }

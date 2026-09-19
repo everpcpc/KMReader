@@ -17,36 +17,31 @@ struct OfflineTasksStatusView: View {
       if offlinePaused {
         statusBadge(
           title: SyncStatus.paused.label,
-          systemImage: SyncStatus.paused.icon,
-          color: SyncStatus.paused.color
+          systemImage: SyncStatus.paused.icon
         )
       } else if summary.isEmpty {
         statusBadge(
           title: SyncStatus.idle.label,
-          systemImage: SyncStatus.idle.icon,
-          color: SyncStatus.idle.color
+          systemImage: SyncStatus.idle.icon
         )
       } else {
 
         if summary.downloadingCount > 0 {
           statusBadge(
             title: "\(summary.downloadingCount)",
-            systemImage: "arrow.down.circle.fill",
-            color: Color.accentColor
+            systemImage: "arrow.down.circle.fill"
           )
         }
         if summary.pendingCount > 0 {
           statusBadge(
             title: "\(summary.pendingCount)",
-            systemImage: "clock.fill",
-            color: .secondary
+            systemImage: "clock.fill"
           )
         }
         if summary.failedCount > 0 {
           statusBadge(
             title: "\(summary.failedCount)",
-            systemImage: "exclamationmark.circle.fill",
-            color: .red
+            systemImage: "exclamationmark.circle.fill"
           )
         }
       }
@@ -60,7 +55,7 @@ struct OfflineTasksStatusView: View {
   }
 
   @ViewBuilder
-  private func statusBadge(title: String, systemImage: String, color: Color) -> some View {
+  private func statusBadge(title: String, systemImage: String) -> some View {
     HStack(spacing: 4) {
       Image(systemName: systemImage)
         .font(.caption2)
@@ -71,8 +66,8 @@ struct OfflineTasksStatusView: View {
     }
     .padding(.horizontal, 8)
     .padding(.vertical, 4)
-    .background(color.opacity(0.15), in: Capsule())
-    .foregroundColor(color)
+    .background(Color.secondary.opacity(0.15), in: Capsule())
+    .foregroundColor(.secondary)
   }
 
   @MainActor

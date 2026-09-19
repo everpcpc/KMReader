@@ -92,7 +92,7 @@ struct BookRowView: View {
               {
                 Text("•")
                 if progressCompleted {
-                  Image(systemName: "checkmark.circle.fill")
+                  Image(systemName: "checkmark.circle")
                     .foregroundColor(.green)
                   if let completedLastReadText = item.completedLastReadText {
                     Text(completedLastReadText)
@@ -131,8 +131,7 @@ struct BookRowView: View {
           Spacer()
 
           if let icon = item.downloadStatus.displayIcon {
-            Image(systemName: icon)
-              .foregroundColor(item.downloadStatus.displayColor)
+            DownloadStatusIcon(systemName: icon, spinning: item.downloadStatus.isPending)
           }
           EllipsisMenuButton {
             BookContextMenu(
