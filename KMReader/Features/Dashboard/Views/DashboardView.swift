@@ -223,16 +223,12 @@ struct DashboardView: View {
     #if os(iOS) || os(macOS)
       .toolbar {
         #if os(macOS)
-          if scopeLibraries.count > 1 {
-            ToolbarItem(placement: .navigation) {
-              LibraryScopeToolbarButton(libraries: scopeLibraries, isPresented: $showLibraryPicker)
-            }
+          ToolbarItem(placement: .navigation) {
+            LibraryScopeToolbarButton(libraries: scopeLibraries, isPresented: $showLibraryPicker)
           }
         #else
-          if scopeLibraries.count > 1 {
-            ToolbarItem(placement: .cancellationAction) {
-              LibraryScopeToolbarButton(libraries: scopeLibraries, isPresented: $showLibraryPicker)
-            }
+          ToolbarItem(placement: .cancellationAction) {
+            LibraryScopeToolbarButton(libraries: scopeLibraries, isPresented: $showLibraryPicker)
           }
         #endif
 

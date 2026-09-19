@@ -158,7 +158,7 @@ struct OfflineView: View {
         }
       }
       .toolbar {
-        if librarySelection == nil && scopeLibraries.count > 1 {
+        if librarySelection == nil {
           #if os(macOS)
             ToolbarItem(placement: .navigation) {
               LibraryScopeToolbarButton(libraries: scopeLibraries, isPresented: $showLibraryPicker)

@@ -203,7 +203,7 @@ struct BrowseView: View {
     }
     #if os(iOS) || os(macOS)
       .toolbar {
-        if librarySelection == nil && !libraryTab && scopeLibraries.count > 1 {
+        if librarySelection == nil && !libraryTab {
           #if os(macOS)
             ToolbarItem(placement: .navigation) {
               LibraryScopeToolbarButton(libraries: scopeLibraries, isPresented: $showLibraryPicker)
