@@ -142,6 +142,17 @@ nonisolated enum AuthService {
     )
   }
 
+  static func probeClaimStatus(serverURL: String) async throws -> ClaimStatus {
+    do {
+      return try await getClaimStatus(serverURL: serverURL)
+    } catch {
+      // Servers too old for the claim endpoint still prove themselves via the
+      // anonymous client-settings list; reachable means plain login mode.
+      try await validate(serverURL: serverURL)
+      return ClaimStatus(isClaimed: true)
+    }
+  }
+
   static func testCredentials(
     serverURL: String, authToken: String, authMethod: AuthenticationMethod = .basicAuth
   ) async throws -> User {

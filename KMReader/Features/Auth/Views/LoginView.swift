@@ -20,8 +20,7 @@ struct LoginView: View {
   @State private var instanceName = ""
   @State private var loginErrorMessage: String?
   @State private var authMethod: AuthenticationMethod = .basicAuth
-  @State private var isUnclaimedServer = false
-  @State private var lastProbedServerURL: String?
+  @State private var probeState: ProbeState = .idle
 
   var body: some View {
     ScrollView {
@@ -54,14 +53,18 @@ struct LoginView: View {
 
   private var isFormValid: Bool {
     guard !serverURLText.isEmpty else { return false }
-    if isUnclaimedServer {
+    switch probeState {
+    case .unclaimed:
       return isValidEmail(usernameText) && !password.isEmpty && password == confirmPassword
-    }
-    switch authMethod {
-    case .basicAuth:
-      return !usernameText.isEmpty && !password.isEmpty
-    case .apiKey:
-      return !apiKey.isEmpty
+    case .claimed:
+      switch authMethod {
+      case .basicAuth:
+        return !usernameText.isEmpty && !password.isEmpty
+      case .apiKey:
+        return !apiKey.isEmpty
+      }
+    case .idle, .probing, .failed:
+      return false
     }
   }
 
@@ -85,20 +88,18 @@ struct LoginView: View {
   private func probeClaimStatus() async {
     let serverURL = serverURL
     guard isCompleteServerURL(serverURL) else {
-      isUnclaimedServer = false
-      lastProbedServerURL = nil
+      probeState = .idle
       return
     }
-    guard serverURL != lastProbedServerURL else { return }
     try? await Task.sleep(for: .milliseconds(500))
     guard !Task.isCancelled else { return }
+    probeState = .probing
     do {
-      let status = try await AuthService.getClaimStatus(serverURL: serverURL)
-      lastProbedServerURL = serverURL
-      isUnclaimedServer = !status.isClaimed
+      let status = try await AuthService.probeClaimStatus(serverURL: serverURL)
+      probeState = status.isClaimed ? .claimed : .unclaimed
     } catch {
-      // Unreachable or invalid servers stay on the regular login form
-      isUnclaimedServer = false
+      // Unreachable or non-Komga servers get no form, just the failure hint
+      probeState = .failed
     }
   }
 
@@ -115,7 +116,7 @@ struct LoginView: View {
       let displayName = trimmedName.isEmpty ? nil : trimmedName
 
       do {
-        if isUnclaimedServer {
+        if probeState == .unclaimed {
           _ = try await AuthService.claimServer(
             serverURL: serverURL, email: usernameText, password: password)
           try await authViewModel.login(
@@ -169,39 +170,76 @@ struct LoginView: View {
 
   private var formSection: some View {
     VStack(spacing: 20) {
-      FieldContainer(
-        title: "Server URL",
-        systemImage: "server.rack",
-        containerBackground: fieldBackgroundColor
-      ) {
-        HStack(spacing: 8) {
-          Text(usesHTTPS ? "https://" : "http://")
-            .foregroundStyle(.secondary)
-          TextField(String(localized: "Enter your server URL"), text: $serverURLText)
-            .textContentType(.URL)
-            #if os(iOS) || os(tvOS)
-              .autocapitalization(.none)
-              .keyboardType(.URL)
-            #endif
-            .autocorrectionDisabled()
-            .onChange(of: serverURLText) { _, newValue in
-              setLoginErrorMessage(nil)
-              absorbSchemePrefix(from: newValue)
-            }
-          Button {
-            usesHTTPS.toggle()
-          } label: {
-            Image(systemName: usesHTTPS ? "lock.fill" : "lock.open.fill")
-              .foregroundStyle(usesHTTPS ? .green : .orange)
-              .contentTransition(.symbolEffect(.replace))
-              .padding(4)
-              .contentShape(Rectangle())
-          }
-          .buttonStyle(.plain)
-          .accessibilityLabel(usesHTTPS ? "HTTPS" : "HTTP")
-        }
-      }
+      serverURLField
 
+      switch probeState {
+      case .idle:
+        EmptyView()
+      case .probing:
+        HStack(spacing: 8) {
+          ProgressView()
+            .controlSize(.small)
+          Text(String(localized: "Checking server…"))
+            .font(.callout)
+            .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .transition(.opacity)
+      case .failed:
+        errorHint(
+          String(localized: "Could not connect to a Komga server. Check the address and try again.")
+        )
+        .transition(.opacity)
+      case .claimed, .unclaimed:
+        revealedForm
+          .transition(.opacity)
+      }
+    }
+    .animation(.default, value: authMethod)
+    .animation(.easeInOut(duration: 0.2), value: loginErrorMessage)
+    .animation(.easeInOut(duration: 0.2), value: probeState)
+  }
+
+  private var serverURLField: some View {
+    FieldContainer(
+      title: "Server URL",
+      systemImage: "server.rack",
+      containerBackground: fieldBackgroundColor
+    ) {
+      HStack(spacing: 8) {
+        Text(usesHTTPS ? "https://" : "http://")
+          .foregroundStyle(.secondary)
+          .id(usesHTTPS)
+          .transition(.opacity)
+        TextField(String(localized: "Enter your server URL"), text: $serverURLText)
+          .textContentType(.URL)
+          #if os(iOS) || os(tvOS)
+            .autocapitalization(.none)
+            .keyboardType(.URL)
+          #endif
+          .autocorrectionDisabled()
+          .onChange(of: serverURLText) { _, newValue in
+            setLoginErrorMessage(nil)
+            absorbSchemePrefix(from: newValue)
+          }
+        Button {
+          usesHTTPS.toggle()
+        } label: {
+          Image(systemName: usesHTTPS ? "lock.fill" : "lock.open.fill")
+            .foregroundStyle(usesHTTPS ? .green : .orange)
+            .contentTransition(.symbolEffect(.replace))
+            .padding(4)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(usesHTTPS ? "HTTPS" : "HTTP")
+      }
+      .animation(.easeInOut(duration: 0.15), value: usesHTTPS)
+    }
+  }
+
+  private var revealedForm: some View {
+    Group {
       FieldContainer(
         title: "Instance Name (Optional)",
         systemImage: "tag",
@@ -211,7 +249,7 @@ struct LoginView: View {
           .autocorrectionDisabled()
       }
 
-      if isUnclaimedServer {
+      if probeState == .unclaimed {
         Text(
           String(
             localized:
@@ -264,16 +302,7 @@ struct LoginView: View {
         }
 
         if !confirmPassword.isEmpty && confirmPassword != password {
-          HStack(alignment: .top, spacing: 8) {
-            Image(systemName: "exclamationmark.triangle.fill")
-              .foregroundStyle(.red)
-            Text(String(localized: "Passwords do not match"))
-              .font(.footnote)
-              .foregroundStyle(.red)
-              .multilineTextAlignment(.leading)
-          }
-          .frame(maxWidth: .infinity, alignment: .leading)
-          .padding(.top, 4)
+          errorHint(String(localized: "Passwords do not match"))
         }
       } else {
         // Auth method picker
@@ -337,17 +366,8 @@ struct LoginView: View {
       }
 
       if let loginErrorMessage {
-        HStack(alignment: .top, spacing: 8) {
-          Image(systemName: "exclamationmark.triangle.fill")
-            .foregroundStyle(.red)
-          Text(loginErrorMessage)
-            .font(.footnote)
-            .foregroundStyle(.red)
-            .multilineTextAlignment(.leading)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.top, 4)
-        .transition(.opacity.combined(with: .move(edge: .top)))
+        errorHint(loginErrorMessage)
+          .transition(.opacity.combined(with: .move(edge: .top)))
       }
 
       Button(action: login) {
@@ -355,7 +375,7 @@ struct LoginView: View {
           if authViewModel.isLoading {
             LoadingIcon()
           } else {
-            if isUnclaimedServer {
+            if probeState == .unclaimed {
               Text(String(localized: "Create Account"))
             } else {
               Text(String(localized: "Login"))
@@ -374,8 +394,19 @@ struct LoginView: View {
       .disabled(!isFormValid || authViewModel.isLoading)
       .padding(.top, 8)
     }
-    .animation(.default, value: authMethod)
-    .animation(.easeInOut(duration: 0.2), value: loginErrorMessage)
+  }
+
+  private func errorHint(_ text: String) -> some View {
+    HStack(alignment: .top, spacing: 8) {
+      Image(systemName: "exclamationmark.triangle.fill")
+        .foregroundStyle(.red)
+      Text(text)
+        .font(.footnote)
+        .foregroundStyle(.red)
+        .multilineTextAlignment(.leading)
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .padding(.top, 4)
   }
 
   private func setLoginErrorMessage(_ message: String?) {
@@ -444,4 +475,12 @@ private struct FieldContainer<Content: View>: View {
         )
     }
   }
+}
+
+private enum ProbeState {
+  case idle
+  case probing
+  case claimed
+  case unclaimed
+  case failed
 }
