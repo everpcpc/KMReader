@@ -175,17 +175,20 @@ struct LoginView: View {
         containerBackground: fieldBackgroundColor
       ) {
         HStack(spacing: 8) {
-          Button {
-            usesHTTPS.toggle()
+          Menu {
+            Button("https://") { usesHTTPS = true }
+            Button("http://") { usesHTTPS = false }
           } label: {
-            HStack(spacing: 2) {
+            HStack(spacing: 4) {
               Text(usesHTTPS ? "https://" : "http://")
-              Image(systemName: "chevron.up.chevron.down")
+              Image(systemName: "chevron.down")
                 .font(.caption2)
             }
             .foregroundStyle(.secondary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(.quaternary, in: .capsule)
           }
-          .buttonStyle(.plain)
           TextField(String(localized: "Enter your server URL"), text: $serverURLText)
             .textContentType(.URL)
             #if os(iOS) || os(tvOS)
