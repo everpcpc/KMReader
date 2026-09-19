@@ -43,9 +43,6 @@ struct CollectionSeriesListView: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
       HStack {
-        Text("Series")
-          .font(.headline)
-
         Spacer()
 
         HStack(spacing: 8) {

@@ -30,26 +30,29 @@ struct BookDownloadActionsSection: View {
             instanceId: current.instanceId, info: book.downloadInfo)
         }
       } label: {
-        Label {
-          Text(status.menuLabel)
-        } icon: {
+        HStack(spacing: 4) {
           Image(systemName: status.menuIcon)
-            .frame(width: PlatformHelper.iconSize, height: PlatformHelper.iconSize)
+            .font(.caption2)
+          Text(status.menuLabel)
+            .font(.caption)
+            .fontWeight(.medium)
+            .lineLimit(1)
         }
       }
-      .font(.caption)
       .adaptiveButtonStyle(.bordered)
+      .optimizedControlSize()
       .tint(status.menuColor)
 
       Spacer()
 
-      OfflineProtectionStatusChip(
-        label: status.displayLabel,
-        systemImage: status.displayIcon,
-        backgroundColor: Color.secondary.opacity(0.2),
-        foregroundColor: .primary,
-        sources: protectionSources
-      )
+      if let icon = status.displayIcon {
+        OfflineProtectionStatusChip(
+          label: status.displayLabel,
+          systemImage: icon,
+          spinning: status.isPending,
+          sources: protectionSources
+        )
+      }
     }
     .padding(.vertical, 4)
     .animation(.default, value: status)
