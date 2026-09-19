@@ -11,12 +11,18 @@ struct DownloadStatusIcon: View {
   var color: Color = .secondary
 
   var body: some View {
-    if spinning {
-      spinningContent
-    } else {
-      Image(systemName: systemName)
-        .foregroundColor(color)
+    Group {
+      if spinning {
+        spinningContent
+          .transition(.opacity)
+      } else {
+        Image(systemName: systemName)
+          .contentTransition(.symbolEffect(.replace, options: .nonRepeating))
+          .foregroundColor(color)
+          .transition(.opacity)
+      }
     }
+    .animation(.default, value: spinning)
   }
 
   @ViewBuilder
