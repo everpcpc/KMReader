@@ -11,11 +11,11 @@ struct DashboardView: View {
 
   @State private var isRefreshing = false
   @State private var showLibraryPicker = false
+  @State private var showLibraryAddSheet = false
   @State private var isCheckingConnection = false
   @State private var offlineQueueingSections: Set<DashboardSection> = []
-  #if os(iOS) || os(macOS)
-    @State private var scopeLibraries: [SidebarLibraryItem] = []
-  #endif
+  @State private var scopeLibraries: [SidebarLibraryItem] = []
+  @State private var hasLoadedScopeLibraries = false
 
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("currentAccount") private var current: Current = .init()
@@ -37,6 +37,10 @@ struct DashboardView: View {
 
   private var isQueueingDashboardOffline: Bool {
     !offlineQueueingSections.isEmpty
+  }
+
+  private var showsEmptyLibraryGuidance: Bool {
+    hasLoadedScopeLibraries && scopeLibraries.isEmpty && !isOffline
   }
 
   private var showsBrowseSearchButton: Bool {
@@ -147,11 +151,17 @@ struct DashboardView: View {
       VStack(alignment: .leading, spacing: 0) {
         dashboardHeader
 
-        ForEach(dashboard.sections, id: \.id) { section in
-          if section.isLocalSection {
-            DashboardPinnedSectionView(section: section)
-          } else {
-            DashboardSectionView(section: section)
+        if showsEmptyLibraryGuidance {
+          DashboardEmptyLibraryView(isAdmin: current.isAdmin) {
+            showLibraryAddSheet = true
+          }
+        } else {
+          ForEach(dashboard.sections, id: \.id) { section in
+            if section.isLocalSection {
+              DashboardPinnedSectionView(section: section)
+            } else {
+              DashboardSectionView(section: section)
+            }
           }
         }
       }
@@ -191,28 +201,34 @@ struct DashboardView: View {
     .onChange(of: enableSSEAutoRefresh) { _, newValue in
       DashboardRefreshCoordinator.shared.setAutoRefreshEnabled(newValue)
     }
-    #if os(iOS) || os(macOS)
-      .task(id: current.instanceId) {
-        await refreshScopeLibraries()
+    .task(id: current.instanceId) {
+      await refreshScopeLibraries()
+    }
+    .onReceive(NotificationCenter.default.publisher(for: .sidebarProjectionDidChange)) { notification in
+      guard notification.userInfo?["instanceId"] as? String == current.instanceId else { return }
+      Task {
+        await loadScopeLibraries()
       }
-      .onReceive(NotificationCenter.default.publisher(for: .sidebarProjectionDidChange)) { notification in
-        guard notification.userInfo?["instanceId"] as? String == current.instanceId else { return }
+    }
+    .sheet(
+      isPresented: $showLibraryAddSheet,
+      onDismiss: {
         Task {
           await loadScopeLibraries()
         }
       }
+    ) {
+      LibraryAddSheet()
+    }
+    #if os(iOS) || os(macOS)
       .toolbar {
         #if os(macOS)
-          if scopeLibraries.count > 1 {
-            ToolbarItem(placement: .navigation) {
-              LibraryScopeToolbarButton(libraries: scopeLibraries, isPresented: $showLibraryPicker)
-            }
+          ToolbarItem(placement: .navigation) {
+            LibraryScopeToolbarButton(libraries: scopeLibraries, isPresented: $showLibraryPicker)
           }
         #else
-          if scopeLibraries.count > 1 {
-            ToolbarItem(placement: .cancellationAction) {
-              LibraryScopeToolbarButton(libraries: scopeLibraries, isPresented: $showLibraryPicker)
-            }
+          ToolbarItem(placement: .cancellationAction) {
+            LibraryScopeToolbarButton(libraries: scopeLibraries, isPresented: $showLibraryPicker)
           }
         #endif
 
@@ -312,29 +328,31 @@ struct DashboardView: View {
     #endif
   }
 
-  #if os(iOS) || os(macOS)
-    private func refreshScopeLibraries() async {
-      do {
-        let loaded = try await LibraryScopeLoader.refresh(instanceId: current.instanceId)
-        if scopeLibraries != loaded {
-          scopeLibraries = loaded
-        }
-      } catch {
-        ErrorManager.shared.alert(error: error)
+  private func refreshScopeLibraries() async {
+    // Reset so guidance for the previous instance never flashes during a switch
+    hasLoadedScopeLibraries = false
+    do {
+      let loaded = try await LibraryScopeLoader.refresh(instanceId: current.instanceId)
+      if scopeLibraries != loaded {
+        scopeLibraries = loaded
       }
+      hasLoadedScopeLibraries = true
+    } catch {
+      ErrorManager.shared.alert(error: error)
     }
+  }
 
-    private func loadScopeLibraries() async {
-      do {
-        let loaded = try await LibraryScopeLoader.load(instanceId: current.instanceId)
-        if scopeLibraries != loaded {
-          scopeLibraries = loaded
-        }
-      } catch {
-        ErrorManager.shared.alert(error: error)
+  private func loadScopeLibraries() async {
+    do {
+      let loaded = try await LibraryScopeLoader.load(instanceId: current.instanceId)
+      if scopeLibraries != loaded {
+        scopeLibraries = loaded
       }
+      hasLoadedScopeLibraries = true
+    } catch {
+      ErrorManager.shared.alert(error: error)
     }
-  #endif
+  }
 
   private func tryReconnect() async {
     withAnimation {

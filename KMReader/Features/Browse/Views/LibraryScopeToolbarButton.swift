@@ -23,6 +23,9 @@ struct LibraryScopeToolbarButton: View {
     {
       return name
     }
+    if libraries.count == 1 {
+      return libraries[0].name
+    }
     let format = String(
       localized: "offline.coverSync.scope.selected",
       defaultValue: "%lld Libraries"
