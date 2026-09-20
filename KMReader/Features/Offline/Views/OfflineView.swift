@@ -16,7 +16,8 @@ struct OfflineView: View {
   @AppStorage("offlineBrowseContent") private var offlineBrowseContent: BrowseContentType = .series
   @AppStorage("isOffline") private var isOffline: Bool = false
 
-  @State private var refreshTrigger = UUID()
+  @State private var seriesViewModel = SeriesViewModel()
+  @State private var bookViewModel = BookViewModel()
   @State private var searchQuery: String = ""
   @State private var activeSearchText: String = ""
   #if os(iOS) || os(macOS)
@@ -236,7 +237,9 @@ struct OfflineView: View {
 
       guard librarySelection == nil else { return }
       if oldValue && !newValue {
-        refreshBrowse()
+        Task {
+          await refreshBrowse()
+        }
       }
     }
     .onChange(of: current.instanceId) { _, newValue in
@@ -255,8 +258,8 @@ struct OfflineView: View {
     }
     .onChange(of: resolvedLibraryIdsKey) { _, _ in
       guard !authViewModel.isSwitching else { return }
-      refreshBrowse()
       Task {
+        await refreshBrowse()
         await loadSyncInfo()
       }
     }
@@ -269,7 +272,7 @@ struct OfflineView: View {
       OfflineSeriesBrowseView(
         libraryIds: resolvedLibraryIds,
         searchText: activeSearchText,
-        refreshTrigger: refreshTrigger,
+        viewModel: seriesViewModel,
         showFilterSheet: $showFilterSheet,
         showSavedFilters: $showSavedFilters
       )
@@ -277,7 +280,7 @@ struct OfflineView: View {
       OfflineBooksBrowseView(
         libraryIds: resolvedLibraryIds,
         searchText: activeSearchText,
-        refreshTrigger: refreshTrigger,
+        viewModel: bookViewModel,
         showFilterSheet: $showFilterSheet,
         showSavedFilters: $showSavedFilters
       )
@@ -380,14 +383,19 @@ struct OfflineView: View {
     }
   }
 
-  private func refreshBrowse() {
-    refreshTrigger = UUID()
+  private func refreshBrowse() async {
+    switch resolvedOfflineContent {
+    case .books:
+      await bookViewModel.refreshBrowse()
+    case .series, .collections, .readlists:
+      await seriesViewModel.refreshBrowse()
+    }
   }
 
   private func refreshOfflinePage() async {
     guard !authViewModel.isSwitching else { return }
     latestReadHistoryTime = AppConfig.recentlyReadRecordTime(instanceId: current.instanceId)
-    refreshBrowse()
+    await refreshBrowse()
     await loadSyncInfo()
   }
 

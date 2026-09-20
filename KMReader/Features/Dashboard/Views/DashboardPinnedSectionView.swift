@@ -208,8 +208,18 @@ struct DashboardPinnedSectionView: View {
           return
         }
         Task {
+          defer {
+            DashboardRefreshCoordinator.shared.acknowledgeSectionReload(
+              commandID: command.id, section: section)
+          }
           await refresh()
         }
+      }
+      .onAppear {
+        DashboardRefreshCoordinator.shared.registerSection(section)
+      }
+      .onDisappear {
+        DashboardRefreshCoordinator.shared.unregisterSection(section)
       }
       .task(id: currentInstanceId) {
         await refresh()

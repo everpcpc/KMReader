@@ -126,7 +126,6 @@ struct DashboardView: View {
       isRefreshing = true
     }
     await DashboardSectionRefreshNotifier.postAll(source: .manual, reason: reason)
-    try? await Task.sleep(nanoseconds: 2_000_000_000)
     withAnimation {
       isRefreshing = false
     }
