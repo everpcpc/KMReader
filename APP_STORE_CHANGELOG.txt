@@ -1,17 +1,24 @@
 New
-- Continue reading right from a series page on iPad, Mac, and Apple TV with the restored inline resume button.
+- Set up a brand-new Komga server right from the login screen: KMReader detects an unclaimed server and guides you through creating the admin account.
+- Filter series and collections by age rating and release year.
+- In offline-first reading, the end page now shows the next book's download progress and when it's ready to read.
+- Fresh servers with no libraries get clear setup guidance on the dashboard.
 
 Improvements
-- Password logins now automatically upgrade to app-specific API keys, making background downloads and syncing more reliable.
-- Collections and read lists now load in pages as you scroll, and tags, authors, publishers, and genres sort in your locale's order.
-- Reading progress updates faster when you return to the app, and offline progress is always pushed to the server before pulling.
-- Handoff, reading Live Activities, and keep-screen-awake settings now live together in a new System Features page.
+- Downloads and the live server event stream now sign in with the same credentials as everything else, fixing missing page thumbnails and silent updates under API-key auth.
+- The dashboard reconnects its live updates when you return or recover from auto-offline, so changes made in other clients appear again.
+- Smoother pull-to-refresh on the Dashboard and Offline pages.
+- Multi-select on series, read list, and collection pages now uses familiar platform selection visuals.
+- Download status icons are calmer and easier to tell apart, and the read checkmark no longer looks like a download icon.
+- Series, read list, and collection pages update download state immediately after offline actions, with simpler chip-style controls.
+- Dual-page tap turns in Page Curl stay smooth in every preload profile.
+- Reading stats now default to the last 6 months.
 
 Fixes
-- Fixed dual-page Page Curl freezing after the first turn in landscape.
-- Fixed a Mac and iPad crash at launch when collections or read lists existed.
-- Hardened downloads against unauthorized or corrupt files; broken EPUB downloads are now detected and re-downloaded.
-- Fixed PDF single-tap navigation, controls hiding while a menu is open, and read list/collection pickers freezing on macOS.
-- Collections and read lists appear reliably on series and book pages again, and lists keep their scroll position when refreshing after reading.
-- EPUB open failures now report the actual cause instead of a generic error.
-- Fixed dashboard cards looking darker at the trailing edge.
+- Fixed reader crashes and layout jumps on the end page while the next book downloads.
+- Fixed a crash when swiping while a next-book download update landed.
+- Fixed the end page cover losing its rounded corners after a refresh.
+- Fixed the library scope button not appearing and its picker not opening.
+- Fixed a crash decoding authentication activity records from unknown users or API keys.
+- Auto-generated API key names include the device model again, so keys from different devices are distinguishable.
+- Removed the dashboard "Server updated X ago" label, which reset every few seconds and never showed a useful time.

@@ -30,7 +30,7 @@
 ### Browse and Discovery
 
 - Dashboard sections for Keep Reading, On Deck, Recently Added, Recently Updated, and pinned collections/read lists, with rich cover-tinted cards and quick offline actions for current or full book sections where supported.
-- Browse Series, Books, Collections, and Read Lists with metadata filters, all/any matching, saved filters, reading history, a 90-day pages-read heatmap, dashboard search access on larger layouts, optional unread-cover blur, and batch read-status updates from series pages.
+- Browse Series, Books, Collections, and Read Lists with metadata filters including age rating and release year, all/any matching, saved filters, reading history, an adjustable pages-read heatmap, dashboard search access on larger layouts, optional unread-cover blur, and batch read-status updates from series pages.
 - iPhone gets a dedicated Library tab for content-first browsing plus a focused Search tab.
 - Local database storage keeps large libraries, dashboards, logs, downloaded content, and offline browsing responsive.
 - Server-specific dashboard library scopes, refreshed widget payloads, Spotlight indexing for downloaded content, plus iOS widgets and Home Screen quick actions for Keep Reading, Search, and Downloads.
@@ -47,7 +47,7 @@
 ### Multi-Server and Management
 
 - Save multiple Komga servers, protect private servers with device authentication, and switch instantly.
-- Sign in with username/password or API key, and manage Komga API keys inside the app.
+- Sign in with username/password or API key, set up a brand-new Komga server right from the login screen, and manage Komga API keys inside the app.
 - Admin tools cover metadata editing, library management, media analysis, missing posters, duplicate files/pages, task monitoring, and paginated log viewing, export, and clearing.
 
 ### Platform Highlights
