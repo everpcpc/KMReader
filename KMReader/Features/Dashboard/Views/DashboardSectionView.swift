@@ -137,6 +137,12 @@ struct DashboardSectionView: View {
       }
       handleReloadCommand(command)
     }
+    .onAppear {
+      DashboardRefreshCoordinator.shared.registerSection(section)
+    }
+    .onDisappear {
+      DashboardRefreshCoordinator.shared.unregisterSection(section)
+    }
     .task {
       guard !hasLoadedInitial else { return }
       hasLoadedInitial = true
@@ -192,6 +198,10 @@ struct DashboardSectionView: View {
 
     Task {
       logger.debug("Dashboard section \(section) reloading")
+      defer {
+        DashboardRefreshCoordinator.shared.acknowledgeSectionReload(
+          commandID: command.id, section: section)
+      }
       await refresh()
     }
   }

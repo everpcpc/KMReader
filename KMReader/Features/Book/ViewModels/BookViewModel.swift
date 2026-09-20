@@ -14,6 +14,15 @@ class BookViewModel {
 
   private(set) var pagination = PaginationState<IdentifiedString>(pageSize: 50)
 
+  private var lastBrowseQuery:
+    (
+      browseOpts: BookBrowseOptions,
+      searchText: String,
+      libraryIds: [String]?,
+      useLocalOnly: Bool,
+      offlineOnly: Bool
+    )?
+
   func loadSeriesBooks(
     seriesId: String,
     browseOpts: BookBrowseOptions,
@@ -224,6 +233,7 @@ class BookViewModel {
     offlineOnly: Bool = false
   ) async {
     guard let loadID = beginLoad(refresh: refresh) else { return }
+    lastBrowseQuery = (browseOpts, searchText, libraryIds, useLocalOnly, offlineOnly)
 
     defer {
       if loadID == pagination.loadID {
@@ -280,6 +290,21 @@ class BookViewModel {
     var fallback = browseOpts
     fallback.sortField = .dateAdded
     return fallback
+  }
+
+  /// Re-runs the current browse query from the first page. No-op before the
+  /// first load; lets pull-to-refresh await the reload without knowing the
+  /// query owned by the presenting view.
+  func refreshBrowse() async {
+    guard let query = lastBrowseQuery else { return }
+    await loadBrowseBooks(
+      browseOpts: query.browseOpts,
+      searchText: query.searchText,
+      libraryIds: query.libraryIds,
+      refresh: true,
+      useLocalOnly: query.useLocalOnly,
+      offlineOnly: query.offlineOnly
+    )
   }
 
   private func postReadStatusDashboardRefresh() async {
