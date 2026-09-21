@@ -73,7 +73,7 @@ struct SettingsAboutView: View {
           }
         }
 
-        if let feedbackURL = URL(string: "https://github.com/everpcpc/KMReader/issues") {
+        if let feedbackURL = URL(string: "https://github.com/kmworks/KMReader/issues") {
           Link(destination: feedbackURL) {
             HStack {
               Label(String(localized: "Feedback"), systemImage: "paperplane")
@@ -85,7 +85,7 @@ struct SettingsAboutView: View {
           }
         }
 
-        if let sourceURL = URL(string: "https://github.com/everpcpc/KMReader") {
+        if let sourceURL = URL(string: "https://github.com/kmworks/KMReader") {
           Link(destination: sourceURL) {
             HStack {
               Label(
