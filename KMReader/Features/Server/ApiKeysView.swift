@@ -12,6 +12,7 @@ struct ApiKeysView: View {
   @State private var keyToDelete: ApiKey?
   @State private var showingDeleteConfirmation = false
   @State private var lastActivities: [String: Date] = [:]
+  @State private var currentApiKeyId: String?
 
   @State private var showRelativeDate = true
 
@@ -44,12 +45,21 @@ struct ApiKeysView: View {
           #endif
 
           ForEach(apiKeys) { apiKey in
+            let isCurrentDeviceKey = apiKey.id == currentApiKeyId
             VStack(alignment: .leading) {
               HStack {
-                Image(systemName: apiKey.isAppManaged ? "lock.fill" : "key")
+                Image(systemName: isCurrentDeviceKey ? "lock.fill" : "key")
                   .font(.footnote)
                 Text(apiKey.comment.isEmpty ? "No comment" : apiKey.comment)
                   .bold()
+                if isCurrentDeviceKey {
+                  Text("This device")
+                    .font(.caption2.weight(.medium))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(.fill.tertiary, in: .capsule)
+                    .foregroundStyle(.secondary)
+                }
               }
               HStack {
                 Image(systemName: "calendar")
@@ -96,7 +106,7 @@ struct ApiKeysView: View {
             }.tvFocusableHighlight()
               #if os(iOS) || os(macOS)
                 .swipeActions {
-                  if !apiKey.isAppManaged {
+                  if !isCurrentDeviceKey {
                     Button(role: .destructive) {
                       withAnimation {
                         keyToDelete = apiKey
@@ -169,6 +179,7 @@ struct ApiKeysView: View {
       withAnimation {
         apiKeys = loadedApiKeys
       }
+      currentApiKeyId = await resolveCurrentApiKeyId(keys: loadedApiKeys)
       for apiKey in apiKeys {
         Task {
           do {
@@ -190,10 +201,32 @@ struct ApiKeysView: View {
     }
   }
 
+  /// The id of the API key this device uses as its instance credential, read
+  /// from the instance row. Installs that logged in before the id was
+  /// persisted re-identify their key by its deterministic comment, adopted
+  /// only when it matches exactly one key (same-named devices can collide).
+  private func resolveCurrentApiKeyId(keys: [ApiKey]) async -> String? {
+    let current = AppConfig.current
+    guard current.authMethod == .apiKey, !current.instanceId.isEmpty else { return nil }
+    do {
+      let database = try await DatabaseOperator.database()
+      if let stored = try await database.fetchInstanceApiKeyId(instanceId: current.instanceId) {
+        return stored
+      }
+      let comment = ApiKey.appManagedComment(deviceName: PlatformHelper.deviceName)
+      let matches = keys.filter { $0.comment == comment }
+      guard matches.count == 1, let match = matches.first else { return nil }
+      try await database.updateInstanceApiKeyId(match.id, instanceId: current.instanceId)
+      return match.id
+    } catch {
+      return nil
+    }
+  }
+
   private func deleteApiKey(_ apiKey: ApiKey) {
-    // App-managed keys may be in use as an instance credential; they can
-    // only be revoked from the Komga WebUI.
-    guard !apiKey.isAppManaged else { return }
+    // Deleting the key this device authenticates with would log the device
+    // out; it can only be revoked from the Komga WebUI.
+    guard apiKey.id != currentApiKeyId else { return }
     Task {
       do {
         try await AuthService.deleteApiKey(id: apiKey.id)

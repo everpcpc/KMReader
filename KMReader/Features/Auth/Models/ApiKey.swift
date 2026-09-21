@@ -23,7 +23,9 @@ nonisolated extension ApiKey {
   /// comment prefix and may be in active use.
   static let appManagedCommentPrefix = "KMReader · "
 
-  var isAppManaged: Bool {
-    comment.hasPrefix(Self.appManagedCommentPrefix)
+  /// Deterministic comment for the key this device auto-creates at login;
+  /// used to re-identify the device's key when its id was never persisted.
+  static func appManagedComment(deviceName: String) -> String {
+    "\(appManagedCommentPrefix)\(deviceName)"
   }
 }
