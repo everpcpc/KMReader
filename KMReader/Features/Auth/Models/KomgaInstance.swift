@@ -12,6 +12,7 @@ nonisolated struct KomgaInstance: Codable, Equatable, Sendable {
   var authToken: String
   var isAdmin: Bool
   var authMethod: AuthenticationMethod?
+  var apiKeyId: String?
   var protected: Bool
   var selectedLibraryIdsRaw: String?
   var createdAt: Date
@@ -27,6 +28,7 @@ nonisolated struct KomgaInstance: Codable, Equatable, Sendable {
     authToken: String,
     isAdmin: Bool,
     authMethod: AuthenticationMethod = .basicAuth,
+    apiKeyId: String? = nil,
     protected: Bool = false,
     selectedLibraryIdsRaw: String? = nil,
     createdAt: Date = Date(),
@@ -41,6 +43,7 @@ nonisolated struct KomgaInstance: Codable, Equatable, Sendable {
     self.authToken = authToken
     self.isAdmin = isAdmin
     self.authMethod = authMethod
+    self.apiKeyId = apiKeyId
     self.protected = protected
     self.selectedLibraryIdsRaw = selectedLibraryIdsRaw
     self.createdAt = createdAt

@@ -21,6 +21,7 @@ nonisolated extension KomgaInstance: FetchableRecord, MutablePersistableRecord {
     case authToken = "auth_token"
     case isAdmin = "is_admin"
     case authMethod = "auth_method"
+    case apiKeyId = "api_key_id"
     case protected
     case selectedLibraryIdsRaw = "selected_library_ids_raw"
     case createdAt = "created_at"

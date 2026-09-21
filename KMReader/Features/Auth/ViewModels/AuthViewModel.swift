@@ -45,9 +45,11 @@ class AuthViewModel {
     // create keys.
     var authToken = result.authToken
     var authMethod = AuthenticationMethod.basicAuth
+    var apiKeyId: String?
     if let apiKey = await createApiKeyCredential(serverURL: serverURL) {
       authToken = apiKey.key
       authMethod = .apiKey
+      apiKeyId = apiKey.id
     }
 
     // Apply login configuration
@@ -56,6 +58,7 @@ class AuthViewModel {
       username: username,
       authToken: authToken,
       authMethod: authMethod,
+      apiKeyId: apiKeyId,
       user: result.user,
       displayName: displayName,
       shouldPersistInstance: true,
@@ -69,7 +72,7 @@ class AuthViewModel {
   private func createApiKeyCredential(serverURL: String) async -> ApiKey? {
     do {
       let apiKey = try await AuthService.createApiKey(
-        comment: "\(ApiKey.appManagedCommentPrefix)\(PlatformHelper.deviceName)"
+        comment: ApiKey.appManagedComment(deviceName: PlatformHelper.deviceName)
       )
       // Replace the password-established session with an API-key-established
       // one; this also verifies the key authenticates. Requests carrying
@@ -234,7 +237,8 @@ class AuthViewModel {
           username: instance.username,
           authToken: authToken,
           isAdmin: validatedUser.isAdmin,
-          authMethod: .apiKey
+          authMethod: .apiKey,
+          apiKeyId: apiKey.id
         )
       }
 
@@ -307,6 +311,7 @@ class AuthViewModel {
     username: String,
     authToken: String,
     authMethod: AuthenticationMethod,
+    apiKeyId: String? = nil,
     user: User,
     displayName: String?,
     instanceId: String? = nil,
@@ -339,6 +344,7 @@ class AuthViewModel {
         authToken: authToken,
         isAdmin: user.isAdmin,
         authMethod: authMethod,
+        apiKeyId: apiKeyId,
         displayName: displayName
       )
       finalInstanceId = instanceSummary.id.uuidString

@@ -78,6 +78,12 @@ nonisolated enum LocalDatabase {
       }
     }
 
+    migrator.registerMigration("00008_add_instance_api_key_id") { db in
+      try db.alter(table: KomgaInstance.databaseTableName) { table in
+        table.add(column: "api_key_id", .text)
+      }
+    }
+
     try migrator.migrate(writer)
   }
 

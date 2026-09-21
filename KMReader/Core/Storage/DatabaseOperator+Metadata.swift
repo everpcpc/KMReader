@@ -285,6 +285,7 @@ extension DatabaseOperator {
     authToken: String,
     isAdmin: Bool,
     authMethod: AuthenticationMethod = .basicAuth,
+    apiKeyId: String? = nil,
     displayName: String? = nil,
     instanceId: UUID? = nil
   ) throws -> InstanceSummary {
@@ -308,6 +309,7 @@ extension DatabaseOperator {
         existing.authToken = authToken
         existing.isAdmin = isAdmin
         existing.authMethod = authMethod
+        existing.apiKeyId = apiKeyId
         existing.lastUsedAt = Date()
         if let trimmedDisplayName, !trimmedDisplayName.isEmpty {
           existing.name = trimmedDisplayName
@@ -334,7 +336,8 @@ extension DatabaseOperator {
         username: username,
         authToken: authToken,
         isAdmin: isAdmin,
-        authMethod: authMethod
+        authMethod: authMethod,
+        apiKeyId: apiKeyId
       )
       try save(instance, db: db)
       return InstanceSummary(
@@ -350,6 +353,22 @@ extension DatabaseOperator {
     try? write { db in
       guard var instance = try KomgaInstance.fetchOne(db, key: uuid) else { return }
       instance.lastUsedAt = Date()
+      try save(instance, db: db)
+    }
+  }
+
+  func fetchInstanceApiKeyId(instanceId: String) throws -> String? {
+    guard let uuid = UUID(uuidString: instanceId) else { return nil }
+    return try read { db in
+      try KomgaInstance.fetchOne(db, key: uuid)?.apiKeyId
+    }
+  }
+
+  func updateInstanceApiKeyId(_ apiKeyId: String?, instanceId: String) throws {
+    guard let uuid = UUID(uuidString: instanceId) else { return }
+    try write { db in
+      guard var instance = try KomgaInstance.fetchOne(db, key: uuid) else { return }
+      instance.apiKeyId = apiKeyId
       try save(instance, db: db)
     }
   }
@@ -415,6 +434,12 @@ extension DatabaseOperator {
       instance.name = name
       instance.serverURL = serverURL
       instance.username = username
+      // A manually replaced credential invalidates any recorded auto-created
+      // key association; the deterministic key comment re-heals it on the
+      // next API keys view if the same key is still in use.
+      if instance.authToken != authToken {
+        instance.apiKeyId = nil
+      }
       instance.authToken = authToken
       instance.authMethod = authMethod
       instance.protected = protected
