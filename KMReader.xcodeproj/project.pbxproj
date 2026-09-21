@@ -691,7 +691,7 @@
 		};
 		19D0A1002F0A000000D0A001 /* XCRemoteSwiftPackageReference "libarchive-swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/everpcpc/libarchive-swift";
+			repositoryURL = "https://github.com/kmworks/libarchive-swift";
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 0.1.11;
