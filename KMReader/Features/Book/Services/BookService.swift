@@ -22,7 +22,7 @@ nonisolated enum BookService {
     browseOpts: BookBrowseOptions,
     libraryIds: [String]? = nil
   ) async throws -> Page<Book> {
-    let sort = browseOpts.sortString
+    let sort = browseOpts.sortQueryValues
     let filters = BookSearchFilters(
       libraryIds: libraryIds,
       includeReadStatuses: Array(browseOpts.includeReadStatuses),
@@ -222,7 +222,7 @@ nonisolated enum BookService {
     browseOpts: BookBrowseOptions,
     searchTerm: String? = nil
   ) async throws -> Page<Book> {
-    let sort = searchTerm?.isEmpty == false ? nil : browseOpts.sortString
+    let sort = searchTerm?.isEmpty == false ? nil : browseOpts.sortQueryValues
     let filters = BookSearchFilters(
       libraryIds: libraryIds,
       includeReadStatuses: Array(browseOpts.includeReadStatuses),
@@ -252,7 +252,7 @@ nonisolated enum BookService {
     search: BookSearch,
     page: Int = 0,
     size: Int = 20,
-    sort: String? = nil,
+    sort: [String]? = nil,
     unpaged: Bool = false
   ) async throws -> Page<Book> {
     var queryItems: [URLQueryItem] = []
@@ -264,8 +264,8 @@ nonisolated enum BookService {
       queryItems.append(URLQueryItem(name: "size", value: "\(size)"))
     }
 
-    if let sort = sort {
-      queryItems.append(URLQueryItem(name: "sort", value: sort))
+    for value in sort ?? [] {
+      queryItems.append(URLQueryItem(name: "sort", value: value))
     }
 
     let encoder = JSONEncoder()
@@ -462,7 +462,7 @@ nonisolated enum BookService {
       search: search,
       page: page,
       size: size,
-      sort: "readProgress.readDate,desc"
+      sort: ["readProgress.readDate,desc"]
     )
   }
 
@@ -483,7 +483,7 @@ nonisolated enum BookService {
       search: search,
       page: page,
       size: size,
-      sort: "createdDate,desc"
+      sort: ["createdDate,desc"]
     )
   }
 
@@ -506,7 +506,7 @@ nonisolated enum BookService {
       search: search,
       page: page,
       size: size,
-      sort: "metadata.releaseDate,desc"
+      sort: ["metadata.releaseDate,desc"]
     )
   }
 

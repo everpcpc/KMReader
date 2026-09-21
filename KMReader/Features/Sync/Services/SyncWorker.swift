@@ -150,7 +150,7 @@ actor SyncWorker {
           search: BookSearch(condition: nil),
           page: page,
           size: pageSize,
-          sort: "readProgress.readDate,desc"
+          sort: ["readProgress.readDate,desc"]
         )
 
         let books = result.content
@@ -571,7 +571,7 @@ actor SyncWorker {
           search: BookSearch(condition: nil),
           page: page,
           size: syncPageSize,
-          sort: "lastModified,desc"
+          sort: ["lastModified,desc"]
         )
 
         var itemsToSync: [Book] = []
@@ -685,7 +685,7 @@ actor SyncWorker {
       search: BookSearch(condition: nil),
       page: 0,
       size: 1,
-      sort: "lastModified,desc"
+      sort: ["lastModified,desc"]
     )
     return result.totalElements
   }
@@ -739,7 +739,7 @@ actor SyncWorker {
     do {
       let result = try await BookService.getBooksList(
         search: BookSearch(condition: nil),
-        sort: "lastModified,desc",
+        sort: ["lastModified,desc"],
         unpaged: true
       )
       await report(
@@ -761,7 +761,7 @@ actor SyncWorker {
         search: BookSearch(condition: nil),
         page: page,
         size: syncPageSize,
-        sort: "lastModified,desc"
+        sort: ["lastModified,desc"]
       )
       ids.formUnion(result.content.map(\.id))
       hasMore = !result.last

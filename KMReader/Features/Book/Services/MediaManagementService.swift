@@ -42,7 +42,7 @@ nonisolated enum MediaManagementService {
       search: search,
       page: page,
       size: size,
-      sort: sort ?? "media.status,asc"
+      sort: [sort ?? "media.status,asc"]
     )
   }
 
@@ -64,7 +64,7 @@ nonisolated enum MediaManagementService {
       search: search,
       page: page,
       size: size,
-      sort: sort
+      sort: sort.map { [$0] }
     )
   }
 
