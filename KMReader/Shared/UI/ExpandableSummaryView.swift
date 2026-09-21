@@ -85,39 +85,29 @@ struct ExpandableSummaryView: View {
         .lineLimit(isExpanded ? nil : collapsedLineLimit)
         .animation(.easeInOut(duration: 0.2), value: isExpanded)
         .textSelectionIfAvailable()
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-          GeometryReader { geometry in
-            VStack(spacing: 0) {
-              Text(summary)
-                .lineLimit(collapsedLineLimit)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(width: geometry.size.width, alignment: .leading)
-                .background(
-                  GeometryReader { textGeometry in
-                    Color.clear
-                      .preference(
-                        key: TextHeightPreferenceKey.self,
-                        value: textGeometry.size.height
-                      )
-                  }
-                )
+          VStack(spacing: 0) {
+            Text(summary)
+              .lineLimit(collapsedLineLimit)
+              .fixedSize(horizontal: false, vertical: true)
+              .frame(maxWidth: .infinity, alignment: .leading)
+              .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { height in
+                if height > 0 {
+                  collapsedTextHeight = height
+                }
+              }
 
-              Text(summary)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(width: geometry.size.width, alignment: .leading)
-                .background(
-                  GeometryReader { textGeometry in
-                    Color.clear
-                      .preference(
-                        key: FullTextHeightPreferenceKey.self,
-                        value: textGeometry.size.height
-                      )
-                  }
-                )
-            }
-            .opacity(0)
-            .frame(width: geometry.size.width, alignment: .topLeading)
+            Text(summary)
+              .fixedSize(horizontal: false, vertical: true)
+              .frame(maxWidth: .infinity, alignment: .leading)
+              .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { height in
+                if height > 0 {
+                  fullTextHeight = height
+                }
+              }
           }
+          .opacity(0)
         )
 
       if needsExpansion {
@@ -135,29 +125,5 @@ struct ExpandableSummaryView: View {
         }
       }
     }
-    .onPreferenceChange(TextHeightPreferenceKey.self) { height in
-      if height > 0 {
-        collapsedTextHeight = height
-      }
-    }
-    .onPreferenceChange(FullTextHeightPreferenceKey.self) { height in
-      if height > 0 {
-        fullTextHeight = height
-      }
-    }
-  }
-}
-
-private struct TextHeightPreferenceKey: PreferenceKey {
-  static var defaultValue: CGFloat = 0
-  static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-    value = nextValue()
-  }
-}
-
-private struct FullTextHeightPreferenceKey: PreferenceKey {
-  static var defaultValue: CGFloat = 0
-  static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-    value = nextValue()
   }
 }
