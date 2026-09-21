@@ -69,8 +69,8 @@ KMReader UI is localized in English, German, French, Japanese, Korean, Simplifie
 ### Build and run
 
 ```bash
-git clone https://github.com/everpcpc/KMReader.git
-cd KMReader
+git clone https://github.com/kmworks/kmreader.git
+cd kmreader
 open KMReader.xcodeproj
 ```
 
