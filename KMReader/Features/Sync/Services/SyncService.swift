@@ -218,7 +218,7 @@ nonisolated enum SyncService {
       search: search,
       page: page,
       size: size,
-      sort: sort
+      sort: sort.map { [$0] }
     )
 
     let instanceId = AppConfig.current.instanceId

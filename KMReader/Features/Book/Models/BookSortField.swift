@@ -44,4 +44,12 @@ enum BookSortField: String, CaseIterable, Sendable {
   var supportsDirection: Bool {
     true
   }
+
+  /// Server sort keys in priority order; `.series` also orders books within a series.
+  nonisolated var serverSortKeys: [String] {
+    switch self {
+    case .series: return ["series", "metadata.numberSort"]
+    default: return [rawValue]
+    }
+  }
 }

@@ -21,6 +21,12 @@ nonisolated struct BookBrowseOptions: Equatable, RawRepresentable, Sendable {
     return "\(sortField.rawValue),\(sortDirection.rawValue)"
   }
 
+  /// One `sort` query value per server key: repeated params are the portable form,
+  /// a folded single value relies on Spring-specific parsing.
+  var sortQueryValues: [String] {
+    sortField.serverSortKeys.map { "\($0),\(sortDirection.rawValue)" }
+  }
+
   /// Whether a pure reading-progress change can alter list membership or
   /// ordering. When false, item rows self-update from GRDB and the ID list
   /// does not need to be revalidated at all.
