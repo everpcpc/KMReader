@@ -8,6 +8,7 @@ import SwiftUI
 struct OfflineBooksBrowseView: View {
   let libraryIds: [String]
   let searchText: String
+  let refreshTrigger: UUID
   let viewModel: BookViewModel
   @Binding var showFilterSheet: Bool
   @Binding var showSavedFilters: Bool
@@ -59,6 +60,11 @@ struct OfflineBooksBrowseView: View {
       }
       hasInitialized = true
       await loadBooks(refresh: true)
+    }
+    .onChange(of: refreshTrigger) { _, _ in
+      Task {
+        await loadBooks(refresh: true)
+      }
     }
     .onChange(of: browseOpts) { oldValue, newValue in
       if oldValue != newValue {
