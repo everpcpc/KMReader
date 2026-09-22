@@ -179,7 +179,10 @@ struct SettingsAppearanceView: View {
 
     private var isKnownSimulatorAlternateIconIssue: Bool {
       #if targetEnvironment(simulator)
-        if #available(iOS 26.1, *) {
+        if #available(iOS 26.1, *),
+          !ProcessInfo.processInfo.isOperatingSystemAtLeast(
+            OperatingSystemVersion(majorVersion: 27, minorVersion: 0, patchVersion: 0))
+        {
           return true
         }
       #endif
