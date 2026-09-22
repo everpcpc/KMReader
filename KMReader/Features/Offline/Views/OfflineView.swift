@@ -18,6 +18,7 @@ struct OfflineView: View {
 
   @State private var seriesViewModel = SeriesViewModel()
   @State private var bookViewModel = BookViewModel()
+  @State private var refreshTrigger = UUID()
   @State private var searchQuery: String = ""
   @State private var activeSearchText: String = ""
   #if os(iOS) || os(macOS)
@@ -237,9 +238,7 @@ struct OfflineView: View {
 
       guard librarySelection == nil else { return }
       if oldValue && !newValue {
-        Task {
-          await refreshBrowse()
-        }
+        refreshTrigger = UUID()
       }
     }
     .onChange(of: current.instanceId) { _, newValue in
@@ -258,8 +257,8 @@ struct OfflineView: View {
     }
     .onChange(of: resolvedLibraryIdsKey) { _, _ in
       guard !authViewModel.isSwitching else { return }
+      refreshTrigger = UUID()
       Task {
-        await refreshBrowse()
         await loadSyncInfo()
       }
     }
@@ -272,6 +271,7 @@ struct OfflineView: View {
       OfflineSeriesBrowseView(
         libraryIds: resolvedLibraryIds,
         searchText: activeSearchText,
+        refreshTrigger: refreshTrigger,
         viewModel: seriesViewModel,
         showFilterSheet: $showFilterSheet,
         showSavedFilters: $showSavedFilters
@@ -280,6 +280,7 @@ struct OfflineView: View {
       OfflineBooksBrowseView(
         libraryIds: resolvedLibraryIds,
         searchText: activeSearchText,
+        refreshTrigger: refreshTrigger,
         viewModel: bookViewModel,
         showFilterSheet: $showFilterSheet,
         showSavedFilters: $showSavedFilters
