@@ -23,7 +23,7 @@ make bump / make minor / make major   # version management
 
 Never edit `MARKETING_VERSION` or `CURRENT_PROJECT_VERSION` in `project.pbxproj` by hand. A `make bump` commit in a feature/fix PR is the normal delivery flow, not a separate PR.
 
-After changing code: `make format`, then `make build`. Debug with the Xcode Console filtered by subsystem `Komga` (categories `API`, `SSE`, `ReaderViewModel`).
+After changing code: `make format`, then `make build`. Simulator interaction and debugging go through `baguette` (see the `baguette` skill): filter logs with subsystem `com.everpcpc.kmreader` (categories `API`, `SSE`, `ReaderViewModel`).
 
 ## Reader State Boundaries
 
