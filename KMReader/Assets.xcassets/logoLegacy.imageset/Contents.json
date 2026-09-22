@@ -1,17 +1,17 @@
 {
   "images": [
     {
-      "filename": "logoGlass.png",
+      "filename": "logoLegacy.png",
       "idiom": "universal",
       "scale": "1x"
     },
     {
-      "filename": "logoGlass@2x.png",
+      "filename": "logoLegacy@2x.png",
       "idiom": "universal",
       "scale": "2x"
     },
     {
-      "filename": "logoGlass@3x.png",
+      "filename": "logoLegacy@3x.png",
       "idiom": "universal",
       "scale": "3x"
     }

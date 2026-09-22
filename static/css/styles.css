@@ -4,9 +4,9 @@
   --text: #2a1b3d;
   --muted: #7d6b91;
   --heading: #1a0b2e;
-  --accent: #a62ca3;
-  --accent-strong: #642891;
-  --accent-soft: #f28e33;
+  --accent: #d97d00;
+  --accent-strong: #b36b00;
+  --accent-soft: #ff9500;
   --border: #f0e6f5;
   --shadow: 0 12px 40px rgba(42, 11, 46, 0.08);
 }
@@ -138,13 +138,13 @@ h1 {
 }
 
 .button.primary {
-  background: linear-gradient(135deg, #f28e33, #a62ca3, #642891);
+  background: linear-gradient(135deg, #ff9500, #d97d00);
   color: #ffffff;
   border: none;
 }
 
 .button.secondary {
-  background: rgba(166, 44, 163, 0.06);
+  background: rgba(255, 149, 0, 0.08);
   color: var(--accent);
 }
 

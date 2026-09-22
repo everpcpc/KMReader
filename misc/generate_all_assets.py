@@ -9,10 +9,16 @@ from PIL import Image
 # Configuration
 ICON_SVG = "icon.svg"
 
-BRAND_ASSETS_DIR = "KMReader/Assets.xcassets/AppIcon.brandassets"
-APP_ICON_DIR = "KMReader/Assets.xcassets/AppIcon.appiconset"
-LOGO_DIR = "KMReader/Assets.xcassets/logo.imageset"
-ICON_COMPOSER_DIR = "KMReader/AppIcon.icon"
+ASSETS_DIR = "KMReader/Assets.xcassets"
+BRAND_ASSETS_DIR = os.path.join(ASSETS_DIR, "AppIcon.brandassets")
+
+# In-app logo imagesets, one per AppIconOption case; artwork matches each .icon bundle
+LOGO_IMAGESETS = {
+    "logo": ICON_SVG,
+    "logoClassic": "KMReader/AppIconClassic.icon/Assets/icon-classic.svg",
+    "logoGlass": ICON_SVG,
+    "logoLegacy": "KMReader/AppIconLegacy.icon/Assets/icon.svg",
+}
 
 # Scale Factors
 SCALE_FACTOR_APP = 1  # iOS/Mac
@@ -139,28 +145,6 @@ def create_composition(
     print(f"Saved: {dest_path}")
 
 
-def create_macos_composition(size, dest_path, svg_file, scale_factor=SCALE_FACTOR_APP):
-    canvas = Image.new("RGBA", (size, size), (255, 255, 255, 0))
-
-    target_size = int(size * scale_factor)
-    if target_size % 2 != 0:
-        target_size -= 1
-    target_size = max(2, min(size, target_size))
-
-    logo_img = generate_icon_render_supersampled(target_size, svg_file)
-    if logo_img is None:
-        return
-
-    x = (size - target_size) // 2
-    y = (size - target_size) // 2
-    canvas.paste(logo_img, (x, y), logo_img)
-    logo_img.close()
-
-    ensure_dir(os.path.dirname(dest_path))
-    canvas.save(dest_path)
-    print(f"Saved: {dest_path}")
-
-
 def create_top_shelf_composition(width, height, dest_path):
     # Specialized for TV Top Shelf using DEFAULT icon style
     canvas = Image.new("RGB", (width, height), (255, 255, 255))
@@ -206,43 +190,6 @@ def create_white_back(width, height, dest_path):
     ensure_dir(os.path.dirname(dest_path))
     canvas.save(dest_path)
     print(f"Saved Back: {dest_path}")
-
-
-def create_icon_composer_assets():
-    assets_dir = os.path.join(ICON_COMPOSER_DIR, "Assets")
-    ensure_dir(assets_dir)
-
-    icon_png_target = os.path.join(assets_dir, "icon.png")
-    icon_png = generate_icon_render_supersampled(2048, ICON_SVG)
-    if icon_png is not None:
-        icon_png.save(icon_png_target)
-        icon_png.close()
-        print(f"Saved: {icon_png_target}")
-
-    icon_json_target = os.path.join(ICON_COMPOSER_DIR, "icon.json")
-    icon_json_content = {
-        "fill": {"solid": "srgb:1.00000,1.00000,1.00000,1.00000"},
-        "groups": [
-            {
-                "layers": [
-                    {
-                        "hidden": False,
-                        "image-name": "icon.png",
-                        "name": "KM Logo",
-                        "position": {
-                            "scale": 0.5,
-                            "translation-in-points": [0, 0],
-                        },
-                    }
-                ]
-            }
-        ],
-        "supported-platforms": {"circles": ["watchOS"], "squares": "shared"},
-    }
-    with open(icon_json_target, "w", encoding="utf-8") as fp:
-        json.dump(icon_json_content, fp, indent=2)
-        fp.write("\n")
-    print(f"Saved: {icon_json_target}")
 
 
 def main():
@@ -321,91 +268,33 @@ def main():
     )
 
     # ==========================
-    # 2. AppIcon.appiconset (iOS/Mac)
+    # 2. logo imagesets (in-app use, one per AppIconOption)
     # ==========================
-    # Disabled on purpose:
-    # AppIcon.appiconset has been removed from the repository. Keep this block
-    # commented out until we decide to restore catalog-based icon generation.
-    #
-    # create_composition(
-    #     1024,
-    #     1024,
-    #     os.path.join(APP_ICON_DIR, "icon.png"),
-    #     ICON_SVG,
-    #     transparent=False,
-    #     bg_color=(255, 255, 255),
-    #     scale_factor=SCALE_FACTOR_APP,
-    # )
-    #
-    # sizes = [16, 32, 128, 256, 512]
-    # for size in sizes:
-    #     create_macos_composition(
-    #         size,
-    #         os.path.join(APP_ICON_DIR, f"icon-mac-{size}x{size}-1x.png"),
-    #         ICON_SVG,
-    #         scale_factor=SCALE_FACTOR_APP,
-    #     )
-    #     create_macos_composition(
-    #         size * 2,
-    #         os.path.join(APP_ICON_DIR, f"icon-mac-{size}x{size}-2x.png"),
-    #         ICON_SVG,
-    #         scale_factor=SCALE_FACTOR_APP,
-    #     )
-    #
-    # create_composition(
-    #     1024,
-    #     1024,
-    #     os.path.join(APP_ICON_DIR, "icon-tinted.png"),
-    #     ICON_SVG,
-    #     transparent=True,
-    #     scale_factor=SCALE_FACTOR_APP,
-    # )
-    #
-    # create_composition(
-    #     1024,
-    #     1024,
-    #     os.path.join(APP_ICON_DIR, "icon-dark.png"),
-    #     ICON_SVG,
-    #     bg_color=(28, 28, 30),
-    #     transparent=False,
-    #     scale_factor=SCALE_FACTOR_APP,
-    # )
+    for name, svg_file in LOGO_IMAGESETS.items():
+        imageset_dir = os.path.join(ASSETS_DIR, f"{name}.imageset")
+        for size, suffix in ((1024, ""), (2048, "@2x"), (3072, "@3x")):
+            create_composition(
+                size,
+                size,
+                os.path.join(imageset_dir, f"{name}{suffix}.png"),
+                svg_file,
+                transparent=True,
+                scale_factor=1.0,
+            )
+        contents = {
+            "images": [
+                {"filename": f"{name}{s}.png", "idiom": "universal", "scale": sc}
+                for s, sc in (("", "1x"), ("@2x", "2x"), ("@3x", "3x"))
+            ],
+            "info": {"author": "xcode", "version": 1},
+        }
+        ensure_dir(imageset_dir)
+        with open(os.path.join(imageset_dir, "Contents.json"), "w") as fp:
+            json.dump(contents, fp, indent=2)
+            fp.write("\n")
+        print(f"Saved: {imageset_dir}/Contents.json")
 
-    # ==========================
-    # 3. logo.imageset (General usage)
-    # ==========================
-    logo_dir = LOGO_DIR
-    create_composition(
-        1024,
-        1024,
-        os.path.join(logo_dir, "logo.png"),
-        ICON_SVG,
-        transparent=True,
-        scale_factor=1.0,
-    )
-    create_composition(
-        2048,
-        2048,
-        os.path.join(logo_dir, "logo@2x.png"),
-        ICON_SVG,
-        transparent=True,
-        scale_factor=1.0,
-    )
-    create_composition(
-        3072,
-        3072,
-        os.path.join(logo_dir, "logo@3x.png"),
-        ICON_SVG,
-        transparent=True,
-        scale_factor=1.0,
-    )
-
-    # ==========================
-    # 4. Icon Composer (Layered Icon)
-    # ==========================
-    create_icon_composer_assets()
-
-    print("All Top Shelf, App Icon (Light/Dark/Tinted), and Logo assets regenerated.")
+    print("All Top Shelf and Logo assets regenerated.")
 
 
 if __name__ == "__main__":

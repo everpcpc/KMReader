@@ -4,7 +4,7 @@
   enum AppIconOption: String, CaseIterable, Identifiable {
     case primary = "AppIcon"
     case classic = "AppIconClassic"
-    case reverse = "AppIconReverse"
+    case legacy = "AppIconLegacy"
     case glass = "AppIconGlass"
 
     var id: String {
@@ -17,8 +17,8 @@
         return String(localized: "Default")
       case .classic:
         return String(localized: "Classic")
-      case .reverse:
-        return String(localized: "Reverse")
+      case .legacy:
+        return String(localized: "Legacy")
       case .glass:
         return String(localized: "Glass")
       }
@@ -30,8 +30,8 @@
         return nil
       case .classic:
         return AppIconOption.classic.rawValue
-      case .reverse:
-        return AppIconOption.reverse.rawValue
+      case .legacy:
+        return AppIconOption.legacy.rawValue
       case .glass:
         return AppIconOption.glass.rawValue
       }
@@ -43,8 +43,8 @@
         return "logo"
       case .classic:
         return "logoClassic"
-      case .reverse:
-        return "logoReverse"
+      case .legacy:
+        return "logoLegacy"
       case .glass:
         return "logoGlass"
       }
@@ -58,8 +58,10 @@
       switch alternateIconName {
       case "AppIconClassic", "AppIconClassicAlt", AppIconOption.classic.rawValue:
         return .classic
-      case "AppIconReverse", "AppIconReverseAlt", AppIconOption.reverse.rawValue:
-        return .reverse
+      case "AppIconReverse", "AppIconReverseAlt":
+        return .primary
+      case "AppIconLegacy", AppIconOption.legacy.rawValue:
+        return .legacy
       case "AppIconGlass", "AppIconGlassAlt", AppIconOption.glass.rawValue:
         return .glass
       default:
