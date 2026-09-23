@@ -1,9 +1,12 @@
 @import '@fontsource-variable/geist';
 @import '@fontsource-variable/geist-mono';
+@import '@fontsource-variable/newsreader';
 
 /**
  * KMReader theme: light default with a deepened amber accent, near-black
  * dark mode with the bright accent. Same brand family as kmrs.
+ * Display type follows the family design language: Newsreader serif headings,
+ * Geist sans body, Geist Mono for labels and code.
  */
 
 :root {
@@ -11,6 +14,8 @@
     sans-serif;
   --ifm-font-family-monospace: 'Geist Mono Variable', ui-monospace, 'SF Mono',
     Menlo, monospace;
+  --kmr-font-display: 'Newsreader Variable', Georgia, 'Times New Roman', serif;
+  --ifm-heading-font-family: var(--kmr-font-display);
 
   --ifm-color-primary: #c2730a;
   --ifm-color-primary-dark: #af6709;

@@ -21,6 +21,7 @@
     "@easyops-cn/docusaurus-search-local": "^0.55.3",
     "@fontsource-variable/geist": "^5.3.0",
     "@fontsource-variable/geist-mono": "^5.3.0",
+    "@fontsource-variable/newsreader": "^5.3.0",
     "@mdx-js/react": "^3.0.0",
     "@phosphor-icons/react": "^2.1.10",
     "clsx": "^2.0.0",
