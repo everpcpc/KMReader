@@ -1,12 +1,15 @@
-name: Deploy Static Files to GitHub Pages
+name: Pages
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
-      - "static/**"
-      - ".github/workflows/pages.yml"
+      - website/**
+      - .github/workflows/pages.yml
+  pull_request:
+    paths:
+      - website/**
+      - .github/workflows/pages.yml
   workflow_dispatch:
 
 permissions:
@@ -15,27 +18,35 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "pages"
-  cancel-in-progress: false
+  group: pages
+  cancel-in-progress: true
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: website
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: website/build
+
   deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v6
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v5
-        with:
-          path: static
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v5
+      - id: deployment
+        uses: actions/deploy-pages@v4
