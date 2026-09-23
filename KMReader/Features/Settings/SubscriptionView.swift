@@ -236,7 +236,7 @@ struct SubscriptionView: View {
           .font(.caption)
           .foregroundColor(.secondary)
 
-        if let privacyURL = URL(string: "https://kmreader.everpcpc.com/privacy/") {
+        if let privacyURL = URL(string: "https://kmworks.github.io/kmreader/privacy/") {
           Link(destination: privacyURL) {
             Text(String(localized: "Privacy Policy"))
               .font(.caption)

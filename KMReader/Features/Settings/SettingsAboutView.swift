@@ -35,7 +35,7 @@ struct SettingsAboutView: View {
           SubscriptionView()
         }
 
-        if let privacyURL = URL(string: "https://kmreader.everpcpc.com/privacy/") {
+        if let privacyURL = URL(string: "https://kmworks.github.io/kmreader/privacy/") {
           Link(destination: privacyURL) {
             HStack {
               Label(String(localized: "Privacy Policy"), systemImage: "hand.raised")
