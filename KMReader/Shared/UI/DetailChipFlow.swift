@@ -65,7 +65,16 @@ struct DetailChipFlow: View {
           isExpanded = true
         }
       } label: {
-        DetailChip("+\(items.count - collapsedLimit)")
+        Text("+\(items.count - collapsedLimit)")
+          .font(.caption)
+          .foregroundStyle(.secondary)
+          .padding(.horizontal, 10)
+          .padding(.vertical, 5)
+          .background {
+            Capsule()
+              .strokeBorder(Color.secondary.opacity(0.3))
+          }
+          .contentShape(Capsule())
       }
       .adaptiveButtonStyle(.plain)
     }

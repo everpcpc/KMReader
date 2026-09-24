@@ -55,11 +55,7 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
       .contentShape(RoundedRectangle(cornerRadius: cornerRadius))
       .withNavigationLink(navigationLink, cornerRadius: cornerRadius)
       .withButtonAction(onAction, cornerRadius: cornerRadius)
-      .contextMenu {
-        if let menu = menu {
-          menu()
-        }
-      }
+      .withContextMenu(Menu.self == EmptyView.self ? nil : menu)
   }
 
   @ViewBuilder
@@ -347,6 +343,18 @@ extension ThumbnailImage where Menu == EmptyView {
 }
 
 extension View {
+  @ViewBuilder
+  func withContextMenu<MenuItems: View>(_ menu: (() -> MenuItems)?) -> some View {
+    // An empty contextMenu modifier still captures long-presses and blocks any
+    // ancestor's context menu, so only attach it when there is a real menu.
+    if let menu {
+      contextMenu {
+        menu()
+      }
+    } else {
+      self
+    }
+  }
   @ViewBuilder
   func withButtonAction(_ onAction: (() -> Void)?, cornerRadius: CGFloat = 8) -> some View {
     if let onAction = onAction {
