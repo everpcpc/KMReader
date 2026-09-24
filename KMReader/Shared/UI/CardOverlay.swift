@@ -29,10 +29,10 @@ struct UnreadCountBadge: View {
       .background(
         UnevenRoundedRectangle(
           bottomLeadingRadius: size * 0.65,
-          topTrailingRadius: size * 0.85,
+          topTrailingRadius: 8,
           style: .continuous
         )
-        .fill(Color.black.opacity(0.72))
+        .fill(Color(white: 0.12))
       )
   }
 }
@@ -58,10 +58,10 @@ struct UnreadIndicator: View {
       .background(
         UnevenRoundedRectangle(
           bottomLeadingRadius: size * 0.65,
-          topTrailingRadius: size * 0.85,
+          topTrailingRadius: 8,
           style: .continuous
         )
-        .fill(Color.black.opacity(0.72))
+        .fill(Color(white: 0.12))
       )
   }
 }

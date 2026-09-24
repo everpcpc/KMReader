@@ -34,7 +34,8 @@ struct ServerView: View {
         NavigationLink(value: NavDestination.settingsLibraries) {
           ServerActionTile(
             title: ServerSection.libraries.title,
-            systemImage: ServerSection.libraries.icon
+            systemImage: ServerSection.libraries.icon,
+            color: ServerSection.libraries.color
           )
         }
         .adaptiveButtonStyle(.plain)
@@ -43,7 +44,8 @@ struct ServerView: View {
           NavigationLink(value: NavDestination.settingsServerInfo) {
             ServerActionTile(
               title: ServerSection.serverInfo.title,
-              systemImage: ServerSection.serverInfo.icon
+              systemImage: ServerSection.serverInfo.icon,
+              color: ServerSection.serverInfo.color
             )
           }
           .adaptiveButtonStyle(.plain)
@@ -52,6 +54,7 @@ struct ServerView: View {
             ServerActionTile(
               title: ServerSection.tasks.title,
               systemImage: ServerSection.tasks.icon,
+              color: ServerSection.tasks.color,
               badge: taskQueueStatus.count > 0 ? "\(taskQueueStatus.count)" : nil,
               badgeColor: Color.secondary
             )
@@ -61,7 +64,8 @@ struct ServerView: View {
           NavigationLink(value: NavDestination.settingsHistory) {
             ServerActionTile(
               title: ServerSection.history.title,
-              systemImage: ServerSection.history.icon
+              systemImage: ServerSection.history.icon,
+              color: ServerSection.history.color
             )
           }
           .adaptiveButtonStyle(.plain)
@@ -69,7 +73,8 @@ struct ServerView: View {
           NavigationLink(value: NavDestination.settingsMedia) {
             ServerActionTile(
               title: ServerSection.media.title,
-              systemImage: ServerSection.media.icon
+              systemImage: ServerSection.media.icon,
+              color: ServerSection.media.color
             )
           }
           .adaptiveButtonStyle(.plain)
@@ -92,7 +97,8 @@ struct ServerView: View {
           } label: {
             ServerActionTile(
               title: String(localized: "account.details.changePassword"),
-              systemImage: "key"
+              systemImage: "key",
+              color: .orange
             )
           }
           .adaptiveButtonStyle(.plain)
@@ -101,7 +107,8 @@ struct ServerView: View {
         NavigationLink(value: NavDestination.settingsApiKey) {
           ServerActionTile(
             title: ServerSection.apiKeys.title,
-            systemImage: ServerSection.apiKeys.icon
+            systemImage: ServerSection.apiKeys.icon,
+            color: ServerSection.apiKeys.color
           )
         }
         .adaptiveButtonStyle(.plain)
@@ -109,7 +116,8 @@ struct ServerView: View {
         NavigationLink(value: NavDestination.settingsAuthenticationActivity) {
           ServerActionTile(
             title: ServerSection.authenticationActivity.title,
-            systemImage: ServerSection.authenticationActivity.icon
+            systemImage: ServerSection.authenticationActivity.icon,
+            color: ServerSection.authenticationActivity.color
           )
         }
         .adaptiveButtonStyle(.plain)

@@ -365,7 +365,8 @@ struct OfflineView: View {
         OfflineShortcutRow(
           title: OfflineSection.tasks.title,
           subtitle: String(localized: "offline.shortcuts.tasks.subtitle"),
-          systemImage: OfflineSection.tasks.icon
+          systemImage: OfflineSection.tasks.icon,
+          color: OfflineSection.tasks.color
         ) {
           OfflineTasksStatusView()
         }
@@ -375,7 +376,8 @@ struct OfflineView: View {
         OfflineShortcutRow(
           title: OfflineSection.books.title,
           subtitle: String(localized: "offline.shortcuts.books.subtitle"),
-          systemImage: OfflineSection.books.icon
+          systemImage: OfflineSection.books.icon,
+          color: OfflineSection.books.color
         ) {
           OfflineBooksCountView()
         }

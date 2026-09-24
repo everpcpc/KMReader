@@ -3,7 +3,7 @@
 //
 //
 
-import Foundation
+import SwiftUI
 
 enum OfflineSection: String, CaseIterable {
   case tasks
@@ -15,6 +15,15 @@ enum OfflineSection: String, CaseIterable {
       return "arrow.down.circle"
     case .books:
       return "books.vertical"
+    }
+  }
+
+  var color: Color {
+    switch self {
+    case .tasks:
+      return .blue
+    case .books:
+      return .green
     }
   }
 

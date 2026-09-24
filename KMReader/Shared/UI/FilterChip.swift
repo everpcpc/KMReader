@@ -24,10 +24,10 @@ struct FilterChip: View {
     }
   }
 
-  private var buttonColor: Color {
+  private var buttonColor: Color? {
     switch variant {
     case .normal, .preset:
-      return .primary
+      return nil
     case .negative:
       return .red
     }

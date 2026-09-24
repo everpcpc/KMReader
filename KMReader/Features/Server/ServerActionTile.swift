@@ -8,6 +8,7 @@ import SwiftUI
 struct ServerActionTile: View {
   let title: String
   let systemImage: String
+  let color: Color
   var subtitle: String? = nil
   var badge: String? = nil
   var badgeColor: Color? = nil
@@ -25,9 +26,9 @@ struct ServerActionTile: View {
       HStack(alignment: .top, spacing: 8) {
         ZStack {
           RoundedRectangle(cornerRadius: 10)
-            .fill(Color.secondary.opacity(0.15))
+            .fill(color)
           Image(systemName: systemImage)
-            .foregroundColor(.primary)
+            .foregroundColor(.white)
         }
         .frame(width: 34, height: 34)
 
