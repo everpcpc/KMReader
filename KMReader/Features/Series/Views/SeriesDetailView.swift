@@ -11,7 +11,6 @@ struct SeriesDetailView: View {
 
   @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("isOffline") private var isOffline: Bool = false
-  @AppStorage("seriesDetailLayout") private var seriesDetailLayout: BrowseLayoutMode = .list
 
   @Environment(\.dismiss) private var dismiss
   @Environment(\.readerActions) private var readerActions
@@ -544,8 +543,6 @@ extension SeriesDetailView {
       } label: {
         Label(String(localized: "Saved Filters"), systemImage: "bookmark")
       }
-
-      LayoutModePicker(selection: $seriesDetailLayout)
 
       Divider()
 

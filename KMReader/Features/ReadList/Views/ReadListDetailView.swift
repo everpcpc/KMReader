@@ -9,7 +9,6 @@ struct ReadListDetailView: View {
   let readListId: String
 
   @AppStorage("currentAccount") private var current: Current = .init()
-  @AppStorage("readListDetailLayout") private var readListDetailLayout: BrowseLayoutMode = .list
 
   @Environment(\.dismiss) private var dismiss
 
@@ -217,8 +216,6 @@ extension ReadListDetailView {
       } label: {
         Label(String(localized: "Saved Filters"), systemImage: "bookmark")
       }
-
-      LayoutModePicker(selection: $readListDetailLayout)
 
       Divider()
 

@@ -53,7 +53,8 @@ struct BooksListViewForSeries: View {
             showFilterSheet: $showFilterSheet,
             showSavedFilters: $showSavedFilters,
             filterType: .seriesBooks,
-            seriesId: seriesId
+            seriesId: seriesId,
+            layoutMode: $layoutMode
           )
 
           if supportsSelectionMode && !isSelectionMode && !isOffline {

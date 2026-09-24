@@ -23,13 +23,6 @@ struct BrowseView: View {
   @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("browseContent") private var browseContent: BrowseContentType = .series
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
-  @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
-
-  // Layout mode storage for each content type
-  @AppStorage("seriesBrowseLayout") private var seriesBrowseLayout: BrowseLayoutMode = .grid
-  @AppStorage("bookBrowseLayout") private var bookBrowseLayout: BrowseLayoutMode = .grid
-  @AppStorage("collectionBrowseLayout") private var collectionBrowseLayout: BrowseLayoutMode = .grid
-  @AppStorage("readListBrowseLayout") private var readListBrowseLayout: BrowseLayoutMode = .grid
 
   @State private var refreshTrigger = UUID()
   @State private var initializedLibraryIdsKey: String?
@@ -44,20 +37,6 @@ struct BrowseView: View {
 
   private var effectiveContent: BrowseContentType {
     fixedContent ?? browseContent
-  }
-
-  // Computed binding that routes to the correct layout mode based on content type
-  private var layoutModeBinding: Binding<BrowseLayoutMode> {
-    switch effectiveContent {
-    case .series:
-      return $seriesBrowseLayout
-    case .books:
-      return $bookBrowseLayout
-    case .collections:
-      return $collectionBrowseLayout
-    case .readlists:
-      return $readListBrowseLayout
-    }
   }
 
   init(
@@ -99,13 +78,6 @@ struct BrowseView: View {
 
   private var resolvedLibraryIdsKey: String {
     resolvedLibraryIds.joined(separator: ",")
-  }
-
-  private var gridDensityBinding: Binding<GridDensity> {
-    Binding(
-      get: { GridDensity.closest(to: gridDensity) },
-      set: { gridDensity = $0.rawValue }
-    )
   }
 
   func sectionCount(browseContent: BrowseContentType) -> Int? {
@@ -230,11 +202,6 @@ struct BrowseView: View {
                 Label(String(localized: "Saved Filters"), systemImage: "bookmark")
               }
             }
-
-            LayoutModePicker(
-              selection: layoutModeBinding,
-              showGridDensity: true
-            )
           } label: {
             Image(systemName: "ellipsis")
           }
