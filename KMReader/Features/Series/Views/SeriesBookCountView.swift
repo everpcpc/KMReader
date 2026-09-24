@@ -1,0 +1,48 @@
+//
+// SeriesBookCountView.swift
+//
+//
+
+import SwiftUI
+
+/// Book count and aggregate read status line shown inside the series detail
+/// action card.
+struct SeriesBookCountView: View {
+  let series: Series
+
+  var body: some View {
+    if series.deleted {
+      Label("Unavailable", systemImage: "exclamationmark.circle")
+        .font(.subheadline)
+        .foregroundStyle(.red)
+    } else {
+      HStack(alignment: .firstTextBaseline, spacing: 8) {
+        if let totalBookCount = series.metadata.totalBookCount {
+          Text("\(series.booksCount) / \(totalBookCount) books")
+            .font(.subheadline.weight(.semibold))
+        } else {
+          Text("\(series.booksCount) books")
+            .font(.subheadline.weight(.semibold))
+        }
+
+        if series.booksUnreadCount > 0 && series.booksUnreadCount < series.booksCount {
+          Label("\(series.booksUnreadCount) unread", systemImage: "circle")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        } else if series.booksInProgressCount > 0 {
+          Label("\(series.booksInProgressCount) in progress", systemImage: "circle.righthalf.filled")
+            .font(.caption)
+            .foregroundStyle(.orange)
+        } else if series.booksUnreadCount == 0 && series.booksCount > 0 {
+          Label("All read", systemImage: "checkmark.circle.fill")
+            .font(.caption)
+            .foregroundStyle(.green)
+        } else if series.booksCount > 0 {
+          Label("Unread", systemImage: "circle")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+      }
+    }
+  }
+}
