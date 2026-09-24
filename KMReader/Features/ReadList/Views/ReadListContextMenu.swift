@@ -54,6 +54,14 @@ struct ReadListContextMenu: View {
         )
       }
 
+      if ReadListReadingService.shared.isReading(readListId: readListId) {
+        Button {
+          stopReading()
+        } label: {
+          Label(String(localized: "readList.stopReading"), systemImage: "stop.circle")
+        }
+      }
+
       if !isOffline {
         Divider()
         Menu {
@@ -106,6 +114,17 @@ struct ReadListContextMenu: View {
           Label("Refresh Cover", systemImage: "arrow.clockwise")
         }
       }
+    }
+  }
+
+  private func stopReading() {
+    Task {
+      await ReadListReadingService.shared.stopReading(
+        readListId: readListId,
+        instanceId: current.instanceId
+      )
+      ErrorManager.shared.notify(message: String(localized: "notification.readList.stoppedReading"))
+      onMutationCompleted?()
     }
   }
 

@@ -69,10 +69,15 @@ final class ReaderPresentationManager {
       }
     #endif
 
+    // An explicit read list (opened from that read list) always wins. Otherwise a
+    // book of a read list the user is reading continues in that read list's
+    // order, whatever the entry point — the way a series continues from anywhere.
+    let resolvedReadListContext =
+      readListContext ?? ReadListReadingService.shared.ownerContext(forBookId: book.id)
     let session = ReaderSession(
       book: book,
       incognito: incognito,
-      readListContext: readListContext
+      readListContext: resolvedReadListContext
     )
     currentSession = session
 
@@ -86,6 +91,7 @@ final class ReaderPresentationManager {
 
     ContentProjectionNotifier.readerDidOpen(sessionID: session.id)
     DashboardRefreshCoordinator.shared.readerDidOpen(sessionID: session.id)
+    recordReadListEntryPoint(session: session, bookId: book.id)
 
     #if os(iOS)
       ReaderLiveActivityManager.shared.readerDidOpen(book: book, incognito: incognito)
@@ -191,11 +197,28 @@ final class ReaderPresentationManager {
 
   func updatePresentedBook(sessionID: UUID, book: Book) {
     guard var session = currentSession, session.id == sessionID else { return }
+    let movedToAnotherBook = session.book.id != book.id
     session.book = book
     currentSession = session
+    // Seamless cross-book continuation moves the presented book inside one
+    // session; keep the read list's position on the book actually being read.
+    if movedToAnotherBook {
+      recordReadListEntryPoint(session: session, bookId: book.id)
+    }
     #if os(iOS)
       ReaderLiveActivityManager.shared.readerDidUpdateBook(book, incognito: session.incognito)
     #endif
+  }
+
+  /// Records the read list this session reads through, so the dashboard and
+  /// later sessions keep continuing in that read list's order.
+  private func recordReadListEntryPoint(session: ReaderSession, bookId: String) {
+    guard !session.incognito, let readListId = session.readListContext?.id, !bookId.isEmpty else { return }
+    ReadListReadingService.shared.recordReading(
+      readListId: readListId,
+      bookId: bookId,
+      instanceId: session.instanceId
+    )
   }
 
   func closeReader(

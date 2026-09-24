@@ -78,6 +78,18 @@ nonisolated enum LocalDatabase {
       }
     }
 
+    migrator.registerMigration("00008_add_read_list_reading_states") { db in
+      try db.create(table: ReadListReadingState.databaseTableName) { table in
+        table.column("instance_id", .text).notNull()
+        table.column("read_list_id", .text).notNull()
+        table.column("last_read_book_id", .text).notNull()
+        table.column("last_read_at", .datetime).notNull()
+        table.column("needs_upload", .boolean).notNull().defaults(to: false)
+        table.column("is_stopped", .boolean).notNull().defaults(to: false)
+        table.primaryKey(["instance_id", "read_list_id"], onConflict: .replace)
+      }
+    }
+
     migrator.registerMigration("00008_add_instance_api_key_id") { db in
       try db.alter(table: KomgaInstance.databaseTableName) { table in
         table.add(column: "api_key_id", .text)

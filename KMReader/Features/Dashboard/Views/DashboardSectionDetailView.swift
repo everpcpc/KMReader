@@ -19,6 +19,7 @@ struct DashboardSectionDetailView: View {
   @State private var isQueueingAllOffline = false
   @State private var hasLoadedInitial = false
   @State private var needsRefreshAfterCurrentLoad = false
+  @State private var mergedReadListSnapshot: ReadListReadingSnapshot?
 
   private var columns: [GridItem] {
     LayoutConfig.adaptiveColumns(for: gridDensity)
@@ -80,6 +81,11 @@ struct DashboardSectionDetailView: View {
         return
       }
       guard command.includes(section) else { return }
+      Task { await revalidateItems() }
+    }
+    .onChange(of: section.mergesReadListContinuations ? ReadListReadingService.shared.snapshot : nil) {
+      _, snapshot in
+      guard let snapshot, !isLoading, let merged = mergedReadListSnapshot, merged != snapshot else { return }
       Task { await revalidateItems() }
     }
     #if os(iOS) || os(macOS)
@@ -229,6 +235,7 @@ struct DashboardSectionDetailView: View {
 
     let libraryIds = dashboard.libraryIds
     let instanceId = AppConfig.current.instanceId
+    let isFirstPage = pagination.currentPage == 0
 
     if AppConfig.isOffline {
       let ids: [String]
@@ -248,7 +255,12 @@ struct DashboardSectionDetailView: View {
       case .collections, .readLists:
         ids = []
       }
-      applyPage(ids: ids, moreAvailable: ids.count == pagination.pageSize)
+      let displayedIds = await mergingReadListContinuations(
+        ids: ids,
+        isFirstPage: isFirstPage,
+        libraryIds: libraryIds
+      )
+      applyPage(ids: displayedIds, moreAvailable: ids.count == pagination.pageSize)
       updateWidgetDataIfNeeded(
         ids: ids,
         refresh: refresh,
@@ -264,7 +276,11 @@ struct DashboardSectionDetailView: View {
             page: pagination.currentPage,
             size: pagination.pageSize
           ) {
-            let ids = page.content.map { $0.id }
+            let ids = await mergingReadListContinuations(
+              ids: page.content.map { $0.id },
+              isFirstPage: isFirstPage,
+              libraryIds: libraryIds
+            )
             applyPage(ids: ids, moreAvailable: !page.last)
             if refresh {
               updateWidgetDataIfNeeded(
@@ -317,6 +333,25 @@ struct DashboardSectionDetailView: View {
     withAnimation {
       _ = pagination.removeItems(withIDs: [id])
     }
+  }
+
+  /// Folds the read lists being read into On Deck, matching the dashboard row
+  /// (see `ReadListReadingSnapshot.mergingOnDeck`). The first page merges the
+  /// latest read lists; later pages reuse them.
+  private func mergingReadListContinuations(
+    ids: [String],
+    isFirstPage: Bool,
+    libraryIds: [String]
+  ) async -> [String] {
+    guard section.mergesReadListContinuations else { return ids }
+    let snapshot: ReadListReadingSnapshot
+    if isFirstPage {
+      snapshot = await ReadListReadingService.shared.refreshSnapshot()
+      mergedReadListSnapshot = snapshot
+    } else {
+      snapshot = mergedReadListSnapshot ?? .empty
+    }
+    return snapshot.mergingOnDeck(ids, libraryIds: libraryIds, isFirstPage: isFirstPage)
   }
 
   private func updateWidgetDataIfNeeded(books: [Book], instanceId: String, libraryIds: [String]) {
@@ -480,8 +515,13 @@ struct DashboardSectionDetailView: View {
       case .collections, .readLists:
         ids = []
       }
+      let displayedIds = await mergingReadListContinuations(
+        ids: ids,
+        isFirstPage: true,
+        libraryIds: libraryIds
+      )
       guard loadID == pagination.loadID else { return }
-      applyRevalidatedWindow(ids: ids, moreAvailable: ids.count == windowSize)
+      applyRevalidatedWindow(ids: displayedIds, moreAvailable: ids.count == windowSize)
     } else {
       do {
         switch section.contentKind {
@@ -491,8 +531,13 @@ struct DashboardSectionDetailView: View {
             page: 0,
             size: windowSize
           ) {
+            let ids = await mergingReadListContinuations(
+              ids: page.content.map { $0.id },
+              isFirstPage: true,
+              libraryIds: libraryIds
+            )
             guard loadID == pagination.loadID else { return }
-            applyRevalidatedWindow(ids: page.content.map { $0.id }, moreAvailable: !page.last)
+            applyRevalidatedWindow(ids: ids, moreAvailable: !page.last)
           }
         case .series:
           if let page = try await section.fetchSeries(

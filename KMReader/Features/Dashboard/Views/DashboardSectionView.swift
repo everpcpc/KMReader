@@ -22,6 +22,7 @@ struct DashboardSectionView: View {
   @State private var isLoading = false
   @State private var didSeedFromCache = false
   @State private var hasLoadedInitial = false
+  @State private var mergedReadListSnapshot: ReadListReadingSnapshot?
 
   private let logger = AppLogger(.dashboard)
   private let sectionCacheStore = DashboardSectionCacheStore.shared
@@ -137,6 +138,10 @@ struct DashboardSectionView: View {
       }
       handleReloadCommand(command)
     }
+    .onChange(of: section.mergesReadListContinuations ? ReadListReadingService.shared.snapshot : nil) {
+      _, snapshot in
+      reloadIfReadListsChanged(snapshot)
+    }
     .onAppear {
       DashboardRefreshCoordinator.shared.registerSection(section)
     }
@@ -206,6 +211,15 @@ struct DashboardSectionView: View {
     }
   }
 
+  /// Read lists change on their own schedule (a sync, another device, Stop
+  /// Reading), so On Deck reloads whenever the read lists it merged are out of
+  /// date. A load in flight merges the latest ones itself.
+  private func reloadIfReadListsChanged(_ snapshot: ReadListReadingSnapshot?) {
+    guard let snapshot, !isLoading, let merged = mergedReadListSnapshot, merged != snapshot else { return }
+    logger.debug("Dashboard section \(section) reloading: read lists changed")
+    Task { await refresh() }
+  }
+
   private func loadMore() async {
     guard pagination.hasMorePages, !isLoading else { return }
     withAnimation {
@@ -238,7 +252,12 @@ struct DashboardSectionView: View {
       case .collections, .readLists:
         ids = []
       }
-      applyPage(ids: ids, moreAvailable: ids.count == pagination.pageSize)
+      let displayedIds = await mergingReadListContinuations(
+        ids: ids,
+        isFirstPage: isFirstPage,
+        libraryIds: libraryIds
+      )
+      applyPage(ids: displayedIds, moreAvailable: ids.count == pagination.pageSize)
       updateWidgetDataIfNeeded(
         ids: ids,
         isFirstPage: isFirstPage,
@@ -254,7 +273,11 @@ struct DashboardSectionView: View {
             page: pagination.currentPage,
             size: pagination.pageSize
           ) {
-            let ids = page.content.map { $0.id }
+            let ids = await mergingReadListContinuations(
+              ids: page.content.map { $0.id },
+              isFirstPage: isFirstPage,
+              libraryIds: libraryIds
+            )
             if isFirstPage {
               _ = sectionCacheStore.updateIfChanged(section: section, ids: ids)
               updateWidgetDataIfNeeded(
@@ -293,6 +316,27 @@ struct DashboardSectionView: View {
     withAnimation {
       isLoading = false
     }
+  }
+
+  /// Folds the read lists being read into On Deck (see
+  /// `ReadListReadingSnapshot.mergingOnDeck`). The first page merges the latest
+  /// read lists; later pages reuse them so pages stay consistent until a
+  /// reload. Opening any of these books picks up the owning read list in
+  /// `ReaderPresentationManager`.
+  private func mergingReadListContinuations(
+    ids: [String],
+    isFirstPage: Bool,
+    libraryIds: [String]
+  ) async -> [String] {
+    guard section.mergesReadListContinuations else { return ids }
+    let snapshot: ReadListReadingSnapshot
+    if isFirstPage {
+      snapshot = await ReadListReadingService.shared.refreshSnapshot()
+      mergedReadListSnapshot = snapshot
+    } else {
+      snapshot = mergedReadListSnapshot ?? .empty
+    }
+    return snapshot.mergingOnDeck(ids, libraryIds: libraryIds, isFirstPage: isFirstPage)
   }
 
   private func seedFromCacheIfNeeded(isFirstPage: Bool) async {

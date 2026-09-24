@@ -61,6 +61,7 @@ final class SyncViewModel {
     if result.readingProgressSynced {
       AppConfig.setReadingProgressSyncTime(Date(), instanceId: instanceId)
     }
+    await ReadListReadingService.shared.sync(instanceId: instanceId)
 
     progress = 1.0
     ErrorManager.shared.notify(
@@ -98,6 +99,9 @@ final class SyncViewModel {
     defer { isSyncingReadingProgress = false }
 
     let syncSucceeded = await worker.syncReadingProgress(instanceId: instanceId)
+    // Read list continuation is derived from reading progress, so reconcile the
+    // read lists being read (and rebuild what they surface) after each pull.
+    await ReadListReadingService.shared.sync(instanceId: instanceId)
     guard syncSucceeded else { return }
 
     AppConfig.setReadingProgressSyncTime(Date(), instanceId: instanceId)

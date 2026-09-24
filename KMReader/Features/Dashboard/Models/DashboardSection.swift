@@ -129,6 +129,13 @@ enum DashboardSection: String, CaseIterable, Identifiable, Codable, Sendable {
     }
   }
 
+  /// On Deck is where the read lists the user is reading compete with series
+  /// for the next book (see `ReadListReadingSnapshot.mergingOnDeck`). Keep
+  /// Reading needs no merge: Komga already lists every book in progress.
+  var mergesReadListContinuations: Bool {
+    self == .onDeck
+  }
+
   func fetchBooks(libraryIds: [String], page: Int, size: Int) async throws -> Page<Book>? {
     switch self {
     case .keepReading:
