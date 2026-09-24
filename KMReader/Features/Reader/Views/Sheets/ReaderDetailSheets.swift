@@ -48,7 +48,9 @@ private struct ReaderDetailSheetContent: View {
             if showingSeries {
               SeriesDetailContentView(
                 series: series
-              )
+              ) {
+                EmptyView()
+              }
             } else {
               BookDetailContentView(
                 book: book,
