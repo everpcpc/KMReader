@@ -33,9 +33,11 @@ struct LayoutConfig {
     baseCardWidth * CGFloat(density)
   }
 
-  /// Width of horizontal cards (dashboard book sections, pinned read lists/collections)
-  static func horizontalCardWidth(for density: Double) -> CGFloat {
-    let proposed = cardWidth(for: density) * 2.2
+  /// Width of horizontal cards (dashboard book sections, pinned read lists/collections).
+  /// Horizontal cards do not follow grid density: they carry only a few short
+  /// text lines, so density-scaled sizing outruns the content and looks empty.
+  static var horizontalCardWidth: CGFloat {
+    let proposed = baseCardWidth * 2.2
     // Fixed floors stay below the smallest compact-density proposal (176pt on
     // iPhone) so every density renders at its natural proportional width.
     #if os(tvOS)
@@ -46,12 +48,10 @@ struct LayoutConfig {
   }
 
   /// Cover width inside horizontal cards
-  static func horizontalCoverWidth(for density: Double) -> CGFloat {
-    let cardWidth = horizontalCardWidth(for: density)
-    // Fixed floor stays below the smallest compact-density proposal (44pt on
-    // iPhone) so covers keep shrinking with the card. The ratio keeps the
-    // cover taller than the text column (series + two-line title + bottom
-    // bar) at every density, so the cover always drives the card height.
+  static var horizontalCoverWidth: CGFloat {
+    let cardWidth = horizontalCardWidth
+    // The ratio keeps the cover taller than the text column (series + two-line
+    // title + bottom bar), so the cover always drives the card height.
     #if os(tvOS)
       return min(max(cardWidth * 0.25, 56), 140)
     #else
@@ -60,20 +60,13 @@ struct LayoutConfig {
   }
 
   /// Title text style inside horizontal cards (book title, read list/collection name).
-  /// Cozy density steps text up one tier so the wider card doesn't look sparse.
-  static func horizontalCardTitleTextStyle(for density: Double) -> Font.TextStyle {
-    density > GridDensity.standard.rawValue ? .subheadline : .footnote
-  }
+  static var horizontalCardTitleTextStyle: Font.TextStyle { .subheadline }
 
   /// Secondary text style inside horizontal cards (series, progress, metadata).
-  static func horizontalCardSecondaryTextStyle(for density: Double) -> Font.TextStyle {
-    density > GridDensity.standard.rawValue ? .footnote : .caption
-  }
+  static var horizontalCardSecondaryTextStyle: Font.TextStyle { .footnote }
 
   /// Tertiary text style for small icons in horizontal card accessory rows.
-  static func horizontalCardTertiaryTextStyle(for density: Double) -> Font.TextStyle {
-    density > GridDensity.standard.rawValue ? .caption : .caption2
-  }
+  static var horizontalCardTertiaryTextStyle: Font.TextStyle { .caption }
 
   /// Default spacing between cards
   static var defaultSpacing: CGFloat {

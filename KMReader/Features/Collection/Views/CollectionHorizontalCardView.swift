@@ -12,14 +12,13 @@ struct CollectionHorizontalCardView: View {
   var onChanged: () -> Void = {}
   let onDeleteRequested: () -> Void
 
-  @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
   @State private var showEditSheet = false
 
   var body: some View {
     NavigationLink(
       value: NavDestination.collectionDetail(collectionId: item.collectionId)
     ) {
-      HStack(alignment: .top, spacing: 10) {
+      HStack(alignment: .center, spacing: 10) {
         ThumbnailImage(
           id: item.collectionId, type: .collection, width: coverWidth, preserveAspectRatioOverride: false
         )
@@ -28,21 +27,21 @@ struct CollectionHorizontalCardView: View {
 
         VStack(alignment: .leading, spacing: 4) {
           Text(item.name)
-            .font(.system(LayoutConfig.horizontalCardTitleTextStyle(for: gridDensity)))
+            .font(.system(LayoutConfig.horizontalCardTitleTextStyle))
             .lineLimit(2)
             .multilineTextAlignment(.leading)
 
           Text("\(item.seriesCount) series")
-            .font(.system(LayoutConfig.horizontalCardSecondaryTextStyle(for: gridDensity)))
+            .font(.system(LayoutConfig.horizontalCardSecondaryTextStyle))
             .foregroundColor(.secondary)
 
           Text(item.lastModifiedDate.formattedMediumDate)
-            .font(.system(LayoutConfig.horizontalCardSecondaryTextStyle(for: gridDensity)))
+            .font(.system(LayoutConfig.horizontalCardSecondaryTextStyle))
             .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
       }
-      .padding(8)
+      .padding(6)
       .frame(maxWidth: .infinity, alignment: .leading)
       .background {
         RoundedRectangle(cornerRadius: 12)

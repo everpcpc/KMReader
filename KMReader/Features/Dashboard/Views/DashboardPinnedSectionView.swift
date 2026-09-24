@@ -82,11 +82,11 @@ struct DashboardPinnedSectionView: View {
   }
 
   private var horizontalCardWidth: CGFloat {
-    LayoutConfig.horizontalCardWidth(for: gridDensity)
+    LayoutConfig.horizontalCardWidth
   }
 
   private var horizontalCoverWidth: CGFloat {
-    LayoutConfig.horizontalCoverWidth(for: gridDensity)
+    LayoutConfig.horizontalCoverWidth
   }
 
   private var spacing: CGFloat {

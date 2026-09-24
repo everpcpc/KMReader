@@ -9,36 +9,29 @@ import SwiftUI
 struct BookHorizontalCardPlaceholder: View {
   var coverWidth: CGFloat = 60
 
-  @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
-
   private let cornerRadius: CGFloat = 8
 
   var body: some View {
-    HStack(alignment: .top, spacing: 10) {
+    HStack(alignment: .center, spacing: 10) {
       RoundedRectangle(cornerRadius: cornerRadius)
         .fill(Color.gray.opacity(0.2))
         .aspectRatio(CoverAspectRatio.widthToHeight, contentMode: .fit)
         .frame(width: coverWidth)
 
-      VStack(alignment: .leading, spacing: 2) {
-        Spacer(minLength: 0)
-
+      VStack(alignment: .leading, spacing: 4) {
         placeholderLine(
-          textStyle: LayoutConfig.horizontalCardSecondaryTextStyle(for: gridDensity),
+          textStyle: LayoutConfig.horizontalCardSecondaryTextStyle,
           text: "Series Title", widthScale: 0.45, opacity: 0.18)
         placeholderLine(
-          textStyle: LayoutConfig.horizontalCardTitleTextStyle(for: gridDensity),
+          textStyle: LayoutConfig.horizontalCardTitleTextStyle,
           text: "Book Title", widthScale: 0.8, opacity: 0.2)
-
-        Spacer(minLength: 2)
-
         placeholderLine(
-          textStyle: LayoutConfig.horizontalCardSecondaryTextStyle(for: gridDensity),
+          textStyle: LayoutConfig.horizontalCardSecondaryTextStyle,
           text: "Page 42 • 36%", widthScale: 0.55, opacity: 0.15)
       }
-      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+      .frame(maxWidth: .infinity, alignment: .leading)
     }
-    .padding(8)
+    .padding(6)
     .frame(maxWidth: .infinity, alignment: .leading)
     .background {
       RoundedRectangle(cornerRadius: 12)
