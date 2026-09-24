@@ -17,13 +17,24 @@ struct DashboardPinnedSectionView: View {
 
   @Environment(\.colorScheme) private var colorScheme
 
-  @State private var isLoading = false
-  @State private var pinnedCollections: [CollectionDisplayItem] = []
-  @State private var pinnedReadLists: [ReadListDisplayItem] = []
+  @State private var viewModel: DashboardPinnedSectionViewModel
   @State private var collectionPendingDelete: CollectionDisplayItem?
   @State private var readListPendingDelete: ReadListDisplayItem?
   @State private var showCollectionDeleteConfirmation = false
   @State private var showReadListDeleteConfirmation = false
+
+  init(section: DashboardSection) {
+    self.section = section
+    _viewModel = State(initialValue: DashboardPinnedSectionViewModel(section: section))
+  }
+
+  private var pinnedCollections: [CollectionDisplayItem] {
+    viewModel.pinnedCollections
+  }
+
+  private var pinnedReadLists: [ReadListDisplayItem] {
+    viewModel.pinnedReadLists
+  }
 
   private var isSupportedSection: Bool {
     switch section.contentKind {
@@ -207,22 +218,24 @@ struct DashboardPinnedSectionView: View {
         else {
           return
         }
+        let instanceId = currentInstanceId
         Task {
           defer {
             DashboardRefreshCoordinator.shared.acknowledgeSectionReload(
               commandID: command.id, section: section)
           }
-          await refresh()
+          await viewModel.refresh(instanceId: instanceId)
         }
       }
       .onAppear {
         DashboardRefreshCoordinator.shared.registerSection(section)
+        viewModel.refreshIfIdle(instanceId: currentInstanceId)
       }
       .onDisappear {
         DashboardRefreshCoordinator.shared.unregisterSection(section)
       }
-      .task(id: currentInstanceId) {
-        await refresh()
+      .onChange(of: currentInstanceId) { _, instanceId in
+        viewModel.refreshIfIdle(instanceId: instanceId)
       }
     }
   }
@@ -231,34 +244,9 @@ struct DashboardPinnedSectionView: View {
     current.instanceId
   }
 
-  private func refresh() async {
-    guard !isLoading else { return }
-    withAnimation {
-      isLoading = true
-    }
-    defer {
-      withAnimation {
-        isLoading = false
-      }
-    }
-
-    await loadPinnedItems()
-
-    guard !AppConfig.isOffline else { return }
-    switch section.contentKind {
-    case .collections:
-      await SyncService.syncCollections(instanceId: currentInstanceId)
-    case .readLists:
-      await SyncService.syncReadLists(instanceId: currentInstanceId)
-    default:
-      break
-    }
-    await loadPinnedItems()
-  }
-
   private func schedulePinnedItemsReload() {
     Task {
-      await loadPinnedItems()
+      await viewModel.loadPinnedItems(instanceId: currentInstanceId)
     }
   }
 
@@ -269,7 +257,7 @@ struct DashboardPinnedSectionView: View {
       do {
         try await CollectionService.deleteCollection(collectionId: collection.collectionId)
         ErrorManager.shared.notify(message: String(localized: "notification.collection.deleted"))
-        await loadPinnedItems()
+        await viewModel.loadPinnedItems(instanceId: currentInstanceId)
       } catch {
         ErrorManager.shared.alert(error: error)
       }
@@ -283,50 +271,10 @@ struct DashboardPinnedSectionView: View {
       do {
         try await ReadListService.deleteReadList(readListId: readList.readListId)
         ErrorManager.shared.notify(message: String(localized: "notification.readList.deleted"))
-        await loadPinnedItems()
+        await viewModel.loadPinnedItems(instanceId: currentInstanceId)
       } catch {
         ErrorManager.shared.alert(error: error)
       }
-    }
-  }
-
-  private func loadPinnedItems() async {
-    guard !currentInstanceId.isEmpty else {
-      withAnimation {
-        if !pinnedCollections.isEmpty { pinnedCollections = [] }
-        if !pinnedReadLists.isEmpty { pinnedReadLists = [] }
-      }
-      return
-    }
-
-    do {
-      let database = try await DatabaseOperator.database()
-      switch section.contentKind {
-      case .collections:
-        let loadedCollections = try await database.fetchPinnedCollectionDisplayItems(
-          instanceId: currentInstanceId
-        )
-        withAnimation {
-          if pinnedCollections != loadedCollections {
-            pinnedCollections = loadedCollections
-          }
-          if !pinnedReadLists.isEmpty { pinnedReadLists = [] }
-        }
-      case .readLists:
-        let loadedReadLists = try await database.fetchPinnedReadListDisplayItems(
-          instanceId: currentInstanceId
-        )
-        withAnimation {
-          if pinnedReadLists != loadedReadLists {
-            pinnedReadLists = loadedReadLists
-          }
-          if !pinnedCollections.isEmpty { pinnedCollections = [] }
-        }
-      default:
-        break
-      }
-    } catch {
-      ErrorManager.shared.alert(error: error)
     }
   }
 }
