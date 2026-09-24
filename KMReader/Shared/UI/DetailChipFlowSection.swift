@@ -1,34 +1,42 @@
 //
-// CollapsibleChipSection.swift
+// DetailChipFlowSection.swift
 //
 //
 
 import Flow
 import SwiftUI
 
-struct CollapsibleChipSection<Item: Hashable, Chip: View>: View {
+/// Labeled flow of matte chips for detail pages (genres, tags, links).
+struct DetailChipFlowSection<Item: Hashable, Content: View>: View {
+  let title: LocalizedStringKey
   let items: [Item]
   let collapsedLimit: Int
-  let chip: (Item) -> Chip
+  @ViewBuilder let content: (Item) -> Content
 
   @State private var isExpanded = false
 
   init(
+    title: LocalizedStringKey,
     items: [Item],
-    collapsedLimit: Int = 10,
-    @ViewBuilder chip: @escaping (Item) -> Chip
+    collapsedLimit: Int = 6,
+    @ViewBuilder content: @escaping (Item) -> Content
   ) {
+    self.title = title
     self.items = items
     self.collapsedLimit = collapsedLimit
-    self.chip = chip
+    self.content = content
   }
 
   var body: some View {
     if !items.isEmpty {
-      VStack(alignment: .leading, spacing: 6) {
+      VStack(alignment: .leading, spacing: 4) {
+        Text(title)
+          .font(.caption)
+          .foregroundStyle(.secondary)
+
         HFlow {
           ForEach(displayedItems, id: \.self) { item in
-            chip(item)
+            content(item)
           }
         }
 

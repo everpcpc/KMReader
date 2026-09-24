@@ -17,7 +17,7 @@ struct OneShotDetailContentView: View {
 
   @State private var thumbnailRefreshKey = UUID()
 
-  private let collapsedMetadataChipLimit = 10
+  private let collapsedLinkLimit = 6
 
   init(
     book: Book,
@@ -37,27 +37,9 @@ struct OneShotDetailContentView: View {
     thumbnailBlurUnreadCovers && book.isUnread ? CoverBlurStyle.unreadRadius : 0
   }
 
-  private var hasReadInfo: Bool {
-    if let language = series.metadata.language, !language.isEmpty {
-      return true
-    }
-    if let direction = series.metadata.readingDirection, !direction.isEmpty {
-      return true
-    }
-    return false
-  }
-
   var body: some View {
-    VStack(alignment: .leading) {
-      HStack(alignment: .bottom, spacing: 8) {
-        DetailTitleView(title: book.metadata.title)
-        if let ageRating = series.metadata.ageRating, ageRating > 0 {
-          AgeRatingBadge(ageRating: ageRating)
-        }
-        Spacer(minLength: 0)
-      }
-
-      HStack(alignment: .top) {
+    VStack(alignment: .leading, spacing: 12) {
+      HStack(alignment: .top, spacing: 12) {
         ThumbnailImage(
           id: book.id,
           type: .book,
@@ -89,189 +71,167 @@ struct OneShotDetailContentView: View {
         }
         .id(thumbnailRefreshKey)
 
-        VStack(alignment: .leading) {
-          HStack(spacing: 6) {
-            let mediaStatus = book.media.statusValue
-            if mediaStatus != .ready {
-              InfoChip(
-                label: mediaStatus.label,
-                systemImage: mediaStatus.icon,
-                backgroundColor: mediaStatus.color.opacity(0.2),
-                foregroundColor: mediaStatus.color
-              )
-            } else {
-              InfoChip(
-                labelKey: "\(book.media.pagesCount) pages",
-                systemImage: "book.pages",
-                backgroundColor: Color.blue.opacity(0.2),
-                foregroundColor: .blue
-              )
+        VStack(alignment: .leading, spacing: 6) {
+          HStack(alignment: .bottom, spacing: 8) {
+            DetailTitleView(title: book.metadata.title)
+            if let ageRating = series.metadata.ageRating, ageRating > 0 {
+              AgeRatingBadge(ageRating: ageRating)
             }
+            Spacer(minLength: 0)
           }
 
-          if book.deleted {
-            InfoChip(
-              labelKey: "Unavailable",
-              backgroundColor: Color.red.opacity(0.2),
-              foregroundColor: .red
-            )
-          }
-
-          if let readProgress = book.readProgress {
-            if book.isCompleted {
-              InfoChip(
-                labelKey: "Completed",
-                systemImage: "checkmark.circle.fill",
-                backgroundColor: Color.green.opacity(0.2),
-                foregroundColor: .green
-              )
-            } else {
-              InfoChip(
-                labelKey: "Page \(readProgress.page) / \(book.media.pagesCount)",
-                systemImage: "circle.righthalf.filled",
-                backgroundColor: Color.orange.opacity(0.2),
-                foregroundColor: .orange
-              )
-            }
-
-            InfoChip(
-              labelKey: "Last Read: \(readProgress.readDate.formattedMediumDate)",
-              systemImage: "book.closed",
-              backgroundColor: Color.teal.opacity(0.2),
-              foregroundColor: .teal
-            )
-          } else {
-            InfoChip(
-              labelKey: "Unread",
-              systemImage: "circle",
-              backgroundColor: Color.gray.opacity(0.2),
-              foregroundColor: .gray
-            )
-          }
+          DetailAuthorChips(
+            authors: (book.metadata.authors ?? []).sortedByRole(),
+            destination: { MetadataFilterHelper.seriesDestinationForAuthor($0.name) }
+          )
 
           if let releaseDate = book.metadata.releaseDate {
-            InfoChip(
-              labelKey: "Release Date: \(releaseDate)",
+            DetailMetadataRow(
               systemImage: "calendar",
-              backgroundColor: Color.orange.opacity(0.2),
-              foregroundColor: .orange
+              text: Text("Release Date: \(releaseDate)")
             )
           }
-
-          if hasReadInfo {
-            HStack(spacing: 6) {
-              if let language = series.metadata.language, !language.isEmpty {
-                InfoChip(
-                  label: LanguageCodeHelper.displayName(for: language),
-                  systemImage: "globe",
-                  backgroundColor: Color.purple.opacity(0.2),
-                  foregroundColor: .purple
-                )
-              }
-
-              if let direction = series.metadata.readingDirection, !direction.isEmpty {
-                InfoChip(
-                  label: ReadingDirection.fromString(direction).displayName,
-                  systemImage: ReadingDirection.fromString(direction).icon,
-                  backgroundColor: Color.cyan.opacity(0.2),
-                  foregroundColor: .cyan
-                )
-              }
-            }
+          if let language = series.metadata.language, !language.isEmpty {
+            DetailMetadataRow(
+              systemImage: "globe",
+              text: Text(LanguageCodeHelper.displayName(for: language))
+            )
           }
-
+          if let direction = series.metadata.readingDirection, !direction.isEmpty {
+            DetailMetadataRow(
+              systemImage: ReadingDirection.fromString(direction).icon,
+              text: Text(ReadingDirection.fromString(direction).displayName)
+            )
+          }
           if let isbn = book.metadata.isbn, !isbn.isEmpty {
-            InfoChip(
-              label: isbn,
+            DetailMetadataRow(
               systemImage: "barcode",
-              backgroundColor: Color.cyan.opacity(0.2),
-              foregroundColor: .cyan
+              text: Text(isbn)
             )
           }
+        }
+      }
 
-          if let publisher = series.metadata.publisher, !publisher.isEmpty {
-            TappableInfoChip(
-              label: publisher,
-              systemImage: "building.2",
-              color: .secondary,
-              destination: MetadataFilterHelper.seriesDestinationForPublisher(publisher)
-            )
-          }
+      DetailActionCard {
+        VStack(alignment: .leading, spacing: 2) {
+          let mediaStatus = book.media.statusValue
+          HStack(alignment: .firstTextBaseline, spacing: 8) {
+            if mediaStatus != .ready {
+              Label(mediaStatus.label, systemImage: mediaStatus.icon)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(mediaStatus.detailColor)
+            } else {
+              Text("\(book.media.pagesCount) pages")
+                .font(.subheadline.weight(.semibold))
+            }
 
-          if let authors = book.metadata.authors, !authors.isEmpty {
-            CollapsibleChipSection(items: authors.sortedByRole(), collapsedLimit: collapsedMetadataChipLimit) {
-              author in
-              TappableInfoChip(
-                label: author.name,
-                systemImage: author.role.icon,
-                color: .purple,
-                destination: MetadataFilterHelper.seriesDestinationForAuthor(author.name)
-              )
+            if book.deleted {
+              Label("Unavailable", systemImage: "exclamationmark.circle")
+                .font(.caption)
+                .foregroundStyle(.red)
+            } else if let readProgress = book.readProgress {
+              if book.isCompleted {
+                Label("Completed", systemImage: "checkmark.circle.fill")
+                  .font(.caption)
+                  .foregroundStyle(.green)
+              } else {
+                Label(
+                  "Page \(readProgress.page) / \(book.media.pagesCount)",
+                  systemImage: "circle.righthalf.filled"
+                )
+                .font(.caption)
+                .foregroundStyle(.orange)
+              }
+            } else {
+              Label("Unread", systemImage: "circle")
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
           }
+
+          if let readProgress = book.readProgress, !book.deleted {
+            Label(
+              "Last Read: \(readProgress.readDate.formattedMediumDate)",
+              systemImage: "book.closed"
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+          }
+        }
+
+        if !inSheet {
+          BookActionsSection(
+            book: book,
+            seriesLink: false
+          )
+        }
+
+        if let downloadStatus = downloadStatus {
+          BookDownloadActionsSection(
+            book: book,
+            status: downloadStatus,
+            protectionSources: protectionSources
+          )
         }
       }
 
-      // Series genres
+      if let summary = book.metadata.summary, !summary.isEmpty {
+        ExpandableSummaryView(
+          summary: summary,
+          titleIcon: nil,
+          subtitle: nil,
+          titleStyle: .headline
+        )
+      }
+
       if let genres = series.metadata.genres, !genres.isEmpty {
-        CollapsibleChipSection(items: genres.localizedSorted(), collapsedLimit: collapsedMetadataChipLimit) { genre in
-          TappableInfoChip(
-            label: genre,
-            systemImage: "theatermasks",
-            color: .teal,
-            destination: MetadataFilterHelper.seriesDestinationForGenre(genre)
-          )
+        DetailChipFlowSection(
+          title: "Genres", items: genres.localizedSorted(), collapsedLimit: collapsedLinkLimit
+        ) { genre in
+          NavigationLink(value: MetadataFilterHelper.seriesDestinationForGenre(genre)) {
+            DetailChip(genre)
+          }
+          .adaptiveButtonStyle(.plain)
         }
       }
 
-      // Book tags
       if let tags = book.metadata.tags, !tags.isEmpty {
-        CollapsibleChipSection(items: tags.localizedSorted(), collapsedLimit: collapsedMetadataChipLimit) { tag in
-          TappableInfoChip(
-            label: tag,
-            systemImage: "tag",
-            color: .secondary,
-            destination: MetadataFilterHelper.seriesDestinationForTag(tag)
-          )
+        DetailChipFlowSection(
+          title: "Tags", items: tags.localizedSorted(), collapsedLimit: collapsedLinkLimit
+        ) { tag in
+          NavigationLink(value: MetadataFilterHelper.seriesDestinationForTag(tag)) {
+            DetailChip(tag)
+          }
+          .adaptiveButtonStyle(.plain)
         }
       }
 
-      // Created and last modified dates
-      HStack(spacing: 6) {
-        InfoChip(
-          labelKey: "Created: \(book.created.formattedMediumDate)",
-          systemImage: "calendar.badge.plus",
-          backgroundColor: Color.secondary.opacity(0.1),
-          foregroundColor: .secondary
-        )
-        InfoChip(
-          labelKey: "Modified: \(book.lastModified.formattedMediumDate)",
-          systemImage: "clock",
-          backgroundColor: Color.purple.opacity(0.2),
-          foregroundColor: .purple
-        )
+      if let publisher = series.metadata.publisher, !publisher.isEmpty {
+        DetailChipFlowSection(
+          title: "Publisher", items: [publisher], collapsedLimit: collapsedLinkLimit
+        ) { name in
+          NavigationLink(value: MetadataFilterHelper.seriesDestinationForPublisher(name)) {
+            DetailChip(name)
+          }
+          .adaptiveButtonStyle(.plain)
+        }
       }
 
-      if let downloadStatus = downloadStatus {
-        Divider()
-        BookDownloadActionsSection(
-          book: book,
-          status: downloadStatus,
-          protectionSources: protectionSources
-        )
-      }
-
-      if !inSheet {
-        Divider()
-        BookActionsSection(
-          book: book,
-          seriesLink: false
-        )
+      if let links = book.metadata.links, !links.isEmpty {
+        DetailChipFlowSection(
+          title: "Links", items: links, collapsedLimit: collapsedLinkLimit
+        ) { link in
+          if let url = URL(string: link.url) {
+            Link(destination: url) {
+              DetailChip(link.label, systemImage: "link")
+            }
+            .adaptiveButtonStyle(.plain)
+          }
+        }
       }
 
       if let alternateTitles = series.metadata.alternateTitles, !alternateTitles.isEmpty {
         VStack(alignment: .leading, spacing: 8) {
-          Divider()
           Text("Alternate Titles")
             .font(.headline)
           VStack(alignment: .leading, spacing: 4) {
@@ -288,23 +248,11 @@ struct OneShotDetailContentView: View {
               }
             }
           }
-        }.padding(.bottom, 8)
-      }
-
-      if let links = book.metadata.links, !links.isEmpty {
-        VStack(alignment: .leading, spacing: 8) {
-          Divider()
-          Text("Links")
-            .font(.headline)
-          CollapsibleChipSection(items: links, collapsedLimit: collapsedMetadataChipLimit) { link in
-            ExternalLinkChip(label: link.label, url: link.url)
-          }
         }
       }
 
       // Book media info
       VStack(alignment: .leading, spacing: 8) {
-        Divider()
         Text("Media Information")
           .font(.headline)
 
@@ -356,10 +304,7 @@ struct OneShotDetailContentView: View {
         }
       }
 
-      if let summary = book.metadata.summary, !summary.isEmpty {
-        Divider()
-        ExpandableSummaryView(summary: summary)
-      }
+      DetailTimestampsView(created: book.created, lastModified: book.lastModified)
     }
   }
 }
