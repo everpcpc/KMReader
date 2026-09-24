@@ -19,18 +19,16 @@ struct SeriesReadingActionButton: View {
       HStack(spacing: 10) {
         Image(systemName: "book.fill")
           .font(.callout)
-          .foregroundStyle(Color.accentColor)
 
         VStack(alignment: .leading, spacing: 1) {
           Text(caption)
             .font(.subheadline.weight(.semibold))
-            .foregroundStyle(.primary)
             .lineLimit(1)
             .contentTransition(.opacity)
 
           Text(title)
             .font(.caption)
-            .foregroundStyle(.secondary)
+            .opacity(0.85)
             .lineLimit(1)
             .contentTransition(.opacity)
         }
@@ -38,12 +36,15 @@ struct SeriesReadingActionButton: View {
         if isResolving {
           ProgressView()
             .controlSize(.small)
+            #if !os(tvOS)
+              .tint(Color.white)
+            #endif
             .padding(.leading, 4)
         }
       }
-      .padding(.horizontal, 4)
+      .frame(maxWidth: .infinity)
     }
-    .adaptiveButtonStyle(.bordered)
+    .adaptiveButtonStyle(.borderedProminent)
     .buttonBorderShape(.capsule)
     .accessibilityLabel(Text("\(caption), \(title)"))
   }

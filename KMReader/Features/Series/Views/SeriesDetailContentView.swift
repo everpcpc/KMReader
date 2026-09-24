@@ -3,7 +3,6 @@
 //
 //
 
-import Flow
 import SwiftUI
 
 struct SeriesDetailContentView<Actions: View>: View {
@@ -11,8 +10,7 @@ struct SeriesDetailContentView<Actions: View>: View {
   @ViewBuilder let actions: Actions
 
   @AppStorage("thumbnailBlurUnreadCovers") private var thumbnailBlurUnreadCovers: Bool = false
-
-  @State private var thumbnailRefreshKey = UUID()
+  @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
   private let collapsedLinkLimit = 6
 
@@ -25,42 +23,22 @@ struct SeriesDetailContentView<Actions: View>: View {
     thumbnailBlurUnreadCovers && series.isUnread ? CoverBlurStyle.unreadRadius : 0
   }
 
+  private var isCompactHero: Bool {
+    horizontalSizeClass == .compact
+  }
+
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {
-      HStack(alignment: .top, spacing: 12) {
-        ThumbnailImage(
-          id: series.id,
-          type: .series,
-          contentBlurRadius: coverBlurRadius,
-          width: PlatformHelper.detailThumbnailWidth,
-          isTransitionSource: false,
-          onAction: {}
-        ) {
-        } menu: {
-          Button {
-            Task {
-              do {
-                _ = try await ThumbnailCache.shared.ensureThumbnail(
-                  id: series.id,
-                  type: .series,
-                  force: true
-                )
-                thumbnailRefreshKey = UUID()
-                ErrorManager.shared.notify(
-                  message: String(localized: "notification.cover.refreshed"))
-              } catch {
-                ErrorManager.shared.notify(
-                  message: String(localized: "notification.cover.refreshFailed"))
-              }
-            }
-          } label: {
-            Label(String(localized: "Refresh Cover"), systemImage: "arrow.clockwise")
-          }
-        }
-        .id(thumbnailRefreshKey)
-
-        VStack(alignment: .leading, spacing: 6) {
+      DetailHeroView(
+        id: series.id,
+        type: .series,
+        contentBlurRadius: coverBlurRadius
+      ) {
+        VStack(alignment: isCompactHero ? .center : .leading, spacing: 6) {
           HStack(alignment: .bottom, spacing: 8) {
+            if isCompactHero {
+              Spacer(minLength: 0)
+            }
             DetailTitleView(title: series.metadata.title)
             if let ageRating = series.metadata.ageRating, ageRating > 0 {
               AgeRatingBadge(ageRating: ageRating)
@@ -73,30 +51,32 @@ struct SeriesDetailContentView<Actions: View>: View {
             destination: { MetadataFilterHelper.seriesDestinationForAuthor($0.name) }
           )
 
-          if let releaseDate = series.booksMetadata.releaseDate {
-            DetailMetadataRow(
-              systemImage: "calendar",
-              text: Text(releaseDate)
-            )
-          }
-          if let status = series.metadata.status, !status.isEmpty {
-            DetailMetadataRow(
-              systemImage: series.statusIcon,
-              text: Text(series.statusDisplayName),
-              color: series.statusColor
-            )
-          }
-          if let language = series.metadata.language, !language.isEmpty {
-            DetailMetadataRow(
-              systemImage: "globe",
-              text: Text(LanguageCodeHelper.displayName(for: language))
-            )
-          }
-          if let direction = series.metadata.readingDirection, !direction.isEmpty {
-            DetailMetadataRow(
-              systemImage: ReadingDirection.fromString(direction).icon,
-              text: Text(ReadingDirection.fromString(direction).displayName)
-            )
+          DetailHeroMetadataGroup {
+            if let releaseDate = series.booksMetadata.releaseDate {
+              DetailMetadataRow(
+                systemImage: "calendar",
+                text: Text(releaseDate)
+              )
+            }
+            if let status = series.metadata.status, !status.isEmpty {
+              DetailMetadataRow(
+                systemImage: series.statusIcon,
+                text: Text(series.statusDisplayName),
+                color: series.statusColor
+              )
+            }
+            if let language = series.metadata.language, !language.isEmpty {
+              DetailMetadataRow(
+                systemImage: "globe",
+                text: Text(LanguageCodeHelper.displayName(for: language))
+              )
+            }
+            if let direction = series.metadata.readingDirection, !direction.isEmpty {
+              DetailMetadataRow(
+                systemImage: ReadingDirection.fromString(direction).icon,
+                text: Text(ReadingDirection.fromString(direction).displayName)
+              )
+            }
           }
         }
       }
@@ -221,6 +201,7 @@ struct SeriesDetailContentView<Actions: View>: View {
 
       DetailTimestampsView(created: series.created, lastModified: series.lastModified)
     }
+    .environment(\.detailHeroCentered, isCompactHero)
   }
 
   private var sortedAuthors: [Author] {

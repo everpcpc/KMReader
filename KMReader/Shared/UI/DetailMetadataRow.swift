@@ -13,15 +13,19 @@ struct DetailMetadataRow: View {
   let text: Text
   var color: Color = .secondary
 
+  @Environment(\.detailHeroCentered) private var heroCentered
+
   var body: some View {
-    HStack {
+    HStack(spacing: heroCentered ? 4 : nil) {
       Image(systemName: systemImage)
         .font(.caption)
         .frame(minWidth: 16)
       text
         .font(.caption)
         .textSelectionIfAvailable()
-      Spacer()
+      if !heroCentered {
+        Spacer()
+      }
     }
     .foregroundStyle(color)
   }

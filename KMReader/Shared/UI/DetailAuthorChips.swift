@@ -16,6 +16,8 @@ struct DetailAuthorChips: View {
 
   @State private var isExpanded = false
 
+  @Environment(\.detailHeroCentered) private var heroCentered
+
   init(
     authors: [Author],
     collapsedLimit: Int = 4,
@@ -28,24 +30,40 @@ struct DetailAuthorChips: View {
 
   var body: some View {
     if !authors.isEmpty {
-      HFlow(itemSpacing: 8) {
-        ForEach(displayedAuthors, id: \.self) { author in
-          NavigationLink(value: destination(author)) {
-            DetailChip(author.name, systemImage: author.role.icon)
-          }
-          .adaptiveButtonStyle(.plain)
+      if heroCentered {
+        HFlow(
+          horizontalAlignment: .center,
+          verticalAlignment: .center,
+          horizontalSpacing: 8,
+          verticalSpacing: 8
+        ) {
+          chips
         }
-        if !isExpanded && authors.count > collapsedLimit {
-          Button {
-            withAnimation(.easeInOut(duration: 0.2)) {
-              isExpanded = true
-            }
-          } label: {
-            DetailChip("+\(authors.count - collapsedLimit)")
-          }
-          .adaptiveButtonStyle(.plain)
+      } else {
+        HFlow(itemSpacing: 8) {
+          chips
         }
       }
+    }
+  }
+
+  @ViewBuilder
+  private var chips: some View {
+    ForEach(displayedAuthors, id: \.self) { author in
+      NavigationLink(value: destination(author)) {
+        DetailChip(author.name, systemImage: author.role.icon)
+      }
+      .adaptiveButtonStyle(.plain)
+    }
+    if !isExpanded && authors.count > collapsedLimit {
+      Button {
+        withAnimation(.easeInOut(duration: 0.2)) {
+          isExpanded = true
+        }
+      } label: {
+        DetailChip("+\(authors.count - collapsedLimit)")
+      }
+      .adaptiveButtonStyle(.plain)
     }
   }
 
