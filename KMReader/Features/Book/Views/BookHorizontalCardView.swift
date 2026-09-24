@@ -17,7 +17,6 @@ struct BookHorizontalCardView: View {
 
   @AppStorage("thumbnailShowUnreadIndicator") private var thumbnailShowUnreadIndicator: Bool = true
   @AppStorage("thumbnailBlurUnreadCovers") private var thumbnailBlurUnreadCovers: Bool = false
-  @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
   @State private var showReadListPicker = false
   @State private var showEditSheet = false
   @State private var coverArtwork: PlatformImage?
@@ -34,22 +33,16 @@ struct BookHorizontalCardView: View {
     isCoverTinted ? .white.opacity(0.65) : .secondary
   }
 
-  /// Compact density caps the title at a single line so the card height can
-  /// shrink with the cover instead of being held up by a second title line.
-  private var titleLineLimit: Int {
-    gridDensity < GridDensity.standard.rawValue ? 1 : 2
-  }
-
   private var titleTextStyle: Font.TextStyle {
-    LayoutConfig.horizontalCardTitleTextStyle(for: gridDensity)
+    LayoutConfig.horizontalCardTitleTextStyle
   }
 
   private var secondaryTextStyle: Font.TextStyle {
-    LayoutConfig.horizontalCardSecondaryTextStyle(for: gridDensity)
+    LayoutConfig.horizontalCardSecondaryTextStyle
   }
 
   private var tertiaryTextStyle: Font.TextStyle {
-    LayoutConfig.horizontalCardTertiaryTextStyle(for: gridDensity)
+    LayoutConfig.horizontalCardTertiaryTextStyle
   }
 
   private var progress: Double {
@@ -102,7 +95,7 @@ struct BookHorizontalCardView: View {
     Button {
       onReadBook?(false)
     } label: {
-      HStack(alignment: .top, spacing: 10) {
+      HStack(alignment: .center, spacing: 10) {
         ThumbnailImage(
           id: item.bookId,
           type: .book,
@@ -118,10 +111,7 @@ struct BookHorizontalCardView: View {
         }
         .frame(width: coverWidth)
 
-        VStack(alignment: .leading, spacing: 2) {
-          // Balances the Spacer above bottomBar so series/title center in the slack.
-          Spacer(minLength: 0)
-
+        VStack(alignment: .leading, spacing: 4) {
           if item.oneshot {
             Text("Oneshot")
               .font(.system(secondaryTextStyle))
@@ -137,16 +127,14 @@ struct BookHorizontalCardView: View {
           Text(bookTitleLine)
             .font(.system(titleTextStyle))
             .foregroundColor(item.isCompleted ? secondaryTextColor : primaryTextColor)
-            .lineLimit(titleLineLimit)
+            .lineLimit(2)
             .multilineTextAlignment(.leading)
-
-          Spacer(minLength: 2)
 
           bottomBar
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .leading)
       }
-      .padding(8)
+      .padding(6)
       .frame(maxWidth: .infinity, alignment: .leading)
     }
     .adaptiveButtonStyle(.plain)

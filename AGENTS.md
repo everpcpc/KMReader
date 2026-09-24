@@ -50,6 +50,7 @@ After changing code: `make format`, then `make build`. Simulator interaction and
 - Online ordering is server-side; the app-local pinned flag is invisible to the server, so online pages prepend pinned items and filter them out of the server stream.
 - Dashboard progress sections always revalidate on `.readingProgress`; other sections skip unless browse options are progress-sensitive (`isSensitiveToReadingProgress`).
 - `.refreshable` closures must await the reload they trigger, so the refresh control dismisses onto settled content instead of racing in-flight view updates. Dashboard manual refreshes suspend in `DashboardRefreshCoordinator` until every rendered section acknowledges the command (section views register on appear/disappear); `OfflineView` awaits the browse view models it owns and shares with `OfflineSeriesBrowseView`/`OfflineBooksBrowseView`, whose `refreshBrowse()` re-runs the view model's current query; library-selection and account-switch reloads instead bump a `refreshTrigger` passed to those child views, so the reload runs through the child and captures the current `libraryIds` rather than replaying the view model's stale query.
+- Horizontal cards (Keep Reading books, pinned read lists/collections) are fixed-size and do not follow grid density: density-scaled card widths outrun their few short text lines and look empty. Their text lines are grouped tightly and vertically centered against the cover (no bottom-pinned progress bar); grid density still scales grid cards and inter-card spacing.
 
 ## Detail Pages
 

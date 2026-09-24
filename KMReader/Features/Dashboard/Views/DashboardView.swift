@@ -22,18 +22,10 @@ struct DashboardView: View {
   @AppStorage("enableSSEAutoRefresh") private var enableSSEAutoRefresh: Bool = true
   @AppStorage("enableSSE") private var enableSSE: Bool = true
   @AppStorage("isOffline") private var isOffline: Bool = false
-  @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
 
   private let sseService = SSEService.shared
   private let sectionCacheStore = DashboardSectionCacheStore.shared
   private let logger = AppLogger(.dashboard)
-
-  private var gridDensityBinding: Binding<GridDensity> {
-    Binding(
-      get: { GridDensity.closest(to: gridDensity) },
-      set: { gridDensity = $0.rawValue }
-    )
-  }
 
   private var isQueueingDashboardOffline: Bool {
     !offlineQueueingSections.isEmpty
@@ -262,17 +254,6 @@ struct DashboardView: View {
               }
 
               Divider()
-
-              Picker(selection: gridDensityBinding) {
-                ForEach(GridDensity.allCases, id: \.self) { density in
-                  Text(density.label).tag(density)
-                }
-              } label: {
-                Label(
-                  String(localized: "settings.appearance.gridDensity.label"),
-                  systemImage: GridDensity.icon
-                )
-              }.pickerStyle(.menu)
 
               Menu {
                 ForEach(DashboardSection.latestOfflineQueueSections) { section in
