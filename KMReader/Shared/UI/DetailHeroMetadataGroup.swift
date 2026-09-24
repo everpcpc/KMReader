@@ -20,7 +20,7 @@ struct DetailHeroMetadataGroup<Content: View>: View {
         horizontalAlignment: .center,
         verticalAlignment: .center,
         horizontalSpacing: 12,
-        verticalSpacing: 4
+        verticalSpacing: 8
       ) {
         content
       }

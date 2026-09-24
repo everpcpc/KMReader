@@ -15,6 +15,7 @@ struct SeriesDetailView: View {
 
   @Environment(\.dismiss) private var dismiss
   @Environment(\.readerActions) private var readerActions
+  @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
   @State private var item: SeriesDisplayItem?
   @State private var collections: [SidebarCollectionItem] = []
@@ -32,6 +33,9 @@ struct SeriesDetailView: View {
   /// Gates publishing to the shared reading-bar context: late async
   /// completions must not resurrect the accessory after the view disappeared.
   @State private var isReadingBarVisible = false
+  /// Measured detail-column width driving the single/two-column layout switch.
+  /// Defaults wide on iPad so the first frame doesn't flash the single column.
+  @State private var detailContentWidth: CGFloat = PlatformHelper.isPad ? .infinity : 0
   @AppStorage("seriesBookBrowseOptions") private var seriesBookBrowseOptions: BookBrowseOptions =
     BookBrowseOptions()
 
@@ -103,6 +107,31 @@ struct SeriesDetailView: View {
     return true
   }
 
+  /// iPad keeps the two-column layout only while the detail column is wide
+  /// enough for it; a docked sidebar in portrait (and iPad mini in portrait)
+  /// narrows the column below the threshold and falls back to single column.
+  private var usesWideLayout: Bool {
+    #if os(iOS)
+      return PlatformHelper.isPad && horizontalSizeClass == .regular
+        && detailContentWidth >= wideLayoutMinimumWidth
+    #else
+      return false
+    #endif
+  }
+
+  private let wideLayoutMinimumWidth: CGFloat = 800
+
+  /// iPad's single-column fallback (narrow detail column) presents the compact
+  /// centered hero and a capped centered card instead of stretching the
+  /// side-by-side hero and a full-width card across the column.
+  private var usesCompactHeaderLayout: Bool {
+    #if os(iOS)
+      return PlatformHelper.isPad && horizontalSizeClass == .regular
+    #else
+      return false
+    #endif
+  }
+
   private var readingTargetBookForCurrentContext: Book? {
     guard readingTargetInstanceId == current.instanceId, readingTargetIsOffline == isOffline else {
       return nil
@@ -111,59 +140,63 @@ struct SeriesDetailView: View {
   }
 
   var body: some View {
-    ScrollView {
-      LazyVStack(alignment: .leading) {
+    Group {
+      if usesWideLayout {
         if let series = series {
-          VStack(alignment: .leading) {
-            #if os(tvOS)
-              seriesToolbarContent
-                .padding(.vertical, 8)
-            #endif
-
-            SeriesDetailContentView(series: series) {
-              if showsInlineReadingAction {
-                SeriesReadingActionButton(
-                  caption: readingActionCaption,
-                  title: readingDisplayTitle,
-                  isResolving: isResolvingReadingTarget
-                ) {
-                  continueReading()
-                }
-              }
-              if let item {
-                SeriesDownloadActionsSection(
-                  seriesId: item.seriesId,
-                  status: item.downloadStatus,
-                  policy: item.offlinePolicy,
-                  offlinePolicyLimit: item.offlinePolicyLimit,
-                  onMutationCompleted: {
-                    Task {
-                      await refreshSeriesData()
-                    }
-                  }
-                )
-              }
-            }
-
-            if item != nil {
-              SeriesCollectionsSection(collections: collections)
-            }
-          }
-          .padding(.horizontal)
-
-          if item != nil {
-            BooksListViewForSeries(
-              seriesId: seriesId,
-              bookViewModel: bookViewModel,
-              showFilterSheet: $showFilterSheet,
-              showSavedFilters: $showSavedFilters
-            )
+          SeriesDetailWideLayoutView(
+            series: series,
+            item: item,
+            collections: collections,
+            seriesId: seriesId,
+            availableWidth: detailContentWidth,
+            bookViewModel: bookViewModel,
+            showFilterSheet: $showFilterSheet,
+            showSavedFilters: $showSavedFilters
+          ) {
+            seriesActions
           }
         } else {
           ProgressView()
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+      } else {
+        ScrollView {
+          LazyVStack(alignment: .leading) {
+            if let series = series {
+              VStack(alignment: .leading) {
+                #if os(tvOS)
+                  seriesToolbarContent
+                    .padding(.vertical, 8)
+                #endif
+
+                SeriesDetailContentView(series: series, forceCompactHero: usesCompactHeaderLayout) {
+                  seriesActions
+                }
+
+                if item != nil {
+                  SeriesCollectionsSection(collections: collections)
+                }
+              }
+              .padding(.horizontal)
+
+              if item != nil {
+                BooksListViewForSeries(
+                  seriesId: seriesId,
+                  bookViewModel: bookViewModel,
+                  showFilterSheet: $showFilterSheet,
+                  showSavedFilters: $showSavedFilters
+                )
+              }
+            } else {
+              ProgressView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+          }
+        }
       }
+    }
+    .onGeometryChange(for: CGFloat.self, of: { $0.size.width }) {
+      detailContentWidth = $0
     }
     .inlineNavigationBarTitle(navigationTitle)
     .komgaHandoff(
@@ -458,6 +491,32 @@ extension SeriesDetailView {
       } catch {
         ErrorManager.shared.alert(error: error)
       }
+    }
+  }
+
+  @ViewBuilder
+  private var seriesActions: some View {
+    if showsInlineReadingAction {
+      SeriesReadingActionButton(
+        caption: readingActionCaption,
+        title: readingDisplayTitle,
+        isResolving: isResolvingReadingTarget
+      ) {
+        continueReading()
+      }
+    }
+    if let item {
+      SeriesDownloadActionsSection(
+        seriesId: item.seriesId,
+        status: item.downloadStatus,
+        policy: item.offlinePolicy,
+        offlinePolicyLimit: item.offlinePolicyLimit,
+        onMutationCompleted: {
+          Task {
+            await refreshSeriesData()
+          }
+        }
+      )
     }
   }
 
