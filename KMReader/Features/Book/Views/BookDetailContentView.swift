@@ -155,20 +155,17 @@ struct BookDetailContentView: View {
       }
 
       if let tags = book.metadata.tags, !tags.isEmpty {
-        DetailChipFlowSection(
-          title: "Tags", items: tags.localizedSorted(), collapsedLimit: collapsedLinkLimit
-        ) { tag in
+        DetailChipFlowSection(items: tags.localizedSorted(), collapsedLimit: collapsedLinkLimit) {
+          tag in
           NavigationLink(value: MetadataFilterHelper.booksDestinationForTag(tag)) {
-            DetailChip(tag)
+            DetailChip(tag, systemImage: "tag")
           }
           .adaptiveButtonStyle(.plain)
         }
       }
 
       if let links = book.metadata.links, !links.isEmpty {
-        DetailChipFlowSection(
-          title: "Links", items: links, collapsedLimit: collapsedLinkLimit
-        ) { link in
+        DetailChipFlowSection(items: links, collapsedLimit: collapsedLinkLimit) { link in
           if let url = URL(string: link.url) {
             Link(destination: url) {
               DetailChip(link.label, systemImage: "link")

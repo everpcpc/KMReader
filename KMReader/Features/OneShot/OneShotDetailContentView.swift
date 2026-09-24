@@ -165,42 +165,36 @@ struct OneShotDetailContentView: View {
       }
 
       if let genres = series.metadata.genres, !genres.isEmpty {
-        DetailChipFlowSection(
-          title: "Genres", items: genres.localizedSorted(), collapsedLimit: collapsedLinkLimit
-        ) { genre in
+        DetailChipFlowSection(items: genres.localizedSorted(), collapsedLimit: collapsedLinkLimit) {
+          genre in
           NavigationLink(value: MetadataFilterHelper.seriesDestinationForGenre(genre)) {
-            DetailChip(genre)
+            DetailChip(genre, systemImage: "theatermasks")
           }
           .adaptiveButtonStyle(.plain)
         }
       }
 
       if let tags = book.metadata.tags, !tags.isEmpty {
-        DetailChipFlowSection(
-          title: "Tags", items: tags.localizedSorted(), collapsedLimit: collapsedLinkLimit
-        ) { tag in
+        DetailChipFlowSection(items: tags.localizedSorted(), collapsedLimit: collapsedLinkLimit) {
+          tag in
           NavigationLink(value: MetadataFilterHelper.seriesDestinationForTag(tag)) {
-            DetailChip(tag)
+            DetailChip(tag, systemImage: "tag")
           }
           .adaptiveButtonStyle(.plain)
         }
       }
 
       if let publisher = series.metadata.publisher, !publisher.isEmpty {
-        DetailChipFlowSection(
-          title: "Publisher", items: [publisher], collapsedLimit: collapsedLinkLimit
-        ) { name in
+        DetailChipFlowSection(items: [publisher], collapsedLimit: collapsedLinkLimit) { name in
           NavigationLink(value: MetadataFilterHelper.seriesDestinationForPublisher(name)) {
-            DetailChip(name)
+            DetailChip(name, systemImage: "building.2")
           }
           .adaptiveButtonStyle(.plain)
         }
       }
 
       if let links = book.metadata.links, !links.isEmpty {
-        DetailChipFlowSection(
-          title: "Links", items: links, collapsedLimit: collapsedLinkLimit
-        ) { link in
+        DetailChipFlowSection(items: links, collapsedLimit: collapsedLinkLimit) { link in
           if let url = URL(string: link.url) {
             Link(destination: url) {
               DetailChip(link.label, systemImage: "link")

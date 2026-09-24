@@ -136,39 +136,31 @@ struct SeriesDetailContentView<Actions: View>: View {
         )
       }
 
-      DetailChipFlowSection(
-        title: "Genres", items: sortedGenres, collapsedLimit: collapsedLinkLimit
-      ) { genre in
+      DetailChipFlowSection(items: sortedGenres, collapsedLimit: collapsedLinkLimit) { genre in
         NavigationLink(value: MetadataFilterHelper.seriesDestinationForGenre(genre)) {
-          DetailChip(genre)
+          DetailChip(genre, systemImage: "theatermasks")
         }
         .adaptiveButtonStyle(.plain)
       }
 
-      DetailChipFlowSection(
-        title: "Tags", items: combinedTagItems, collapsedLimit: collapsedLinkLimit
-      ) { tag in
+      DetailChipFlowSection(items: combinedTagItems, collapsedLimit: collapsedLinkLimit) { tag in
         NavigationLink(value: MetadataFilterHelper.seriesDestinationForTag(tag)) {
-          DetailChip(tag)
+          DetailChip(tag, systemImage: "tag")
         }
         .adaptiveButtonStyle(.plain)
       }
 
       if let publisher = series.metadata.publisher, !publisher.isEmpty {
-        DetailChipFlowSection(
-          title: "Publisher", items: [publisher], collapsedLimit: collapsedLinkLimit
-        ) { name in
+        DetailChipFlowSection(items: [publisher], collapsedLimit: collapsedLinkLimit) { name in
           NavigationLink(value: MetadataFilterHelper.seriesDestinationForPublisher(name)) {
-            DetailChip(name)
+            DetailChip(name, systemImage: "building.2")
           }
           .adaptiveButtonStyle(.plain)
         }
       }
 
       if let links = series.metadata.links, !links.isEmpty {
-        DetailChipFlowSection(
-          title: "Links", items: links, collapsedLimit: collapsedLinkLimit
-        ) { link in
+        DetailChipFlowSection(items: links, collapsedLimit: collapsedLinkLimit) { link in
           if let url = URL(string: link.url) {
             Link(destination: url) {
               DetailChip(link.label, systemImage: "link")

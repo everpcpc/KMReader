@@ -6,9 +6,10 @@
 import Flow
 import SwiftUI
 
-/// Labeled flow of matte chips for detail pages (genres, tags, links).
+/// Flow of matte chips for detail pages (genres, tags, links), collapsed
+/// behind a Show More/Less toggle. Chips carry their own leading icon to
+/// distinguish the field, so the section needs no text title.
 struct DetailChipFlowSection<Item: Hashable, Content: View>: View {
-  let title: LocalizedStringKey
   let items: [Item]
   let collapsedLimit: Int
   @ViewBuilder let content: (Item) -> Content
@@ -16,12 +17,10 @@ struct DetailChipFlowSection<Item: Hashable, Content: View>: View {
   @State private var isExpanded = false
 
   init(
-    title: LocalizedStringKey,
     items: [Item],
     collapsedLimit: Int = 6,
     @ViewBuilder content: @escaping (Item) -> Content
   ) {
-    self.title = title
     self.items = items
     self.collapsedLimit = collapsedLimit
     self.content = content
@@ -30,10 +29,6 @@ struct DetailChipFlowSection<Item: Hashable, Content: View>: View {
   var body: some View {
     if !items.isEmpty {
       VStack(alignment: .leading, spacing: 4) {
-        Text(title)
-          .font(.caption)
-          .foregroundStyle(.secondary)
-
         HFlow {
           ForEach(displayedItems, id: \.self) { item in
             content(item)
