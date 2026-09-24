@@ -53,10 +53,7 @@ struct BookDetailContentView: View {
 
           DetailTitleView(title: book.metadata.title)
 
-          DetailAuthorChips(
-            authors: (book.metadata.authors ?? []).sortedByRole(),
-            destination: { MetadataFilterHelper.booksDestinationForAuthor($0.name) }
-          )
+          DetailChipFlow(items: authorItems, collapsedLimit: 4)
 
           DetailHeroMetadataGroup {
             if let releaseDate = book.metadata.releaseDate {
@@ -154,26 +151,9 @@ struct BookDetailContentView: View {
         )
       }
 
-      if let tags = book.metadata.tags, !tags.isEmpty {
-        DetailChipFlowSection(items: tags.localizedSorted(), collapsedLimit: collapsedLinkLimit) {
-          tag in
-          NavigationLink(value: MetadataFilterHelper.booksDestinationForTag(tag)) {
-            DetailChip(tag, systemImage: "tag")
-          }
-          .adaptiveButtonStyle(.plain)
-        }
-      }
+      DetailChipFlow(items: tagItems, collapsedLimit: collapsedLinkLimit)
 
-      if let links = book.metadata.links, !links.isEmpty {
-        DetailChipFlowSection(items: links, collapsedLimit: collapsedLinkLimit) { link in
-          if let url = URL(string: link.url) {
-            Link(destination: url) {
-              DetailChip(link.label, systemImage: "link")
-            }
-            .adaptiveButtonStyle(.plain)
-          }
-        }
-      }
+      DetailChipFlow(items: linkItems, collapsedLimit: collapsedLinkLimit)
 
       // book media info
       VStack(alignment: .leading, spacing: 8) {
@@ -230,6 +210,33 @@ struct BookDetailContentView: View {
 
       DetailTimestampsView(created: book.created, lastModified: book.lastModified)
     }
-    .environment(\.detailHeroCentered, isCompactHero)
+  }
+
+  private var authorItems: [DetailChipFlow.Item] {
+    (book.metadata.authors ?? []).sortedByRole().map {
+      .init(
+        title: $0.name,
+        systemImage: $0.role.icon,
+        destination: .navigate(MetadataFilterHelper.booksDestinationForAuthor($0.name))
+      )
+    }
+  }
+
+  private var tagItems: [DetailChipFlow.Item] {
+    (book.metadata.tags ?? []).localizedSorted().map {
+      .init(
+        title: $0,
+        systemImage: "tag",
+        destination: .navigate(MetadataFilterHelper.booksDestinationForTag($0))
+      )
+    }
+  }
+
+  private var linkItems: [DetailChipFlow.Item] {
+    (book.metadata.links ?? []).compactMap { link in
+      URL(string: link.url).map {
+        .init(title: link.label, systemImage: "link", destination: .external($0))
+      }
+    }
   }
 }

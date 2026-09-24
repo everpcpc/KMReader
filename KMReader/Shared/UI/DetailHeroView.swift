@@ -20,16 +20,21 @@ extension EnvironmentValues {
 
 /// Detail page hero: cover plus an info block. Compact widths (iPhone) stack
 /// a large cover above the centered info block; regular widths keep the
-/// side-by-side row at `PlatformHelper.detailThumbnailWidth`.
+/// side-by-side row at `PlatformHelper.detailThumbnailWidth`. The centered
+/// branch injects `detailHeroCentered` so only hero subviews adapt alignment.
 struct DetailHeroView<Info: View>: View {
   let id: String
   let type: ThumbnailType
   let contentBlurRadius: CGFloat
   @ViewBuilder let info: Info
 
-  @Environment(\.detailHeroCentered) private var isCentered
+  @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
   @State private var thumbnailRefreshKey = UUID()
+
+  private var isCentered: Bool {
+    horizontalSizeClass == .compact
+  }
 
   var body: some View {
     if isCentered {
@@ -38,6 +43,7 @@ struct DetailHeroView<Info: View>: View {
         info
           .frame(maxWidth: .infinity)
       }
+      .environment(\.detailHeroCentered, true)
     } else {
       HStack(alignment: .top, spacing: 12) {
         cover(width: PlatformHelper.detailThumbnailWidth)

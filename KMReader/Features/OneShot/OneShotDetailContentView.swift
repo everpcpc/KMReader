@@ -58,11 +58,7 @@ struct OneShotDetailContentView: View {
             Spacer(minLength: 0)
           }
 
-          DetailAuthorChips(
-            publisher: series.metadata.publisher,
-            authors: (book.metadata.authors ?? []).sortedByRole(),
-            destination: { MetadataFilterHelper.seriesDestinationForAuthor($0.name) }
-          )
+          DetailChipFlow(items: creatorItems, collapsedLimit: 4)
 
           DetailHeroMetadataGroup {
             if let releaseDate = book.metadata.releaseDate {
@@ -165,36 +161,11 @@ struct OneShotDetailContentView: View {
         )
       }
 
-      if let genres = series.metadata.genres, !genres.isEmpty {
-        DetailChipFlowSection(items: genres.localizedSorted(), collapsedLimit: collapsedLinkLimit) {
-          genre in
-          NavigationLink(value: MetadataFilterHelper.seriesDestinationForGenre(genre)) {
-            DetailChip(genre, systemImage: "theatermasks")
-          }
-          .adaptiveButtonStyle(.plain)
-        }
-      }
+      DetailChipFlow(items: genreItems, collapsedLimit: collapsedLinkLimit)
 
-      if let tags = book.metadata.tags, !tags.isEmpty {
-        DetailChipFlowSection(items: tags.localizedSorted(), collapsedLimit: collapsedLinkLimit) {
-          tag in
-          NavigationLink(value: MetadataFilterHelper.seriesDestinationForTag(tag)) {
-            DetailChip(tag, systemImage: "tag")
-          }
-          .adaptiveButtonStyle(.plain)
-        }
-      }
+      DetailChipFlow(items: tagItems, collapsedLimit: collapsedLinkLimit)
 
-      if let links = book.metadata.links, !links.isEmpty {
-        DetailChipFlowSection(items: links, collapsedLimit: collapsedLinkLimit) { link in
-          if let url = URL(string: link.url) {
-            Link(destination: url) {
-              DetailChip(link.label, systemImage: "link")
-            }
-            .adaptiveButtonStyle(.plain)
-          }
-        }
-      }
+      DetailChipFlow(items: linkItems, collapsedLimit: collapsedLinkLimit)
 
       if let alternateTitles = series.metadata.alternateTitles, !alternateTitles.isEmpty {
         VStack(alignment: .leading, spacing: 8) {
@@ -272,6 +243,54 @@ struct OneShotDetailContentView: View {
 
       DetailTimestampsView(created: book.created, lastModified: book.lastModified)
     }
-    .environment(\.detailHeroCentered, isCompactHero)
+  }
+
+  private var creatorItems: [DetailChipFlow.Item] {
+    var items: [DetailChipFlow.Item] = []
+    if let publisher = series.metadata.publisher, !publisher.isEmpty {
+      items.append(
+        .init(
+          title: publisher,
+          systemImage: "building.2",
+          destination: .navigate(MetadataFilterHelper.seriesDestinationForPublisher(publisher))
+        )
+      )
+    }
+    items += (book.metadata.authors ?? []).sortedByRole().map {
+      .init(
+        title: $0.name,
+        systemImage: $0.role.icon,
+        destination: .navigate(MetadataFilterHelper.seriesDestinationForAuthor($0.name))
+      )
+    }
+    return items
+  }
+
+  private var genreItems: [DetailChipFlow.Item] {
+    (series.metadata.genres ?? []).localizedSorted().map {
+      .init(
+        title: $0,
+        systemImage: "theatermasks",
+        destination: .navigate(MetadataFilterHelper.seriesDestinationForGenre($0))
+      )
+    }
+  }
+
+  private var tagItems: [DetailChipFlow.Item] {
+    (book.metadata.tags ?? []).localizedSorted().map {
+      .init(
+        title: $0,
+        systemImage: "tag",
+        destination: .navigate(MetadataFilterHelper.seriesDestinationForTag($0))
+      )
+    }
+  }
+
+  private var linkItems: [DetailChipFlow.Item] {
+    (book.metadata.links ?? []).compactMap { link in
+      URL(string: link.url).map {
+        .init(title: link.label, systemImage: "link", destination: .external($0))
+      }
+    }
   }
 }
