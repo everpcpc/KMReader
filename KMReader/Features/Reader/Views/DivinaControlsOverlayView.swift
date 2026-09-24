@@ -34,6 +34,7 @@ struct DivinaControlsOverlayView: View {
 
   @Namespace private var progressBarNamespace
   @State private var showingPageDimensionWarning = false
+  @State private var pageDimensionWarningDismissed = false
 
   #if os(tvOS)
     private enum ControlFocus: Hashable {
@@ -164,7 +165,9 @@ struct DivinaControlsOverlayView: View {
       "reader.pageDimensions.warning.title",
       isPresented: $showingPageDimensionWarning
     ) {
-      Button("OK") {}
+      Button("Dismiss") {
+        pageDimensionWarningDismissed = true
+      }
     } message: {
       Text("reader.missingPageDimensions.alert")
     }
@@ -280,7 +283,7 @@ struct DivinaControlsOverlayView: View {
         #endif
       }
 
-      if showPageDimensionWarning {
+      if showPageDimensionWarning && !pageDimensionWarningDismissed {
         Button {
           showingPageDimensionWarning = true
         } label: {
