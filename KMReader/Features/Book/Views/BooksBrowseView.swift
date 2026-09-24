@@ -31,7 +31,8 @@ struct BooksBrowseView: View {
         filterType: .books,
         libraryIds: libraryIds,
         usesRelevanceSort: usesRelevanceSort,
-        ignoresFiltersForSearch: ignoresFiltersForSearch
+        ignoresFiltersForSearch: ignoresFiltersForSearch,
+        layoutMode: $browseLayout
       ).padding(.horizontal)
 
       BooksQueryView(

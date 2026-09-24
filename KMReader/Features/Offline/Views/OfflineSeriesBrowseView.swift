@@ -36,7 +36,8 @@ struct OfflineSeriesBrowseView: View {
         showSavedFilters: $showSavedFilters,
         libraryIds: libraryIds,
         includeOfflineSorts: true,
-        ignoresFiltersForSearch: ignoresFiltersForSearch
+        ignoresFiltersForSearch: ignoresFiltersForSearch,
+        layoutMode: $browseLayout
       )
       .padding(.horizontal)
 

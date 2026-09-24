@@ -37,7 +37,8 @@ struct OfflineBooksBrowseView: View {
         filterType: .books,
         libraryIds: libraryIds,
         includeOfflineSorts: true,
-        ignoresFiltersForSearch: ignoresFiltersForSearch
+        ignoresFiltersForSearch: ignoresFiltersForSearch,
+        layoutMode: $browseLayout
       )
       .padding(.horizontal)
 

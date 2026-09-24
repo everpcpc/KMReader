@@ -30,7 +30,8 @@ struct SeriesBrowseView: View {
         showSavedFilters: $showSavedFilters,
         libraryIds: libraryIds,
         usesRelevanceSort: usesRelevanceSort,
-        ignoresFiltersForSearch: ignoresFiltersForSearch
+        ignoresFiltersForSearch: ignoresFiltersForSearch,
+        layoutMode: $browseLayout
       ).padding(.horizontal)
 
       SeriesQueryView(
