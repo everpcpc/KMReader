@@ -11,8 +11,6 @@ struct OfflineView: View {
 
   @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
-  @AppStorage("seriesBrowseLayout") private var seriesBrowseLayout: BrowseLayoutMode = .grid
-  @AppStorage("bookBrowseLayout") private var bookBrowseLayout: BrowseLayoutMode = .grid
   @AppStorage("offlineBrowseContent") private var offlineBrowseContent: BrowseContentType = .series
   @AppStorage("isOffline") private var isOffline: Bool = false
 
@@ -85,15 +83,6 @@ struct OfflineView: View {
         offlineBrowseContent = newValue == .books ? .books : .series
       }
     )
-  }
-
-  private var layoutModeBinding: Binding<BrowseLayoutMode> {
-    switch resolvedOfflineContent {
-    case .books:
-      return $bookBrowseLayout
-    case .series, .collections, .readlists:
-      return $seriesBrowseLayout
-    }
   }
 
   private var savedFilterType: SavedFilterType {
@@ -185,11 +174,6 @@ struct OfflineView: View {
             } label: {
               Label(String(localized: "Saved Filters"), systemImage: "bookmark")
             }
-
-            LayoutModePicker(
-              selection: layoutModeBinding,
-              showGridDensity: true
-            )
           } label: {
             Image(systemName: "ellipsis")
           }

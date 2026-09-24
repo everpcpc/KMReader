@@ -9,7 +9,6 @@ struct CollectionDetailView: View {
   let collectionId: String
 
   @AppStorage("currentAccount") private var current: Current = .init()
-  @AppStorage("collectionDetailLayout") private var collectionDetailLayout: BrowseLayoutMode = .list
 
   @Environment(\.dismiss) private var dismiss
 
@@ -205,8 +204,6 @@ extension CollectionDetailView {
       } label: {
         Label(String(localized: "Saved Filters"), systemImage: "bookmark")
       }
-
-      LayoutModePicker(selection: $collectionDetailLayout)
 
       Divider()
 

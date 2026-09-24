@@ -10,17 +10,20 @@ struct ReadListBookFilterView: View {
   @Binding var showFilterSheet: Bool
   @Binding var showSavedFilters: Bool
   let readListId: String?
+  let layoutMode: Binding<BrowseLayoutMode>?
 
   init(
     browseOpts: Binding<ReadListBookBrowseOptions>,
     showFilterSheet: Binding<Bool>,
     showSavedFilters: Binding<Bool>,
-    readListId: String? = nil
+    readListId: String? = nil,
+    layoutMode: Binding<BrowseLayoutMode>? = nil
   ) {
     self._browseOpts = browseOpts
     self._showFilterSheet = showFilterSheet
     self._showSavedFilters = showSavedFilters
     self.readListId = readListId
+    self.layoutMode = layoutMode
   }
 
   var emptyFilter: Bool {
@@ -30,6 +33,10 @@ struct ReadListBookFilterView: View {
   var body: some View {
     ScrollView(.horizontal, showsIndicators: false) {
       HStack(spacing: 6) {
+        if let layoutMode {
+          LayoutModeToggleButton(selection: layoutMode)
+        }
+
         FilterChip(
           label: String(localized: "Presets"),
           systemImage: "bookmark",

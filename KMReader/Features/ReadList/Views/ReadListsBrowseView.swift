@@ -28,7 +28,7 @@ struct ReadListsBrowseView: View {
 
   var body: some View {
     VStack {
-      ReadListSortView(showFilterSheet: $showFilterSheet)
+      ReadListSortView(showFilterSheet: $showFilterSheet, layoutMode: $browseLayout)
         .padding(.horizontal)
 
       BrowseStateView(

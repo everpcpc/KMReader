@@ -9,6 +9,7 @@ struct ReadListSortView: View {
   @AppStorage("readListSortOptions") private var sortOpts: SimpleSortOptions =
     SimpleSortOptions()
   @Binding var showFilterSheet: Bool
+  var layoutMode: Binding<BrowseLayoutMode>? = nil
 
   var sortString: String {
     return
@@ -18,6 +19,10 @@ struct ReadListSortView: View {
   var body: some View {
     ScrollView(.horizontal, showsIndicators: false) {
       HStack(spacing: 6) {
+        if let layoutMode {
+          LayoutModeToggleButton(selection: layoutMode)
+        }
+
         Image(systemName: "arrow.up.arrow.down.circle")
           .padding(.leading, 4)
           .foregroundColor(.secondary)

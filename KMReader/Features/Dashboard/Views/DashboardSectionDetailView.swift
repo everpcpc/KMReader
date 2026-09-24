@@ -38,16 +38,16 @@ struct DashboardSectionDetailView: View {
   var body: some View {
     GeometryReader { geometry in
       ScrollView {
+        if !section.isLocalSection {
+          HStack {
+            LayoutModeToggleButton(selection: browseLayoutBinding)
+            Spacer()
+          }
+          .padding(.horizontal)
+          .padding(.vertical, 4)
+        }
 
         #if os(tvOS)
-          Picker("Layout", selection: browseLayoutBinding) {
-            ForEach(BrowseLayoutMode.allCases, id: \.self) { layout in
-              Image(systemName: layout.iconName)
-            }
-          }
-          .pickerStyle(.segmented)
-          .padding()
-
           if section.supportsDownloadAll {
             Button {
               queueAllBooksOffline()
@@ -84,32 +84,21 @@ struct DashboardSectionDetailView: View {
     }
     #if os(iOS) || os(macOS)
       .toolbar {
-        ToolbarItem(placement: .automatic) {
-          Menu {
-            if section.supportsDownloadAll {
-              Button {
-                queueAllBooksOffline()
-              } label: {
+        if section.supportsDownloadAll {
+          ToolbarItem(placement: .automatic) {
+            Button {
+              queueAllBooksOffline()
+            } label: {
+              if isQueueingAllOffline {
+                LoadingIcon()
+              } else {
                 Label(
                   String(localized: "dashboard.downloadAll", defaultValue: "Download All"),
                   systemImage: "arrow.down.circle"
                 )
               }
-              .disabled(isOffline || isQueueingAllOffline)
-
-              Divider()
             }
-
-            LayoutModePicker(
-              selection: browseLayoutBinding,
-              showGridDensity: true
-            )
-          } label: {
-            if isQueueingAllOffline {
-              LoadingIcon()
-            } else {
-              Image(systemName: "ellipsis")
-            }
+            .disabled(isOffline || isQueueingAllOffline)
           }
         }
       }

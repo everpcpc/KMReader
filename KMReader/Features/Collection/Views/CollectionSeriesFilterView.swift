@@ -10,17 +10,20 @@ struct CollectionSeriesFilterView: View {
   @Binding var showFilterSheet: Bool
   @Binding var showSavedFilters: Bool
   let collectionId: String?
+  let layoutMode: Binding<BrowseLayoutMode>?
 
   init(
     browseOpts: Binding<CollectionSeriesBrowseOptions>,
     showFilterSheet: Binding<Bool>,
     showSavedFilters: Binding<Bool>,
-    collectionId: String? = nil
+    collectionId: String? = nil,
+    layoutMode: Binding<BrowseLayoutMode>? = nil
   ) {
     self._browseOpts = browseOpts
     self._showFilterSheet = showFilterSheet
     self._showSavedFilters = showSavedFilters
     self.collectionId = collectionId
+    self.layoutMode = layoutMode
   }
 
   var emptyFilter: Bool {
@@ -35,6 +38,10 @@ struct CollectionSeriesFilterView: View {
   var body: some View {
     ScrollView(.horizontal, showsIndicators: false) {
       HStack(spacing: 6) {
+        if let layoutMode {
+          LayoutModeToggleButton(selection: layoutMode)
+        }
+
         FilterChip(
           label: String(localized: "Presets"),
           systemImage: "bookmark",

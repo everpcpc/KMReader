@@ -15,6 +15,7 @@ struct BookFilterView: View {
   let includeOfflineSorts: Bool
   let usesRelevanceSort: Bool
   let ignoresFiltersForSearch: Bool
+  let layoutMode: Binding<BrowseLayoutMode>?
 
   init(
     browseOpts: Binding<BookBrowseOptions>,
@@ -25,7 +26,8 @@ struct BookFilterView: View {
     libraryIds: [String]? = nil,
     includeOfflineSorts: Bool = false,
     usesRelevanceSort: Bool = false,
-    ignoresFiltersForSearch: Bool = false
+    ignoresFiltersForSearch: Bool = false,
+    layoutMode: Binding<BrowseLayoutMode>? = nil
   ) {
     self._browseOpts = browseOpts
     self._showFilterSheet = showFilterSheet
@@ -36,6 +38,7 @@ struct BookFilterView: View {
     self.includeOfflineSorts = includeOfflineSorts
     self.usesRelevanceSort = usesRelevanceSort
     self.ignoresFiltersForSearch = ignoresFiltersForSearch
+    self.layoutMode = layoutMode
   }
 
   var sortString: String {
@@ -53,6 +56,10 @@ struct BookFilterView: View {
   var body: some View {
     ScrollView(.horizontal, showsIndicators: false) {
       HStack(spacing: 6) {
+        if let layoutMode {
+          LayoutModeToggleButton(selection: layoutMode)
+        }
+
         FilterChip(
           label: String(localized: "Presets"),
           systemImage: "bookmark",

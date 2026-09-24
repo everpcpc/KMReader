@@ -66,7 +66,8 @@ struct BooksListViewForReadList: View {
             browseOpts: $browseOpts,
             showFilterSheet: $showFilterSheet,
             showSavedFilters: $showSavedFilters,
-            readListId: readListId
+            readListId: readListId,
+            layoutMode: $layoutMode
           )
 
           if supportsSelectionMode && !isSelectionMode && current.isAdmin {

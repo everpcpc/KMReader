@@ -50,7 +50,8 @@ struct CollectionSeriesListView: View {
             browseOpts: $browseOpts,
             showFilterSheet: $showFilterSheet,
             showSavedFilters: $showSavedFilters,
-            collectionId: collectionId
+            collectionId: collectionId,
+            layoutMode: $layoutMode
           )
 
           if supportsSelectionMode && !isSelectionMode && current.isAdmin {
