@@ -79,6 +79,18 @@ nonisolated enum MediaStatus: String, Codable, Hashable, Sendable {
       return .gray
     }
   }
+
+  /// Detail-page status rows are caption-sized, where yellow is unreadable.
+  var detailColor: Color {
+    switch self {
+    case .ready, .unknown:
+      return .secondary
+    case .error:
+      return .red
+    case .unsupported, .outdated:
+      return .orange
+    }
+  }
 }
 
 nonisolated struct Media: Equatable, Hashable, Sendable {

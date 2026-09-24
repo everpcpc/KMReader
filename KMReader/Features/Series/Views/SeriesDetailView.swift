@@ -120,38 +120,34 @@ struct SeriesDetailView: View {
                 .padding(.vertical, 8)
             #endif
 
-            SeriesDetailContentView(series: series)
-
-            if showsInlineReadingAction {
-              SeriesReadingActionButton(
-                caption: readingActionCaption,
-                title: readingDisplayTitle,
-                isResolving: isResolvingReadingTarget
-              ) {
-                continueReading()
+            SeriesDetailContentView(series: series) {
+              if showsInlineReadingAction {
+                SeriesReadingActionButton(
+                  caption: readingActionCaption,
+                  title: readingDisplayTitle,
+                  isResolving: isResolvingReadingTarget
+                ) {
+                  continueReading()
+                }
               }
-              .padding(.top, 4)
+              if let item {
+                SeriesDownloadActionsSection(
+                  seriesId: item.seriesId,
+                  status: item.downloadStatus,
+                  policy: item.offlinePolicy,
+                  offlinePolicyLimit: item.offlinePolicyLimit,
+                  onMutationCompleted: {
+                    Task {
+                      await refreshSeriesData()
+                    }
+                  }
+                )
+              }
             }
 
             if item != nil {
               SeriesCollectionsSection(collections: collections)
             }
-
-            Divider()
-            if let item {
-              SeriesDownloadActionsSection(
-                seriesId: item.seriesId,
-                status: item.downloadStatus,
-                policy: item.offlinePolicy,
-                offlinePolicyLimit: item.offlinePolicyLimit,
-                onMutationCompleted: {
-                  Task {
-                    await refreshSeriesData()
-                  }
-                }
-              )
-            }
-            Divider()
           }
           .padding(.horizontal)
 
