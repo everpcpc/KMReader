@@ -59,6 +59,7 @@ struct OneShotDetailContentView: View {
           }
 
           DetailAuthorChips(
+            publisher: series.metadata.publisher,
             authors: (book.metadata.authors ?? []).sortedByRole(),
             destination: { MetadataFilterHelper.seriesDestinationForAuthor($0.name) }
           )
@@ -179,15 +180,6 @@ struct OneShotDetailContentView: View {
           tag in
           NavigationLink(value: MetadataFilterHelper.seriesDestinationForTag(tag)) {
             DetailChip(tag, systemImage: "tag")
-          }
-          .adaptiveButtonStyle(.plain)
-        }
-      }
-
-      if let publisher = series.metadata.publisher, !publisher.isEmpty {
-        DetailChipFlowSection(items: [publisher], collapsedLimit: collapsedLinkLimit) { name in
-          NavigationLink(value: MetadataFilterHelper.seriesDestinationForPublisher(name)) {
-            DetailChip(name, systemImage: "building.2")
           }
           .adaptiveButtonStyle(.plain)
         }

@@ -47,6 +47,7 @@ struct SeriesDetailContentView<Actions: View>: View {
           }
 
           DetailAuthorChips(
+            publisher: series.metadata.publisher,
             authors: sortedAuthors,
             destination: { MetadataFilterHelper.seriesDestinationForAuthor($0.name) }
           )
@@ -148,15 +149,6 @@ struct SeriesDetailContentView<Actions: View>: View {
           DetailChip(tag, systemImage: "tag")
         }
         .adaptiveButtonStyle(.plain)
-      }
-
-      if let publisher = series.metadata.publisher, !publisher.isEmpty {
-        DetailChipFlowSection(items: [publisher], collapsedLimit: collapsedLinkLimit) { name in
-          NavigationLink(value: MetadataFilterHelper.seriesDestinationForPublisher(name)) {
-            DetailChip(name, systemImage: "building.2")
-          }
-          .adaptiveButtonStyle(.plain)
-        }
       }
 
       if let links = series.metadata.links, !links.isEmpty {
