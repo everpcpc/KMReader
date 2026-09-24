@@ -130,7 +130,7 @@ struct OfflineCoverSyncSection: View {
   }
 
   private var actionColor: Color {
-    viewModel.isSyncing ? .red : .accentColor
+    viewModel.isSyncing ? .red : .primary
   }
 
   private var actionAccessibilityLabel: String {

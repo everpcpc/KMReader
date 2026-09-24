@@ -181,7 +181,7 @@ struct SettingsDashboardView: View {
               .padding(.horizontal, 12)
               .background(
                 RoundedRectangle(cornerRadius: 6)
-                  .fill(draggedSection == section ? Color.accentColor.opacity(0.1) : Color.clear)
+                  .fill(draggedSection == section ? Color.primary.opacity(0.08) : Color.clear)
               )
               .contentShape(Rectangle())
               .onDrag {

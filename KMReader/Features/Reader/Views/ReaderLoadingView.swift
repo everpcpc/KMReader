@@ -89,7 +89,7 @@ struct ReaderLoadingView: View {
         .trim(from: 0, to: normalizedProgress ?? 0)
         .stroke(
           LinearGradient(
-            colors: [.accentColor, .accentColor.opacity(0.7)],
+            colors: [.primary, .primary.opacity(0.7)],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
           ),

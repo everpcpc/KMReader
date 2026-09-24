@@ -65,7 +65,7 @@ struct SeriesRowView: View {
             if series.oneshot {
               Label("Oneshot", systemImage: "book.closed")
                 .font(.footnote)
-                .foregroundColor(.blue)
+                .foregroundColor(.secondary)
             } else {
               Label(series.statusDisplayName, systemImage: series.statusIcon)
                 .font(.footnote)

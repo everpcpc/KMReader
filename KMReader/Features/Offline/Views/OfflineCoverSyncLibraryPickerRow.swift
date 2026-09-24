@@ -14,7 +14,7 @@ struct OfflineCoverSyncLibraryPickerRow: View {
     Button(action: action) {
       HStack(spacing: 12) {
         Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-          .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
+          .foregroundStyle(isSelected ? Color.primary : Color.secondary)
         Text(title)
           .foregroundStyle(.primary)
         Spacer()

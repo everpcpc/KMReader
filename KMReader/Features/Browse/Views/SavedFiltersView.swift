@@ -86,7 +86,7 @@ struct SavedFiltersView: View {
         dismiss()
       } label: {
         Image(systemName: "arrowshape.turn.up.forward")
-          .foregroundColor(.accentColor)
+          .foregroundColor(.primary)
       }
       .adaptiveButtonStyle(.plain)
     }
@@ -106,7 +106,6 @@ struct SavedFiltersView: View {
         } label: {
           Label("Rename", systemImage: "pencil")
         }
-        .tint(.blue)
       }
     #endif
     .contextMenu {

@@ -303,7 +303,7 @@ private struct LogQueryKey: Hashable {
 struct LogFilterChip: View {
   let icon: String
   let text: String
-  var color: Color = .accentColor
+  var color: Color = .secondary
 
   var body: some View {
     HStack(spacing: 4) {

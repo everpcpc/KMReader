@@ -22,6 +22,7 @@ extension View {
           self.buttonStyle(.glass)
         #else
           self.buttonStyle(.glassProminent)
+            .tint(Color(white: 0.15))
         #endif
       case .bordered:
         self.buttonStyle(.glass)
@@ -42,6 +43,7 @@ extension View {
       switch style {
       case .borderedProminent:
         self.buttonStyle(.borderedProminent)
+          .tint(Color(white: 0.15))
       case .bordered:
         self.buttonStyle(.bordered)
       case .borderless:

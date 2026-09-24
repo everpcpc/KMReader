@@ -138,7 +138,7 @@
           .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
           .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-              .stroke(isSelected ? Color.accentColor : Color.secondary.opacity(0.2), lineWidth: isSelected ? 2 : 1)
+              .stroke(isSelected ? Color.primary : Color.secondary.opacity(0.2), lineWidth: isSelected ? 2 : 1)
           )
       }
       .buttonStyle(.plain)

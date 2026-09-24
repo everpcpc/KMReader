@@ -125,7 +125,7 @@ struct BookHorizontalCardView: View {
           if item.oneshot {
             Text("Oneshot")
               .font(.system(secondaryTextStyle))
-              .foregroundColor(isCoverTinted ? secondaryTextColor : .blue)
+              .foregroundColor(isCoverTinted ? secondaryTextColor : .secondary)
               .lineLimit(1)
           } else if !item.seriesTitle.isEmpty {
             Text(item.seriesTitle)

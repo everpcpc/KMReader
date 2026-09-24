@@ -142,7 +142,6 @@ struct SubscriptionView: View {
         Label(String(localized: "Try Again"), systemImage: "arrow.clockwise")
       }
       .adaptiveButtonStyle(.bordered)
-      .tint(.orange)
       .padding(.top, 8)
     }
     .padding(.vertical, 40)

@@ -21,14 +21,14 @@ struct SelectionBadge: View {
         }
         Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
           .symbolRenderingMode(.palette)
-          .foregroundStyle(.white, Color.accentColor)
+          .foregroundStyle(.white, Color.primary)
       }
       .font(.title3)
       .padding(8)
     } else {
       Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
         .font(.title3)
-        .foregroundStyle(isSelected ? Color.accentColor : Color.secondary.opacity(0.5))
+        .foregroundStyle(isSelected ? Color.primary : Color.secondary.opacity(0.5))
     }
   }
 }

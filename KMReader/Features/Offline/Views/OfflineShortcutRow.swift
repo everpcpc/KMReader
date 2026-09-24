@@ -9,28 +9,33 @@ struct OfflineShortcutRow<Accessory: View>: View {
   let title: String
   let subtitle: String?
   let systemImage: String
+  let color: Color
   let accessory: Accessory
 
   init(
     title: String,
     subtitle: String? = nil,
     systemImage: String,
+    color: Color,
     @ViewBuilder accessory: () -> Accessory
   ) {
     self.title = title
     self.subtitle = subtitle
     self.systemImage = systemImage
+    self.color = color
     self.accessory = accessory()
   }
 
   init(
     title: String,
     subtitle: String? = nil,
-    systemImage: String
+    systemImage: String,
+    color: Color
   ) where Accessory == EmptyView {
     self.title = title
     self.subtitle = subtitle
     self.systemImage = systemImage
+    self.color = color
     self.accessory = EmptyView()
   }
 
@@ -38,9 +43,9 @@ struct OfflineShortcutRow<Accessory: View>: View {
     HStack(spacing: 12) {
       ZStack {
         RoundedRectangle(cornerRadius: 10)
-          .fill(Color.accentColor.opacity(0.15))
+          .fill(color)
         Image(systemName: systemImage)
-          .foregroundColor(Color.accentColor)
+          .foregroundColor(.white)
       }
       .frame(width: 36, height: 36)
 

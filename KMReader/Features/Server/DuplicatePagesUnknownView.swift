@@ -166,7 +166,7 @@ struct DuplicatePagesUnknownView: View {
                 fromByteCount: size * Int64(hash.matchCount), countStyle: .binary)
             )
             .font(.caption)
-            .foregroundColor(.accentColor)
+            .foregroundColor(.secondary)
           }
         }
       }

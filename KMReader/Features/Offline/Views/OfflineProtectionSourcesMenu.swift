@@ -20,7 +20,7 @@ struct OfflineProtectionSourcesMenu: View {
         Image(systemName: "lock.fill")
           .font(.caption)
       }
-      .foregroundColor(.accentColor)
+      .foregroundColor(.secondary)
       .lineLimit(1)
     }
   }

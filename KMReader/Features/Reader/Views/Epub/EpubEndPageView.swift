@@ -29,7 +29,7 @@
           VStack(spacing: 16) {
             Image(systemName: "checkmark.circle.fill")
               .font(.system(size: 64))
-              .foregroundColor(.accentColor)
+              .foregroundColor(theme.textColor)
 
             VStack(spacing: 8) {
               Text("Book Finished")

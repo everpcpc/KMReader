@@ -119,7 +119,7 @@ struct BookCardView: View {
           if item.oneshot {
             Text("Oneshot")
               .font(.caption)
-              .foregroundColor(.blue)
+              .foregroundColor(.secondary)
               .lineLimit(1)
           } else if shouldShowSeriesTitle {
             Text(item.seriesTitle)

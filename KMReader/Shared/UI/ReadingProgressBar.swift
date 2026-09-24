@@ -45,8 +45,8 @@ struct ReadingProgressBar: View {
       self.background = .secondary.opacity(0.4)
       self.showsShadow = true
     case .card:
-      self.color = .accentColor
-      self.background = .accentColor.opacity(0.4)
+      self.color = .primary
+      self.background = .secondary.opacity(0.4)
       self.showsShadow = false
     }
   }

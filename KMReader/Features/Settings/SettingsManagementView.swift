@@ -38,7 +38,7 @@ struct SettingsManagementView: View {
               icon: ServerSection.tasks.icon,
               color: ServerSection.tasks.color,
               badge: taskQueueStatus.count > 0 ? "\(taskQueueStatus.count)" : nil,
-              badgeColor: .accentColor
+              badgeColor: .secondary
             )
           }
           NavigationLink(value: NavDestination.settingsHistory) {

@@ -68,7 +68,7 @@ struct SettingsView: View {
               icon: "server.rack",
               color: .indigo,
               badge: taskQueueStatus.count > 0 ? "\(taskQueueStatus.count)" : nil,
-              badgeColor: .accentColor
+              badgeColor: .secondary
             )
           }
           NavigationLink(value: NavDestination.settingsAccount) {

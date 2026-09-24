@@ -120,8 +120,7 @@ struct ServerRowView: View {
         .scaleEffect(0.85)
     } else if isActive {
       infoTag(
-        icon: "checkmark.seal.fill", text: LocalizedStringKey("Active"), tint: Color.accentColor,
-        textColor: Color.accentColor)
+        icon: "checkmark.seal.fill", text: LocalizedStringKey("Active"), tint: .serverGreen)
     } else {
       Image(systemName: "chevron.right")
         .font(.body.weight(.semibold))
@@ -133,7 +132,6 @@ struct ServerRowView: View {
     icon: String,
     text: LocalizedStringKey,
     tint: Color = .secondary,
-    textColor: Color? = nil,
     fillOpacity: Double = 0.16
   ) -> some View {
     HStack(spacing: 4) {
@@ -141,7 +139,7 @@ struct ServerRowView: View {
       Text(text)
     }
     .font(.caption.weight(.medium))
-    .foregroundStyle(textColor ?? tint)
+    .foregroundStyle(tint)
     .padding(.horizontal, 10)
     .padding(.vertical, 5)
     .background(
@@ -173,8 +171,8 @@ struct ServerRowView: View {
     let gradientColors: [Color]
     if isActive {
       gradientColors = [
-        Color.accentColor.opacity(0.85),
-        Color.accentColor.opacity(0.55),
+        Color.serverGreen.opacity(0.85),
+        Color.serverGreen.opacity(0.55),
       ]
     } else if colorScheme == .dark {
       gradientColors = [
@@ -222,8 +220,8 @@ struct ServerRowView: View {
     let colors =
       isActive
       ? [
-        Color.accentColor.opacity(0.45),
-        Color.accentColor.opacity(0.2),
+        Color.serverGreen.opacity(0.12),
+        Color.serverGreen.opacity(0.06),
       ]
       : [
         inactiveTop,
@@ -241,7 +239,7 @@ struct ServerRowView: View {
       .overlay(
         RoundedRectangle(cornerRadius: 22, style: .continuous)
           .strokeBorder(
-            isActive ? Color.accentColor.opacity(0.6) : Color.primary.opacity(0.05),
+            isActive ? Color.serverGreen.opacity(0.35) : Color.primary.opacity(0.05),
             lineWidth: isActive ? 2 : 1
           )
       )

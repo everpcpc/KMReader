@@ -19,10 +19,10 @@ struct SettingsServerCardView: View {
           Image(systemName: "server.rack")
             .font(.title3)
             .fontWeight(.semibold)
-            .foregroundStyle(.white)
+            .foregroundStyle(.serverGreen)
             .frame(width: 44, height: 44)
             .background(
-              Color.accentColor,
+              Color.serverGreen.opacity(0.15),
               in: RoundedRectangle(cornerRadius: 10, style: .continuous)
             )
 

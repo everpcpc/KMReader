@@ -793,7 +793,6 @@
             }
           }
         }
-        .tint(.primary)
         .iPadIgnoresSafeArea(paddingTop: 24)
         .allowsHitTesting(supportsOverlayControls && shouldShowControls)
         .sheet(isPresented: $showingChapterSheet) {

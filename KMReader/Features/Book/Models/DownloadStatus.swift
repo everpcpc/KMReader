@@ -74,7 +74,7 @@ nonisolated enum DownloadStatus: Equatable, Sendable {
     case .downloaded, .pending:
       return .red
     case .notDownloaded, .failed:
-      return .accentColor
+      return .primary
     }
   }
 

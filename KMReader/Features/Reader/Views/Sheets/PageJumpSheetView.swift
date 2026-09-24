@@ -38,7 +38,7 @@ private struct PagePreviewCard: View {
       .clipShape(RoundedRectangle(cornerRadius: 8))
       .overlay(
         RoundedRectangle(cornerRadius: 8)
-          .stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: 3)
+          .stroke(isSelected ? Color.primary : Color.clear, lineWidth: 3)
       )
       .shadow(
         color: Color.black.opacity(isSelected ? 0.3 : 0.15),
@@ -50,7 +50,7 @@ private struct PagePreviewCard: View {
       Text("\(displayPage)")
         .font(.caption)
         .fontWeight(isSelected ? .semibold : .regular)
-        .foregroundStyle(isSelected ? Color.accentColor : .secondary)
+        .foregroundStyle(isSelected ? Color.primary : .secondary)
     }
     .task(id: "\(readerPage.id.description)-\(Int(imageHeight))") {
       loadedImage = nil

@@ -7,7 +7,6 @@ import Foundation
 import SwiftUI
 
 struct SettingsAppearanceView: View {
-  @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
   @AppStorage("appColorScheme") private var appColorScheme: AppColorScheme = .system
   @AppStorage("showDashboardSectionGradientBackground") private var showDashboardSectionGradientBackground: Bool =
     AppConfig.showDashboardSectionGradientBackground
@@ -15,19 +14,6 @@ struct SettingsAppearanceView: View {
   #if os(iOS)
     @State private var selectedAppIcon: AppIconOption = .primary
     @State private var isUpdatingAppIcon: Bool = false
-  #endif
-
-  private var themeColorBinding: Binding<Color> {
-    Binding(
-      get: { themeColor.color },
-      set: { newColor in
-        themeColor = ThemeColor(color: newColor)
-      }
-    )
-  }
-
-  #if os(tvOS)
-    @FocusState private var colorFocusedButton: ThemeColor?
   #endif
 
   init() {
@@ -91,13 +77,6 @@ struct SettingsAppearanceView: View {
             Text(scheme.label).tag(scheme)
           }
         }
-
-        #if os(iOS)
-          ColorPicker(
-            String(localized: "settings.appearance.color"),
-            selection: themeColorBinding,
-            supportsOpacity: false)
-        #endif
 
         Toggle(isOn: $showDashboardSectionGradientBackground) {
           VStack(alignment: .leading, spacing: 4) {
