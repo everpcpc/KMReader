@@ -3,10 +3,13 @@ import SwiftUI
 struct DetailTitleView: View {
   let title: String
 
+  @Environment(\.detailHeroCentered) private var heroCentered
+
   var body: some View {
     HStack(alignment: .center, spacing: 8) {
       Text(title)
-        .font(.title2)
+        .font(heroCentered ? Font.title2.bold() : Font.title2)
+        .multilineTextAlignment(heroCentered ? .center : .leading)
         .fixedSize(horizontal: false, vertical: true)
         .textSelectionIfAvailable()
         .layoutPriority(1)

@@ -3,7 +3,6 @@
 //
 //
 
-import Flow
 import SwiftUI
 
 struct OneShotDetailContentView: View {
@@ -14,8 +13,7 @@ struct OneShotDetailContentView: View {
   let inSheet: Bool
 
   @AppStorage("thumbnailBlurUnreadCovers") private var thumbnailBlurUnreadCovers: Bool = false
-
-  @State private var thumbnailRefreshKey = UUID()
+  @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
   private let collapsedLinkLimit = 6
 
@@ -37,42 +35,22 @@ struct OneShotDetailContentView: View {
     thumbnailBlurUnreadCovers && book.isUnread ? CoverBlurStyle.unreadRadius : 0
   }
 
+  private var isCompactHero: Bool {
+    horizontalSizeClass == .compact
+  }
+
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {
-      HStack(alignment: .top, spacing: 12) {
-        ThumbnailImage(
-          id: book.id,
-          type: .book,
-          contentBlurRadius: coverBlurRadius,
-          width: PlatformHelper.detailThumbnailWidth,
-          isTransitionSource: false,
-          onAction: {}
-        ) {
-        } menu: {
-          Button {
-            Task {
-              do {
-                _ = try await ThumbnailCache.shared.ensureThumbnail(
-                  id: book.id,
-                  type: .book,
-                  force: true
-                )
-                thumbnailRefreshKey = UUID()
-                ErrorManager.shared.notify(
-                  message: String(localized: "notification.cover.refreshed"))
-              } catch {
-                ErrorManager.shared.notify(
-                  message: String(localized: "notification.cover.refreshFailed"))
-              }
-            }
-          } label: {
-            Label(String(localized: "Refresh Cover"), systemImage: "arrow.clockwise")
-          }
-        }
-        .id(thumbnailRefreshKey)
-
-        VStack(alignment: .leading, spacing: 6) {
+      DetailHeroView(
+        id: book.id,
+        type: .book,
+        contentBlurRadius: coverBlurRadius
+      ) {
+        VStack(alignment: isCompactHero ? .center : .leading, spacing: 6) {
           HStack(alignment: .bottom, spacing: 8) {
+            if isCompactHero {
+              Spacer(minLength: 0)
+            }
             DetailTitleView(title: book.metadata.title)
             if let ageRating = series.metadata.ageRating, ageRating > 0 {
               AgeRatingBadge(ageRating: ageRating)
@@ -80,34 +58,33 @@ struct OneShotDetailContentView: View {
             Spacer(minLength: 0)
           }
 
-          DetailAuthorChips(
-            authors: (book.metadata.authors ?? []).sortedByRole(),
-            destination: { MetadataFilterHelper.seriesDestinationForAuthor($0.name) }
-          )
+          DetailChipFlow(items: creatorItems, collapsedLimit: 4)
 
-          if let releaseDate = book.metadata.releaseDate {
-            DetailMetadataRow(
-              systemImage: "calendar",
-              text: Text("Release Date: \(releaseDate)")
-            )
-          }
-          if let language = series.metadata.language, !language.isEmpty {
-            DetailMetadataRow(
-              systemImage: "globe",
-              text: Text(LanguageCodeHelper.displayName(for: language))
-            )
-          }
-          if let direction = series.metadata.readingDirection, !direction.isEmpty {
-            DetailMetadataRow(
-              systemImage: ReadingDirection.fromString(direction).icon,
-              text: Text(ReadingDirection.fromString(direction).displayName)
-            )
-          }
-          if let isbn = book.metadata.isbn, !isbn.isEmpty {
-            DetailMetadataRow(
-              systemImage: "barcode",
-              text: Text(isbn)
-            )
+          DetailHeroMetadataGroup {
+            if let releaseDate = book.metadata.releaseDate {
+              DetailMetadataRow(
+                systemImage: "calendar",
+                text: Text("Release Date: \(releaseDate)")
+              )
+            }
+            if let language = series.metadata.language, !language.isEmpty {
+              DetailMetadataRow(
+                systemImage: "globe",
+                text: Text(LanguageCodeHelper.displayName(for: language))
+              )
+            }
+            if let direction = series.metadata.readingDirection, !direction.isEmpty {
+              DetailMetadataRow(
+                systemImage: ReadingDirection.fromString(direction).icon,
+                text: Text(ReadingDirection.fromString(direction).displayName)
+              )
+            }
+            if let isbn = book.metadata.isbn, !isbn.isEmpty {
+              DetailMetadataRow(
+                systemImage: "barcode",
+                text: Text(isbn)
+              )
+            }
           }
         }
       }
@@ -184,51 +161,11 @@ struct OneShotDetailContentView: View {
         )
       }
 
-      if let genres = series.metadata.genres, !genres.isEmpty {
-        DetailChipFlowSection(
-          title: "Genres", items: genres.localizedSorted(), collapsedLimit: collapsedLinkLimit
-        ) { genre in
-          NavigationLink(value: MetadataFilterHelper.seriesDestinationForGenre(genre)) {
-            DetailChip(genre)
-          }
-          .adaptiveButtonStyle(.plain)
-        }
-      }
+      DetailChipFlow(items: genreItems, collapsedLimit: collapsedLinkLimit)
 
-      if let tags = book.metadata.tags, !tags.isEmpty {
-        DetailChipFlowSection(
-          title: "Tags", items: tags.localizedSorted(), collapsedLimit: collapsedLinkLimit
-        ) { tag in
-          NavigationLink(value: MetadataFilterHelper.seriesDestinationForTag(tag)) {
-            DetailChip(tag)
-          }
-          .adaptiveButtonStyle(.plain)
-        }
-      }
+      DetailChipFlow(items: tagItems, collapsedLimit: collapsedLinkLimit)
 
-      if let publisher = series.metadata.publisher, !publisher.isEmpty {
-        DetailChipFlowSection(
-          title: "Publisher", items: [publisher], collapsedLimit: collapsedLinkLimit
-        ) { name in
-          NavigationLink(value: MetadataFilterHelper.seriesDestinationForPublisher(name)) {
-            DetailChip(name)
-          }
-          .adaptiveButtonStyle(.plain)
-        }
-      }
-
-      if let links = book.metadata.links, !links.isEmpty {
-        DetailChipFlowSection(
-          title: "Links", items: links, collapsedLimit: collapsedLinkLimit
-        ) { link in
-          if let url = URL(string: link.url) {
-            Link(destination: url) {
-              DetailChip(link.label, systemImage: "link")
-            }
-            .adaptiveButtonStyle(.plain)
-          }
-        }
-      }
+      DetailChipFlow(items: linkItems, collapsedLimit: collapsedLinkLimit)
 
       if let alternateTitles = series.metadata.alternateTitles, !alternateTitles.isEmpty {
         VStack(alignment: .leading, spacing: 8) {
@@ -305,6 +242,55 @@ struct OneShotDetailContentView: View {
       }
 
       DetailTimestampsView(created: book.created, lastModified: book.lastModified)
+    }
+  }
+
+  private var creatorItems: [DetailChipFlow.Item] {
+    var items: [DetailChipFlow.Item] = []
+    if let publisher = series.metadata.publisher, !publisher.isEmpty {
+      items.append(
+        .init(
+          title: publisher,
+          systemImage: "building.2",
+          destination: .navigate(MetadataFilterHelper.seriesDestinationForPublisher(publisher))
+        )
+      )
+    }
+    items += (book.metadata.authors ?? []).sortedByRole().map {
+      .init(
+        title: $0.name,
+        systemImage: $0.role.icon,
+        destination: .navigate(MetadataFilterHelper.seriesDestinationForAuthor($0.name))
+      )
+    }
+    return items
+  }
+
+  private var genreItems: [DetailChipFlow.Item] {
+    (series.metadata.genres ?? []).localizedSorted().map {
+      .init(
+        title: $0,
+        systemImage: "theatermasks",
+        destination: .navigate(MetadataFilterHelper.seriesDestinationForGenre($0))
+      )
+    }
+  }
+
+  private var tagItems: [DetailChipFlow.Item] {
+    (book.metadata.tags ?? []).localizedSorted().map {
+      .init(
+        title: $0,
+        systemImage: "tag",
+        destination: .navigate(MetadataFilterHelper.seriesDestinationForTag($0))
+      )
+    }
+  }
+
+  private var linkItems: [DetailChipFlow.Item] {
+    (book.metadata.links ?? []).compactMap { link in
+      URL(string: link.url).map {
+        .init(title: link.label, systemImage: "link", destination: .external($0))
+      }
     }
   }
 }

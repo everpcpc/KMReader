@@ -5,9 +5,8 @@
 
 import SwiftUI
 
-/// Outlined rounded-rect chip for detail-page metadata, in the spirit of
-/// the Komga web UI's tags: one quiet neutral style, no per-field colors,
-/// no filled backgrounds.
+/// Filled capsule chip for detail-page metadata: one quiet neutral style,
+/// no per-field colors.
 struct DetailChip: View {
   let text: Text
   let systemImage: String?
@@ -33,14 +32,9 @@ struct DetailChip: View {
         .font(.caption)
         .lineLimit(1)
     }
-    .padding(.horizontal, 8)
-    .padding(.vertical, 4)
-    .background {
-      RoundedRectangle(cornerRadius: 6, style: .continuous)
-        .strokeBorder(Color.secondary.opacity(0.35), lineWidth: 1)
-    }
-    // The fill is transparent, so without an explicit content shape only
-    // the text and border would register taps.
-    .contentShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+    .padding(.horizontal, 10)
+    .padding(.vertical, 5)
+    .background(Color.secondary.opacity(0.12), in: Capsule())
+    .contentShape(Capsule())
   }
 }
