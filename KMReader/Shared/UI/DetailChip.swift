@@ -22,7 +22,7 @@ struct DetailChip: View {
   }
 
   var body: some View {
-    HStack(spacing: 4) {
+    let content = HStack(spacing: 4) {
       if let systemImage = systemImage {
         Image(systemName: systemImage)
           .font(.caption2)
@@ -34,7 +34,15 @@ struct DetailChip: View {
     }
     .padding(.horizontal, 10)
     .padding(.vertical, 5)
-    .background(Color.secondary.opacity(0.12), in: Capsule())
-    .contentShape(Capsule())
+
+    if #available(iOS 26.0, macOS 26.0, tvOS 26.0, *) {
+      content
+        .glassEffect(in: Capsule())
+        .contentShape(Capsule())
+    } else {
+      content
+        .background(Color.secondary.opacity(0.12), in: Capsule())
+        .contentShape(Capsule())
+    }
   }
 }

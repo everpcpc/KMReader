@@ -44,7 +44,7 @@ struct ReadingPagesHeatmapView: View {
                       .overlay {
                         if selectedPointId == point.id {
                           RoundedRectangle(cornerRadius: 3)
-                            .stroke(Color.accentColor, lineWidth: 2)
+                            .stroke(Color.primary, lineWidth: 2)
                         }
                       }
                       .frame(width: tileSize, height: tileSize)
@@ -104,13 +104,13 @@ struct ReadingPagesHeatmapView: View {
     let normalized = min(max(value / maxValue, 0), 1)
     switch normalized {
     case ..<0.25:
-      return Color.accentColor.opacity(0.28)
+      return Color.green.opacity(0.28)
     case ..<0.5:
-      return Color.accentColor.opacity(0.46)
+      return Color.green.opacity(0.46)
     case ..<0.75:
-      return Color.accentColor.opacity(0.68)
+      return Color.green.opacity(0.68)
     default:
-      return Color.accentColor.opacity(0.92)
+      return Color.green.opacity(0.92)
     }
   }
 
@@ -119,13 +119,13 @@ struct ReadingPagesHeatmapView: View {
     case 0:
       return Color.secondary.opacity(0.12)
     case 1:
-      return Color.accentColor.opacity(0.28)
+      return Color.green.opacity(0.28)
     case 2:
-      return Color.accentColor.opacity(0.46)
+      return Color.green.opacity(0.46)
     case 3:
-      return Color.accentColor.opacity(0.68)
+      return Color.green.opacity(0.68)
     default:
-      return Color.accentColor.opacity(0.92)
+      return Color.green.opacity(0.92)
     }
   }
 

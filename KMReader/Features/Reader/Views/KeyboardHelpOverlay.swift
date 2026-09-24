@@ -126,7 +126,7 @@ struct KeyboardHelpOverlay: View {
               .foregroundColor(.white)
               .padding(.horizontal, 24)
               .padding(.vertical, 8)
-              .background(Color.accentColor.opacity(0.9))
+              .background(Color.white.opacity(0.25))
               .cornerRadius(8)
           }
           .adaptiveButtonStyle(.plain)

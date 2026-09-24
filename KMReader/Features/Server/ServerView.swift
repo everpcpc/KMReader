@@ -53,7 +53,7 @@ struct ServerView: View {
               title: ServerSection.tasks.title,
               systemImage: ServerSection.tasks.icon,
               badge: taskQueueStatus.count > 0 ? "\(taskQueueStatus.count)" : nil,
-              badgeColor: Color.accentColor
+              badgeColor: Color.secondary
             )
           }
           .adaptiveButtonStyle(.plain)

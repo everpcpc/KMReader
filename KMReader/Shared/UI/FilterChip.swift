@@ -26,10 +26,8 @@ struct FilterChip: View {
 
   private var buttonColor: Color {
     switch variant {
-    case .normal:
-      return .accentColor
-    case .preset:
-      return .accentColor
+    case .normal, .preset:
+      return .primary
     case .negative:
       return .red
     }

@@ -240,7 +240,7 @@ struct SeriesBrowseOptionsSheet: View {
     case .off:
       return .secondary
     case .include:
-      return .accentColor
+      return .primary
     case .exclude:
       return .red
     }

@@ -25,9 +25,9 @@ struct ServerActionTile: View {
       HStack(alignment: .top, spacing: 8) {
         ZStack {
           RoundedRectangle(cornerRadius: 10)
-            .fill(Color.accentColor.opacity(0.15))
+            .fill(Color.secondary.opacity(0.15))
           Image(systemName: systemImage)
-            .foregroundColor(Color.accentColor)
+            .foregroundColor(.primary)
         }
         .frame(width: 34, height: 34)
 

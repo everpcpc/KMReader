@@ -44,7 +44,7 @@
           } else {
             Image(systemName: "book.fill")
               .font(.title3)
-              .foregroundStyle(Color.accentColor)
+              .foregroundStyle(.primary)
               .padding(.horizontal, 8)
           }
         }

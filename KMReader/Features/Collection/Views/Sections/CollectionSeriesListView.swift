@@ -61,7 +61,7 @@ struct CollectionSeriesListView: View {
             } label: {
               Image(systemName: "checkmark.circle")
             }
-            .adaptiveButtonStyle(.borderedProminent)
+            .adaptiveButtonStyle(.bordered)
             .optimizedControlSize()
             .transition(.opacity.combined(with: .scale))
           }

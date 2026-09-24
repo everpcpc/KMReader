@@ -18,8 +18,8 @@ struct RoleBadge: View {
     }
     .padding(.horizontal, 8)
     .padding(.vertical, 4)
-    .background(Color.accentColor.opacity(0.15))
-    .foregroundColor(.accentColor)
+    .background(Color.secondary.opacity(0.15))
+    .foregroundColor(.secondary)
     .clipShape(Capsule())
   }
 }

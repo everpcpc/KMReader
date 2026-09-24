@@ -274,6 +274,11 @@ enum AppConfig {
     }
   }
 
+  /// Cleans up the accent-color preference persisted by the removed theme feature.
+  static nonisolated func removeLegacyThemeColor() {
+    UserDefaults.standard.removeObject(forKey: "themeColorHex")
+  }
+
   static nonisolated var maxPageCacheSize: Int {
     get {
       if UserDefaults.standard.object(forKey: "maxPageCacheSize") != nil {
@@ -405,20 +410,6 @@ enum AppConfig {
   }
 
   // MARK: - Appearance
-  static nonisolated var themeColor: ThemeColor {
-    get {
-      if let stored = UserDefaults.standard.string(forKey: "themeColorHex"),
-        let color = ThemeColor(rawValue: stored)
-      {
-        return color
-      }
-      return .orange
-    }
-    set {
-      UserDefaults.standard.set(newValue.rawValue, forKey: "themeColorHex")
-    }
-  }
-
   static nonisolated var showDashboardSectionGradientBackground: Bool {
     get {
       if UserDefaults.standard.object(forKey: "showDashboardSectionGradientBackground") != nil {

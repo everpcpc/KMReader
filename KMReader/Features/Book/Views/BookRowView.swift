@@ -64,7 +64,7 @@ struct BookRowView: View {
             if item.oneshot {
               Text("Oneshot")
                 .font(.footnote)
-                .foregroundColor(.blue)
+                .foregroundColor(.secondary)
             } else if shouldShowSeriesTitle {
               Text(item.seriesTitle)
                 .font(.footnote)
@@ -99,9 +99,9 @@ struct BookRowView: View {
                   }
                 } else {
                   Image(systemName: "circle.righthalf.filled")
-                    .foregroundColor(.blue)
+                    .foregroundColor(.orange)
                   Text("Page \(progressPage + 1)")
-                    .foregroundColor(.blue)
+                    .foregroundColor(.orange)
                   Text("•")
                   Text(progress, format: .percent.precision(.fractionLength(0)))
                 }

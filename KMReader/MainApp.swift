@@ -55,7 +55,6 @@ struct MainApp: App {
   #if os(iOS)
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
   #endif
-  @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
   @AppStorage("appColorScheme") private var appColorScheme: AppColorScheme = .system
   #if os(macOS)
     @Environment(\.openWindow) private var openWindow
@@ -72,6 +71,7 @@ struct MainApp: App {
     PlatformHelper.setup()
     AnimatedImageSupport.configureCoders()
     AppConfig.migrateOfflineProvenanceIfNeeded()
+    AppConfig.removeLegacyThemeColor()
     AppConfig.showProtectedServers = false
     _authViewModel = State(initialValue: AuthViewModel())
   }
@@ -404,10 +404,6 @@ struct MainApp: App {
             }
           }
         }
-      #endif
-      #if os(iOS)
-        .tint(themeColor.color)
-        .accentColor(themeColor.color)
       #endif
       .preferredColorScheme(appColorScheme.colorScheme)
     }

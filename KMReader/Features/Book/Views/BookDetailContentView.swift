@@ -141,6 +141,10 @@ struct BookDetailContentView: View {
           )
         }
       }
+      .frame(maxWidth: isCompactHero ? 480 : .infinity)
+      .frame(maxWidth: .infinity, alignment: isCompactHero ? .center : .leading)
+
+      DetailTimestampsView(created: book.created, lastModified: book.lastModified)
 
       if let summary = book.metadata.summary, !summary.isEmpty {
         ExpandableSummaryView(
@@ -207,8 +211,6 @@ struct BookDetailContentView: View {
           }
         }
       }
-
-      DetailTimestampsView(created: book.created, lastModified: book.lastModified)
     }
   }
 

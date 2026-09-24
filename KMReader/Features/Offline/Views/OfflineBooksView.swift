@@ -157,7 +157,7 @@ struct OfflineBooksView: View {
 
   private func totalMetrics(size: Int64) -> some View {
     Text(formatter.string(fromByteCount: size))
-      .foregroundColor(.accentColor)
+      .foregroundColor(.secondary)
       .lineLimit(1)
   }
 

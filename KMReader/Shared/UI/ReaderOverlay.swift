@@ -10,7 +10,6 @@ import SwiftUI
   struct ReaderOverlay: View {
     let namespace: Namespace.ID
     let readerPresentation: ReaderPresentationManager
-    @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
 
     var body: some View {
       Color.clear
@@ -26,10 +25,6 @@ import SwiftUI
               sourceID: readerPresentation.sourceBookId,
               in: namespace
             )
-            #if os(iOS)
-              .tint(themeColor.color)
-              .accentColor(themeColor.color)
-            #endif
         }
     }
   }

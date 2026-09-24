@@ -196,7 +196,7 @@ struct DuplicatePagesKnownView: View {
               systemImage: "arrow.down.circle"
             )
             .font(.caption)
-            .foregroundColor(.accentColor)
+            .foregroundColor(.secondary)
           }
         }
       }

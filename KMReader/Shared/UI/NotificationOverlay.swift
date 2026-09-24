@@ -7,7 +7,6 @@ import SwiftUI
 
 #if os(iOS)
   struct NotificationOverlay: View {
-    @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
     @State private var errorManager = ErrorManager.shared
 
     var body: some View {
@@ -17,8 +16,8 @@ import SwiftUI
           Text(notification.message)
             .padding(.vertical, 8)
             .padding(.horizontal, 16)
-            .foregroundStyle(.white)
-            .background(themeColor.color)
+            .foregroundStyle(.primary)
+            .background(.regularMaterial)
             .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 10)
             .clipShape(RoundedRectangle(cornerRadius: 16))
         }
@@ -44,14 +43,12 @@ import SwiftUI
           Text(String(localized: "error.unknown"))
         }
       }
-      .tint(themeColor.color)
     }
   }
 
 #elseif os(tvOS)
   // Keep alerts in the main view hierarchy so tvOS focus reliably lands on alert actions.
   struct NotificationOverlay: View {
-    @AppStorage("themeColorHex") private var themeColor: ThemeColor = .orange
     @State private var errorManager = ErrorManager.shared
 
     var body: some View {
@@ -61,8 +58,8 @@ import SwiftUI
           Text(notification.message)
             .padding(.vertical, 8)
             .padding(.horizontal, 16)
-            .foregroundStyle(.white)
-            .background(themeColor.color)
+            .foregroundStyle(.primary)
+            .background(.regularMaterial)
             .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 10)
             .clipShape(RoundedRectangle(cornerRadius: 16))
         }
@@ -81,7 +78,6 @@ import SwiftUI
           Text(String(localized: "error.unknown"))
         }
       }
-      .tint(themeColor.color)
       .onExitCommand {
         guard errorManager.hasAlert else { return }
         ErrorManager.shared.vanishError()
@@ -101,8 +97,8 @@ import SwiftUI
           Text(notification.message)
             .padding(.vertical, 8)
             .padding(.horizontal, 16)
-            .foregroundStyle(.white)
-            .background(Color.accentColor)
+            .foregroundStyle(.primary)
+            .background(.regularMaterial)
             .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 10)
             .clipShape(RoundedRectangle(cornerRadius: 16))
         }

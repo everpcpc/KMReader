@@ -178,7 +178,6 @@ struct OfflineTasksView: View {
                   .font(.caption)
               }
               .adaptiveButtonStyle(.bordered)
-              .tint(.blue)
               .buttonBorderShape(.capsule)
               .optimizedControlSize()
 
@@ -378,7 +377,7 @@ struct OfflineTaskRow: View {
               }
             } label: {
               Image(systemName: "arrow.clockwise.circle")
-                .foregroundColor(.blue)
+                .foregroundColor(.primary)
             }
             .adaptiveButtonStyle(.plain)
           }

@@ -62,7 +62,7 @@ struct DirectoryBrowserSheet: View {
               } label: {
                 HStack {
                   Image(systemName: "arrow.left")
-                    .foregroundColor(.accentColor)
+                    .foregroundColor(.secondary)
                   Text(
                     String(localized: "library.add.browse.parent", defaultValue: "Parent Directory")
                   )
@@ -79,7 +79,7 @@ struct DirectoryBrowserSheet: View {
               } label: {
                 HStack {
                   Image(systemName: "folder")
-                    .foregroundColor(.accentColor)
+                    .foregroundColor(.secondary)
                   Text(item.name)
                     .foregroundColor(.primary)
                   Spacer()

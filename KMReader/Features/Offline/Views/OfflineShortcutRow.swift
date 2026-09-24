@@ -38,9 +38,9 @@ struct OfflineShortcutRow<Accessory: View>: View {
     HStack(spacing: 12) {
       ZStack {
         RoundedRectangle(cornerRadius: 10)
-          .fill(Color.accentColor.opacity(0.15))
+          .fill(Color.secondary.opacity(0.15))
         Image(systemName: systemImage)
-          .foregroundColor(Color.accentColor)
+          .foregroundColor(.primary)
       }
       .frame(width: 36, height: 36)
 

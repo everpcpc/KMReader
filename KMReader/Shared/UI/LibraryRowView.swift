@@ -61,7 +61,7 @@ struct LibraryRowView: View {
 
       if selectionEnabled {
         Image(systemName: selectionIndicatorName)
-          .foregroundStyle(isSelected ? Color.accentColor : .secondary)
+          .foregroundStyle(isSelected ? Color.primary : .secondary)
           .font(.title3)
       }
     }

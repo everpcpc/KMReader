@@ -72,7 +72,7 @@ struct ServerTasksView: View {
                   .font(.title2)
                   .fontWeight(.bold)
                   .foregroundColor(
-                    displayedTaskQueueStatus.count > 0 ? Color.accentColor : .secondary
+                    displayedTaskQueueStatus.count > 0 ? .primary : .secondary
                   )
                   .contentTransition(.numericText())
               }
@@ -91,7 +91,7 @@ struct ServerTasksView: View {
                       Spacer()
                       Text("\(count)")
                         .fontWeight(.semibold)
-                        .foregroundColor(count > 0 ? Color.accentColor : .secondary)
+                        .foregroundColor(count > 0 ? .primary : .secondary)
                         .contentTransition(.numericText())
                     }
                     .padding(.vertical, 2)
@@ -108,7 +108,7 @@ struct ServerTasksView: View {
               Spacer()
               if displayedTaskQueueStatus.count > 0 {
                 Circle()
-                  .fill(Color.accentColor)
+                  .fill(Color.primary)
                   .frame(width: 8, height: 8)
                   .opacity(1.0)
               }

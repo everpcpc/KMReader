@@ -168,9 +168,6 @@ struct DivinaControlsOverlayView: View {
     } message: {
       Text("reader.missingPageDimensions.alert")
     }
-    #if os(iOS)
-      .tint(.primary)
-    #endif
     #if os(tvOS)
       .onAppear {
         if showingControls {

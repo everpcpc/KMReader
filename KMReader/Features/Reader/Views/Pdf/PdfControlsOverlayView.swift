@@ -54,9 +54,6 @@
       .animation(animation, value: controlsVisible)
       .animation(animation, value: showProgressBarWhileReading)
       .allowsHitTesting(controlsVisible)
-      #if os(iOS)
-        .tint(.primary)
-      #endif
     }
 
     private var bottomControlsTransition: AnyTransition {

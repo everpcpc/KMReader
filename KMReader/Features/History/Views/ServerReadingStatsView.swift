@@ -217,7 +217,7 @@ struct ServerReadingStatsView: View {
       if payload.dailyDistribution.isEmpty {
         sectionEmptyState(systemImage: "calendar", message: String(localized: "No data"))
       } else {
-        distributionChart(payload.dailyDistribution, keepOrder: true)
+        distributionChart(payload.dailyDistribution, keepOrder: true, color: .blue)
       }
     }
 
@@ -225,7 +225,7 @@ struct ServerReadingStatsView: View {
       if payload.hourlyDistribution.isEmpty {
         sectionEmptyState(systemImage: "clock", message: String(localized: "No data"))
       } else {
-        distributionChart(payload.hourlyDistribution, keepOrder: true, sparseAxisLabels: true)
+        distributionChart(payload.hourlyDistribution, keepOrder: true, sparseAxisLabels: true, color: .teal)
       }
     }
 
@@ -285,7 +285,8 @@ struct ServerReadingStatsView: View {
   private func distributionChart(
     _ items: [ReadingStatsItem],
     keepOrder: Bool = false,
-    sparseAxisLabels: Bool = false
+    sparseAxisLabels: Bool = false,
+    color: Color
   ) -> some View {
     let chartItems: [ReadingStatsItem]
     if keepOrder {
@@ -302,7 +303,7 @@ struct ServerReadingStatsView: View {
             x: .value("Index", item.offset),
             y: .value("Value", item.element.value)
           )
-          .foregroundStyle(Color.accentColor.gradient)
+          .foregroundStyle(color.gradient)
         }
         .chartXAxis {
           AxisMarks(values: distributionAxisIndices(count: chartItems.count, keepOrder: keepOrder)) { value in
@@ -321,7 +322,7 @@ struct ServerReadingStatsView: View {
           x: .value("Label", item.name),
           y: .value("Value", item.value)
         )
-        .foregroundStyle(Color.accentColor.gradient)
+        .foregroundStyle(color.gradient)
       }
       .frame(height: 220)
     )

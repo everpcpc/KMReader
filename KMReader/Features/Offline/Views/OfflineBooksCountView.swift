@@ -20,8 +20,8 @@ struct OfflineBooksCountView: View {
           .monospacedDigit()
           .padding(.horizontal, 8)
           .padding(.vertical, 4)
-          .background(Color.accentColor.opacity(0.15), in: Capsule())
-          .foregroundColor(Color.accentColor)
+          .background(Color.secondary.opacity(0.15), in: Capsule())
+          .foregroundColor(.secondary)
       } else {
         Text("")
       }
