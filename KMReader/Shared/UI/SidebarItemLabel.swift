@@ -16,11 +16,12 @@ struct SidebarItemLabel: View {
       if let count {
         Text("\(count)")
           .font(.caption2)
-          .foregroundColor(.secondary)
+          // Hierarchical styles derive from the row's actual foreground, so
+          // the badge stays readable on the inverted selected-row pill.
+          .foregroundStyle(.secondary)
           .padding(.horizontal, 6)
           .padding(.vertical, 2)
-          .background(Color.secondary.opacity(0.1))
-          .clipShape(Capsule())
+          .background(.secondary.opacity(0.1), in: Capsule())
       }
     }
   }

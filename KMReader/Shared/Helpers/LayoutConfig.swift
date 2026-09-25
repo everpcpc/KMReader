@@ -20,13 +20,11 @@ struct LayoutConfig {
     #if os(tvOS)
       return 240
     #elseif os(macOS)
-      return 224
+      // Apple Books macOS covers are ~104pt; macOS stays in that density
+      // band instead of scaling up from iPhone.
+      return 128
     #else
-      if UIDevice.current.userInterfaceIdiom == .pad {
-        return 192
-      } else {
-        return 160
-      }
+      return 160
     #endif
   }
 
@@ -35,7 +33,10 @@ struct LayoutConfig {
     #if os(tvOS)
       return 365
     #elseif os(macOS)
-      return 213
+      // Apple Books macOS showcase covers are ~104pt; the large card adds
+      // text lines below the cover, so it stays a bit wider than the small
+      // card (101) instead of using the iOS 2.1x ratio.
+      return 132
     #else
       if UIDevice.current.userInterfaceIdiom == .pad {
         return 182
@@ -50,7 +51,7 @@ struct LayoutConfig {
     #if os(tvOS)
       return 173
     #elseif os(macOS)
-      return 101
+      return 92
     #else
       if UIDevice.current.userInterfaceIdiom == .pad {
         return 86
@@ -65,7 +66,7 @@ struct LayoutConfig {
     #if os(tvOS)
       return 528
     #elseif os(macOS)
-      return 308
+      return 224
     #else
       if UIDevice.current.userInterfaceIdiom == .pad {
         return 264
