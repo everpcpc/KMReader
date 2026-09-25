@@ -42,6 +42,17 @@ enum DashboardCardKind: String, Codable, Sendable, CaseIterable {
       return "rectangle.lefthalf.inset.filled"
     }
   }
+
+  var cardWidth: CGFloat {
+    switch self {
+    case .large:
+      return LayoutConfig.dashboardLargeCardWidth
+    case .small:
+      return LayoutConfig.dashboardSmallCardWidth
+    case .horizontal:
+      return LayoutConfig.horizontalCardWidth
+    }
+  }
 }
 
 enum DashboardSection: String, CaseIterable, Identifiable, Codable, Sendable {
@@ -136,11 +147,14 @@ enum DashboardSection: String, CaseIterable, Identifiable, Codable, Sendable {
 
   /// Card kinds the user can pick for this section. Series has no horizontal
   /// card; pinned sections only render as horizontal cards; recently added
-  /// books is a showcase section, so it offers large/small only.
+  /// books is a showcase section, so it offers large/small only. Read lists
+  /// in progress shows each list's next book, so it offers the books kinds.
   var availableCardKinds: [DashboardCardKind] {
     switch self {
     case .recentlyAddedBooks:
       return [.large, .small]
+    case .readListsInProgress:
+      return [.large, .small, .horizontal]
     default:
       switch contentKind {
       case .books:

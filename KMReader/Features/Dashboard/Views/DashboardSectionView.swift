@@ -42,22 +42,8 @@ struct DashboardSectionView: View {
     dashboard.cardKind(for: section)
   }
 
-  private var cardKindBinding: Binding<DashboardCardKind> {
-    Binding(
-      get: { cardKind },
-      set: { dashboard.setCardKind($0, for: section) }
-    )
-  }
-
   private var itemWidth: CGFloat {
-    switch cardKind {
-    case .horizontal:
-      return LayoutConfig.horizontalCardWidth
-    case .large:
-      return LayoutConfig.dashboardLargeCardWidth
-    case .small:
-      return LayoutConfig.dashboardSmallCardWidth
-    }
+    cardKind.cardWidth
   }
 
   private var horizontalCoverWidth: CGFloat? {
@@ -97,22 +83,7 @@ struct DashboardSectionView: View {
 
           Spacer()
 
-          if section.availableCardKinds.count > 1 {
-            Menu {
-              Picker(selection: cardKindBinding) {
-                ForEach(section.availableCardKinds, id: \.self) { kind in
-                  Label(kind.title, systemImage: kind.icon).tag(kind)
-                }
-              } label: {
-                EmptyView()
-              }
-              .pickerStyle(.inline)
-              .labelsHidden()
-            } label: {
-              Image(systemName: "rectangle.3.group")
-                .foregroundStyle(.secondary)
-            }
-          }
+          DashboardCardKindMenu(section: section)
         }
         .padding(.horizontal)
         .padding(.top)

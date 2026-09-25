@@ -44,6 +44,10 @@ struct ReadListsInProgressSectionView: View {
     }
   }
 
+  private var cardKind: DashboardCardKind {
+    dashboard.cardKind(for: section)
+  }
+
   private var spacing: CGFloat {
     LayoutConfig.defaultSpacing
   }
@@ -61,34 +65,37 @@ struct ReadListsInProgressSectionView: View {
       #endif
 
       VStack(alignment: .leading, spacing: 0) {
-        NavigationLink(value: NavDestination.browseReadLists) {
-          HStack {
-            Text(section.displayName)
-              .font(.title2)
-              .bold()
-              .fontDesign(.serif)
-            Image(systemName: "chevron.right")
-              .foregroundStyle(.secondary)
+        HStack {
+          NavigationLink(value: NavDestination.browseReadLists) {
+            HStack {
+              Text(section.displayName)
+                .font(.title2)
+                .bold()
+                .fontDesign(.serif)
+              Image(systemName: "chevron.right")
+                .foregroundStyle(.secondary)
+            }
           }
+          .buttonStyle(.plain)
+          .disabled(continuations.isEmpty)
+
+          Spacer()
+
+          DashboardCardKindMenu(section: section)
         }
-        .buttonStyle(.plain)
         .padding(.horizontal)
         .padding(.top)
         #if os(macOS)
           .padding(.leading, 16)
         #endif
-        .disabled(continuations.isEmpty)
 
         ScrollViewReader { proxy in
           ScrollView(.horizontal, showsIndicators: false) {
             LazyHStack(alignment: .top, spacing: spacing) {
               ForEach(continuations, id: \.readListId) { continuation in
-                ReadListContinuationCardView(
-                  continuation: continuation,
-                  coverWidth: LayoutConfig.horizontalCoverWidth
-                )
-                .id(continuation.readListId)
-                .frame(width: LayoutConfig.horizontalCardWidth)
+                continuationCard(continuation)
+                  .id(continuation.readListId)
+                  .frame(width: cardKind.cardWidth)
               }
             }
             .padding(.vertical)
@@ -121,6 +128,23 @@ struct ReadListsInProgressSectionView: View {
     }
     .onDisappear {
       DashboardRefreshCoordinator.shared.unregisterSection(section)
+    }
+  }
+
+  @ViewBuilder
+  private func continuationCard(_ continuation: ReadListContinuation) -> some View {
+    switch cardKind {
+    case .horizontal:
+      ReadListContinuationHorizontalCardView(
+        continuation: continuation,
+        coverWidth: LayoutConfig.horizontalCoverWidth
+      )
+    case .large, .small:
+      ReadListContinuationCardView(
+        continuation: continuation,
+        coverOnly: cardKind == .small,
+        cardWidth: cardKind.cardWidth
+      )
     }
   }
 

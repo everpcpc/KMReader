@@ -5,123 +5,49 @@
 
 import SwiftUI
 
-/// Horizontal card for a read list the user is reading: the next book's cover,
-/// the read list's name, and how far along the list is. Opens the next book in
-/// the read list's order. Tinted by the next book's cover, like the Keep
-/// Reading card it sits next to.
-@MainActor
+/// Large or small card for a read list the user is reading: the next book's
+/// cover and progress, the read list's name in the series slot, the book's
+/// title, and how far along the list is. Opens the next book in the read
+/// list's order.
 struct ReadListContinuationCardView: View {
   let continuation: ReadListContinuation
-  var coverWidth: CGFloat = 80
+  /// Small dashboard cards are cover-only: at that width every text line
+  /// truncates and stops carrying information.
+  var coverOnly: Bool = false
+  /// Text styles scale with this width.
+  var cardWidth: CGFloat = LayoutConfig.gridCardWidth
 
-  @AppStorage("currentAccount") private var current: Current = .init()
   @Environment(\.readerActions) private var readerActions
-  @State private var coverArtwork: PlatformImage?
 
-  private var isCoverTinted: Bool {
-    coverArtwork != nil
-  }
-
-  private var primaryTextColor: Color {
-    isCoverTinted ? .white : .primary
-  }
-
-  private var secondaryTextColor: Color {
-    isCoverTinted ? .white.opacity(0.65) : .secondary
-  }
-
-  private var progressText: String {
-    String(
-      format: String(localized: "readList.continuation.progress"),
-      Int64(continuation.booksRead),
-      Int64(continuation.bookCount)
-    )
+  /// The book a list continues with is in progress or unread; only a book in
+  /// progress has progress.
+  private var isInProgress: Bool {
+    continuation.bookProgress != nil
   }
 
   var body: some View {
-    Button {
-      openNextBook()
-    } label: {
-      HStack(alignment: .center, spacing: 10) {
-        ThumbnailImage(
-          id: continuation.bookId,
-          type: .book,
-          shadowStyle: .platform,
-          width: coverWidth,
-          preserveAspectRatioOverride: false
-        )
-        .frame(width: coverWidth)
-        .allowsHitTesting(false)
-
-        VStack(alignment: .leading, spacing: 0) {
-          Spacer(minLength: 0)
-
-          Text(continuation.readListName)
-            .font(.system(LayoutConfig.horizontalCardTitleTextStyle, weight: .medium))
-            .foregroundColor(primaryTextColor)
-            .lineLimit(2)
-            .multilineTextAlignment(.leading)
-
-          Spacer(minLength: 0)
-
-          VStack(alignment: .leading, spacing: 4) {
-            Text(continuation.bookTitle)
-              .lineLimit(1)
-
-            // Book progress first, like the Keep Reading card's "50% • 8 pages".
-            HStack(spacing: 4) {
-              if let bookProgress = continuation.bookProgress {
-                Text(bookProgress, format: .percent.precision(.fractionLength(0)))
-                Text("•")
-              }
-              Text(progressText)
-              if let icon = continuation.downloadStatus.displayIcon {
-                Spacer()
-                DownloadStatusIcon(
-                  systemName: icon,
-                  spinning: continuation.downloadStatus.isPending,
-                  color: secondaryTextColor
-                )
-                .font(.system(LayoutConfig.horizontalCardTertiaryTextStyle))
-              }
-            }
-            .lineLimit(1)
-          }
-          .font(.system(LayoutConfig.horizontalCardSecondaryTextStyle))
-          .foregroundColor(secondaryTextColor)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-      }
-      .padding(6)
-      .frame(maxWidth: .infinity, alignment: .leading)
-      .background {
-        CoverTintedCardBackground(artwork: coverArtwork)
-      }
-      .contentShape(Rectangle())
-      #if os(iOS)
-        .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: 12))
-      #endif
-    }
-    .adaptiveButtonStyle(.plain)
-    .contextMenu {
-      NavigationLink(value: NavDestination.readListDetail(readListId: continuation.readListId)) {
-        Label("View Details", systemImage: "info.circle")
-      }
-      ReadListStopReadingButton(readListId: continuation.readListId, instanceId: current.instanceId)
-    }
-    .coverArtwork(instanceId: current.instanceId, bookId: continuation.bookId, into: $coverArtwork)
-  }
-
-  private func openNextBook() {
-    let readListContext = ReaderReadListContext(
-      id: continuation.readListId,
-      name: continuation.readListName
-    )
-    Task {
-      guard let database = await DatabaseOperator.databaseIfConfigured(),
-        let book = await database.fetchBook(id: continuation.bookId)
-      else { return }
-      readerActions.open(book: book, incognito: false, readListContext: readListContext)
+    GridCardView(
+      thumbnailId: continuation.bookId,
+      thumbnailType: .book,
+      title: continuation.bookTitle,
+      coverOnly: coverOnly,
+      cardWidth: cardWidth,
+      isUnread: !isInProgress,
+      onAction: { readerActions.open(continuation: continuation) },
+      subtitle: continuation.readListName,
+      overlaySubtitle: continuation.readListName,
+      downloadIcon: continuation.downloadStatus.displayIcon,
+      downloadSpinning: continuation.downloadStatus.isPending,
+      progress: continuation.bookProgress ?? 0,
+      isInProgress: isInProgress
+    ) {
+      ReadListContinuationContextMenu(continuation: continuation)
+    } detail: {
+      ReadListContinuationProgressText(continuation: continuation)
+        .lineLimit(1)
+    } overlayDetail: {
+      ReadListContinuationProgressText(continuation: continuation)
+        .lineLimit(1)
     }
   }
 }

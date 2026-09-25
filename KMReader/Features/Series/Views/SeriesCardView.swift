@@ -16,10 +16,7 @@ struct SeriesCardView: View {
   /// Text styles and the corner badge scale with this width.
   var cardWidth: CGFloat = LayoutConfig.gridCardWidth
 
-  @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
-  @AppStorage("cardTextOverlayMode") private var cardTextOverlayMode: Bool = false
   @AppStorage("thumbnailShowUnreadIndicator") private var thumbnailShowUnreadIndicator: Bool = true
-  @AppStorage("thumbnailBlurUnreadCovers") private var thumbnailBlurUnreadCovers: Bool = false
 
   @State private var showCollectionPicker = false
   @State private var showEditSheet = false
@@ -37,122 +34,64 @@ struct SeriesCardView: View {
     return Double(item.booksReadCount) / Double(item.booksCount)
   }
 
-  /// Cover-only cards never render the text overlay, even in overlay mode.
-  private var showsTextOverlay: Bool {
-    cardTextOverlayMode && !coverOnly
-  }
-
-  private var contentSpacing: CGFloat {
-    showsTextOverlay ? 0 : 12
-  }
-
-  private var coverBlurRadius: CGFloat {
-    thumbnailBlurUnreadCovers && item.isUnread ? CoverBlurStyle.unreadRadius : 0
-  }
-
-  private var titleTextStyle: Font.TextStyle {
-    LayoutConfig.cardTitleTextStyle(cardWidth: cardWidth)
-  }
-
-  private var secondaryTextStyle: Font.TextStyle {
-    LayoutConfig.cardSecondaryTextStyle(cardWidth: cardWidth)
+  private var badgeSize: CGFloat {
+    LayoutConfig.cardBadgeSize(cardWidth: cardWidth)
   }
 
   private var tertiaryTextStyle: Font.TextStyle {
     LayoutConfig.cardTertiaryTextStyle(cardWidth: cardWidth)
   }
 
-  private var badgeSize: CGFloat {
-    LayoutConfig.cardBadgeSize(cardWidth: cardWidth)
-  }
-
   var body: some View {
-    VStack(alignment: .leading, spacing: contentSpacing) {
-      ThumbnailImage(
-        id: item.seriesId,
-        type: .series,
-        shadowStyle: .platform,
-        contentBlurRadius: coverBlurRadius,
-        alignment: .bottom,
-        navigationLink: navDestination,
-        preserveAspectRatioOverride: showsTextOverlay ? false : nil
-      ) {
-        ZStack {
-          if showsTextOverlay {
-            CardTextOverlay(cornerRadius: 8) {
-              overlayTextContent
-            }
-          }
-          if thumbnailShowUnreadIndicator && showUnreadIndicator && item.booksUnreadCount > 0 {
-            VStack(alignment: .trailing) {
-              UnreadCountBadge(count: item.booksUnreadCount, size: badgeSize)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-            }
-          }
+    GridCardView(
+      thumbnailId: item.seriesId,
+      thumbnailType: .series,
+      title: item.metaTitle,
+      coverOnly: coverOnly,
+      cardWidth: cardWidth,
+      isUnread: item.isUnread,
+      navigationLink: navDestination,
+      downloadIcon: item.downloadStatus.icon,
+      downloadSpinning: item.downloadStatus.isPending
+    ) {
+      if thumbnailShowUnreadIndicator && showUnreadIndicator && item.booksUnreadCount > 0 {
+        VStack(alignment: .trailing) {
+          UnreadCountBadge(count: item.booksUnreadCount, size: badgeSize)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
         }
-      } menu: {
-        SeriesContextMenu(
-          seriesId: item.seriesId,
-          menuTitle: item.metaTitle,
-          downloadStatus: item.downloadStatus,
-          offlinePolicy: item.offlinePolicy,
-          offlinePolicyLimit: item.offlinePolicyLimit,
-          booksUnreadCount: item.booksUnreadCount,
-          booksReadCount: item.booksReadCount,
-          booksInProgressCount: item.booksInProgressCount,
-          onShowCollectionPicker: {
-            #if os(macOS)
-              // Present in a standalone window: a view-attached sheet
-              // triggered from an NSMenu action can wedge the app on
-              // macOS 15 (#959).
-              PickerWindowOpener.shared.open(.collection(seriesId: item.seriesId))
-            #else
-              showCollectionPicker = true
-            #endif
-          },
-          onDeleteRequested: onDeleteRequested,
-          onEditRequested: {
-            showEditSheet = true
-          },
-          onMutationCompleted: onMutationCompleted
-        )
       }
-
-      if !showsTextOverlay && !coverOnlyCards && !coverOnly {
-        VStack(alignment: .leading) {
-          Text(item.metaTitle)
-            .lineLimit(1)
-
-          HStack(spacing: 4) {
-            if item.isUnavailable {
-              Text("Unavailable")
-                .foregroundColor(.red)
-            } else {
-              if progress > 0 && progress < 1 {
-                Text(progress, format: .percent.precision(.fractionLength(0)))
-                Text("•")
-              }
-              if progress == 1 {
-                Image(systemName: "checkmark.circle")
-                  .foregroundColor(.secondary)
-                  .font(.system(tertiaryTextStyle))
-              }
-              Text("\(item.booksCount) books")
-                .lineLimit(1)
-            }
-            if let icon = item.downloadStatus.icon {
-              Spacer()
-              DownloadStatusIcon(systemName: icon, spinning: item.downloadStatus.isPending)
-                .font(.system(tertiaryTextStyle))
-            }
-          }
-          .font(.system(secondaryTextStyle))
-          .foregroundColor(.secondary)
-        }.font(.system(titleTextStyle))
-      }
+    } menu: {
+      SeriesContextMenu(
+        seriesId: item.seriesId,
+        menuTitle: item.metaTitle,
+        downloadStatus: item.downloadStatus,
+        offlinePolicy: item.offlinePolicy,
+        offlinePolicyLimit: item.offlinePolicyLimit,
+        booksUnreadCount: item.booksUnreadCount,
+        booksReadCount: item.booksReadCount,
+        booksInProgressCount: item.booksInProgressCount,
+        onShowCollectionPicker: {
+          #if os(macOS)
+            // Present in a standalone window: a view-attached sheet
+            // triggered from an NSMenu action can wedge the app on
+            // macOS 15 (#959).
+            PickerWindowOpener.shared.open(.collection(seriesId: item.seriesId))
+          #else
+            showCollectionPicker = true
+          #endif
+        },
+        onDeleteRequested: onDeleteRequested,
+        onEditRequested: {
+          showEditSheet = true
+        },
+        onMutationCompleted: onMutationCompleted
+      )
+    } detail: {
+      statusContent(overlay: false)
+    } overlayDetail: {
+      statusContent(overlay: true)
     }
     .frame(maxWidth: .infinity, alignment: .leading)
-    .frame(maxHeight: .infinity, alignment: .top)
     .sheet(isPresented: $showCollectionPicker) {
       CollectionPickerSheet(
         seriesId: item.seriesId,
@@ -167,35 +106,22 @@ struct SeriesCardView: View {
   }
 
   @ViewBuilder
-  private var overlayTextContent: some View {
-    let style = CardOverlayTextStyle.standard
-
-    CardOverlayTextStack(title: item.metaTitle, style: style) {
-      HStack(spacing: 4) {
-        if item.isUnavailable {
-          Text("Unavailable")
-            .foregroundColor(.red)
-        } else {
-          if progress > 0 && progress < 1 {
-            Text(progress, format: .percent.precision(.fractionLength(0)))
-            Text("•")
-          }
-          if progress == 1 {
-            Image(systemName: "checkmark.circle")
-              .foregroundColor(style.secondaryColor)
-              .font(.caption2)
-          }
-          Text("\(item.booksCount) books")
-            .lineLimit(1)
-        }
-        if let icon = item.downloadStatus.icon {
-          Spacer()
-          DownloadStatusIcon(
-            systemName: icon, spinning: item.downloadStatus.isPending, color: style.secondaryColor
-          )
-          .font(.caption2)
-        }
+  private func statusContent(overlay: Bool) -> some View {
+    if item.isUnavailable {
+      Text("Unavailable")
+        .foregroundColor(.red)
+    } else {
+      if progress > 0 && progress < 1 {
+        Text(progress, format: .percent.precision(.fractionLength(0)))
+        Text("•")
       }
+      if progress == 1 {
+        Image(systemName: "checkmark.circle")
+          .foregroundColor(overlay ? CardOverlayTextStyle.standard.secondaryColor : .secondary)
+          .font(overlay ? .caption2 : .system(tertiaryTextStyle))
+      }
+      Text("\(item.booksCount) books")
+        .lineLimit(1)
     }
   }
 
