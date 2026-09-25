@@ -639,7 +639,12 @@ extension DatabaseOperator {
           let bookItems =
             seriesBooks
             .map(Self.makeOfflineDownloadedBookItem)
-            .sorted { $0.metaNumberSort < $1.metaNumberSort }
+            .sorted {
+              if $0.metaNumberSort != $1.metaNumberSort {
+                return $0.metaNumberSort < $1.metaNumberSort
+              }
+              return $0.id < $1.id
+            }
           seriesGroups.append(
             OfflineDownloadedSeriesGroup(
               id: seriesId,

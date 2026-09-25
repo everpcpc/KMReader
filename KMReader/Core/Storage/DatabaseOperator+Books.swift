@@ -291,7 +291,10 @@ extension DatabaseOperator {
         instanceId: instanceId,
         completed: true
       ) {
-        if let nextBook = orderedBooks.first(where: { $0.metaNumberSort > lastRead.metaNumberSort }) {
+        if let nextBook = orderedBooks.first(where: {
+          $0.metaNumberSort > lastRead.metaNumberSort
+            || ($0.metaNumberSort == lastRead.metaNumberSort && $0.id > lastRead.id)
+        }) {
           return nextBook.toBook()
         }
       }
@@ -1097,7 +1100,7 @@ extension DatabaseOperator {
     let direction = sort.contains("desc") ? "DESC" : "ASC"
     if sort.contains("series") && sort.contains("metadata.numberSort") {
       return
-        "COALESCE(NULLIF(series_title, ''), series_id) \(direction), meta_number_sort \(direction), name \(direction), id ASC"
+        "COALESCE(NULLIF(series_title, ''), series_id) \(direction), meta_number_sort \(direction), id ASC"
     }
     if sort.contains("createdDate") {
       return "created \(direction), id ASC"
@@ -1162,11 +1165,16 @@ extension DatabaseOperator {
         if $0.metaNumberSort != $1.metaNumberSort {
           return isAsc ? $0.metaNumberSort < $1.metaNumberSort : $0.metaNumberSort > $1.metaNumberSort
         }
-        return isAsc ? $0.name < $1.name : $0.name > $1.name
+        return $0.id < $1.id
       }
     }
     if sort.contains("metadata.numberSort") {
-      return books.sorted { isAsc ? $0.metaNumberSort < $1.metaNumberSort : $0.metaNumberSort > $1.metaNumberSort }
+      return books.sorted {
+        if $0.metaNumberSort != $1.metaNumberSort {
+          return isAsc ? $0.metaNumberSort < $1.metaNumberSort : $0.metaNumberSort > $1.metaNumberSort
+        }
+        return $0.id < $1.id
+      }
     }
     return books.sorted { isAsc ? $0.name < $1.name : $0.name > $1.name }
   }
