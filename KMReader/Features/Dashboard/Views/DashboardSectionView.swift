@@ -10,9 +10,6 @@ struct DashboardSectionView: View {
   let section: DashboardSection
 
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
-  @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
-  @AppStorage("dashboardHorizontalBookCards")
-  private var dashboardHorizontalBookCards: Bool = true
   @AppStorage("showDashboardSectionGradientBackground")
   private var showDashboardSectionGradientBackground: Bool =
     AppConfig.showDashboardSectionGradientBackground
@@ -45,29 +42,34 @@ struct DashboardSectionView: View {
     }
   }
 
-  private var cardWidth: CGFloat {
-    LayoutConfig.cardWidth(for: gridDensity)
+  private var cardKind: DashboardCardKind {
+    dashboard.cardKind(for: section)
   }
 
-  /// Horizontal cards only apply to Keep Reading.
-  private var useHorizontalBookCards: Bool {
-    section == .keepReading && dashboardHorizontalBookCards
-  }
-
-  private var horizontalCardWidth: CGFloat {
-    LayoutConfig.horizontalCardWidth
-  }
-
-  private var horizontalCoverWidth: CGFloat {
-    LayoutConfig.horizontalCoverWidth
+  private var cardKindBinding: Binding<DashboardCardKind> {
+    Binding(
+      get: { cardKind },
+      set: { dashboard.setCardKind($0, for: section) }
+    )
   }
 
   private var itemWidth: CGFloat {
-    useHorizontalBookCards ? horizontalCardWidth : cardWidth
+    switch cardKind {
+    case .horizontal:
+      return LayoutConfig.horizontalCardWidth
+    case .large:
+      return LayoutConfig.dashboardLargeCardWidth
+    case .small:
+      return LayoutConfig.dashboardSmallCardWidth
+    }
+  }
+
+  private var horizontalCoverWidth: CGFloat? {
+    cardKind == .horizontal ? LayoutConfig.horizontalCoverWidth : nil
   }
 
   private var spacing: CGFloat {
-    LayoutConfig.spacing(for: gridDensity)
+    LayoutConfig.defaultSpacing
   }
 
   var body: some View {
@@ -83,23 +85,44 @@ struct DashboardSectionView: View {
       #endif
 
       VStack(alignment: .leading, spacing: 0) {
-        NavigationLink(value: NavDestination.dashboardSectionDetail(section: section)) {
-          HStack {
-            Text(section.displayName)
-              .font(.title2)
-              .bold()
-              .fontDesign(.serif)
-            Image(systemName: "chevron.right")
-              .foregroundStyle(.secondary)
+        HStack {
+          NavigationLink(value: NavDestination.dashboardSectionDetail(section: section)) {
+            HStack {
+              Text(section.displayName)
+                .font(.title2)
+                .bold()
+                .fontDesign(.serif)
+              Image(systemName: "chevron.right")
+                .foregroundStyle(.secondary)
+            }
+          }
+          .buttonStyle(.plain)
+          .disabled(pagination.isEmpty)
+
+          Spacer()
+
+          if section.availableCardKinds.count > 1 {
+            Menu {
+              Picker(selection: cardKindBinding) {
+                ForEach(section.availableCardKinds, id: \.self) { kind in
+                  Label(kind.title, systemImage: kind.icon).tag(kind)
+                }
+              } label: {
+                EmptyView()
+              }
+              .pickerStyle(.inline)
+              .labelsHidden()
+            } label: {
+              Image(systemName: "rectangle.3.group")
+                .foregroundStyle(.secondary)
+            }
           }
         }
-        .buttonStyle(.plain)
         .padding(.horizontal)
         .padding(.top)
         #if os(macOS)
           .padding(.leading, 16)
         #endif
-        .disabled(pagination.isEmpty)
 
         ScrollViewReader { proxy in
           ScrollView(.horizontal, showsIndicators: false) {
@@ -155,7 +178,8 @@ struct DashboardSectionView: View {
         bookId: itemId,
         layout: .grid,
         showSeriesTitle: true,
-        horizontalCoverWidth: useHorizontalBookCards ? horizontalCoverWidth : nil,
+        horizontalCoverWidth: horizontalCoverWidth,
+        coverOnly: cardKind == .small,
         onItemMissing: {
           viewModel.removeItem(id: itemId)
         }
@@ -164,6 +188,7 @@ struct DashboardSectionView: View {
       SeriesQueryItemView(
         seriesId: itemId,
         layout: .grid,
+        coverOnly: cardKind == .small,
         onItemMissing: {
           viewModel.removeItem(id: itemId)
         }

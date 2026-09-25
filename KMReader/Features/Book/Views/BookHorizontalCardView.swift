@@ -125,14 +125,15 @@ struct BookHorizontalCardView: View {
           }
 
           Text(bookTitleLine)
-            .font(.system(titleTextStyle))
+            .font(.system(titleTextStyle, weight: .medium))
             .foregroundColor(item.isCompleted ? secondaryTextColor : primaryTextColor)
             .lineLimit(2)
             .multilineTextAlignment(.leading)
-
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .overlay(alignment: .bottomLeading) {
           bottomBar
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
       }
       .padding(6)
       .frame(maxWidth: .infinity, alignment: .leading)

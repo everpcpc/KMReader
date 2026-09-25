@@ -10,7 +10,6 @@ struct DashboardPinnedSectionView: View {
   let section: DashboardSection
 
   @AppStorage("currentAccount") private var current: Current = .init()
-  @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
   @AppStorage("showDashboardSectionGradientBackground")
   private var showDashboardSectionGradientBackground: Bool =
     AppConfig.showDashboardSectionGradientBackground
@@ -101,7 +100,7 @@ struct DashboardPinnedSectionView: View {
   }
 
   private var spacing: CGFloat {
-    LayoutConfig.spacing(for: gridDensity)
+    LayoutConfig.defaultSpacing
   }
 
   var body: some View {

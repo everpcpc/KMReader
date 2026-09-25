@@ -11,7 +11,6 @@ struct DashboardSectionDetailView: View {
 
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("dashboardSectionDetailLayout") private var browseLayout: BrowseLayoutMode = .grid
-  @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
   @AppStorage("isOffline") private var isOffline: Bool = false
 
   @State private var pagination = PaginationState<IdentifiedString>(pageSize: 50)
@@ -21,11 +20,11 @@ struct DashboardSectionDetailView: View {
   @State private var needsRefreshAfterCurrentLoad = false
 
   private var columns: [GridItem] {
-    LayoutConfig.adaptiveColumns(for: gridDensity)
+    LayoutConfig.adaptiveColumns
   }
 
   private var spacing: CGFloat {
-    LayoutConfig.spacing(for: gridDensity)
+    LayoutConfig.defaultSpacing
   }
 
   private var browseLayoutBinding: Binding<BrowseLayoutMode> {

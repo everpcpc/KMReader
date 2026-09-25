@@ -10,6 +10,9 @@ struct SeriesCardView: View {
   var onMutationCompleted: (() -> Void)? = nil
   var onDeleteRequested: (() -> Void)? = nil
   var showUnreadIndicator: Bool = true
+  /// Small dashboard cards are cover-only: at 72pt every text line truncates
+  /// and stops carrying information.
+  var coverOnly: Bool = false
 
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
   @AppStorage("cardTextOverlayMode") private var cardTextOverlayMode: Bool = false
@@ -92,7 +95,7 @@ struct SeriesCardView: View {
         )
       }
 
-      if !cardTextOverlayMode && !coverOnlyCards {
+      if !cardTextOverlayMode && !coverOnlyCards && !coverOnly {
         VStack(alignment: .leading) {
           Text(item.metaTitle)
             .lineLimit(1)

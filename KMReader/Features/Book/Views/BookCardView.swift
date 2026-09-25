@@ -13,6 +13,9 @@ struct BookCardView: View {
   var showSeriesTitle: Bool = false
   var showSeriesNavigation: Bool = true
   var showUnreadIndicator: Bool = true
+  /// Small dashboard cards are cover-only: at 72pt every text line truncates
+  /// and stops carrying information.
+  var coverOnly: Bool = false
 
   @AppStorage("showBookCardSeriesTitle") private var showBookCardSeriesTitle: Bool = true
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
@@ -114,7 +117,7 @@ struct BookCardView: View {
           .opacity(item.isInProgress ? 1 : 0)
       }
 
-      if !cardTextOverlayMode && !coverOnlyCards {
+      if !cardTextOverlayMode && !coverOnlyCards && !coverOnly {
         VStack(alignment: .leading) {
           if item.oneshot {
             Text("Oneshot")

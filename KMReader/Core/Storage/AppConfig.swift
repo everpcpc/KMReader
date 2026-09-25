@@ -385,20 +385,6 @@ enum AppConfig {
     }
   }
 
-  // MARK: - Dashboard
-
-  static nonisolated var gridDensity: Double {
-    get {
-      if UserDefaults.standard.object(forKey: "gridDensity") != nil {
-        return UserDefaults.standard.double(forKey: "gridDensity")
-      }
-      return GridDensity.standard.rawValue
-    }
-    set {
-      UserDefaults.standard.set(newValue, forKey: "gridDensity")
-    }
-  }
-
   // MARK: - Custom Fonts
   static nonisolated var customFontNames: [String] {
     get {

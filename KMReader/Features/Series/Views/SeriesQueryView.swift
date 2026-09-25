@@ -14,14 +14,12 @@ struct SeriesQueryView: View {
   let useLocalOnly: Bool
   let offlineOnly: Bool
 
-  @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
-
   private var columns: [GridItem] {
-    LayoutConfig.adaptiveColumns(for: gridDensity)
+    LayoutConfig.adaptiveColumns
   }
 
   private var spacing: CGFloat {
-    LayoutConfig.spacing(for: gridDensity)
+    LayoutConfig.defaultSpacing
   }
 
   init(
