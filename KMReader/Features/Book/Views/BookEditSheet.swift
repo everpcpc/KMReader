@@ -173,48 +173,58 @@ struct BookEditSheet: View {
           }
         }
       }
-      VStack {
-        HStack {
-          TextField("Name", text: $newAuthorName)
-          Picker("Role", selection: $newAuthorRole) {
-            ForEach(AuthorRole.predefinedCases, id: \.self) { role in
-              Text(role.displayName).tag(role)
-            }
-            Text("Custom").tag(AuthorRole.custom(""))
+      HStack {
+        TextField("Name", text: $newAuthorName)
+          .onSubmit { commitPendingAuthor() }
+        Picker("Role", selection: $newAuthorRole) {
+          ForEach(AuthorRole.predefinedCases, id: \.self) { role in
+            Text(role.displayName).tag(role)
           }
-          .frame(maxWidth: 150)
+          Text("Custom").tag(AuthorRole.custom(""))
         }
-
-        if case .custom = newAuthorRole {
-          HStack {
-            TextField("Custom Role", text: $customRoleName)
-          }
-        }
-
-        Button {
-          if !newAuthorName.isEmpty {
-            let finalRole: AuthorRole
-            if case .custom = newAuthorRole {
-              finalRole = .custom(customRoleName.isEmpty ? "Custom" : customRoleName)
-            } else {
-              finalRole = newAuthorRole
-            }
-            withAnimation {
-              bookMetadataUpdate.authors.append(Author(name: newAuthorName, role: finalRole))
-              newAuthorName = ""
-              newAuthorRole = .writer
-              customRoleName = ""
-              bookMetadataUpdate.authorsLock = true
-            }
-          }
-        } label: {
-          Label("Add Author", systemImage: "plus.circle.fill")
-        }
-        .disabled(newAuthorName.isEmpty)
+        .frame(maxWidth: 150)
       }
+
+      if case .custom = newAuthorRole {
+        HStack {
+          TextField("Custom Role", text: $customRoleName)
+            .onSubmit { commitPendingAuthor() }
+        }
+      }
+
+      // Own form row: a row shared with the Picker becomes the Picker's tap target.
+      Button(action: commitPendingAuthor) {
+        Label("Add Author", systemImage: "plus.circle.fill")
+          .frame(maxWidth: .infinity)
+      }
+      .adaptiveButtonStyle(hasPendingAuthor ? .borderedProminent : .borderless)
+      .disabled(!hasPendingAuthor)
+      .opacity(hasPendingAuthor ? 1 : 0.5)
     } header: {
       Text("Authors")
         .lockToggle(isLocked: $bookMetadataUpdate.authorsLock)
+    }
+  }
+
+  private var hasPendingAuthor: Bool {
+    !newAuthorName.trimmingCharacters(in: .whitespaces).isEmpty
+  }
+
+  private func commitPendingAuthor() {
+    let name = newAuthorName.trimmingCharacters(in: .whitespaces)
+    guard !name.isEmpty else { return }
+    let finalRole: AuthorRole
+    if case .custom = newAuthorRole {
+      finalRole = .custom(customRoleName.isEmpty ? "Custom" : customRoleName)
+    } else {
+      finalRole = newAuthorRole
+    }
+    withAnimation {
+      bookMetadataUpdate.authors.append(Author(name: name, role: finalRole))
+      bookMetadataUpdate.authorsLock = true
+      newAuthorName = ""
+      newAuthorRole = .writer
+      customRoleName = ""
     }
   }
 
@@ -237,22 +247,29 @@ struct BookEditSheet: View {
       }
       HStack {
         TextField("Tag", text: $newTag)
-        Button {
-          if !newTag.isEmpty && !bookMetadataUpdate.tags.contains(newTag) {
-            withAnimation {
-              bookMetadataUpdate.tags.append(newTag)
-              newTag = ""
-              bookMetadataUpdate.tagsLock = true
-            }
-          }
-        } label: {
+          .onSubmit { commitPendingTag() }
+        Button(action: commitPendingTag) {
           Image(systemName: "plus.circle.fill")
         }
-        .disabled(newTag.isEmpty)
+        .disabled(!hasPendingTag)
       }
     } header: {
       Text("Tags")
         .lockToggle(isLocked: $bookMetadataUpdate.tagsLock)
+    }
+  }
+
+  private var hasPendingTag: Bool {
+    !newTag.trimmingCharacters(in: .whitespaces).isEmpty
+  }
+
+  private func commitPendingTag() {
+    let tag = newTag.trimmingCharacters(in: .whitespaces)
+    guard !tag.isEmpty, !bookMetadataUpdate.tags.contains(tag) else { return }
+    withAnimation {
+      bookMetadataUpdate.tags.append(tag)
+      bookMetadataUpdate.tagsLock = true
+      newTag = ""
     }
   }
 
@@ -280,28 +297,40 @@ struct BookEditSheet: View {
       }
       VStack {
         TextField("Label", text: $newLinkLabel)
+          .onSubmit { commitPendingLink() }
         TextField("URL", text: $newLinkURL)
           #if os(iOS) || os(tvOS)
             .keyboardType(.URL)
             .autocapitalization(.none)
           #endif
-        Button {
-          if !newLinkLabel.isEmpty && !newLinkURL.isEmpty {
-            withAnimation {
-              bookMetadataUpdate.links.append(WebLink(label: newLinkLabel, url: newLinkURL))
-              newLinkLabel = ""
-              newLinkURL = ""
-              bookMetadataUpdate.linksLock = true
-            }
-          }
-        } label: {
+          .onSubmit { commitPendingLink() }
+        Button(action: commitPendingLink) {
           Label("Add Link", systemImage: "plus.circle.fill")
         }
-        .disabled(newLinkLabel.isEmpty || newLinkURL.isEmpty)
+        .adaptiveButtonStyle(hasPendingLink ? .borderedProminent : .borderless)
+        .disabled(!hasPendingLink)
+        .opacity(hasPendingLink ? 1 : 0.5)
       }
     } header: {
       Text("Links")
         .lockToggle(isLocked: $bookMetadataUpdate.linksLock)
+    }
+  }
+
+  private var hasPendingLink: Bool {
+    !newLinkLabel.trimmingCharacters(in: .whitespaces).isEmpty
+      && !newLinkURL.trimmingCharacters(in: .whitespaces).isEmpty
+  }
+
+  private func commitPendingLink() {
+    let label = newLinkLabel.trimmingCharacters(in: .whitespaces)
+    let url = newLinkURL.trimmingCharacters(in: .whitespaces)
+    guard !label.isEmpty, !url.isEmpty else { return }
+    withAnimation {
+      bookMetadataUpdate.links.append(WebLink(label: label, url: url))
+      bookMetadataUpdate.linksLock = true
+      newLinkLabel = ""
+      newLinkURL = ""
     }
   }
 
