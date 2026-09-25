@@ -19,7 +19,6 @@ struct DashboardSectionDetailView: View {
   @State private var isQueueingAllOffline = false
   @State private var hasLoadedInitial = false
   @State private var needsRefreshAfterCurrentLoad = false
-  @State private var onDeckReadLists = OnDeckReadListMerge()
 
   private var isQueueingOffline: Bool {
     isQueueingLatestOffline || isQueueingAllOffline
@@ -86,12 +85,6 @@ struct DashboardSectionDetailView: View {
       }
       guard command.includes(section) else { return }
       Task { await revalidateItems() }
-    }
-    .onChange(of: section.mergesReadListContinuations ? ReadListReadingService.shared.snapshot : nil) {
-      _, snapshot in
-      onDeckReadLists.reloadIfOutdated(by: snapshot, isLoading: isLoading) {
-        Task { await revalidateItems() }
-      }
     }
     #if os(iOS) || os(macOS)
       .toolbar {
@@ -264,7 +257,6 @@ struct DashboardSectionDetailView: View {
 
     let libraryIds = dashboard.libraryIds
     let instanceId = AppConfig.current.instanceId
-    let isFirstPage = pagination.currentPage == 0
 
     if AppConfig.isOffline {
       let ids: [String]
@@ -284,13 +276,7 @@ struct DashboardSectionDetailView: View {
       case .collections, .readLists:
         ids = []
       }
-      let displayedIds = await onDeckReadLists.merge(
-        ids,
-        in: section,
-        isFirstPage: isFirstPage,
-        libraryIds: libraryIds
-      )
-      applyPage(ids: displayedIds, moreAvailable: ids.count == pagination.pageSize)
+      applyPage(ids: ids, moreAvailable: ids.count == pagination.pageSize)
       updateWidgetDataIfNeeded(
         ids: ids,
         refresh: refresh,
@@ -306,12 +292,7 @@ struct DashboardSectionDetailView: View {
             page: pagination.currentPage,
             size: pagination.pageSize
           ) {
-            let ids = await onDeckReadLists.merge(
-              page.content.map { $0.id },
-              in: section,
-              isFirstPage: isFirstPage,
-              libraryIds: libraryIds
-            )
+            let ids = page.content.map { $0.id }
             applyPage(ids: ids, moreAvailable: !page.last)
             if refresh {
               updateWidgetDataIfNeeded(
@@ -576,14 +557,8 @@ struct DashboardSectionDetailView: View {
       case .collections, .readLists:
         ids = []
       }
-      let displayedIds = await onDeckReadLists.merge(
-        ids,
-        in: section,
-        isFirstPage: true,
-        libraryIds: libraryIds
-      )
       guard loadID == pagination.loadID else { return }
-      applyRevalidatedWindow(ids: displayedIds, moreAvailable: ids.count == windowSize)
+      applyRevalidatedWindow(ids: ids, moreAvailable: ids.count == windowSize)
     } else {
       do {
         switch section.contentKind {
@@ -593,14 +568,8 @@ struct DashboardSectionDetailView: View {
             page: 0,
             size: windowSize
           ) {
-            let ids = await onDeckReadLists.merge(
-              page.content.map { $0.id },
-              in: section,
-              isFirstPage: true,
-              libraryIds: libraryIds
-            )
             guard loadID == pagination.loadID else { return }
-            applyRevalidatedWindow(ids: ids, moreAvailable: !page.last)
+            applyRevalidatedWindow(ids: page.content.map { $0.id }, moreAvailable: !page.last)
           }
         case .series:
           if let page = try await section.fetchSeries(

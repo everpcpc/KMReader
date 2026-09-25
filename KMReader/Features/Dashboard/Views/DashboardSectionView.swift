@@ -157,10 +157,6 @@ struct DashboardSectionView: View {
       }
       handleReloadCommand(command)
     }
-    .onChange(of: section.mergesReadListContinuations ? ReadListReadingService.shared.snapshot : nil) {
-      _, snapshot in
-      viewModel.reloadIfReadListsOutdated(by: snapshot, libraryIds: dashboard.libraryIds)
-    }
     .onAppear {
       DashboardRefreshCoordinator.shared.registerSection(section)
       viewModel.ensureLoaded(libraryIds: dashboard.libraryIds)

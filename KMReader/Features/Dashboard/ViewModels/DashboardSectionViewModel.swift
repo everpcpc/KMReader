@@ -25,7 +25,6 @@ final class DashboardSectionViewModel {
   @ObservationIgnored private var hasLoadedFirstPage = false
   @ObservationIgnored private var didSeedFromCache = false
   @ObservationIgnored private let sectionCacheStore = DashboardSectionCacheStore.shared
-  @ObservationIgnored private let onDeckReadLists = OnDeckReadListMerge()
 
   init(section: DashboardSection) {
     self.section = section
@@ -53,15 +52,6 @@ final class DashboardSectionViewModel {
   func removeItem(id: String) {
     withAnimation {
       _ = pagination.removeItems(withIDs: [id])
-    }
-  }
-
-  /// Read lists change on their own schedule (a sync, another device, Stop
-  /// Reading), so On Deck reloads when the read lists it merged are out of
-  /// date. A load in flight merges the latest ones itself.
-  func reloadIfReadListsOutdated(by snapshot: ReadListReadingSnapshot?, libraryIds: [String]) {
-    onDeckReadLists.reloadIfOutdated(by: snapshot, isLoading: loadTask != nil) {
-      startReload(libraryIds: libraryIds)
     }
   }
 
@@ -114,14 +104,8 @@ final class DashboardSectionViewModel {
       case .collections, .readLists:
         ids = []
       }
-      let displayedIds = await onDeckReadLists.merge(
-        ids,
-        in: section,
-        isFirstPage: isFirstPage,
-        libraryIds: libraryIds
-      )
       guard loadID == pagination.loadID else { return }
-      applyPage(ids: displayedIds, moreAvailable: ids.count == pageSize)
+      applyPage(ids: ids, moreAvailable: ids.count == pageSize)
       updateWidgetDataIfNeeded(
         ids: ids,
         isFirstPage: isFirstPage,
@@ -138,13 +122,7 @@ final class DashboardSectionViewModel {
           let result = try await section.fetchBooks(libraryIds: libraryIds, page: page, size: pageSize),
           loadID == pagination.loadID
         else { return }
-        let ids = await onDeckReadLists.merge(
-          result.content.map(\.id),
-          in: section,
-          isFirstPage: isFirstPage,
-          libraryIds: libraryIds
-        )
-        guard loadID == pagination.loadID else { return }
+        let ids = result.content.map(\.id)
         if isFirstPage {
           _ = sectionCacheStore.updateIfChanged(section: section, ids: ids)
           section.widgetDataTarget?.update(books: result.content, instanceId: instanceId, libraryIds: libraryIds)

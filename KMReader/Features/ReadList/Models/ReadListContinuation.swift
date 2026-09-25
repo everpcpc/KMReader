@@ -5,25 +5,18 @@
 
 import Foundation
 
-/// A read list the user is reading, resolved to the one book that represents it
-/// on the dashboard.
-///
-/// Placement mirrors Komga's split for series (`GET /api/v1/books/ondeck`:
-/// "first unread book of series with at least one book read and no books in
-/// progress"): a book in progress belongs in Keep Reading, otherwise the next
-/// unread book is On Deck.
+/// Where a read list the user is reading continues: the book it resumes with
+/// (in progress, or the next unread one) and how far along the list is.
 nonisolated struct ReadListContinuation: Equatable, Sendable {
-  enum Placement: Equatable, Sendable {
-    case keepReading
-    case onDeck
-  }
-
   let readListId: String
   let readListName: String
   let bookId: String
-  /// Library of `bookId`, so the dashboard's library scope can hide the entry
-  /// without changing which book the read list resolves to.
+  /// Display line of `bookId`: number and title, or the title of a one-shot.
+  let bookTitle: String
+  /// How much of `bookId` is read while it is in progress; nil while unread.
+  let bookProgress: Double?
   let libraryId: String
-  let placement: Placement
+  let booksRead: Int
+  let bookCount: Int
   let lastReadAt: Date
 }

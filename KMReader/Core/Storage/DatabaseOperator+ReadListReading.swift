@@ -150,14 +150,14 @@ extension DatabaseOperator {
     }
   }
 
-  /// Resolves every read list the user is reading to the book that represents
-  /// it on the dashboard, plus which read list owns each of their books, and
-  /// lists every read list being read in the same read.
+  /// Resolves every read list the user is reading to the book it continues
+  /// with, plus which read list owns each of their books, and lists every read
+  /// list being read in the same read.
   ///
   /// Only ordered read lists take part, including in what offers Stop Reading:
   /// a state synced from another device may name one that is unordered here.
-  /// Only those with a surfaced book own books: a read list that has not
-  /// started, or is finished, never hides a series.
+  /// Only those with a book to continue with own books: a read list that has
+  /// not started, or is finished, never redirects a book's navigation.
   func fetchReadListReadingSnapshot(
     instanceId: String
   ) -> (snapshot: ReadListReadingSnapshot, activeReadListIds: Set<String>) {
@@ -207,19 +207,33 @@ extension DatabaseOperator {
             .sorted { $0.position < $1.position }
             .map(\.bookId)
           guard
-            let resolved = resolveReadListContinuation(
+            let book = resolveReadListContinuation(
               bookIds: bookIds,
               bookById: bookById,
               lastReadBookId: state.lastReadBookId
             )
           else { continue }
+          let booksRead = bookIds.filter { bookId in
+            guard let member = bookById[bookId] else { return false }
+            return readingStatus(progressCompleted: member.progressCompleted, progressPage: member.progressPage) == 2
+          }.count
+          // Same measure as the Keep Reading card: current page over page count.
+          var bookProgress: Double?
+          if readingStatus(progressCompleted: book.progressCompleted, progressPage: book.progressPage) == 1,
+            let progressPage = book.progressPage, book.mediaPagesCount > 0
+          {
+            bookProgress = Double(progressPage) / Double(book.mediaPagesCount)
+          }
           continuations.append(
             ReadListContinuation(
               readListId: readList.readListId,
               readListName: readList.name,
-              bookId: resolved.book.bookId,
-              libraryId: resolved.book.libraryId,
-              placement: resolved.placement,
+              bookId: book.bookId,
+              bookTitle: book.oneshot ? book.metaTitle : "\(book.metaNumber) - \(book.metaTitle)",
+              bookProgress: bookProgress,
+              libraryId: book.libraryId,
+              booksRead: booksRead,
+              bookCount: bookIds.count,
               lastReadAt: state.lastReadAt
             )
           )
@@ -255,9 +269,9 @@ extension DatabaseOperator {
       .fetchOne(db)
   }
 
-  /// Picks the book that represents a read list, mirroring Komga's series rules:
-  /// a book in progress is Keep Reading; otherwise, once a book is finished, the
-  /// next unread book is On Deck.
+  /// Picks the book a read list continues with, mirroring Komga's series
+  /// rules: a book in progress; otherwise, once a book is finished, the next
+  /// unread one.
   ///
   /// Searches forward from the last book read, so a list read out of order
   /// resumes after it, then falls back to the earliest match. A book missing
@@ -267,7 +281,7 @@ extension DatabaseOperator {
     bookIds: [String],
     bookById: [String: KomgaBook],
     lastReadBookId: String
-  ) -> (book: KomgaBook, placement: ReadListContinuation.Placement)? {
+  ) -> KomgaBook? {
     guard !bookIds.isEmpty else { return nil }
     let statuses = bookIds.map { bookId -> Int in
       guard let book = bookById[bookId] else { return 0 }
@@ -285,17 +299,13 @@ extension DatabaseOperator {
     }
 
     let resolvedIndex: Int
-    let placement: ReadListContinuation.Placement
     if let index = index(ofStatus: 1, from: lastReadIndex) {
       resolvedIndex = index
-      placement = .keepReading
     } else if statuses.contains(2), let index = index(ofStatus: 0, from: lastReadIndex.map { $0 + 1 }) {
       resolvedIndex = index
-      placement = .onDeck
     } else {
       return nil
     }
-    guard let book = bookById[bookIds[resolvedIndex]] else { return nil }
-    return (book, placement)
+    return bookById[bookIds[resolvedIndex]]
   }
 }

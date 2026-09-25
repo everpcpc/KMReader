@@ -7,8 +7,11 @@ import Foundation
 
 /// Owns the read lists the user is reading through, so a read list continues
 /// across series the way a series continues across its books: the reader
-/// follows read list order from any entry point, and On Deck surfaces the read
-/// list's next book instead of the book's series.
+/// follows read list order from any entry point, and the Read Lists in Progress
+/// dashboard section shows each list's next book.
+///
+/// Opt-in (`AppConfig.readListContinuationEnabled`): while off, nothing is
+/// recorded, synced, resolved, or shown, and the snapshot stays empty.
 ///
 /// State lives in `read_list_reading_states` and syncs through Komga's per-user
 /// client settings, one key per read list, so it follows the user across
@@ -39,13 +42,23 @@ final class ReadListReadingService {
     observeContentChanges()
   }
 
+  private var isEnabled: Bool {
+    AppConfig.readListContinuationEnabled
+  }
+
+  /// The read lists being read on the current server, most recently read first.
+  var continuations: [ReadListContinuation] {
+    currentSnapshot.continuations
+  }
+
   func isReading(readListId: String) -> Bool {
-    activeReadListIds.contains(readListId)
+    isEnabled && activeReadListIds.contains(readListId)
   }
 
   /// The read list a book continues in when opened without one, if the user is
   /// reading through a read list that contains it.
   func ownerContext(forBookId bookId: String) -> ReaderReadListContext? {
+    guard isEnabled else { return nil }
     let snapshot = currentSnapshot
     guard let readListId = snapshot.ownerReadListIdByBookId[bookId],
       let continuation = snapshot.continuation(forReadListId: readListId)
@@ -54,6 +67,7 @@ final class ReadListReadingService {
   }
 
   func recordReading(readListId: String, bookId: String, instanceId: String) {
+    guard isEnabled else { return }
     Task {
       guard let database = await DatabaseOperator.databaseIfConfigured() else { return }
       let recorded = await database.recordReadListReading(
@@ -70,6 +84,7 @@ final class ReadListReadingService {
 
   /// Stops continuing a read list, from any of the places that offer it.
   func stopReading(readListId: String, instanceId: String) {
+    guard isEnabled else { return }
     Task {
       guard let database = await DatabaseOperator.databaseIfConfigured() else { return }
       await database.stopReadListReading(readListId: readListId, instanceId: instanceId, at: Date())
@@ -80,11 +95,20 @@ final class ReadListReadingService {
   }
 
   func sync(instanceId: String) async {
-    guard !instanceId.isEmpty, !isSyncing else { return }
+    guard isEnabled, !instanceId.isEmpty, !isSyncing else { return }
     isSyncing = true
     defer { isSyncing = false }
     guard let database = await DatabaseOperator.databaseIfConfigured() else { return }
     await reconcile(instanceId: instanceId, database: database)
+  }
+
+  /// Loads the local state when the setting is turned on, then syncs it;
+  /// clears what was shown when it is turned off.
+  func settingDidChange() {
+    Task {
+      await refreshSnapshot()
+      await sync(instanceId: AppConfig.current.instanceId)
+    }
   }
 
   /// Re-derives the snapshot from the local database and returns it once every
@@ -118,13 +142,24 @@ final class ReadListReadingService {
 
   private func loadSnapshot() async {
     let instanceId = AppConfig.current.instanceId
+    guard isEnabled else {
+      publish((.empty, []), instanceId: instanceId)
+      return
+    }
     guard let database = await DatabaseOperator.databaseIfConfigured() else { return }
     let loaded = await database.fetchReadListReadingSnapshot(instanceId: instanceId)
     // A server switch while this was in flight must not publish the previous
     // server's read lists.
     guard instanceId == AppConfig.current.instanceId else { return }
+    publish(loaded, instanceId: instanceId)
+  }
+
+  private func publish(
+    _ loaded: (snapshot: ReadListReadingSnapshot, activeReadListIds: Set<String>),
+    instanceId: String
+  ) {
     if loaded.snapshot != snapshot {
-      let summary = loaded.snapshot.continuations.map { "\($0.readListName) → \($0.bookId) [\($0.placement)]" }
+      let summary = loaded.snapshot.continuations.map { "\($0.readListName) → \($0.bookId)" }
       logger.debug("📚 Read list continuations: \(summary)")
       snapshot = loaded.snapshot
     }

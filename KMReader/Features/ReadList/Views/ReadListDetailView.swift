@@ -9,6 +9,7 @@ struct ReadListDetailView: View {
   let readListId: String
 
   @AppStorage("currentAccount") private var current: Current = .init()
+  @AppStorage("readListContinuationEnabled") private var readListContinuationEnabled: Bool = false
 
   @Environment(\.dismiss) private var dismiss
 
@@ -42,6 +43,11 @@ struct ReadListDetailView: View {
             ReadListDetailContentView(
               readList: readList
             )
+
+            if readList.ordered && !readListContinuationEnabled {
+              ReadListContinuationHintView()
+                .padding(.vertical, 4)
+            }
 
             #if os(tvOS)
               readListToolbarContent

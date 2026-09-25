@@ -141,32 +141,7 @@ struct BookHorizontalCardView: View {
       .padding(6)
       .frame(maxWidth: .infinity, alignment: .leading)
       .background {
-        RoundedRectangle(cornerRadius: 12)
-          .fill(.regularMaterial)
-          .overlay {
-            // Overlay content never contributes to layout size, so the flexible
-            // blurred image can neither inflate the card nor bleed past it.
-            if let coverArtwork {
-              // No scaledToFill: stretch the whole cover into the card so the
-              // tint mixes the cover's overall tone instead of only the cropped
-              // middle strip. The heavy blur hides the distortion.
-              Image(platformImage: coverArtwork)
-                .resizable()
-                // Overscan before blurring: the blur samples transparent black
-                // beyond the image bounds, which darkened the card edges.
-                .scaleEffect(1.3)
-                .compositingGroup()
-                .blur(radius: 28)
-                .saturation(0.7)
-                // Even dimming layer: tinted cards force white text, so light
-                // covers still need enough overlay for the title to stay readable.
-                .overlay(Color.black.opacity(0.4))
-                .transition(.opacity)
-            }
-          }
-          .clipShape(RoundedRectangle(cornerRadius: 12))
-          .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
-          .animation(.easeInOut(duration: 0.2), value: isCoverTinted)
+        CoverTintedCardBackground(artwork: coverArtwork)
       }
       .contentShape(Rectangle())
       #if os(iOS)
@@ -177,24 +152,7 @@ struct BookHorizontalCardView: View {
     .contextMenu {
       bookContextMenu
     }
-    .task(id: item.bookId) {
-      coverArtwork = await CoverBackgroundProvider.shared.backgroundImage(
-        instanceId: item.instanceId, id: item.bookId, type: .book)
-    }
-    .onReceive(NotificationCenter.default.publisher(for: .thumbnailDidRefresh)) { notification in
-      guard let userInfo = notification.userInfo,
-        let id = userInfo["id"] as? String,
-        let type = userInfo["type"] as? String,
-        id == item.bookId,
-        type == ThumbnailType.book.rawValue
-      else { return }
-      Task {
-        await CoverBackgroundProvider.shared.invalidate(
-          instanceId: item.instanceId, id: item.bookId, type: .book)
-        coverArtwork = await CoverBackgroundProvider.shared.backgroundImage(
-          instanceId: item.instanceId, id: item.bookId, type: .book)
-      }
-    }
+    .coverArtwork(instanceId: item.instanceId, bookId: item.bookId, into: $coverArtwork)
     .sheet(isPresented: $showReadListPicker) {
       ReadListPickerSheet(
         bookId: item.bookId,

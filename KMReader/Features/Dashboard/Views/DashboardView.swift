@@ -21,6 +21,7 @@ struct DashboardView: View {
   @AppStorage("enableSSEAutoRefresh") private var enableSSEAutoRefresh: Bool = true
   @AppStorage("enableSSE") private var enableSSE: Bool = true
   @AppStorage("isOffline") private var isOffline: Bool = false
+  @AppStorage("readListContinuationEnabled") private var readListContinuationEnabled: Bool = false
 
   private let sseService = SSEService.shared
   private let logger = AppLogger(.dashboard)
@@ -142,7 +143,11 @@ struct DashboardView: View {
           }
         } else {
           ForEach(dashboard.sections, id: \.id) { section in
-            if section.isLocalSection {
+            if section == .readListsInProgress {
+              if readListContinuationEnabled {
+                ReadListsInProgressSectionView(section: section)
+              }
+            } else if section.isLocalSection {
               DashboardPinnedSectionView(section: section)
             } else {
               DashboardSectionView(section: section)
