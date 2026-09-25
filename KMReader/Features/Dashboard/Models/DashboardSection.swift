@@ -13,6 +13,37 @@ enum DashboardSectionContentKind: Sendable {
   case readLists
 }
 
+/// Card presentation of a dashboard section: large showcase cards, small
+/// utility cards, or horizontal cards. Each section has a default kind that
+/// the user can override from the section header menu.
+enum DashboardCardKind: String, Codable, Sendable, CaseIterable {
+  case large
+  case small
+  case horizontal
+
+  var title: LocalizedStringKey {
+    switch self {
+    case .large:
+      return "dashboard.cardKind.large"
+    case .small:
+      return "dashboard.cardKind.small"
+    case .horizontal:
+      return "dashboard.cardKind.horizontal"
+    }
+  }
+
+  var icon: String {
+    switch self {
+    case .large:
+      return "square.grid.2x2"
+    case .small:
+      return "square.grid.3x3"
+    case .horizontal:
+      return "rectangle.lefthalf.inset.filled"
+    }
+  }
+}
+
 enum DashboardSection: String, CaseIterable, Identifiable, Codable, Sendable {
   case keepReading = "keepReading"
   case onDeck = "onDeck"
@@ -82,6 +113,30 @@ enum DashboardSection: String, CaseIterable, Identifiable, Codable, Sendable {
       return .collections
     case .pinnedReadLists:
       return .readLists
+    }
+  }
+
+  var cardKind: DashboardCardKind {
+    switch self {
+    case .keepReading, .pinnedCollections, .pinnedReadLists:
+      return .horizontal
+    case .onDeck, .recentlyReleasedBooks, .recentlyAddedBooks, .recentlyUpdatedSeries:
+      return .large
+    case .recentlyReadBooks, .recentlyAddedSeries:
+      return .small
+    }
+  }
+
+  /// Card kinds the user can pick for this section. Series has no horizontal
+  /// card; pinned sections only render as horizontal cards.
+  var availableCardKinds: [DashboardCardKind] {
+    switch contentKind {
+    case .books:
+      return [.large, .small, .horizontal]
+    case .series:
+      return [.large, .small]
+    case .collections, .readLists:
+      return [.horizontal]
     }
   }
 
@@ -227,16 +282,33 @@ struct DashboardConfiguration: Equatable, RawRepresentable, Sendable {
 
   var sections: [DashboardSection]
   var libraryIds: [String]
+  var cardKindOverrides: [DashboardSection: DashboardCardKind]
 
-  nonisolated init(sections: [DashboardSection] = DashboardSection.allCases, libraryIds: [String] = []) {
+  nonisolated init(
+    sections: [DashboardSection] = DashboardSection.allCases,
+    libraryIds: [String] = [],
+    cardKindOverrides: [DashboardSection: DashboardCardKind] = [:]
+  ) {
     self.sections = sections
     self.libraryIds = libraryIds
+    self.cardKindOverrides = cardKindOverrides
+  }
+
+  /// Effective card kind for a section: user override, else the section default.
+  func cardKind(for section: DashboardSection) -> DashboardCardKind {
+    cardKindOverrides[section] ?? section.cardKind
+  }
+
+  mutating func setCardKind(_ kind: DashboardCardKind, for section: DashboardSection) {
+    cardKindOverrides[section] = kind
   }
 
   nonisolated var rawValue: String {
     let dict: [String: Any] = [
       "sections": sections.map { $0.rawValue },
       "libraryIds": libraryIds,
+      "cardKindOverrides": Dictionary(
+        uniqueKeysWithValues: cardKindOverrides.map { ($0.key.rawValue, $0.value.rawValue) }),
     ]
     if let data = try? JSONSerialization.data(withJSONObject: dict, options: [.sortedKeys]),
       let json = String(data: data, encoding: .utf8)
@@ -250,6 +322,7 @@ struct DashboardConfiguration: Equatable, RawRepresentable, Sendable {
     guard !rawValue.isEmpty else {
       self.sections = DashboardSection.allCases
       self.libraryIds = []
+      self.cardKindOverrides = [:]
       return
     }
     guard let data = rawValue.data(using: .utf8),
@@ -257,6 +330,7 @@ struct DashboardConfiguration: Equatable, RawRepresentable, Sendable {
     else {
       self.sections = DashboardSection.allCases
       self.libraryIds = []
+      self.cardKindOverrides = [:]
       return
     }
 
@@ -275,6 +349,19 @@ struct DashboardConfiguration: Equatable, RawRepresentable, Sendable {
       self.libraryIds = libraryIdsArray
     } else {
       self.libraryIds = []
+    }
+
+    // Parse card kind overrides
+    if let overridesDict = dict["cardKindOverrides"] as? [String: String] {
+      self.cardKindOverrides = Dictionary(
+        uniqueKeysWithValues: overridesDict.compactMap { key, value in
+          guard let section = DashboardSection(rawValue: key),
+            let kind = DashboardCardKind(rawValue: value)
+          else { return nil }
+          return (section, kind)
+        })
+    } else {
+      self.cardKindOverrides = [:]
     }
   }
 }

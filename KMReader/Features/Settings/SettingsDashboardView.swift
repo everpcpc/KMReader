@@ -25,8 +25,6 @@ struct SettingsDashboardView: View {
   private struct SettingsDashboardView_iOS: View {
     @AppStorage("dashboard") private var dashboard: DashboardConfiguration =
       DashboardConfiguration()
-    @AppStorage("dashboardHorizontalBookCards")
-    private var dashboardHorizontalBookCards: Bool = true
     @Environment(\.editMode) private var editMode
 
     private var controller: DashboardSectionsController {
@@ -39,18 +37,6 @@ struct SettingsDashboardView: View {
 
     var body: some View {
       List {
-        Section {
-          Toggle(isOn: $dashboardHorizontalBookCards) {
-            Label(
-              String(localized: "dashboard.horizontalBookCards"),
-              systemImage: "rectangle.lefthalf.inset.filled"
-            )
-          }
-        } footer: {
-          Text(String(localized: "dashboard.horizontalBookCards.footer"))
-            .font(.footnote)
-        }
-
         Section {
           ForEach(controller.sections) { section in
             HStack(spacing: 12) {
@@ -133,8 +119,6 @@ struct SettingsDashboardView: View {
   private struct SettingsDashboardView_macOS: View {
     @AppStorage("dashboard") private var dashboard: DashboardConfiguration =
       DashboardConfiguration()
-    @AppStorage("dashboardHorizontalBookCards")
-    private var dashboardHorizontalBookCards: Bool = true
     @State private var draggedSection: DashboardSection?
 
     private var controller: DashboardSectionsController {
@@ -143,20 +127,6 @@ struct SettingsDashboardView: View {
 
     var body: some View {
       Form {
-        Section {
-          Toggle(isOn: $dashboardHorizontalBookCards) {
-            Label(
-              String(localized: "dashboard.horizontalBookCards"),
-              systemImage: "rectangle.lefthalf.inset.filled"
-            )
-          }
-          .toggleStyle(.switch)
-        } footer: {
-          Text(String(localized: "dashboard.horizontalBookCards.footer"))
-            .font(.caption)
-            .foregroundStyle(.secondary)
-        }
-
         Section {
           VStack(spacing: 0) {
             ForEach(Array(controller.sections.enumerated()), id: \.element.id) { index, section in
@@ -296,8 +266,6 @@ struct SettingsDashboardView: View {
   private struct SettingsDashboardView_tvOS: View {
     @AppStorage("dashboard") private var dashboard: DashboardConfiguration =
       DashboardConfiguration()
-    @AppStorage("dashboardHorizontalBookCards")
-    private var dashboardHorizontalBookCards: Bool = true
     @State private var editModeValue: EditMode = .inactive
     @State private var workingSections: [DashboardSection] = []
 
@@ -321,17 +289,6 @@ struct SettingsDashboardView: View {
 
     var body: some View {
       List {
-        // Book Card Style
-        Section {
-          Toggle(isOn: $dashboardHorizontalBookCards) {
-            Label(
-              String(localized: "dashboard.horizontalBookCards"),
-              systemImage: "rectangle.lefthalf.inset.filled"
-            )
-            .font(.title3)
-          }
-        }
-
         // Edit/Done Button (Top)
         Section {
           HStack {

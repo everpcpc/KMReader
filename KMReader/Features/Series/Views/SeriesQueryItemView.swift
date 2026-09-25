@@ -9,6 +9,7 @@ import SwiftUI
 struct SeriesQueryItemView: View {
   let seriesId: String
   let layout: BrowseLayoutMode
+  var coverOnly: Bool = false
   var onItemMissing: (() -> Void)? = nil
 
   @AppStorage("currentAccount") private var current: Current = .init()
@@ -18,10 +19,12 @@ struct SeriesQueryItemView: View {
   init(
     seriesId: String,
     layout: BrowseLayoutMode,
+    coverOnly: Bool = false,
     onItemMissing: (() -> Void)? = nil
   ) {
     self.seriesId = seriesId
     self.layout = layout
+    self.coverOnly = coverOnly
     self.onItemMissing = onItemMissing
 
   }
@@ -36,7 +39,8 @@ struct SeriesQueryItemView: View {
             onMutationCompleted: reloadItem,
             onDeleteRequested: {
               showDeleteConfirmation = true
-            }
+            },
+            coverOnly: coverOnly
           )
         case .list:
           SeriesRowView(
