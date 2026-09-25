@@ -31,7 +31,7 @@ Regenerate key project docs from current product capabilities.
 
 ## Inputs To Read First
 
-- `AGENTS.md` (project capabilities and architecture summary)
+- `AGENTS.md` (project capabilities and architecture summary) and `.agents/skills/repo-conventions/SKILL.md` (subsystem conventions)
 - Current target files (to preserve structure where appropriate)
 - Relevant feature modules under `KMReader/Features/` when needed
 
