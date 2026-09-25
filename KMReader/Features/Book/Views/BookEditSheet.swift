@@ -342,6 +342,18 @@ struct BookEditSheet: View {
 
         if !metadata.isEmpty {
           try await BookService.updateBookMetadata(bookId: book.id, metadata: metadata)
+          _ = try? await SyncService.syncBookAndSeries(bookId: book.id, seriesId: book.seriesId)
+          await ContentProjectionNotifier.postBookAndSeriesDidChange(
+            bookId: book.id,
+            seriesId: book.seriesId,
+            reason: .content
+          )
+          await DashboardSectionRefreshNotifier.post(
+            sections: DashboardSectionRefreshNotifier.bookContentSections
+              .union(DashboardSectionRefreshNotifier.seriesContentSections),
+            source: .manual,
+            reason: "Book metadata updated"
+          )
           ErrorManager.shared.notify(message: String(localized: "notification.book.updated"))
           dismiss()
         } else {

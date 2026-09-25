@@ -389,6 +389,13 @@ struct SeriesEditSheet: View {
         if !metadata.isEmpty {
           try await SeriesService.updateSeriesMetadata(
             seriesId: series.id, metadata: metadata)
+          _ = try? await SyncService.syncSeriesDetail(seriesId: series.id)
+          await ContentProjectionNotifier.postSeriesDidChange(
+            seriesId: series.id, reason: .content)
+          await DashboardSectionRefreshNotifier.postSeriesContentChanged(
+            source: .manual,
+            reason: "Series metadata updated"
+          )
           ErrorManager.shared.notify(message: String(localized: "notification.series.updated"))
           dismiss()
         } else {
