@@ -13,8 +13,8 @@ struct SeriesCardView: View {
   /// Small dashboard cards are cover-only: at 72pt every text line truncates
   /// and stops carrying information.
   var coverOnly: Bool = false
-  /// Large dashboard cards bump the text below the cover one text-style step up.
-  var prominentText: Bool = false
+  /// Text styles and the corner badge scale with this width.
+  var cardWidth: CGFloat = LayoutConfig.gridCardWidth
 
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
   @AppStorage("cardTextOverlayMode") private var cardTextOverlayMode: Bool = false
@@ -46,25 +46,19 @@ struct SeriesCardView: View {
   }
 
   private var titleTextStyle: Font.TextStyle {
-    prominentText ? LayoutConfig.largeCardTitleTextStyle : .footnote
+    LayoutConfig.cardTitleTextStyle(cardWidth: cardWidth)
   }
 
   private var secondaryTextStyle: Font.TextStyle {
-    prominentText ? LayoutConfig.largeCardSecondaryTextStyle : .caption
+    LayoutConfig.cardSecondaryTextStyle(cardWidth: cardWidth)
   }
 
   private var tertiaryTextStyle: Font.TextStyle {
-    prominentText ? LayoutConfig.largeCardTertiaryTextStyle : .caption2
+    LayoutConfig.cardTertiaryTextStyle(cardWidth: cardWidth)
   }
 
   private var badgeSize: CGFloat {
-    if prominentText {
-      return LayoutConfig.cardBadgeSize(cardWidth: LayoutConfig.dashboardLargeCardWidth)
-    }
-    if coverOnly {
-      return LayoutConfig.cardBadgeSize(cardWidth: LayoutConfig.dashboardSmallCardWidth)
-    }
-    return LayoutConfig.cardBadgeSize(cardWidth: LayoutConfig.gridCardWidth)
+    LayoutConfig.cardBadgeSize(cardWidth: cardWidth)
   }
 
   var body: some View {

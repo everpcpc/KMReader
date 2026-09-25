@@ -10,7 +10,7 @@ struct SeriesQueryItemView: View {
   let seriesId: String
   let layout: BrowseLayoutMode
   var coverOnly: Bool = false
-  var prominentText: Bool = false
+  var cardWidth: CGFloat = LayoutConfig.gridCardWidth
   var onItemMissing: (() -> Void)? = nil
 
   @AppStorage("currentAccount") private var current: Current = .init()
@@ -21,13 +21,13 @@ struct SeriesQueryItemView: View {
     seriesId: String,
     layout: BrowseLayoutMode,
     coverOnly: Bool = false,
-    prominentText: Bool = false,
+    cardWidth: CGFloat = LayoutConfig.gridCardWidth,
     onItemMissing: (() -> Void)? = nil
   ) {
     self.seriesId = seriesId
     self.layout = layout
     self.coverOnly = coverOnly
-    self.prominentText = prominentText
+    self.cardWidth = cardWidth
     self.onItemMissing = onItemMissing
 
   }
@@ -44,7 +44,7 @@ struct SeriesQueryItemView: View {
               showDeleteConfirmation = true
             },
             coverOnly: coverOnly,
-            prominentText: prominentText
+            cardWidth: cardWidth
           )
         case .list:
           SeriesRowView(
@@ -56,7 +56,7 @@ struct SeriesQueryItemView: View {
           )
         }
       } else {
-        CardPlaceholder(layout: layout, kind: .series, prominentText: prominentText)
+        CardPlaceholder(layout: layout, kind: .series, cardWidth: cardWidth)
       }
     }
     .task(id: "\(current.instanceId)|\(seriesId)") {

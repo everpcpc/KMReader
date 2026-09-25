@@ -10,7 +10,7 @@ struct CardPlaceholder: View {
   let layout: BrowseLayoutMode
   let kind: CardPlaceholderKind
   var showBookSeriesTitle: Bool = true
-  var prominentText: Bool = false
+  var cardWidth: CGFloat = LayoutConfig.gridCardWidth
 
   @AppStorage("showBookCardSeriesTitle") private var showBookCardSeriesTitle: Bool = true
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
@@ -42,11 +42,11 @@ struct CardPlaceholder: View {
   }
 
   private var gridTitleTextStyle: Font.TextStyle {
-    prominentText ? LayoutConfig.largeCardTitleTextStyle : .footnote
+    LayoutConfig.cardTitleTextStyle(cardWidth: cardWidth)
   }
 
   private var gridSecondaryTextStyle: Font.TextStyle {
-    prominentText ? LayoutConfig.largeCardSecondaryTextStyle : .caption
+    LayoutConfig.cardSecondaryTextStyle(cardWidth: cardWidth)
   }
 
   private var gridContentSpacing: CGFloat {

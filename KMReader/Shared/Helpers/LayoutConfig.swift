@@ -88,48 +88,37 @@ struct LayoutConfig {
     #endif
   }
 
-  /// Title text style below large dashboard card covers (book/series title).
-  static var largeCardTitleTextStyle: Font.TextStyle {
+  /// Title text style below a grid-style card cover (book/series title),
+  /// scaled to the card width.
+  static func cardTitleTextStyle(cardWidth: CGFloat) -> Font.TextStyle {
     #if os(tvOS)
-      return .callout
+      return cardWidth < 300 ? .footnote : .callout
     #elseif os(macOS)
-      return .body
+      return cardWidth < 170 ? .footnote : .body
     #else
-      if UIDevice.current.userInterfaceIdiom == .pad {
-        return .body
-      } else {
-        return .callout
-      }
+      return cardWidth < 170 ? .callout : .body
     #endif
   }
 
-  /// Secondary text style below large dashboard card covers (series, progress, metadata).
-  static var largeCardSecondaryTextStyle: Font.TextStyle {
+  /// Secondary text style below a grid-style card cover (series, progress, metadata).
+  static func cardSecondaryTextStyle(cardWidth: CGFloat) -> Font.TextStyle {
     #if os(tvOS)
-      return .footnote
+      return cardWidth < 300 ? .caption : .footnote
     #elseif os(macOS)
-      return .callout
+      return cardWidth < 170 ? .caption : .callout
     #else
-      if UIDevice.current.userInterfaceIdiom == .pad {
-        return .subheadline
-      } else {
-        return .footnote
-      }
+      return cardWidth < 170 ? .footnote : .subheadline
     #endif
   }
 
-  /// Tertiary text style for small icons below large dashboard card covers.
-  static var largeCardTertiaryTextStyle: Font.TextStyle {
+  /// Tertiary text style for small icons below a grid-style card cover.
+  static func cardTertiaryTextStyle(cardWidth: CGFloat) -> Font.TextStyle {
     #if os(tvOS)
-      return .caption
+      return cardWidth < 300 ? .caption2 : .caption
     #elseif os(macOS)
-      return .footnote
+      return cardWidth < 170 ? .caption2 : .footnote
     #else
-      if UIDevice.current.userInterfaceIdiom == .pad {
-        return .footnote
-      } else {
-        return .caption
-      }
+      return cardWidth < 170 ? .caption : .footnote
     #endif
   }
 
