@@ -172,7 +172,7 @@ struct OfflineView: View {
           Button {
             showFilterSheet = true
           } label: {
-            Image(systemName: "line.3.horizontal.decrease.circle")
+            Image(systemName: "line.3.horizontal.decrease")
           }
           .accessibilityLabel(String(localized: "Filter"))
         }
