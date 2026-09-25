@@ -72,6 +72,7 @@ struct MainApp: App {
     AnimatedImageSupport.configureCoders()
     AppConfig.migrateOfflineProvenanceIfNeeded()
     AppConfig.removeLegacyThemeColor()
+    AppConfig.migrateLegacyHorizontalBookCards()
     AppConfig.showProtectedServers = false
     _authViewModel = State(initialValue: AuthViewModel())
   }

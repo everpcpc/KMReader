@@ -475,15 +475,12 @@ private struct DashboardSectionsController {
     DashboardSection.allCases.filter { !isSectionVisible($0) && $0.isAvailable }
   }
 
-  private var libraryIds: [String] {
-    dashboard.wrappedValue.libraryIds
-  }
-
+  /// Section edits change only the section list; the library selection and
+  /// the card kinds picked in section headers carry over.
   private func updateSections(_ newSections: [DashboardSection]) {
-    dashboard.wrappedValue = DashboardConfiguration(
-      sections: newSections,
-      libraryIds: libraryIds
-    )
+    var configuration = dashboard.wrappedValue
+    configuration.sections = newSections
+    dashboard.wrappedValue = configuration
   }
 
   func isSectionVisible(_ section: DashboardSection) -> Bool {
