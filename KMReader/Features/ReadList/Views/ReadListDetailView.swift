@@ -61,6 +61,9 @@ struct ReadListDetailView: View {
 
   @ViewBuilder
   private var readListActions: some View {
+    if let readList, readList.ordered, !readList.bookIds.isEmpty, !readListContinuationEnabled {
+      ReadListContinuationHintView()
+    }
     if let item {
       ReadListDownloadActionsSection(
         readListId: item.readListId,
@@ -73,9 +76,6 @@ struct ReadListDetailView: View {
           }
         }
       )
-    }
-    if let readList, readList.ordered && !readListContinuationEnabled {
-      ReadListContinuationHintView()
     }
   }
 
