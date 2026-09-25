@@ -11,15 +11,68 @@ struct ReadListDetailView: View {
   @AppStorage("currentAccount") private var current: Current = .init()
 
   @Environment(\.dismiss) private var dismiss
+  @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
   @State private var item: ReadListDisplayItem?
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
   @State private var showFilterSheet = false
   @State private var showSavedFilters = false
+  /// Measured detail-column width driving the single/two-column layout switch.
+  /// Defaults wide where the wide layout can engage (iPad, macOS) so the first
+  /// frame doesn't flash the single column.
+  #if os(macOS)
+    @State private var detailContentWidth: CGFloat = .infinity
+  #else
+    @State private var detailContentWidth: CGFloat = PlatformHelper.isPad ? .infinity : 0
+  #endif
 
   init(readListId: String) {
     self.readListId = readListId
+  }
+
+  /// The two-column layout engages only while the detail column is wide
+  /// enough for it. iPad additionally requires regular width; macOS decides
+  /// by window width alone.
+  private var usesWideLayout: Bool {
+    #if os(iOS)
+      return PlatformHelper.isPad && horizontalSizeClass == .regular
+        && detailContentWidth >= wideLayoutMinimumWidth
+    #elseif os(macOS)
+      return detailContentWidth >= wideLayoutMinimumWidth
+    #else
+      return false
+    #endif
+  }
+
+  private let wideLayoutMinimumWidth: CGFloat = 960
+
+  /// iPad's single-column fallback (narrow detail column) presents the compact
+  /// centered hero and a capped centered card instead of stretching the
+  /// side-by-side hero and a full-width card across the column.
+  private var usesCompactHeaderLayout: Bool {
+    #if os(iOS)
+      return PlatformHelper.isPad && horizontalSizeClass == .regular
+    #else
+      return false
+    #endif
+  }
+
+  @ViewBuilder
+  private var readListActions: some View {
+    if let item {
+      ReadListDownloadActionsSection(
+        readListId: item.readListId,
+        status: item.downloadStatus,
+        policy: item.offlinePolicy,
+        offlinePolicyLimit: item.offlinePolicyLimit,
+        onMutationCompleted: {
+          Task {
+            await loadReadListDetails()
+          }
+        }
+      )
+    }
   }
 
   private var readList: ReadList? {
@@ -35,50 +88,61 @@ struct ReadListDetailView: View {
   }
 
   var body: some View {
-    ScrollView {
-      VStack(alignment: .leading) {
+    Group {
+      if usesWideLayout {
         if let readList = readList {
-          VStack(alignment: .leading) {
-            ReadListDetailContentView(
-              readList: readList
-            )
-
-            #if os(tvOS)
-              readListToolbarContent
-                .padding(.vertical, 8)
-            #endif
-
-            Divider()
-            if let item {
-              ReadListDownloadActionsSection(
-                readListId: item.readListId,
-                status: item.downloadStatus,
-                policy: item.offlinePolicy,
-                offlinePolicyLimit: item.offlinePolicyLimit,
-                onMutationCompleted: {
-                  Task {
-                    await loadReadListDetails()
-                  }
-                }
-              )
-            }
-            Divider()
-          }
-          .padding(.horizontal)
-
-          // Books list
-          if item != nil {
-            BooksListViewForReadList(
-              readListId: readListId,
-              showFilterSheet: $showFilterSheet,
-              showSavedFilters: $showSavedFilters
-            )
+          ReadListDetailWideLayoutView(
+            readList: readList,
+            item: item,
+            readListId: readListId,
+            availableWidth: detailContentWidth,
+            showFilterSheet: $showFilterSheet,
+            showSavedFilters: $showSavedFilters
+          ) {
+            readListActions
           }
         } else {
           ProgressView()
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+      } else {
+        ScrollView {
+          VStack(alignment: .leading) {
+            if let readList = readList {
+              VStack(alignment: .leading) {
+                #if os(tvOS)
+                  readListToolbarContent
+                    .padding(.vertical, 8)
+                #endif
+
+                ReadListDetailContentView(
+                  readList: readList,
+                  forceCompactHero: usesCompactHeaderLayout
+                ) {
+                  readListActions
+                }
+              }
+              .padding(.horizontal)
+
+              // Books list
+              if item != nil {
+                BooksListViewForReadList(
+                  readListId: readListId,
+                  showFilterSheet: $showFilterSheet,
+                  showSavedFilters: $showSavedFilters
+                )
+              }
+            } else {
+              ProgressView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+          }
+          .padding(.vertical)
+        }
       }
+    }
+    .onGeometryChange(for: CGFloat.self, of: { $0.size.width }) {
+      detailContentWidth = $0
     }
     .inlineNavigationBarTitle(navigationTitle)
     .komgaHandoff(

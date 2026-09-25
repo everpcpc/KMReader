@@ -38,11 +38,8 @@ struct LayoutConfig {
       // card (101) instead of using the iOS 2.1x ratio.
       return 132
     #else
-      if UIDevice.current.userInterfaceIdiom == .pad {
-        return 182
-      } else {
-        return 152
-      }
+      // Apple Books showcase covers are ~150pt on both iPhone and iPad.
+      return 152
     #endif
   }
 

@@ -7,56 +7,37 @@ import SwiftUI
 
 struct CollectionDetailContentView: View {
   let collection: SeriesCollection
-  @State private var thumbnailRefreshKey = UUID()
+  /// iPad's narrow single-column fallback forces the compact centered hero
+  /// and caps the action card instead of stretching both across the column.
+  let forceCompactHero: Bool
+
+  init(collection: SeriesCollection, forceCompactHero: Bool = false) {
+    self.collection = collection
+    self.forceCompactHero = forceCompactHero
+  }
 
   var body: some View {
-    HStack(alignment: .top, spacing: 12) {
-      ThumbnailImage(
+    VStack(alignment: .leading, spacing: 16) {
+      DetailHeroView(
         id: collection.id,
         type: .collection,
-        width: PlatformHelper.detailThumbnailWidth,
-        isTransitionSource: false,
-        onAction: {}
+        contentBlurRadius: 0,
+        forceCentered: forceCompactHero
       ) {
-      } menu: {
-        Button {
-          Task {
-            do {
-              _ = try await ThumbnailCache.shared.ensureThumbnail(
-                id: collection.id,
-                type: .collection,
-                force: true
-              )
-              thumbnailRefreshKey = UUID()
-              ErrorManager.shared.notify(
-                message: String(localized: "notification.cover.refreshed"))
-            } catch {
-              ErrorManager.shared.notify(
-                message: String(localized: "notification.cover.refreshFailed"))
-            }
-          }
-        } label: {
-          Label(String(localized: "Refresh Cover"), systemImage: "arrow.clockwise")
-        }
+        CollectionHeroInfoView(collection: collection)
       }
-      .id(thumbnailRefreshKey)
 
-      VStack(alignment: .leading, spacing: 6) {
-        DetailTitleView(title: collection.name)
-
-        DetailMetadataRow(
-          systemImage: ContentIcon.collection,
-          text: Text("\(collection.seriesIds.count) series")
-        )
-        if collection.ordered {
-          DetailMetadataRow(
-            systemImage: "arrow.up.arrow.down",
-            text: Text("Ordered")
-          )
-        }
-        DetailTimestampsView(
-          created: collection.createdDate, lastModified: collection.lastModifiedDate)
+      DetailActionCard {
+        CollectionBookCountView(collection: collection)
       }
+      .environment(\.detailHeroCentered, forceCompactHero)
+      .frame(maxWidth: forceCompactHero ? 480 : .infinity)
+      .frame(maxWidth: .infinity, alignment: forceCompactHero ? .center : .leading)
+
+      DetailTimestampsView(
+        created: collection.createdDate, lastModified: collection.lastModifiedDate
+      )
+      .frame(maxWidth: .infinity, alignment: forceCompactHero ? .center : .leading)
     }
   }
 }

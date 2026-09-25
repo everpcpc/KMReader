@@ -125,7 +125,7 @@ enum SettingsSection: String, CaseIterable {
     case .divinaReader:
       return String(localized: "DIVINA Reader")
     case .reading:
-      return String(localized: "Reading")
+      return String(localized: "General")
     #if os(iOS) || os(macOS)
       case .pdfReader:
         return String(localized: "PDF Reader")
