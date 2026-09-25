@@ -73,14 +73,16 @@ extension DatabaseOperator {
   }
 
   /// Marks a read list as no longer being read. The row stays as a tombstone
-  /// until the server key is deleted.
-  func stopReadListReading(readListId: String, instanceId: String) {
+  /// until the server key is deleted, carrying the stop time so a stop and a
+  /// read on another device resolve to whichever happened last.
+  func stopReadListReading(readListId: String, instanceId: String, at date: Date) {
     do {
       try write { db in
         guard var state = try fetchReadListReadingState(db: db, readListId: readListId, instanceId: instanceId)
         else { return }
         state.isStopped = true
         state.needsUpload = true
+        state.lastReadAt = date
         try state.insert(db)
       }
     } catch {
@@ -106,9 +108,11 @@ extension DatabaseOperator {
     }
   }
 
-  /// Reconciles local reading states with the server's copy, keyed by read list
-  /// id. The most recent read wins; a local row the server no longer has was
-  /// stopped on another device, unless it is a local change not uploaded yet.
+  /// Merges the server's copy into the local reading states, keyed by read list
+  /// id. Each read list keeps its most recent change, a read or a stop, so a
+  /// read on another device after a local stop resumes the list; local changes
+  /// that win stay pending for upload. A local row the server no longer has
+  /// was stopped on another device, unless it is a local change not uploaded.
   func applyRemoteReadListReadingStates(
     _ remote: [String: (bookId: String, readAt: Date)],
     instanceId: String
@@ -130,9 +134,7 @@ extension DatabaseOperator {
         }
 
         for (readListId, entry) in remote {
-          if let local = localById[readListId] {
-            guard !local.isStopped, entry.readAt > local.lastReadAt else { continue }
-          }
+          if let local = localById[readListId], entry.readAt <= local.lastReadAt { continue }
           try ReadListReadingState(
             instanceId: instanceId,
             readListId: readListId,
@@ -152,8 +154,10 @@ extension DatabaseOperator {
   /// it on the dashboard, plus which read list owns each of their books, and
   /// lists every read list being read in the same read.
   ///
-  /// Only ordered read lists with a surfaced book take part: a read list that
-  /// has not started, or is finished, owns nothing, so it never hides a series.
+  /// Only ordered read lists take part, including in what offers Stop Reading:
+  /// a state synced from another device may name one that is unordered here.
+  /// Only those with a surfaced book own books: a read list that has not
+  /// started, or is finished, never hides a series.
   func fetchReadListReadingSnapshot(
     instanceId: String
   ) -> (snapshot: ReadListReadingSnapshot, activeReadListIds: Set<String>) {
@@ -165,7 +169,6 @@ extension DatabaseOperator {
           .filter(Column("instance_id") == instanceId)
           .filter(Column("is_stopped") == false)
           .fetchAll(db)
-        let activeReadListIds = Set(states.map(\.readListId))
 
         var readListById: [String: KomgaReadList] = [:]
         for state in states {
@@ -174,6 +177,7 @@ extension DatabaseOperator {
           else { continue }
           readListById[state.readListId] = readList
         }
+        let activeReadListIds = Set(readListById.keys)
         guard !readListById.isEmpty else { return (.empty, activeReadListIds) }
 
         let memberships = try fetchReadListBookMemberships(

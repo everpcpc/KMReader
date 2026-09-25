@@ -7,8 +7,8 @@ import Foundation
 
 /// Owns the read lists the user is reading through, so a read list continues
 /// across series the way a series continues across its books: the reader
-/// follows read list order from any entry point, and the dashboard surfaces the
-/// read list's next book in Keep Reading / On Deck instead of the book's series.
+/// follows read list order from any entry point, and On Deck surfaces the read
+/// list's next book instead of the book's series.
 ///
 /// State lives in `read_list_reading_states` and syncs through Komga's per-user
 /// client settings, one key per read list, so it follows the user across
@@ -64,38 +64,27 @@ final class ReadListReadingService {
       )
       guard recorded else { return }
       await refreshSnapshot()
-      await uploadPendingChanges(instanceId: instanceId, database: database)
+      await reconcile(instanceId: instanceId, database: database)
     }
   }
 
-  func stopReading(readListId: String, instanceId: String) async {
-    guard let database = await DatabaseOperator.databaseIfConfigured() else { return }
-    await database.stopReadListReading(readListId: readListId, instanceId: instanceId)
-    await refreshSnapshot()
-    await uploadPendingChanges(instanceId: instanceId, database: database)
+  /// Stops continuing a read list, from any of the places that offer it.
+  func stopReading(readListId: String, instanceId: String) {
+    Task {
+      guard let database = await DatabaseOperator.databaseIfConfigured() else { return }
+      await database.stopReadListReading(readListId: readListId, instanceId: instanceId, at: Date())
+      await refreshSnapshot()
+      ErrorManager.shared.notify(message: String(localized: "notification.readList.stoppedReading"))
+      await reconcile(instanceId: instanceId, database: database)
+    }
   }
 
-  /// Pushes local changes before pulling the server's copy, so a change made
-  /// offline is not overwritten by the state it replaced.
   func sync(instanceId: String) async {
     guard !instanceId.isEmpty, !isSyncing else { return }
     isSyncing = true
     defer { isSyncing = false }
     guard let database = await DatabaseOperator.databaseIfConfigured() else { return }
-
-    if !AppConfig.isOffline {
-      await uploadPendingChanges(instanceId: instanceId, database: database)
-      do {
-        let settings = try await ClientSettingsService.getUserSettings()
-        await database.applyRemoteReadListReadingStates(
-          Self.decodeRemoteStates(settings),
-          instanceId: instanceId
-        )
-      } catch {
-        logger.debug("📚 Skipped read list reading state pull: \(error)")
-      }
-    }
-    await refreshSnapshot()
+    await reconcile(instanceId: instanceId, database: database)
   }
 
   /// Re-derives the snapshot from the local database and returns it once every
@@ -168,8 +157,27 @@ final class ReadListReadingService {
     )
   }
 
+  /// Pulls the server's copy first and keeps, per read list, whichever change
+  /// happened last on any device, a read or a stop; then pushes the local
+  /// changes that won. A pull never undoes a newer local change, and an
+  /// offline stop never deletes a read another device made after it.
+  private func reconcile(instanceId: String, database: DatabaseOperator) async {
+    if !AppConfig.isOffline {
+      do {
+        let settings = try await ClientSettingsService.getUserSettings()
+        await database.applyRemoteReadListReadingStates(
+          Self.decodeRemoteStates(settings),
+          instanceId: instanceId
+        )
+        await uploadPendingChanges(instanceId: instanceId, database: database)
+      } catch {
+        logger.debug("📚 Skipped read list reading state sync: \(error)")
+      }
+    }
+    await refreshSnapshot()
+  }
+
   private func uploadPendingChanges(instanceId: String, database: DatabaseOperator) async {
-    guard !AppConfig.isOffline else { return }
     let pending = await database.fetchReadListReadingStates(instanceId: instanceId).filter(\.needsUpload)
     let updated = pending.filter { !$0.isStopped }
     let stopped = pending.filter(\.isStopped)

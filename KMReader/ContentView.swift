@@ -111,6 +111,9 @@ struct ContentView: View {
             for: current.instanceId,
             preferCachedIfUnset: true
           )
+          // Read list continuation is local state: load it with the instance,
+          // independent of the offline-gated, debounced network catch-up.
+          await ReadListReadingService.shared.refreshSnapshot()
 
           if authViewModel.bootstrapState == .requiresValidation {
             let serverReachable = await authViewModel.loadCurrentUser()

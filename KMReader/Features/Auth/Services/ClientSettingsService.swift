@@ -5,10 +5,6 @@
 
 import Foundation
 
-nonisolated private struct UserClientSettingDto: Decodable, Sendable {
-  let value: String
-}
-
 /// Komga's per-user client settings store (`/api/v1/client-settings/user`,
 /// Komga 1.20.0+), shared by every client and device of the signed-in user.
 ///
@@ -20,7 +16,7 @@ nonisolated enum ClientSettingsService {
   private static let apiClient = APIClient.shared
 
   static func getUserSettings() async throws -> [String: String] {
-    let settings: [String: UserClientSettingDto] = try await apiClient.request(
+    let settings: [String: ClientSettingDto] = try await apiClient.request(
       path: "/api/v1/client-settings/user/list"
     )
     return settings.mapValues(\.value)

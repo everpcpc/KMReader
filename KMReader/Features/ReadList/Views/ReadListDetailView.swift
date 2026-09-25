@@ -202,16 +202,6 @@ extension ReadListDetailView {
     }
   }
 
-  private func stopReading() {
-    Task {
-      await ReadListReadingService.shared.stopReading(
-        readListId: readListId,
-        instanceId: current.instanceId
-      )
-      ErrorManager.shared.notify(message: String(localized: "notification.readList.stoppedReading"))
-    }
-  }
-
   @ViewBuilder
   private var readListToolbarContent: some View {
     Menu {
@@ -238,13 +228,7 @@ extension ReadListDetailView {
         )
       }
 
-      if ReadListReadingService.shared.isReading(readListId: readListId) {
-        Button {
-          stopReading()
-        } label: {
-          Label(String(localized: "readList.stopReading"), systemImage: "stop.circle")
-        }
-      }
+      ReadListStopReadingButton(readListId: readListId, instanceId: current.instanceId)
 
       if current.isAdmin {
         Divider()

@@ -19,7 +19,7 @@ struct DashboardSectionDetailView: View {
   @State private var isQueueingAllOffline = false
   @State private var hasLoadedInitial = false
   @State private var needsRefreshAfterCurrentLoad = false
-  @State private var mergedReadListSnapshot: ReadListReadingSnapshot?
+  @State private var onDeckReadLists = OnDeckReadListMerge()
 
   private var columns: [GridItem] {
     LayoutConfig.adaptiveColumns(for: gridDensity)
@@ -85,8 +85,9 @@ struct DashboardSectionDetailView: View {
     }
     .onChange(of: section.mergesReadListContinuations ? ReadListReadingService.shared.snapshot : nil) {
       _, snapshot in
-      guard let snapshot, !isLoading, let merged = mergedReadListSnapshot, merged != snapshot else { return }
-      Task { await revalidateItems() }
+      onDeckReadLists.reloadIfOutdated(by: snapshot, isLoading: isLoading) {
+        Task { await revalidateItems() }
+      }
     }
     #if os(iOS) || os(macOS)
       .toolbar {
@@ -255,8 +256,9 @@ struct DashboardSectionDetailView: View {
       case .collections, .readLists:
         ids = []
       }
-      let displayedIds = await mergingReadListContinuations(
-        ids: ids,
+      let displayedIds = await onDeckReadLists.merge(
+        ids,
+        in: section,
         isFirstPage: isFirstPage,
         libraryIds: libraryIds
       )
@@ -276,8 +278,9 @@ struct DashboardSectionDetailView: View {
             page: pagination.currentPage,
             size: pagination.pageSize
           ) {
-            let ids = await mergingReadListContinuations(
-              ids: page.content.map { $0.id },
+            let ids = await onDeckReadLists.merge(
+              page.content.map { $0.id },
+              in: section,
               isFirstPage: isFirstPage,
               libraryIds: libraryIds
             )
@@ -333,25 +336,6 @@ struct DashboardSectionDetailView: View {
     withAnimation {
       _ = pagination.removeItems(withIDs: [id])
     }
-  }
-
-  /// Folds the read lists being read into On Deck, matching the dashboard row
-  /// (see `ReadListReadingSnapshot.mergingOnDeck`). The first page merges the
-  /// latest read lists; later pages reuse them.
-  private func mergingReadListContinuations(
-    ids: [String],
-    isFirstPage: Bool,
-    libraryIds: [String]
-  ) async -> [String] {
-    guard section.mergesReadListContinuations else { return ids }
-    let snapshot: ReadListReadingSnapshot
-    if isFirstPage {
-      snapshot = await ReadListReadingService.shared.refreshSnapshot()
-      mergedReadListSnapshot = snapshot
-    } else {
-      snapshot = mergedReadListSnapshot ?? .empty
-    }
-    return snapshot.mergingOnDeck(ids, libraryIds: libraryIds, isFirstPage: isFirstPage)
   }
 
   private func updateWidgetDataIfNeeded(books: [Book], instanceId: String, libraryIds: [String]) {
@@ -515,8 +499,9 @@ struct DashboardSectionDetailView: View {
       case .collections, .readLists:
         ids = []
       }
-      let displayedIds = await mergingReadListContinuations(
-        ids: ids,
+      let displayedIds = await onDeckReadLists.merge(
+        ids,
+        in: section,
         isFirstPage: true,
         libraryIds: libraryIds
       )
@@ -531,8 +516,9 @@ struct DashboardSectionDetailView: View {
             page: 0,
             size: windowSize
           ) {
-            let ids = await mergingReadListContinuations(
-              ids: page.content.map { $0.id },
+            let ids = await onDeckReadLists.merge(
+              page.content.map { $0.id },
+              in: section,
               isFirstPage: true,
               libraryIds: libraryIds
             )
