@@ -48,17 +48,6 @@ struct BooksListViewForReadList: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
       HStack {
-        Button {
-          Task {
-            await refreshBooks()
-          }
-        } label: {
-          Image(systemName: "arrow.clockwise")
-        }
-        .disabled(bookViewModel.isLoading)
-        .adaptiveButtonStyle(.bordered)
-        .optimizedControlSize()
-
         Spacer()
 
         HStack(spacing: 8) {

@@ -126,7 +126,7 @@ struct SeriesDetailView: View {
     #endif
   }
 
-  private let wideLayoutMinimumWidth: CGFloat = 800
+  private let wideLayoutMinimumWidth: CGFloat = 960
 
   /// iPad's single-column fallback (narrow detail column) presents the compact
   /// centered hero and a capped centered card instead of stretching the

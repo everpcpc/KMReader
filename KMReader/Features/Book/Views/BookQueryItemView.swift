@@ -113,7 +113,8 @@ struct BookQueryItemView: View {
             layout: layout,
             kind: .book,
             showBookSeriesTitle: showSeriesTitle,
-            cardWidth: cardWidth
+            cardWidth: cardWidth,
+            coverOnly: coverOnly
           )
         }
       }

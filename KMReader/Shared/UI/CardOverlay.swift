@@ -42,7 +42,7 @@ struct UnreadCountBadge: View {
   }
 }
 
-struct UnreadIndicator: View {
+struct CompletedIndicator: View {
   let size: CGFloat
   /// See UnreadCountBadge.cornerRadius.
   let cornerRadius: CGFloat
@@ -59,9 +59,9 @@ struct UnreadIndicator: View {
   }
 
   var body: some View {
-    Circle()
-      .fill(.white)
-      .frame(width: size * 0.4, height: size * 0.4)
+    Image(systemName: "checkmark")
+      .font(.system(size: size * 0.5, weight: .bold))
+      .foregroundStyle(.white)
       .padding(size * 0.3)
       .background(
         UnevenRoundedRectangle(
@@ -100,7 +100,7 @@ struct UnreadIndicator: View {
               .foregroundColor(.gray)
           )
 
-        UnreadIndicator()
+        CompletedIndicator()
       }.frame(height: 160)
     }
   }

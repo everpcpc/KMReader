@@ -10,8 +10,8 @@ struct SeriesCardView: View {
   var onMutationCompleted: (() -> Void)? = nil
   var onDeleteRequested: (() -> Void)? = nil
   var showUnreadIndicator: Bool = true
-  /// Small dashboard cards are cover-only: at 72pt every text line truncates
-  /// and stops carrying information.
+  /// Small dashboard cards are cover-only: at that width every text line
+  /// truncates and stops carrying information.
   var coverOnly: Bool = false
   /// Text styles and the corner badge scale with this width.
   var cardWidth: CGFloat = LayoutConfig.gridCardWidth
@@ -37,8 +37,13 @@ struct SeriesCardView: View {
     return Double(item.booksReadCount) / Double(item.booksCount)
   }
 
+  /// Cover-only cards never render the text overlay, even in overlay mode.
+  private var showsTextOverlay: Bool {
+    cardTextOverlayMode && !coverOnly
+  }
+
   private var contentSpacing: CGFloat {
-    cardTextOverlayMode ? 0 : 12
+    showsTextOverlay ? 0 : 12
   }
 
   private var coverBlurRadius: CGFloat {
@@ -70,10 +75,10 @@ struct SeriesCardView: View {
         contentBlurRadius: coverBlurRadius,
         alignment: .bottom,
         navigationLink: navDestination,
-        preserveAspectRatioOverride: cardTextOverlayMode ? false : nil
+        preserveAspectRatioOverride: showsTextOverlay ? false : nil
       ) {
         ZStack {
-          if cardTextOverlayMode {
+          if showsTextOverlay {
             CardTextOverlay(cornerRadius: 8) {
               overlayTextContent
             }
@@ -113,7 +118,7 @@ struct SeriesCardView: View {
         )
       }
 
-      if !cardTextOverlayMode && !coverOnlyCards && !coverOnly {
+      if !showsTextOverlay && !coverOnlyCards && !coverOnly {
         VStack(alignment: .leading) {
           Text(item.metaTitle)
             .lineLimit(1)
