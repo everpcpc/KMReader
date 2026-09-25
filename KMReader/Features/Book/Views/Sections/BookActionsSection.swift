@@ -23,7 +23,7 @@ struct BookActionsSection: View {
       Button {
         readerActions.open(book: book, incognito: true)
       } label: {
-        Label("Read Incognito", systemImage: "eye.slash")
+        Label("Peek", systemImage: "eye.slash")
       }
       .adaptiveButtonStyle(.bordered)
 

@@ -25,21 +25,27 @@ struct CollectionHorizontalCardView: View {
         .frame(width: coverWidth)
         .allowsHitTesting(false)
 
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 0) {
+          Spacer(minLength: 0)
+
           Text(item.name)
-            .font(.system(LayoutConfig.horizontalCardTitleTextStyle))
+            .font(.system(LayoutConfig.horizontalCardTitleTextStyle, weight: .medium))
             .lineLimit(2)
             .multilineTextAlignment(.leading)
 
-          Text("\(item.seriesCount) series")
-            .font(.system(LayoutConfig.horizontalCardSecondaryTextStyle))
-            .foregroundColor(.secondary)
+          Spacer(minLength: 0)
 
-          Text(item.lastModifiedDate.formattedMediumDate)
-            .font(.system(LayoutConfig.horizontalCardSecondaryTextStyle))
-            .foregroundColor(.secondary)
+          VStack(alignment: .leading, spacing: 4) {
+            Text("\(item.seriesCount) series")
+              .font(.system(LayoutConfig.horizontalCardSecondaryTextStyle))
+              .foregroundColor(.secondary)
+
+            Text(item.lastModifiedDate.formattedMediumDate)
+              .font(.system(LayoutConfig.horizontalCardSecondaryTextStyle))
+              .foregroundColor(.secondary)
+          }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
       }
       .padding(6)
       .frame(maxWidth: .infinity, alignment: .leading)

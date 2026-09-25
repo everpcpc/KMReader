@@ -12,7 +12,12 @@ struct BookCardView: View {
   var onDeleteRequested: (() -> Void)? = nil
   var showSeriesTitle: Bool = false
   var showSeriesNavigation: Bool = true
-  var showUnreadIndicator: Bool = true
+  var showCompletedIndicator: Bool = true
+  /// Small dashboard cards are cover-only: at that width every text line
+  /// truncates and stops carrying information.
+  var coverOnly: Bool = false
+  /// Text styles and the corner badge scale with this width.
+  var cardWidth: CGFloat = LayoutConfig.gridCardWidth
 
   @AppStorage("showBookCardSeriesTitle") private var showBookCardSeriesTitle: Bool = true
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
@@ -44,8 +49,13 @@ struct BookCardView: View {
     (shouldShowSeriesTitle || item.oneshot) ? 1 : 2
   }
 
+  /// Cover-only cards never render the text overlay, even in overlay mode.
+  private var showsTextOverlay: Bool {
+    cardTextOverlayMode && !coverOnly
+  }
+
   var contentSpacing: CGFloat {
-    if cardTextOverlayMode {
+    if showsTextOverlay {
       return 0
     }
     if thumbnailShowProgressBar {
@@ -56,6 +66,22 @@ struct BookCardView: View {
 
   private var coverBlurRadius: CGFloat {
     thumbnailBlurUnreadCovers && item.isUnread ? CoverBlurStyle.unreadRadius : 0
+  }
+
+  private var titleTextStyle: Font.TextStyle {
+    LayoutConfig.cardTitleTextStyle(cardWidth: cardWidth)
+  }
+
+  private var secondaryTextStyle: Font.TextStyle {
+    LayoutConfig.cardSecondaryTextStyle(cardWidth: cardWidth)
+  }
+
+  private var tertiaryTextStyle: Font.TextStyle {
+    LayoutConfig.cardTertiaryTextStyle(cardWidth: cardWidth)
+  }
+
+  private var badgeSize: CGFloat {
+    LayoutConfig.cardBadgeSize(cardWidth: cardWidth)
   }
 
   private var completedMetaText: String {
@@ -70,18 +96,18 @@ struct BookCardView: View {
         shadowStyle: .platform,
         contentBlurRadius: coverBlurRadius,
         alignment: .bottom,
-        preserveAspectRatioOverride: cardTextOverlayMode ? false : nil,
+        preserveAspectRatioOverride: showsTextOverlay ? false : nil,
         onAction: { onReadBook?(false) }
       ) {
         ZStack {
-          if cardTextOverlayMode {
+          if showsTextOverlay {
             CardTextOverlay(cornerRadius: 8) {
               overlayTextContent
             }
           }
 
-          if item.isUnread && thumbnailShowUnreadIndicator && showUnreadIndicator {
-            UnreadIndicator()
+          if item.isCompleted && thumbnailShowUnreadIndicator && showCompletedIndicator {
+            CompletedIndicator(size: badgeSize)
               .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
           }
         }
@@ -109,21 +135,21 @@ struct BookCardView: View {
         )
       }
 
-      if thumbnailShowProgressBar && !cardTextOverlayMode {
+      if thumbnailShowProgressBar && !showsTextOverlay {
         ReadingProgressBar(progress: progress, type: .card)
           .opacity(item.isInProgress ? 1 : 0)
       }
 
-      if !cardTextOverlayMode && !coverOnlyCards {
+      if !showsTextOverlay && !coverOnlyCards && !coverOnly {
         VStack(alignment: .leading) {
           if item.oneshot {
             Text("Oneshot")
-              .font(.caption)
+              .font(.system(secondaryTextStyle))
               .foregroundColor(.secondary)
               .lineLimit(1)
           } else if shouldShowSeriesTitle {
             Text(item.seriesTitle)
-              .font(.caption)
+              .font(.system(secondaryTextStyle))
               .foregroundColor(.secondary)
               .lineLimit(1)
           }
@@ -147,7 +173,7 @@ struct BookCardView: View {
               if progress == 1 {
                 Image(systemName: "checkmark.circle")
                   .foregroundColor(.secondary)
-                  .font(.caption2)
+                  .font(.system(tertiaryTextStyle))
               }
               Text(progress == 1 ? completedMetaText : "\(item.mediaPagesCount) pages")
                 .lineLimit(1)
@@ -155,12 +181,12 @@ struct BookCardView: View {
             if let icon = item.downloadStatus.displayIcon {
               Spacer()
               DownloadStatusIcon(systemName: icon, spinning: item.downloadStatus.isPending)
-                .font(.caption2)
+                .font(.system(tertiaryTextStyle))
             }
           }
-          .font(.caption)
+          .font(.system(secondaryTextStyle))
           .foregroundColor(.secondary)
-        }.font(.footnote)
+        }.font(.system(titleTextStyle))
       }
     }
     .frame(maxHeight: .infinity, alignment: .top)

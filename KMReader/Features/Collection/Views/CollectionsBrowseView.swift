@@ -14,16 +14,15 @@ struct CollectionsBrowseView: View {
   @AppStorage("collectionSortOptions") private var sortOpts: SimpleSortOptions =
     SimpleSortOptions()
   @AppStorage("collectionBrowseLayout") private var browseLayout: BrowseLayoutMode = .grid
-  @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
   @State private var viewModel = CollectionsViewModel()
   @State private var hasInitialized = false
 
   private var columns: [GridItem] {
-    LayoutConfig.adaptiveColumns(for: gridDensity)
+    LayoutConfig.adaptiveColumns
   }
 
   private var spacing: CGFloat {
-    LayoutConfig.spacing(for: gridDensity)
+    LayoutConfig.defaultSpacing
   }
 
   var body: some View {

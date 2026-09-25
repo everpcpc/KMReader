@@ -161,22 +161,20 @@ struct OfflineView: View {
           #endif
         }
 
-        ToolbarItem(placement: .confirmationAction) {
-          Menu {
-            Button {
-              deferMenuActionPresentation { showFilterSheet = true }
-            } label: {
-              Label(String(localized: "Filter"), systemImage: "line.3.horizontal.decrease.circle")
-            }
-
-            Button {
-              deferMenuActionPresentation { showSavedFilters = true }
-            } label: {
-              Label(String(localized: "Saved Filters"), systemImage: "bookmark")
-            }
+        ToolbarItemGroup(placement: .confirmationAction) {
+          Button {
+            showSavedFilters = true
           } label: {
-            Image(systemName: "ellipsis")
+            Image(systemName: "bookmark")
           }
+          .accessibilityLabel(String(localized: "Saved Filters"))
+
+          Button {
+            showFilterSheet = true
+          } label: {
+            Image(systemName: "line.3.horizontal.decrease")
+          }
+          .accessibilityLabel(String(localized: "Filter"))
         }
       }
       .sheet(isPresented: $showLibraryPicker) {

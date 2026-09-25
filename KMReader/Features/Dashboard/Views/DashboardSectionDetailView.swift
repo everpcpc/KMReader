@@ -11,22 +11,26 @@ struct DashboardSectionDetailView: View {
 
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("dashboardSectionDetailLayout") private var browseLayout: BrowseLayoutMode = .grid
-  @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
   @AppStorage("isOffline") private var isOffline: Bool = false
 
   @State private var pagination = PaginationState<IdentifiedString>(pageSize: 50)
   @State private var isLoading = false
+  @State private var isQueueingLatestOffline = false
   @State private var isQueueingAllOffline = false
   @State private var hasLoadedInitial = false
   @State private var needsRefreshAfterCurrentLoad = false
   @State private var onDeckReadLists = OnDeckReadListMerge()
 
+  private var isQueueingOffline: Bool {
+    isQueueingLatestOffline || isQueueingAllOffline
+  }
+
   private var columns: [GridItem] {
-    LayoutConfig.adaptiveColumns(for: gridDensity)
+    LayoutConfig.adaptiveColumns
   }
 
   private var spacing: CGFloat {
-    LayoutConfig.spacing(for: gridDensity)
+    LayoutConfig.defaultSpacing
   }
 
   private var browseLayoutBinding: Binding<BrowseLayoutMode> {
@@ -49,16 +53,16 @@ struct DashboardSectionDetailView: View {
         }
 
         #if os(tvOS)
-          if section.supportsDownloadAll {
-            Button {
-              queueAllBooksOffline()
+          if section.supportsDownloadLatest {
+            Menu {
+              downloadMenuItems
             } label: {
               Label(
-                String(localized: "dashboard.downloadAll", defaultValue: "Download All"),
+                String(localized: "Download"),
                 systemImage: "arrow.down.circle"
               )
             }
-            .disabled(isOffline || isQueueingAllOffline)
+            .disabled(isOffline || isQueueingOffline)
             .padding(.horizontal)
           }
         #endif
@@ -91,25 +95,49 @@ struct DashboardSectionDetailView: View {
     }
     #if os(iOS) || os(macOS)
       .toolbar {
-        if section.supportsDownloadAll {
+        if section.supportsDownloadLatest {
           ToolbarItem(placement: .automatic) {
-            Button {
-              queueAllBooksOffline()
+            Menu {
+              downloadMenuItems
             } label: {
-              if isQueueingAllOffline {
+              if isQueueingOffline {
                 LoadingIcon()
               } else {
-                Label(
-                  String(localized: "dashboard.downloadAll", defaultValue: "Download All"),
-                  systemImage: "arrow.down.circle"
-                )
+                Image(systemName: "arrow.down.circle")
               }
             }
-            .disabled(isOffline || isQueueingAllOffline)
+            .disabled(isOffline || isQueueingOffline)
+            .help(String(localized: "Download"))
+            .accessibilityLabel(String(localized: "Download"))
           }
         }
       }
     #endif
+  }
+
+  @ViewBuilder
+  private var downloadMenuItems: some View {
+    Button {
+      queueLatestBooksOffline()
+    } label: {
+      Label(
+        String(localized: "dashboard.downloadLatest20", defaultValue: "Download Latest 20 Books"),
+        systemImage: "arrow.down.circle"
+      )
+    }
+    .disabled(isQueueingOffline)
+
+    if section.supportsDownloadAll {
+      Button {
+        queueAllBooksOffline()
+      } label: {
+        Label(
+          String(localized: "dashboard.downloadAll", defaultValue: "Download All"),
+          systemImage: "arrow.down.circle.fill"
+        )
+      }
+      .disabled(isQueueingOffline)
+    }
   }
 
   @ViewBuilder
@@ -360,9 +388,50 @@ struct DashboardSectionDetailView: View {
     }
   }
 
+  private func queueLatestBooksOffline() {
+    guard section.supportsDownloadLatest, !isOffline else { return }
+    guard !isQueueingOffline else { return }
+
+    withAnimation {
+      isQueueingLatestOffline = true
+    }
+    let libraryIds = dashboard.libraryIds
+    let instanceId = AppConfig.current.instanceId
+
+    Task {
+      defer {
+        Task { @MainActor in
+          withAnimation {
+            isQueueingLatestOffline = false
+          }
+        }
+      }
+
+      do {
+        let page = try await section.fetchBooks(libraryIds: libraryIds, page: 0, size: 20)
+        let ids = page?.content.map(\.id) ?? []
+        let queuedCount =
+          ids.isEmpty
+          ? 0
+          : await DatabaseOperator.databaseIfConfigured()?.queueBooksOffline(
+            bookIds: ids,
+            instanceId: instanceId
+          ) ?? 0
+
+        notifyOfflineQueueResult(
+          queuedCount: queuedCount,
+          foundBooks: !ids.isEmpty,
+          instanceId: instanceId
+        )
+      } catch {
+        ErrorManager.shared.alert(error: error)
+      }
+    }
+  }
+
   private func queueAllBooksOffline() {
     guard section.supportsDownloadAll, !isOffline else { return }
-    guard !isQueueingAllOffline else { return }
+    guard !isQueueingOffline else { return }
 
     withAnimation {
       isQueueingAllOffline = true
@@ -385,29 +454,37 @@ struct DashboardSectionDetailView: View {
           instanceId: instanceId
         )
 
-        guard result.foundBooks else {
-          ErrorManager.shared.notify(
-            message: String(localized: "No books found to queue for offline reading.")
-          )
-          return
-        }
-
-        if result.queuedCount > 0 {
-          OfflineManager.shared.triggerSync(instanceId: instanceId)
-          ErrorManager.shared.notify(
-            message: String(
-              format: String(localized: "Queued %lld books for offline reading."),
-              Int64(result.queuedCount)
-            )
-          )
-        } else {
-          ErrorManager.shared.notify(
-            message: String(localized: "No new books were added to the offline queue.")
-          )
-        }
+        notifyOfflineQueueResult(
+          queuedCount: result.queuedCount,
+          foundBooks: result.foundBooks,
+          instanceId: instanceId
+        )
       } catch {
         ErrorManager.shared.alert(error: error)
       }
+    }
+  }
+
+  private func notifyOfflineQueueResult(queuedCount: Int, foundBooks: Bool, instanceId: String) {
+    guard foundBooks else {
+      ErrorManager.shared.notify(
+        message: String(localized: "No books found to queue for offline reading.")
+      )
+      return
+    }
+
+    if queuedCount > 0 {
+      OfflineManager.shared.triggerSync(instanceId: instanceId)
+      ErrorManager.shared.notify(
+        message: String(
+          format: String(localized: "Queued %lld books for offline reading."),
+          Int64(queuedCount)
+        )
+      )
+    } else {
+      ErrorManager.shared.notify(
+        message: String(localized: "No new books were added to the offline queue.")
+      )
     }
   }
 

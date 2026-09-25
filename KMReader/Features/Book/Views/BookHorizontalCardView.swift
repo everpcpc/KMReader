@@ -104,14 +104,14 @@ struct BookHorizontalCardView: View {
           width: coverWidth,
           preserveAspectRatioOverride: false
         ) {
-          if item.isUnread && thumbnailShowUnreadIndicator {
-            UnreadIndicator()
+          if item.isCompleted && thumbnailShowUnreadIndicator {
+            CompletedIndicator(size: LayoutConfig.cardBadgeSize(cardWidth: coverWidth))
               .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
           }
         }
         .frame(width: coverWidth)
 
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 0) {
           if item.oneshot {
             Text("Oneshot")
               .font(.system(secondaryTextStyle))
@@ -124,52 +124,56 @@ struct BookHorizontalCardView: View {
               .lineLimit(1)
           }
 
+          Spacer(minLength: 4)
+
           Text(bookTitleLine)
-            .font(.system(titleTextStyle))
+            .font(.system(titleTextStyle, weight: .medium))
             .foregroundColor(item.isCompleted ? secondaryTextColor : primaryTextColor)
             .lineLimit(2)
             .multilineTextAlignment(.leading)
 
+          Spacer(minLength: 0)
+
           bottomBar
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
       }
       .padding(6)
       .frame(maxWidth: .infinity, alignment: .leading)
+      .background {
+        RoundedRectangle(cornerRadius: 12)
+          .fill(.regularMaterial)
+          .overlay {
+            // Overlay content never contributes to layout size, so the flexible
+            // blurred image can neither inflate the card nor bleed past it.
+            if let coverArtwork {
+              // No scaledToFill: stretch the whole cover into the card so the
+              // tint mixes the cover's overall tone instead of only the cropped
+              // middle strip. The heavy blur hides the distortion.
+              Image(platformImage: coverArtwork)
+                .resizable()
+                // Overscan before blurring: the blur samples transparent black
+                // beyond the image bounds, which darkened the card edges.
+                .scaleEffect(1.3)
+                .compositingGroup()
+                .blur(radius: 28)
+                .saturation(0.7)
+                // Even dimming layer: tinted cards force white text, so light
+                // covers still need enough overlay for the title to stay readable.
+                .overlay(Color.black.opacity(0.4))
+                .transition(.opacity)
+            }
+          }
+          .clipShape(RoundedRectangle(cornerRadius: 12))
+          .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+          .animation(.easeInOut(duration: 0.2), value: isCoverTinted)
+      }
+      .contentShape(Rectangle())
+      #if os(iOS)
+        .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: 12))
+      #endif
     }
     .adaptiveButtonStyle(.plain)
-    .background {
-      RoundedRectangle(cornerRadius: 12)
-        .fill(.regularMaterial)
-        .overlay {
-          // Overlay content never contributes to layout size, so the flexible
-          // blurred image can neither inflate the card nor bleed past it.
-          if let coverArtwork {
-            // No scaledToFill: stretch the whole cover into the card so the
-            // tint mixes the cover's overall tone instead of only the cropped
-            // middle strip. The heavy blur hides the distortion.
-            Image(platformImage: coverArtwork)
-              .resizable()
-              // Overscan before blurring: the blur samples transparent black
-              // beyond the image bounds, which darkened the card edges.
-              .scaleEffect(1.3)
-              .compositingGroup()
-              .blur(radius: 28)
-              .saturation(0.7)
-              // Even dimming layer: tinted cards force white text, so light
-              // covers still need enough overlay for the title to stay readable.
-              .overlay(Color.black.opacity(0.4))
-              .transition(.opacity)
-          }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
-        .animation(.easeInOut(duration: 0.2), value: isCoverTinted)
-    }
-    .contentShape(Rectangle())
-    #if os(iOS)
-      .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: 12))
-    #endif
     .contextMenu {
       bookContextMenu
     }

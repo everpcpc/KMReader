@@ -84,7 +84,7 @@ struct BookSelectionItemView: View {
           item: item,
           onReadBook: { _ in },
           showSeriesTitle: showSeriesTitle,
-          showUnreadIndicator: false
+          showCompletedIndicator: false
         )
       case .list:
         BookRowView(

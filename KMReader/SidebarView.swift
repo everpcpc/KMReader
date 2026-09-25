@@ -8,6 +8,8 @@ import SwiftUI
 struct SidebarView: View {
   @Binding var selection: NavDestination?
 
+  @Environment(\.colorScheme) private var colorScheme
+
   @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("isOffline") private var isOffline: Bool = false
 
@@ -158,7 +160,10 @@ struct SidebarView: View {
         listContent
       }
     }
-    #if os(iOS)
+    // macOS needs the sidebar style too: the default list style paints the
+    // selection with the accent color, which is unreadable against the
+    // monochrome (near-black/near-white) accent.
+    #if os(iOS) || os(macOS)
       .listStyle(.sidebar)
     #endif
     #if os(iOS)
@@ -202,32 +207,61 @@ struct SidebarView: View {
     #endif
   }
 
+  /// The sidebar selection pill is painted with the accent color while the
+  /// system renders selected rows in white, which is unreadable on the
+  /// near-white dark-mode accent; selected rows flip to dark content there.
+  @ViewBuilder
+  private func sidebarRowContent<Content: View>(
+    for destination: NavDestination,
+    @ViewBuilder content: () -> Content
+  ) -> some View {
+    if selection == destination, colorScheme == .dark {
+      content().foregroundStyle(.black)
+    } else {
+      content()
+    }
+  }
+
   @ViewBuilder
   private var listContent: some View {
     Section {
       NavigationLink(value: NavDestination.home) {
-        Label(String(localized: "tab.home"), systemImage: "house")
+        sidebarRowContent(for: .home) {
+          Label(String(localized: "tab.home"), systemImage: "house")
+        }
       }
       NavigationLink(value: NavDestination.offline) {
-        Label(TabItem.offline.title, systemImage: TabItem.offline.icon)
+        sidebarRowContent(for: .offline) {
+          Label(TabItem.offline.title, systemImage: TabItem.offline.icon)
+        }
       }
       NavigationLink(value: NavDestination.server) {
-        Label(TabItem.server.title, systemImage: TabItem.server.icon)
+        sidebarRowContent(for: .server) {
+          Label(TabItem.server.title, systemImage: TabItem.server.icon)
+        }
       }
     }
 
     Section(isExpanded: browseExpandedBinding) {
       NavigationLink(value: NavDestination.browseSeries) {
-        Label(String(localized: "tab.series"), systemImage: ContentIcon.series)
+        sidebarRowContent(for: .browseSeries) {
+          Label(String(localized: "tab.series"), systemImage: ContentIcon.series)
+        }
       }
       NavigationLink(value: NavDestination.browseBooks) {
-        Label(String(localized: "tab.books"), systemImage: ContentIcon.book)
+        sidebarRowContent(for: .browseBooks) {
+          Label(String(localized: "tab.books"), systemImage: ContentIcon.book)
+        }
       }
       NavigationLink(value: NavDestination.browseCollections) {
-        Label(String(localized: "tab.collections"), systemImage: ContentIcon.collection)
+        sidebarRowContent(for: .browseCollections) {
+          Label(String(localized: "tab.collections"), systemImage: ContentIcon.collection)
+        }
       }
       NavigationLink(value: NavDestination.browseReadLists) {
-        Label(String(localized: "tab.readLists"), systemImage: ContentIcon.readList)
+        sidebarRowContent(for: .browseReadLists) {
+          Label(String(localized: "tab.readLists"), systemImage: ContentIcon.readList)
+        }
       }
     } header: {
       Label(String(localized: "Browse"), systemImage: ContentIcon.browse)
@@ -236,20 +270,22 @@ struct SidebarView: View {
     if !libraries.isEmpty {
       Section(isExpanded: librariesExpandedBinding) {
         ForEach(libraries) { library in
-          NavigationLink(
-            value: NavDestination.browseLibrary(selection: LibrarySelection(sidebarItem: library))
-          ) {
-            SidebarItemLabel(
-              title: library.name,
-              count: library.displayBookCount
-            )
-            .contextMenu {
-              if current.isAdmin && !isOffline {
-                ForEach(LibraryAction.allCases, id: \.self) { action in
-                  Button {
-                    action.perform(for: library.libraryId)
-                  } label: {
-                    action.label
+          let destination = NavDestination.browseLibrary(
+            selection: LibrarySelection(sidebarItem: library))
+          NavigationLink(value: destination) {
+            sidebarRowContent(for: destination) {
+              SidebarItemLabel(
+                title: library.name,
+                count: library.displayBookCount
+              )
+              .contextMenu {
+                if current.isAdmin && !isOffline {
+                  ForEach(LibraryAction.allCases, id: \.self) { action in
+                    Button {
+                      action.perform(for: library.libraryId)
+                    } label: {
+                      action.label
+                    }
                   }
                 }
               }
@@ -264,13 +300,14 @@ struct SidebarView: View {
     if !collections.isEmpty {
       Section(isExpanded: collectionsExpandedBinding) {
         ForEach(collections) { collection in
-          NavigationLink(
-            value: NavDestination.collectionDetail(collectionId: collection.collectionId)
-          ) {
-            SidebarItemLabel(
-              title: collection.name,
-              count: collection.seriesCount
-            )
+          let destination = NavDestination.collectionDetail(collectionId: collection.collectionId)
+          NavigationLink(value: destination) {
+            sidebarRowContent(for: destination) {
+              SidebarItemLabel(
+                title: collection.name,
+                count: collection.seriesCount
+              )
+            }
           }
         }
       } header: {
@@ -281,13 +318,14 @@ struct SidebarView: View {
     if !readLists.isEmpty {
       Section(isExpanded: readListsExpandedBinding) {
         ForEach(readLists) { readList in
-          NavigationLink(
-            value: NavDestination.readListDetail(readListId: readList.readListId)
-          ) {
-            SidebarItemLabel(
-              title: readList.name,
-              count: readList.bookCount
-            )
+          let destination = NavDestination.readListDetail(readListId: readList.readListId)
+          NavigationLink(value: destination) {
+            sidebarRowContent(for: destination) {
+              SidebarItemLabel(
+                title: readList.name,
+                count: readList.bookCount
+              )
+            }
           }
         }
       } header: {
@@ -298,7 +336,9 @@ struct SidebarView: View {
     if showsSettingsLink {
       Section {
         NavigationLink(value: NavDestination.settings) {
-          TabItem.settings.label
+          sidebarRowContent(for: .settings) {
+            TabItem.settings.label
+          }
         }
       }
     }

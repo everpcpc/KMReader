@@ -14,14 +14,12 @@ struct CollectionSeriesQueryView: View {
   @Binding var selectedSeriesIds: Set<String>
   let isAdmin: Bool
 
-  @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
-
   private var columns: [GridItem] {
-    LayoutConfig.adaptiveColumns(for: gridDensity)
+    LayoutConfig.adaptiveColumns
   }
 
   private var spacing: CGFloat {
-    LayoutConfig.spacing(for: gridDensity)
+    LayoutConfig.defaultSpacing
   }
 
   var body: some View {

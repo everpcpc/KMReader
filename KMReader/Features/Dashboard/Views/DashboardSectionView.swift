@@ -10,22 +10,19 @@ struct DashboardSectionView: View {
   let section: DashboardSection
 
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
-  @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
-  @AppStorage("dashboardHorizontalBookCards")
-  private var dashboardHorizontalBookCards: Bool = true
   @AppStorage("showDashboardSectionGradientBackground")
   private var showDashboardSectionGradientBackground: Bool =
     AppConfig.showDashboardSectionGradientBackground
   @Environment(\.colorScheme) private var colorScheme
 
-  @State private var pagination = PaginationState<IdentifiedString>(pageSize: 20)
-  @State private var isLoading = false
-  @State private var didSeedFromCache = false
-  @State private var hasLoadedInitial = false
-  @State private var onDeckReadLists = OnDeckReadListMerge()
+  @State private var viewModel: DashboardSectionViewModel
 
   private let logger = AppLogger(.dashboard)
-  private let sectionCacheStore = DashboardSectionCacheStore.shared
+
+  init(section: DashboardSection) {
+    self.section = section
+    _viewModel = State(initialValue: DashboardSectionViewModel(section: section))
+  }
 
   private var backgroundColors: [Color] {
     if colorScheme == .dark {
@@ -41,29 +38,34 @@ struct DashboardSectionView: View {
     }
   }
 
-  private var cardWidth: CGFloat {
-    LayoutConfig.cardWidth(for: gridDensity)
+  private var cardKind: DashboardCardKind {
+    dashboard.cardKind(for: section)
   }
 
-  /// Horizontal cards only apply to Keep Reading.
-  private var useHorizontalBookCards: Bool {
-    section == .keepReading && dashboardHorizontalBookCards
-  }
-
-  private var horizontalCardWidth: CGFloat {
-    LayoutConfig.horizontalCardWidth
-  }
-
-  private var horizontalCoverWidth: CGFloat {
-    LayoutConfig.horizontalCoverWidth
+  private var cardKindBinding: Binding<DashboardCardKind> {
+    Binding(
+      get: { cardKind },
+      set: { dashboard.setCardKind($0, for: section) }
+    )
   }
 
   private var itemWidth: CGFloat {
-    useHorizontalBookCards ? horizontalCardWidth : cardWidth
+    switch cardKind {
+    case .horizontal:
+      return LayoutConfig.horizontalCardWidth
+    case .large:
+      return LayoutConfig.dashboardLargeCardWidth
+    case .small:
+      return LayoutConfig.dashboardSmallCardWidth
+    }
+  }
+
+  private var horizontalCoverWidth: CGFloat? {
+    cardKind == .horizontal ? LayoutConfig.horizontalCoverWidth : nil
   }
 
   private var spacing: CGFloat {
-    LayoutConfig.spacing(for: gridDensity)
+    LayoutConfig.defaultSpacing
   }
 
   var body: some View {
@@ -79,37 +81,54 @@ struct DashboardSectionView: View {
       #endif
 
       VStack(alignment: .leading, spacing: 0) {
-        NavigationLink(value: NavDestination.dashboardSectionDetail(section: section)) {
-          HStack {
-            Text(section.displayName)
-              .font(.title2)
-              .bold()
-              .fontDesign(.serif)
-            Image(systemName: "chevron.right")
-              .foregroundStyle(.secondary)
+        HStack {
+          NavigationLink(value: NavDestination.dashboardSectionDetail(section: section)) {
+            HStack {
+              Text(section.displayName)
+                .font(.title2)
+                .bold()
+                .fontDesign(.serif)
+              Image(systemName: "chevron.right")
+                .foregroundStyle(.secondary)
+            }
+          }
+          .buttonStyle(.plain)
+          .disabled(viewModel.pagination.isEmpty)
+
+          Spacer()
+
+          if section.availableCardKinds.count > 1 {
+            Menu {
+              Picker(selection: cardKindBinding) {
+                ForEach(section.availableCardKinds, id: \.self) { kind in
+                  Label(kind.title, systemImage: kind.icon).tag(kind)
+                }
+              } label: {
+                EmptyView()
+              }
+              .pickerStyle(.inline)
+              .labelsHidden()
+            } label: {
+              Image(systemName: "rectangle.3.group")
+                .foregroundStyle(.secondary)
+            }
           }
         }
-        .buttonStyle(.plain)
         .padding(.horizontal)
         .padding(.top)
         #if os(macOS)
           .padding(.leading, 16)
         #endif
-        .disabled(pagination.isEmpty)
 
         ScrollViewReader { proxy in
           ScrollView(.horizontal, showsIndicators: false) {
             LazyHStack(alignment: .top, spacing: spacing) {
-              ForEach(pagination.items) { item in
+              ForEach(viewModel.pagination.items) { item in
                 itemView(for: item.id)
                   .id(item.id)
                   .frame(width: itemWidth)
                   .onAppear {
-                    if pagination.shouldLoadMore(after: item) {
-                      Task {
-                        await loadMore()
-                      }
-                    }
+                    viewModel.loadMoreIfNeeded(after: item, libraryIds: dashboard.libraryIds)
                   }
               }
             }
@@ -123,14 +142,14 @@ struct DashboardSectionView: View {
           #if os(macOS)
             .macHorizontalScrollButtons(
               scrollProxy: proxy,
-              itemIds: pagination.items.map(\.id)
+              itemIds: viewModel.pagination.items.map(\.id)
             )
           #endif
         }
       }
     }
-    .opacity(pagination.isEmpty ? 0 : 1)
-    .frame(height: pagination.isEmpty ? 0 : nil)
+    .opacity(viewModel.pagination.isEmpty ? 0 : 1)
+    .frame(height: viewModel.pagination.isEmpty ? 0 : nil)
     .onReceive(NotificationCenter.default.publisher(for: .dashboardSectionsShouldReload)) {
       notification in
       guard let command = DashboardSectionRefreshNotifier.reloadCommand(from: notification) else {
@@ -140,20 +159,14 @@ struct DashboardSectionView: View {
     }
     .onChange(of: section.mergesReadListContinuations ? ReadListReadingService.shared.snapshot : nil) {
       _, snapshot in
-      onDeckReadLists.reloadIfOutdated(by: snapshot, isLoading: isLoading) {
-        Task { await refresh() }
-      }
+      viewModel.reloadIfReadListsOutdated(by: snapshot, libraryIds: dashboard.libraryIds)
     }
     .onAppear {
       DashboardRefreshCoordinator.shared.registerSection(section)
+      viewModel.ensureLoaded(libraryIds: dashboard.libraryIds)
     }
     .onDisappear {
       DashboardRefreshCoordinator.shared.unregisterSection(section)
-    }
-    .task {
-      guard !hasLoadedInitial else { return }
-      hasLoadedInitial = true
-      await refresh()
     }
   }
 
@@ -165,29 +178,26 @@ struct DashboardSectionView: View {
         bookId: itemId,
         layout: .grid,
         showSeriesTitle: true,
-        horizontalCoverWidth: useHorizontalBookCards ? horizontalCoverWidth : nil,
+        horizontalCoverWidth: horizontalCoverWidth,
+        coverOnly: cardKind == .small,
+        cardWidth: itemWidth,
         onItemMissing: {
-          removeItem(id: itemId)
+          viewModel.removeItem(id: itemId)
         }
       )
     case .series:
       SeriesQueryItemView(
         seriesId: itemId,
         layout: .grid,
+        coverOnly: cardKind == .small,
+        cardWidth: itemWidth,
         onItemMissing: {
-          removeItem(id: itemId)
+          viewModel.removeItem(id: itemId)
         }
       )
     case .collections, .readLists:
       EmptyView()
     }
-  }
-
-  private func refresh() async {
-    withAnimation {
-      pagination.reset()
-    }
-    await loadMore()
   }
 
   private func handleReloadCommand(_ command: DashboardSectionReloadCommand) {
@@ -196,177 +206,21 @@ struct DashboardSectionView: View {
       return
     }
 
-    if command.source == .auto, pagination.currentPage > 1 {
+    if command.source == .auto, viewModel.pagination.currentPage > 1 {
       logger.debug(
-        "Dashboard section \(section) skipping auto-refresh: deep in pagination (page \(pagination.currentPage))"
+        "Dashboard section \(section) skipping auto-refresh: deep in pagination (page \(viewModel.pagination.currentPage))"
       )
       return
     }
 
+    let libraryIds = dashboard.libraryIds
     Task {
       logger.debug("Dashboard section \(section) reloading")
       defer {
         DashboardRefreshCoordinator.shared.acknowledgeSectionReload(
           commandID: command.id, section: section)
       }
-      await refresh()
-    }
-  }
-
-  private func loadMore() async {
-    guard pagination.hasMorePages, !isLoading else { return }
-    withAnimation {
-      isLoading = true
-    }
-
-    let libraryIds = dashboard.libraryIds
-    let instanceId = AppConfig.current.instanceId
-    let isFirstPage = pagination.currentPage == 0
-
-    if !AppConfig.isOffline {
-      await seedFromCacheIfNeeded(isFirstPage: isFirstPage)
-    }
-
-    if AppConfig.isOffline {
-      let ids: [String]
-      switch section.contentKind {
-      case .books:
-        ids = await section.fetchOfflineBookIds(
-          libraryIds: libraryIds,
-          offset: pagination.currentPage * pagination.pageSize,
-          limit: pagination.pageSize
-        )
-      case .series:
-        ids = await section.fetchOfflineSeriesIds(
-          libraryIds: libraryIds,
-          offset: pagination.currentPage * pagination.pageSize,
-          limit: pagination.pageSize
-        )
-      case .collections, .readLists:
-        ids = []
-      }
-      let displayedIds = await onDeckReadLists.merge(
-        ids,
-        in: section,
-        isFirstPage: isFirstPage,
-        libraryIds: libraryIds
-      )
-      applyPage(ids: displayedIds, moreAvailable: ids.count == pagination.pageSize)
-      updateWidgetDataIfNeeded(
-        ids: ids,
-        isFirstPage: isFirstPage,
-        instanceId: instanceId,
-        libraryIds: libraryIds
-      )
-    } else {
-      do {
-        switch section.contentKind {
-        case .books:
-          if let page = try await section.fetchBooks(
-            libraryIds: libraryIds,
-            page: pagination.currentPage,
-            size: pagination.pageSize
-          ) {
-            let ids = await onDeckReadLists.merge(
-              page.content.map { $0.id },
-              in: section,
-              isFirstPage: isFirstPage,
-              libraryIds: libraryIds
-            )
-            if isFirstPage {
-              _ = sectionCacheStore.updateIfChanged(section: section, ids: ids)
-              updateWidgetDataIfNeeded(
-                books: page.content,
-                instanceId: instanceId,
-                libraryIds: libraryIds
-              )
-            }
-            applyPage(ids: ids, moreAvailable: !page.last)
-          }
-        case .series:
-          if let page = try await section.fetchSeries(
-            libraryIds: libraryIds,
-            page: pagination.currentPage,
-            size: pagination.pageSize
-          ) {
-            let ids = page.content.map { $0.id }
-            if isFirstPage {
-              _ = sectionCacheStore.updateIfChanged(section: section, ids: ids)
-              updateWidgetDataIfNeeded(
-                series: page.content,
-                instanceId: instanceId,
-                libraryIds: libraryIds
-              )
-            }
-            applyPage(ids: ids, moreAvailable: !page.last)
-          }
-        case .collections, .readLists:
-          applyPage(ids: [], moreAvailable: false)
-        }
-      } catch {
-        ErrorManager.shared.alert(error: error)
-      }
-    }
-
-    withAnimation {
-      isLoading = false
-    }
-  }
-
-  private func seedFromCacheIfNeeded(isFirstPage: Bool) async {
-    guard isFirstPage, !didSeedFromCache, pagination.isEmpty else { return }
-    didSeedFromCache = true
-
-    let cachedIds = sectionCacheStore.ids(for: section)
-    guard !cachedIds.isEmpty else { return }
-    withAnimation {
-      pagination.items = cachedIds.map(IdentifiedString.init)
-    }
-  }
-
-  private func applyPage(ids: [String], moreAvailable: Bool) {
-    let wrappedIds = ids.map(IdentifiedString.init)
-
-    if pagination.currentPage == 0 {
-      if pagination.items != wrappedIds {
-        withAnimation {
-          pagination.items = wrappedIds
-        }
-      }
-    } else if !wrappedIds.isEmpty {
-      withAnimation {
-        pagination.items.append(contentsOf: wrappedIds)
-      }
-    }
-
-    pagination.advance(moreAvailable: moreAvailable)
-  }
-
-  private func updateWidgetDataIfNeeded(books: [Book], instanceId: String, libraryIds: [String]) {
-    section.widgetDataTarget?.update(books: books, instanceId: instanceId, libraryIds: libraryIds)
-  }
-
-  private func updateWidgetDataIfNeeded(series: [Series], instanceId: String, libraryIds: [String]) {
-    section.widgetDataTarget?.update(series: series, instanceId: instanceId, libraryIds: libraryIds)
-  }
-
-  private func updateWidgetDataIfNeeded(
-    ids: [String],
-    isFirstPage: Bool,
-    instanceId: String,
-    libraryIds: [String]
-  ) {
-    guard isFirstPage, let target = section.widgetDataTarget else { return }
-    guard !instanceId.isEmpty else { return }
-
-    Task {
-      await target.update(ids: ids, instanceId: instanceId, libraryIds: libraryIds)
-    }
-  }
-
-  private func removeItem(id: String) {
-    withAnimation {
-      _ = pagination.removeItems(withIDs: [id])
+      await viewModel.reload(libraryIds: libraryIds)
     }
   }
 }

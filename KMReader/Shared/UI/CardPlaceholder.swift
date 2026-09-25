@@ -10,6 +10,8 @@ struct CardPlaceholder: View {
   let layout: BrowseLayoutMode
   let kind: CardPlaceholderKind
   var showBookSeriesTitle: Bool = true
+  var cardWidth: CGFloat = LayoutConfig.gridCardWidth
+  var coverOnly: Bool = false
 
   @AppStorage("showBookCardSeriesTitle") private var showBookCardSeriesTitle: Bool = true
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
@@ -36,12 +38,25 @@ struct CardPlaceholder: View {
     kind == .book && showBookSeriesTitle && showBookCardSeriesTitle
   }
 
+  /// Cover-only cards never render the text overlay, even in overlay mode.
+  private var showsTextOverlay: Bool {
+    cardTextOverlayMode && !coverOnly
+  }
+
   private var reservesBookProgressBar: Bool {
-    kind == .book && thumbnailShowProgressBar && !cardTextOverlayMode
+    kind == .book && thumbnailShowProgressBar && !showsTextOverlay
+  }
+
+  private var gridTitleTextStyle: Font.TextStyle {
+    LayoutConfig.cardTitleTextStyle(cardWidth: cardWidth)
+  }
+
+  private var gridSecondaryTextStyle: Font.TextStyle {
+    LayoutConfig.cardSecondaryTextStyle(cardWidth: cardWidth)
   }
 
   private var gridContentSpacing: CGFloat {
-    if cardTextOverlayMode {
+    if showsTextOverlay {
       return 0
     }
     if reservesBookProgressBar {
@@ -68,7 +83,7 @@ struct CardPlaceholder: View {
           .opacity(0)
       }
 
-      if !cardTextOverlayMode && !coverOnlyCards {
+      if !showsTextOverlay && !coverOnlyCards && !coverOnly {
         VStack(alignment: .leading) {
           ForEach(Array(gridLines.enumerated()), id: \.offset) { item in
             placeholderLine(
@@ -88,7 +103,7 @@ struct CardPlaceholder: View {
       RoundedRectangle(cornerRadius: cornerRadius)
         .fill(Color.gray.opacity(0.2))
 
-      if cardTextOverlayMode {
+      if showsTextOverlay {
         CardTextOverlay(cornerRadius: cornerRadius) {
           ForEach(Array(gridLines.enumerated()), id: \.offset) { item in
             placeholderLine(
@@ -129,17 +144,17 @@ struct CardPlaceholder: View {
     switch kind {
     case .book:
       let titleLines: [(textStyle: Font.TextStyle, text: String, width: CGFloat, opacity: Double)] = [
-        (textStyle: .footnote, text: "1 - Book Title", width: 0.85, opacity: 0.2),
-        (textStyle: .caption, text: "200 pages", width: 0.6, opacity: 0.15),
+        (textStyle: gridTitleTextStyle, text: "1 - Book Title", width: 0.85, opacity: 0.2),
+        (textStyle: gridSecondaryTextStyle, text: "200 pages", width: 0.6, opacity: 0.15),
       ]
       guard showsBookSeriesTitleLine else { return titleLines }
       return [
-        (textStyle: .caption, text: "Series Title", width: 0.55, opacity: 0.18)
+        (textStyle: gridSecondaryTextStyle, text: "Series Title", width: 0.55, opacity: 0.18)
       ] + titleLines
     case .series:
       return [
-        (textStyle: .footnote, text: "Series Title", width: 0.8, opacity: 0.2),
-        (textStyle: .caption, text: "12 books", width: 0.6, opacity: 0.15),
+        (textStyle: gridTitleTextStyle, text: "Series Title", width: 0.8, opacity: 0.2),
+        (textStyle: gridSecondaryTextStyle, text: "12 books", width: 0.6, opacity: 0.15),
       ]
     case .collection:
       return [

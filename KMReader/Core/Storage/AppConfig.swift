@@ -385,20 +385,6 @@ enum AppConfig {
     }
   }
 
-  // MARK: - Dashboard
-
-  static nonisolated var gridDensity: Double {
-    get {
-      if UserDefaults.standard.object(forKey: "gridDensity") != nil {
-        return UserDefaults.standard.double(forKey: "gridDensity")
-      }
-      return GridDensity.standard.rawValue
-    }
-    set {
-      UserDefaults.standard.set(newValue, forKey: "gridDensity")
-    }
-  }
-
   // MARK: - Custom Fonts
   static nonisolated var customFontNames: [String] {
     get {
@@ -871,6 +857,20 @@ enum AppConfig {
     }
     set {
       UserDefaults.standard.set(newValue, forKey: "animateTapTurns")
+    }
+  }
+
+  /// Page turns from the session's starting page required before read progress
+  /// is recorded; 0 records immediately. Guards against accidental reader opens.
+  static nonisolated var progressRecordingThreshold: Int {
+    get {
+      if UserDefaults.standard.object(forKey: "progressRecordingThreshold") != nil {
+        return UserDefaults.standard.integer(forKey: "progressRecordingThreshold")
+      }
+      return 3
+    }
+    set {
+      UserDefaults.standard.set(max(0, newValue), forKey: "progressRecordingThreshold")
     }
   }
 

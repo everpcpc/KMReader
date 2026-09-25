@@ -16,14 +16,12 @@ struct ReadListBooksQueryView: View {
   let isAdmin: Bool
   let refreshBooks: () -> Void
 
-  @AppStorage("gridDensity") private var gridDensity: Double = GridDensity.standard.rawValue
-
   private var columns: [GridItem] {
-    LayoutConfig.adaptiveColumns(for: gridDensity)
+    LayoutConfig.adaptiveColumns
   }
 
   private var spacing: CGFloat {
-    LayoutConfig.spacing(for: gridDensity)
+    LayoutConfig.defaultSpacing
   }
 
   init(

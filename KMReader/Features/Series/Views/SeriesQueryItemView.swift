@@ -9,6 +9,8 @@ import SwiftUI
 struct SeriesQueryItemView: View {
   let seriesId: String
   let layout: BrowseLayoutMode
+  var coverOnly: Bool = false
+  var cardWidth: CGFloat = LayoutConfig.gridCardWidth
   var onItemMissing: (() -> Void)? = nil
 
   @AppStorage("currentAccount") private var current: Current = .init()
@@ -18,10 +20,14 @@ struct SeriesQueryItemView: View {
   init(
     seriesId: String,
     layout: BrowseLayoutMode,
+    coverOnly: Bool = false,
+    cardWidth: CGFloat = LayoutConfig.gridCardWidth,
     onItemMissing: (() -> Void)? = nil
   ) {
     self.seriesId = seriesId
     self.layout = layout
+    self.coverOnly = coverOnly
+    self.cardWidth = cardWidth
     self.onItemMissing = onItemMissing
 
   }
@@ -36,7 +42,9 @@ struct SeriesQueryItemView: View {
             onMutationCompleted: reloadItem,
             onDeleteRequested: {
               showDeleteConfirmation = true
-            }
+            },
+            coverOnly: coverOnly,
+            cardWidth: cardWidth
           )
         case .list:
           SeriesRowView(
@@ -48,7 +56,7 @@ struct SeriesQueryItemView: View {
           )
         }
       } else {
-        CardPlaceholder(layout: layout, kind: .series)
+        CardPlaceholder(layout: layout, kind: .series, cardWidth: cardWidth, coverOnly: coverOnly)
       }
     }
     .task(id: "\(current.instanceId)|\(seriesId)") {

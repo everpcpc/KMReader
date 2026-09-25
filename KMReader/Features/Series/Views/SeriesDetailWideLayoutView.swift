@@ -5,11 +5,11 @@
 
 import SwiftUI
 
-/// iPad regular-width series detail: the left rail carries identity and
-/// about-info (cover, hero info, action card, summary, metadata detail,
-/// timestamps); collections and the books list flow in the right column.
-/// Rail and content scroll independently so the rail never scrolls away with
-/// the books list.
+/// Wide series detail (iPad regular width, macOS wide windows): the left
+/// rail carries identity and about-info (cover, hero info, action card,
+/// summary, metadata detail, timestamps); collections and the books list
+/// flow in the right column. Rail and content scroll independently so the
+/// rail never scrolls away with the books list.
 struct SeriesDetailWideLayoutView<Actions: View>: View {
   let series: Series
   let item: SeriesDisplayItem?
