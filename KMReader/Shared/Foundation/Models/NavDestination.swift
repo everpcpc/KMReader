@@ -40,6 +40,7 @@ enum NavDestination: Hashable {
   case settingsDashboard
   case settingsCache
   case settingsDivinaReader
+  case settingsReading
   #if os(iOS) || os(macOS)
     case settingsPdfReader
   #endif
@@ -194,6 +195,8 @@ enum NavDestination: Hashable {
       SettingsCacheView()
     case .settingsDivinaReader:
       DivinaPreferencesView()
+    case .settingsReading:
+      ReaderPreferencesView()
     #if os(iOS) || os(macOS)
       case .settingsPdfReader:
         PdfPreferencesView()

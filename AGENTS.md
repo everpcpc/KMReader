@@ -39,6 +39,7 @@ After changing code: `make format`, then `make build`. Simulator interaction and
 
 ## Sync, Offline & Caching
 
+- Read progress has a per-session recording threshold (`progressRecordingThreshold`, default 3, 0 = record immediately): page-change submissions and the close/background flush are withheld until the position moves at least that many pages from the session's first page per book, unless the page completes the book. All three engines gate on distance from the session start page (DIVINA per book id, PDF by page number, EPUB by global page index), so an accidental reader open never creates progress.
 - Any path that pulls reading progress after coming online must first `await ProgressSyncService.syncPendingProgress` (it waits for an in-flight push), so a pull never overwrites newer offline-queued local progress.
 - Cancelling a download removes its on-disk book directory; failed downloads keep partial content for resume.
 - Clearing caches or server data goes through `CacheManager` and the GRDB stores only.
@@ -70,7 +71,7 @@ After changing code: `make format`, then `make build`. Simulator interaction and
 - Browse layout switching (grid ↔ list) lives in `LayoutModeToggleButton`, a single icon button rendered at the front of the filter chip row (the chip-row views take an optional `layoutMode` binding); pages without a chip row place the same button above the content (e.g. `DashboardSectionDetailView`). Do not reintroduce toolbar layout pickers.
 - Toolbar trailing policy: at most one trailing toolbar button per content page (two only when a primary action sits next to the single ellipsis menu, e.g. Dashboard search). Everything else lives inside the ellipsis menu; sheet/alert presentations from menu items must go through `deferMenuActionPresentation`. When a trailing menu would hold only filter actions (BrowseView, OfflineView), it is expanded into trailing icon buttons instead: Filter always, plus Saved Filters for series/books content. Detail pages carry no Filter/Saved Filters menu entries; the filter chip row owns those entry points.
 - Toolbar button ordering: conditional buttons go on the inside of a trailing group (closer to the title); unconditional buttons hold the outer edge, so the edge position never shifts when the condition toggles (BrowseView/OfflineView keep Filter at the edge, Saved Filters inside).
-- Settings pages: top-level groups are Reader / Display / Server (iPhone only) / Behavior / Advanced / About. OS-level toggles belong in `SettingsSystemFeaturesView`; new pages register a `SettingsSection` case and use `SettingsBadgeRow`/`SettingsSectionRow` entries.
+- Settings pages: top-level groups are Reader / Display / Server (iPhone only) / Behavior / Advanced / About. Settings shared by all readers (DIVINA, EPUB, PDF) live in the Reader group's first entry, `SettingsSection.reading` (`ReaderPreferencesView`) — never in the DIVINA-only `ReaderSettingsSheet` or the per-reader preference pages; reading-session feature toggles (Keep Screen Awake, Reader Live Activity) live there too. `SettingsSystemFeaturesView` keeps Handoff only and is not linked on tvOS; new pages register a `SettingsSection` case and use `SettingsBadgeRow`/`SettingsSectionRow` entries.
 
 ## Coding Conventions
 

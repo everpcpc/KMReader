@@ -14,6 +14,7 @@ import SwiftUI
       NavigationSplitView(columnVisibility: $columnVisibility) {
         List(selection: $selectedSection) {
           Section(String(localized: "Reader")) {
+            SettingsSectionRow(section: .reading)
             SettingsSectionRow(section: .divinaReader)
             SettingsSectionRow(section: .pdfReader)
             SettingsSectionRow(section: .epubTheme)
@@ -80,6 +81,8 @@ import SwiftUI
         SettingsCacheView()
       case .divinaReader:
         DivinaPreferencesView()
+      case .reading:
+        ReaderPreferencesView()
       case .pdfReader:
         PdfPreferencesView()
       case .epubTheme:

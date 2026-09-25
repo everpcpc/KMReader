@@ -12,6 +12,7 @@ enum SettingsSection: String, CaseIterable {
   case about
   case cache
   case divinaReader
+  case reading
   #if os(iOS) || os(macOS)
     case pdfReader
   #endif
@@ -41,6 +42,8 @@ enum SettingsSection: String, CaseIterable {
       return "externaldrive"
     case .divinaReader:
       return "photo.on.rectangle.angled"
+    case .reading:
+      return "book"
     #if os(iOS) || os(macOS)
       case .pdfReader:
         return "doc.richtext"
@@ -80,6 +83,8 @@ enum SettingsSection: String, CaseIterable {
       return .gray
     case .divinaReader:
       return .green
+    case .reading:
+      return .blue
     #if os(iOS) || os(macOS)
       case .pdfReader:
         return .red
@@ -119,6 +124,8 @@ enum SettingsSection: String, CaseIterable {
       return String(localized: "Cache")
     case .divinaReader:
       return String(localized: "DIVINA Reader")
+    case .reading:
+      return String(localized: "Reading")
     #if os(iOS) || os(macOS)
       case .pdfReader:
         return String(localized: "PDF Reader")

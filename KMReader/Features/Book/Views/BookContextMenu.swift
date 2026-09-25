@@ -260,7 +260,7 @@ struct BookContextMenu: View {
           Button {
             onReadBook(true)
           } label: {
-            Label("Read Incognito", systemImage: "eye.slash")
+            Label("Peek", systemImage: "eye.slash")
           }
         }
 
@@ -275,7 +275,7 @@ struct BookContextMenu: View {
         Button {
           onReadBook(true)
         } label: {
-          Label("Read Incognito", systemImage: "eye.slash")
+          Label("Peek", systemImage: "eye.slash")
         }
         Divider()
       }
