@@ -51,6 +51,8 @@ class ReaderViewModel {
   private var pdfPreparationTasks: [String: Task<Void, Never>] = [:]
   @ObservationIgnored
   private var progressDispatchTail: Task<Void, Never>?
+  @ObservationIgnored
+  private var sessionStartPagesByBookId: [String: Int] = [:]
 
   private enum SegmentFetchPurpose {
     case nextPreload
@@ -785,6 +787,7 @@ class ReaderViewModel {
     currentViewItemID = nil
     navigationTarget = nil
     nextBookOfflineState = nil
+    sessionStartPagesByBookId.removeAll()
     readerPagesVersion &+= 1
   }
 
@@ -1321,11 +1324,35 @@ class ReaderViewModel {
       return
     }
 
+    // The first page observed for each book is the baseline the recording
+    // threshold measures distance from.
+    if let previousSnapshot, sessionStartPagesByBookId[previousSnapshot.bookId] == nil {
+      sessionStartPagesByBookId[previousSnapshot.bookId] = previousSnapshot.page
+    }
+    if let currentSnapshot, sessionStartPagesByBookId[currentSnapshot.bookId] == nil {
+      sessionStartPagesByBookId[currentSnapshot.bookId] = currentSnapshot.page
+    }
+
     let precedingDispatch = progressDispatchTail
     progressDispatchTail = Task(priority: .userInitiated) {
       await precedingDispatch?.value
       await self.dispatchProgressChange(from: previousSnapshot, to: currentSnapshot)
     }
+  }
+
+  private func isProgressRecordingEligible(_ snapshot: ReaderPageProgressSnapshot) -> Bool {
+    let threshold = AppConfig.progressRecordingThreshold
+    guard threshold > 0 else { return true }
+    // Reaching the last page is always deliberate enough to record.
+    if snapshot.completed { return true }
+    let startPage = sessionStartPagesByBookId[snapshot.bookId] ?? snapshot.page
+    let effectiveThreshold: Int
+    if let pageCount = segmentPageRangeByBookId[snapshot.bookId]?.count, pageCount > 0 {
+      effectiveThreshold = min(threshold, max(0, pageCount - 1))
+    } else {
+      effectiveThreshold = threshold
+    }
+    return abs(snapshot.page - startPage) >= effectiveThreshold
   }
 
   private func dispatchProgressChange(
@@ -1335,17 +1362,29 @@ class ReaderViewModel {
     if let previousSnapshot,
       previousSnapshot.bookId != currentSnapshot?.bookId
     {
-      logger.debug(
-        "🚿 [Progress/Page] Flush committed book boundary: book=\(previousSnapshot.bookId), page=\(previousSnapshot.page), completed=\(previousSnapshot.completed)"
-      )
-      await ReaderProgressDispatchService.shared.flushPageProgress(
-        bookId: previousSnapshot.bookId,
-        snapshotPage: previousSnapshot.page,
-        snapshotCompleted: previousSnapshot.completed
-      )
+      if isProgressRecordingEligible(previousSnapshot) {
+        logger.debug(
+          "🚿 [Progress/Page] Flush committed book boundary: book=\(previousSnapshot.bookId), page=\(previousSnapshot.page), completed=\(previousSnapshot.completed)"
+        )
+        await ReaderProgressDispatchService.shared.flushPageProgress(
+          bookId: previousSnapshot.bookId,
+          snapshotPage: previousSnapshot.page,
+          snapshotCompleted: previousSnapshot.completed
+        )
+      } else {
+        logger.debug(
+          "⏭️ [Progress/Page] Skip boundary flush: below recording threshold, book=\(previousSnapshot.bookId), page=\(previousSnapshot.page)"
+        )
+      }
     }
 
     guard let currentSnapshot else { return }
+    guard isProgressRecordingEligible(currentSnapshot) else {
+      logger.debug(
+        "⏭️ [Progress/Page] Skip dispatch: below recording threshold, book=\(currentSnapshot.bookId), page=\(currentSnapshot.page)"
+      )
+      return
+    }
     logger.debug(
       "📝 [Progress/Page] Dispatch committed snapshot: book=\(currentSnapshot.bookId), page=\(currentSnapshot.page), completed=\(currentSnapshot.completed)"
     )

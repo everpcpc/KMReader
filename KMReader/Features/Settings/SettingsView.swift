@@ -28,6 +28,9 @@ struct SettingsView: View {
       }
 
       Section {
+        NavigationLink(value: NavDestination.settingsReading) {
+          SettingsSectionRow(section: .reading)
+        }
         NavigationLink(value: NavDestination.settingsDivinaReader) {
           SettingsSectionRow(section: .divinaReader)
         }
@@ -87,9 +90,11 @@ struct SettingsView: View {
         NavigationLink(value: NavDestination.settingsSSE) {
           SettingsSectionRow(section: .sse)
         }
-        NavigationLink(value: NavDestination.settingsSystemFeatures) {
-          SettingsSectionRow(section: .systemFeatures)
-        }
+        #if os(iOS)
+          NavigationLink(value: NavDestination.settingsSystemFeatures) {
+            SettingsSectionRow(section: .systemFeatures)
+          }
+        #endif
         #if os(iOS) || os(macOS)
           NavigationLink(value: NavDestination.settingsSpotlight) {
             SettingsSectionRow(section: .spotlight)

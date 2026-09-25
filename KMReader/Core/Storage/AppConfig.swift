@@ -860,6 +860,20 @@ enum AppConfig {
     }
   }
 
+  /// Page turns from the session's starting page required before read progress
+  /// is recorded; 0 records immediately. Guards against accidental reader opens.
+  static nonisolated var progressRecordingThreshold: Int {
+    get {
+      if UserDefaults.standard.object(forKey: "progressRecordingThreshold") != nil {
+        return UserDefaults.standard.integer(forKey: "progressRecordingThreshold")
+      }
+      return 3
+    }
+    set {
+      UserDefaults.standard.set(max(0, newValue), forKey: "progressRecordingThreshold")
+    }
+  }
+
   static nonisolated var animateEpubTapTurns: Bool {
     get {
       if UserDefaults.standard.object(forKey: "animateEpubTapTurns") != nil {

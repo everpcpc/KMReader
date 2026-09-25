@@ -35,6 +35,7 @@
 
     private var bookId: String = ""
     private var downloadInfo: DownloadInfo?
+    private var sessionStartPageNumber: Int?
 
     init(incognito: Bool) {
       self.incognito = incognito
@@ -52,6 +53,7 @@
       isSearching = false
       searchResults = []
       tableOfContents = []
+      sessionStartPageNumber = nil
     }
 
     func updateDownloadProgress(notification: Notification) {
@@ -136,6 +138,7 @@
           initialPageNumber = 1
           currentPageNumber = 1
         }
+        sessionStartPageNumber = currentPageNumber > 0 ? currentPageNumber : nil
         tableOfContents = buildTableOfContents(from: document)
         downloadProgress = 1.0
         loadingStage = .idle
@@ -181,9 +184,20 @@
         return
       }
 
+      if sessionStartPageNumber == nil {
+        sessionStartPageNumber = normalizedPage
+      }
       let completed = currentPageNumber >= normalizedTotal
       let snapshotPage = currentPageNumber
       let snapshotBookId = bookId
+
+      guard isProgressRecordingEligible(page: snapshotPage, totalPages: normalizedTotal, completed: completed)
+      else {
+        logger.debug(
+          "⏭️ [Progress/Page] Skip PDF capture: below recording threshold, book=\(snapshotBookId), page=\(snapshotPage)"
+        )
+        return
+      }
 
       logger.debug(
         "📝 [Progress/Page] Captured from PDF reader: book=\(snapshotBookId), page=\(snapshotPage), completed=\(completed)"
@@ -196,6 +210,16 @@
           completed: completed
         )
       }
+    }
+
+    private func isProgressRecordingEligible(page: Int, totalPages: Int, completed: Bool) -> Bool {
+      let threshold = AppConfig.progressRecordingThreshold
+      guard threshold > 0 else { return true }
+      // Reaching the last page is always deliberate enough to record.
+      if completed { return true }
+      let startPage = sessionStartPageNumber ?? page
+      let effectiveThreshold = totalPages > 0 ? min(threshold, max(0, totalPages - 1)) : threshold
+      return abs(page - startPage) >= effectiveThreshold
     }
 
     func flushProgress() {
@@ -211,6 +235,16 @@
         return snapshotPage >= pageCount
       }()
       let snapshotBookId = bookId
+
+      if let snapshotPage,
+        !isProgressRecordingEligible(
+          page: snapshotPage, totalPages: pageCount, completed: snapshotCompleted ?? false)
+      {
+        logger.debug(
+          "⏭️ [Progress/Page] Skip PDF flush: below recording threshold, book=\(snapshotBookId), page=\(snapshotPage)"
+        )
+        return
+      }
 
       logger.debug(
         "🚿 [Progress/Page] Flush requested from PDF reader: book=\(snapshotBookId), hasCurrentPage=\(snapshotPage != nil)"

@@ -92,6 +92,7 @@
     private var downloadResumeTask: Task<Void, Never>?
     private var lastUpdateTime: Date = Date()
     private let updateThrottleInterval: TimeInterval = 2.0
+    private var sessionStartGlobalPage: Int?
     private let logger = AppLogger(.reader)
     private var viewportSize: CGSize = .zero
     private var preferences: EpubThemePreferences = .init()
@@ -202,6 +203,7 @@
       initialChapterIndex = nil
       initialProgression = nil
       progressSubmissionSuppressed = false
+      sessionStartGlobalPage = nil
 
       do {
         logger.debug("WebPub load started for bookId=\(bookId)")
@@ -594,6 +596,16 @@
         return
       }
 
+      if sessionStartGlobalPage == nil {
+        sessionStartGlobalPage = pageOffsetBeforeChapter(chapterIndex) + pageIndex + 1
+      }
+      guard isProgressRecordingEligible(chapterIndex: chapterIndex, pageIndex: pageIndex) else {
+        logger.debug(
+          "⏭️ [Progress/Epub] Skip capture: below recording threshold, book=\(bookId), chapterIndex=\(chapterIndex), pageIndex=\(pageIndex)"
+        )
+        return
+      }
+
       let now = Date()
       let elapsed = now.timeIntervalSince(lastUpdateTime)
       guard elapsed >= updateThrottleInterval else {
@@ -633,6 +645,12 @@
         logger.warning("⚠️ [Progress/Epub] Skip flush: missing book ID")
         return
       }
+      guard isProgressRecordingEligible(chapterIndex: chapterIndex, pageIndex: pageIndex) else {
+        logger.debug(
+          "⏭️ [Progress/Epub] Skip flush: below recording threshold, book=\(bookId), chapterIndex=\(chapterIndex), pageIndex=\(pageIndex)"
+        )
+        return
+      }
 
       let snapshotBookId = bookId
       logger.debug(
@@ -646,6 +664,21 @@
 
     var chapterCount: Int {
       readingOrder.count
+    }
+
+    private func isProgressRecordingEligible(chapterIndex: Int, pageIndex: Int) -> Bool {
+      let threshold = AppConfig.progressRecordingThreshold
+      guard threshold > 0 else { return true }
+      let globalPage = pageOffsetBeforeChapter(chapterIndex) + pageIndex + 1
+      if let lastPosition = lastPagePosition(),
+        chapterIndex >= lastPosition.chapterIndex, pageIndex >= lastPosition.pageIndex
+      {
+        return true
+      }
+      let startPage = sessionStartGlobalPage ?? globalPage
+      let totalPages = totalPageCount()
+      let effectiveThreshold = totalPages > 0 ? min(threshold, max(0, totalPages - 1)) : threshold
+      return abs(globalPage - startPage) >= effectiveThreshold
     }
 
     var hasContent: Bool {
