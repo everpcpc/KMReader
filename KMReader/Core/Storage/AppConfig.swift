@@ -280,20 +280,20 @@ enum AppConfig {
   }
 
   /// Carries over the Keep Reading horizontal-card toggle removed in 6.5
-  /// (`dashboardHorizontalBookCards`, on by default), which per-section card
-  /// kinds replaced: users who turned it off keep large cards unless they have
-  /// already picked a card kind for Keep Reading. Runs once, since it removes
-  /// the old key. Remove once upgrades from 6.4 are no longer expected.
+  /// (`dashboardHorizontalBookCards`, on by default): off meant the regular
+  /// book card, so it maps to a Keep Reading `large` override. Remove once
+  /// upgrades from 6.4 are no longer expected.
   static nonisolated func migrateLegacyHorizontalBookCards() {
     let legacyKey = "dashboardHorizontalBookCards"
     guard UserDefaults.standard.object(forKey: legacyKey) != nil else { return }
-    let wasHorizontal = UserDefaults.standard.bool(forKey: legacyKey)
+    if !UserDefaults.standard.bool(forKey: legacyKey) {
+      var configuration = dashboard
+      if configuration.cardKindOverrides[.keepReading] == nil {
+        configuration.cardKindOverrides[.keepReading] = .large
+        dashboard = configuration
+      }
+    }
     UserDefaults.standard.removeObject(forKey: legacyKey)
-    guard !wasHorizontal else { return }
-    var configuration = dashboard
-    guard configuration.cardKindOverrides[.keepReading] == nil else { return }
-    configuration.cardKindOverrides[.keepReading] = .large
-    dashboard = configuration
   }
 
   static nonisolated var maxPageCacheSize: Int {
