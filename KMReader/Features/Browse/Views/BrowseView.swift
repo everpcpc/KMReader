@@ -187,24 +187,22 @@ struct BrowseView: View {
           #endif
         }
 
-        ToolbarItem(placement: .confirmationAction) {
-          Menu {
+        ToolbarItemGroup(placement: .confirmationAction) {
+          if effectiveContent == .series || effectiveContent == .books {
             Button {
-              deferMenuActionPresentation { showFilterSheet = true }
+              showSavedFilters = true
             } label: {
-              Label(String(localized: "Filter"), systemImage: "line.3.horizontal.decrease.circle")
+              Image(systemName: "bookmark")
             }
-
-            if effectiveContent == .series || effectiveContent == .books {
-              Button {
-                deferMenuActionPresentation { showSavedFilters = true }
-              } label: {
-                Label(String(localized: "Saved Filters"), systemImage: "bookmark")
-              }
-            }
-          } label: {
-            Image(systemName: "ellipsis")
+            .accessibilityLabel(String(localized: "Saved Filters"))
           }
+
+          Button {
+            showFilterSheet = true
+          } label: {
+            Image(systemName: "line.3.horizontal.decrease")
+          }
+          .accessibilityLabel(String(localized: "Filter"))
         }
       }
       .sheet(isPresented: $showLibraryPicker) {
