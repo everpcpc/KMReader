@@ -83,6 +83,8 @@ Subsystem conventions and invariants for KMReader. `AGENTS.md` holds repo-wide r
 
 - `.refreshable` closures must await the reload they trigger, so the refresh control dismisses onto settled content instead of racing in-flight view updates.
 - Dashboard manual refreshes suspend in `DashboardRefreshCoordinator` until every rendered section acknowledges the command (section views register on appear/disappear).
+- The Dashboard pull gesture leaves the toolbar untouched (`showsToolbarIndicator: false`): the refresh control is the gesture's own indicator, and swapping the trailing toolbar item mid-gesture stutters the pin/bounce-back animations. The toolbar spinner remains for menu- and code-triggered refreshes, which have no gesture. Pages whose reload can finish near-instantly (Dashboard, Offline) use `refreshableWithMinimumHold` so the control stays up for a minimum visible time instead of snapping back.
+- On iPhone the Offline page pins its search bar (`navigationBarDrawer(displayMode: .always)`): in automatic mode the drawer's hide/reveal animation fights the refresh control during the pull. iPad/macOS keep `.automatic` — their search field lives in the toolbar and never conflicts.
 - `OfflineView` awaits the browse view models it owns and shares with `OfflineSeriesBrowseView`/`OfflineBooksBrowseView`, whose `refreshBrowse()` re-runs the view model's current query; library-selection and account-switch reloads instead bump a `refreshTrigger` passed to those child views, so the reload runs through the child and captures the current `libraryIds` rather than replaying the view model's stale query.
 
 ### Read Lists in Progress
@@ -158,5 +160,5 @@ Subsystem conventions and invariants for KMReader. `AGENTS.md` holds repo-wide r
 ### Settings Pages
 
 - Settings pages: top-level groups are Reader / Display / Server (iPhone only) / Behavior / Advanced / About.
-- Settings shared by all readers (DIVINA, EPUB, PDF) live in the Reader group's first entry, `SettingsSection.reading` (`ReaderPreferencesView`) — never in the DIVINA-only `ReaderSettingsSheet` or the per-reader preference pages; reading-session feature toggles (Keep Screen Awake, Reader Live Activity) live there too.
+- Settings shared by all readers (DIVINA, EPUB, PDF) live in the Reader group's first entry, `SettingsSection.reading` (`ReaderPreferencesView`) — never in the DIVINA-only `ReaderSettingsSheet` or the per-reader preference pages; reading-session feature toggles (Keep Screen Awake, Reader Live Activity) live there too, as do the offline-reading preference toggles (Offline-first Reading, Auto Delete Read Books, in the page's first section) — not on the Download Tasks page.
 - `SettingsSystemFeaturesView` keeps Handoff only and is not linked on tvOS; new pages register a `SettingsSection` case and use `SettingsBadgeRow`/`SettingsSectionRow` entries.
