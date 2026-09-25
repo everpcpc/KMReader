@@ -89,6 +89,17 @@ struct OfflineView: View {
     resolvedOfflineContent == .books ? .books : .series
   }
 
+  /// Pins the search bar only on iPhone: there it renders as a drawer row whose
+  /// hide/reveal animation fights the refresh control during pull-to-refresh.
+  /// iPad and macOS keep the search field in the toolbar, which never conflicts.
+  private var searchPlacement: SearchFieldPlacement {
+    #if os(iOS)
+      return PlatformHelper.isPad ? .automatic : .navigationBarDrawer(displayMode: .always)
+    #else
+      return .automatic
+    #endif
+  }
+
   var body: some View {
     ScrollView {
       VStack(spacing: 0) {
@@ -134,9 +145,9 @@ struct OfflineView: View {
       }
     }
     .tabRootNavigationBarTitle(title)
-    .searchable(text: $searchQuery)
+    .searchable(text: $searchQuery, placement: searchPlacement)
     #if os(iOS) || os(macOS)
-      .refreshable {
+      .refreshableWithMinimumHold {
         await refreshOfflinePage()
       }
       .task(id: current.instanceId) {
