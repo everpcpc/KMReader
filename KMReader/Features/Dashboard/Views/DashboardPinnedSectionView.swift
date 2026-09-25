@@ -27,14 +27,6 @@ struct DashboardPinnedSectionView: View {
     _viewModel = State(initialValue: DashboardPinnedSectionViewModel(section: section))
   }
 
-  private var pinnedCollections: [CollectionDisplayItem] {
-    viewModel.pinnedCollections
-  }
-
-  private var pinnedReadLists: [ReadListDisplayItem] {
-    viewModel.pinnedReadLists
-  }
-
   private var isSupportedSection: Bool {
     switch section.contentKind {
     case .collections, .readLists:
@@ -47,9 +39,9 @@ struct DashboardPinnedSectionView: View {
   private var hasItems: Bool {
     switch section.contentKind {
     case .collections:
-      return !pinnedCollections.isEmpty
+      return !viewModel.pinnedCollections.isEmpty
     case .readLists:
-      return !pinnedReadLists.isEmpty
+      return !viewModel.pinnedReadLists.isEmpty
     default:
       return false
     }
@@ -58,9 +50,9 @@ struct DashboardPinnedSectionView: View {
   private var itemIds: [String] {
     switch section.contentKind {
     case .collections:
-      return pinnedCollections.map(\.collectionId)
+      return viewModel.pinnedCollections.map(\.collectionId)
     case .readLists:
-      return pinnedReadLists.map(\.readListId)
+      return viewModel.pinnedReadLists.map(\.readListId)
     default:
       return []
     }
@@ -140,7 +132,7 @@ struct DashboardPinnedSectionView: View {
               LazyHStack(alignment: .top, spacing: spacing) {
                 switch section.contentKind {
                 case .collections:
-                  ForEach(pinnedCollections) { collection in
+                  ForEach(viewModel.pinnedCollections) { collection in
                     CollectionHorizontalCardView(
                       item: collection,
                       coverWidth: horizontalCoverWidth,
@@ -154,7 +146,7 @@ struct DashboardPinnedSectionView: View {
                     .frame(width: horizontalCardWidth)
                   }
                 case .readLists:
-                  ForEach(pinnedReadLists) { readList in
+                  ForEach(viewModel.pinnedReadLists) { readList in
                     ReadListHorizontalCardView(
                       item: readList,
                       coverWidth: horizontalCoverWidth,
@@ -228,13 +220,13 @@ struct DashboardPinnedSectionView: View {
       }
       .onAppear {
         DashboardRefreshCoordinator.shared.registerSection(section)
-        viewModel.refreshIfIdle(instanceId: currentInstanceId)
+        viewModel.refreshIfNeeded(instanceId: currentInstanceId)
       }
       .onDisappear {
         DashboardRefreshCoordinator.shared.unregisterSection(section)
       }
       .onChange(of: currentInstanceId) { _, instanceId in
-        viewModel.refreshIfIdle(instanceId: instanceId)
+        viewModel.refreshIfNeeded(instanceId: instanceId)
       }
     }
   }
