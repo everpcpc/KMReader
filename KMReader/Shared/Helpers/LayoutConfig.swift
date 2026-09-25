@@ -24,11 +24,7 @@ struct LayoutConfig {
       // band instead of scaling up from iPhone.
       return 128
     #else
-      if UIDevice.current.userInterfaceIdiom == .pad {
-        return 192
-      } else {
-        return 160
-      }
+      return 160
     #endif
   }
 
