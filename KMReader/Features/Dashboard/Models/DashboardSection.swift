@@ -128,15 +128,21 @@ enum DashboardSection: String, CaseIterable, Identifiable, Codable, Sendable {
   }
 
   /// Card kinds the user can pick for this section. Series has no horizontal
-  /// card; pinned sections only render as horizontal cards.
+  /// card; pinned sections only render as horizontal cards; recently added
+  /// books is a showcase section, so it offers large/small only.
   var availableCardKinds: [DashboardCardKind] {
-    switch contentKind {
-    case .books:
-      return [.large, .small, .horizontal]
-    case .series:
+    switch self {
+    case .recentlyAddedBooks:
       return [.large, .small]
-    case .collections, .readLists:
-      return [.horizontal]
+    default:
+      switch contentKind {
+      case .books:
+        return [.large, .small, .horizontal]
+      case .series:
+        return [.large, .small]
+      case .collections, .readLists:
+        return [.horizontal]
+      }
     }
   }
 
@@ -291,8 +297,12 @@ struct DashboardConfiguration: Equatable, RawRepresentable, Sendable {
   }
 
   /// Effective card kind for a section: user override, else the section default.
+  /// Overrides no longer available for the section are ignored.
   func cardKind(for section: DashboardSection) -> DashboardCardKind {
-    cardKindOverrides[section] ?? section.cardKind
+    if let override = cardKindOverrides[section], section.availableCardKinds.contains(override) {
+      return override
+    }
+    return section.cardKind
   }
 
   mutating func setCardKind(_ kind: DashboardCardKind, for section: DashboardSection) {

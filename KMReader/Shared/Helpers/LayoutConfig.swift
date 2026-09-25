@@ -49,29 +49,31 @@ struct LayoutConfig {
   /// Small dashboard card width (utility sections, e.g. on deck, series).
   static var dashboardSmallCardWidth: CGFloat {
     #if os(tvOS)
-      return 173
+      return 190
     #elseif os(macOS)
-      return 92
+      return 100
     #else
       if UIDevice.current.userInterfaceIdiom == .pad {
-        return 86
+        return 96
       } else {
-        return 72
+        return 80
       }
     #endif
   }
 
   /// Width of horizontal cards (dashboard book sections, pinned read lists/collections).
+  /// iOS/tvOS tie it to the small card by φ² so the strip stays balanced next
+  /// to small cards; macOS keeps its denser band, already below that ratio.
   static var horizontalCardWidth: CGFloat {
     #if os(tvOS)
-      return 528
+      return 497
     #elseif os(macOS)
       return 224
     #else
       if UIDevice.current.userInterfaceIdiom == .pad {
-        return 264
+        return 251
       } else {
-        return 220
+        return 209
       }
     #endif
   }
@@ -83,9 +85,9 @@ struct LayoutConfig {
     // title + bottom bar ≈ 70pt on iPhone) so the cover, not the text,
     // drives the card height.
     #if os(tvOS)
-      return min(max(cardWidth * 0.23, 56), 140)
+      return min(max(cardWidth * 0.24, 56), 140)
     #else
-      return min(max(cardWidth * 0.23, 32), 96)
+      return min(max(cardWidth * 0.24, 32), 96)
     #endif
   }
 

@@ -104,8 +104,8 @@ struct BookHorizontalCardView: View {
           width: coverWidth,
           preserveAspectRatioOverride: false
         ) {
-          if item.isUnread && thumbnailShowUnreadIndicator {
-            UnreadIndicator(size: LayoutConfig.cardBadgeSize(cardWidth: coverWidth))
+          if item.isCompleted && thumbnailShowUnreadIndicator {
+            CompletedIndicator(size: LayoutConfig.cardBadgeSize(cardWidth: coverWidth))
               .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
           }
         }

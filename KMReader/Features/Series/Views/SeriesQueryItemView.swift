@@ -56,7 +56,7 @@ struct SeriesQueryItemView: View {
           )
         }
       } else {
-        CardPlaceholder(layout: layout, kind: .series, cardWidth: cardWidth)
+        CardPlaceholder(layout: layout, kind: .series, cardWidth: cardWidth, coverOnly: coverOnly)
       }
     }
     .task(id: "\(current.instanceId)|\(seriesId)") {

@@ -10,7 +10,7 @@ struct SettingsBrowseCardPreview: View {
   let subtitle: String?
   let detail: String
   let unreadCount: Int?
-  let showUnreadDot: Bool
+  let showCompletedBadge: Bool
   let shouldBlurCover: Bool
   let progress: Double?
 
@@ -36,7 +36,7 @@ struct SettingsBrowseCardPreview: View {
     subtitle: String? = nil,
     detail: String,
     unreadCount: Int? = nil,
-    showUnreadDot: Bool = false,
+    showCompletedBadge: Bool = false,
     shouldBlurCover: Bool = false,
     progress: Double? = nil
   ) {
@@ -44,7 +44,7 @@ struct SettingsBrowseCardPreview: View {
     self.subtitle = subtitle
     self.detail = detail
     self.unreadCount = unreadCount
-    self.showUnreadDot = showUnreadDot
+    self.showCompletedBadge = showCompletedBadge
     self.shouldBlurCover = shouldBlurCover
     self.progress = progress
   }
@@ -54,8 +54,8 @@ struct SettingsBrowseCardPreview: View {
     return progress > 0 && progress < 1 && thumbnailShowProgressBar
   }
 
-  private var shouldShowUnreadDot: Bool {
-    showUnreadDot && thumbnailShowUnreadIndicator
+  private var shouldShowCompletedBadge: Bool {
+    showCompletedBadge && thumbnailShowUnreadIndicator
   }
 
   private var shouldShowUnreadBadge: Bool {
@@ -180,8 +180,8 @@ struct SettingsBrowseCardPreview: View {
             cornerRadius: imageCornerRadius
           )
           .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-        } else if shouldShowUnreadDot {
-          UnreadIndicator(
+        } else if shouldShowCompletedBadge {
+          CompletedIndicator(
             size: LayoutConfig.cardBadgeSize(cardWidth: LayoutConfig.gridCardWidth),
             cornerRadius: imageCornerRadius
           )

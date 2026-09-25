@@ -68479,61 +68479,61 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Indikator für ungelesene Bücher anzeigen"
+            "value" : "Zeigt die Anzahl ungelesener Bücher auf Seriencovern und Abgeschlossen-Badges auf Buchcovern an"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Display unread indicators on book and series covers"
+            "value" : "Display unread counts on series covers and completed badges on book covers"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mostrar indicadores de no leido en portadas de libros y series"
+            "value" : "Muestra el número de libros no leídos en las portadas de las series y las insignias de completado en las portadas de los libros"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Afficher les indicateurs non lus sur les couvertures de livres et de séries"
+            "value" : "Affiche le nombre de livres non lus sur les couvertures des séries et les badges de lecture terminée sur les couvertures des livres"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mostra indicatori di non letto sulle copertine di libri e serie"
+            "value" : "Mostra il numero di libri non letti sulle copertine delle serie e i badge di completamento sulle copertine dei libri"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "書籍とシリーズのカバーに未読表示を表示"
+            "value" : "シリーズのカバーに未読数、本のカバーに読了バッジを表示します"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "책과 시리즈 커버에 미읽음 표시를 표시합니다"
+            "value" : "시리즈 표지에는 읽지 않은 책 수를, 책 표지에는 완독 배지를 표시합니다"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Показывать индикаторы непрочитанного на обложках книг и серий"
+            "value" : "Показывать количество непрочитанных книг на обложках серий и значки прочитанного на обложках книг"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在书籍与系列封面上显示未读标识"
+            "value" : "在系列封面显示未读数量，在书籍封面显示已读标识"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在書籍與系列封面上顯示未讀標識"
+            "value" : "在系列封面顯示未讀數量，在書籍封面顯示已讀標識"
           }
         }
       }
@@ -68543,61 +68543,61 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ungelesen-Indikator"
+            "value" : "Badges auf Covern anzeigen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Show Unread Indicators on Covers"
+            "value" : "Show Badges on Covers"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mostrar indicadores de no leido en portadas"
+            "value" : "Mostrar insignias en las portadas"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Afficher les indicateurs non lus sur les couvertures"
+            "value" : "Afficher les badges sur les couvertures"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mostra indicatori non letto sulle copertine"
+            "value" : "Mostra badge sulle copertine"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "カバーの未読表示を表示"
+            "value" : "カバーにバッジを表示"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "커버 미읽음 표시 보기"
+            "value" : "표지에 배지 표시"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Показывать индикаторы непрочитанного на обложках"
+            "value" : "Показывать значки на обложках"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "显示封面未读标识"
+            "value" : "显示封面角标"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "顯示封面未讀標識"
+            "value" : "顯示封面角標"
           }
         }
       }

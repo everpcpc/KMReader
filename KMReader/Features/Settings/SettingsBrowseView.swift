@@ -52,8 +52,7 @@ struct SettingsBrowseView: View {
             title: "#1 - Book Title",
             subtitle: "Series Title",
             detail: "200 pages",
-            showUnreadDot: true,
-            shouldBlurCover: true
+            showCompletedBadge: true
           )
           .frame(maxWidth: .infinity)
         }

@@ -12,9 +12,9 @@ struct BookCardView: View {
   var onDeleteRequested: (() -> Void)? = nil
   var showSeriesTitle: Bool = false
   var showSeriesNavigation: Bool = true
-  var showUnreadIndicator: Bool = true
-  /// Small dashboard cards are cover-only: at 72pt every text line truncates
-  /// and stops carrying information.
+  var showCompletedIndicator: Bool = true
+  /// Small dashboard cards are cover-only: at that width every text line
+  /// truncates and stops carrying information.
   var coverOnly: Bool = false
   /// Text styles and the corner badge scale with this width.
   var cardWidth: CGFloat = LayoutConfig.gridCardWidth
@@ -49,8 +49,13 @@ struct BookCardView: View {
     (shouldShowSeriesTitle || item.oneshot) ? 1 : 2
   }
 
+  /// Cover-only cards never render the text overlay, even in overlay mode.
+  private var showsTextOverlay: Bool {
+    cardTextOverlayMode && !coverOnly
+  }
+
   var contentSpacing: CGFloat {
-    if cardTextOverlayMode {
+    if showsTextOverlay {
       return 0
     }
     if thumbnailShowProgressBar {
@@ -91,18 +96,18 @@ struct BookCardView: View {
         shadowStyle: .platform,
         contentBlurRadius: coverBlurRadius,
         alignment: .bottom,
-        preserveAspectRatioOverride: cardTextOverlayMode ? false : nil,
+        preserveAspectRatioOverride: showsTextOverlay ? false : nil,
         onAction: { onReadBook?(false) }
       ) {
         ZStack {
-          if cardTextOverlayMode {
+          if showsTextOverlay {
             CardTextOverlay(cornerRadius: 8) {
               overlayTextContent
             }
           }
 
-          if item.isUnread && thumbnailShowUnreadIndicator && showUnreadIndicator {
-            UnreadIndicator(size: badgeSize)
+          if item.isCompleted && thumbnailShowUnreadIndicator && showCompletedIndicator {
+            CompletedIndicator(size: badgeSize)
               .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
           }
         }
@@ -130,12 +135,12 @@ struct BookCardView: View {
         )
       }
 
-      if thumbnailShowProgressBar && !cardTextOverlayMode {
+      if thumbnailShowProgressBar && !showsTextOverlay {
         ReadingProgressBar(progress: progress, type: .card)
           .opacity(item.isInProgress ? 1 : 0)
       }
 
-      if !cardTextOverlayMode && !coverOnlyCards && !coverOnly {
+      if !showsTextOverlay && !coverOnlyCards && !coverOnly {
         VStack(alignment: .leading) {
           if item.oneshot {
             Text("Oneshot")

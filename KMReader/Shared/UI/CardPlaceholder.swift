@@ -11,6 +11,7 @@ struct CardPlaceholder: View {
   let kind: CardPlaceholderKind
   var showBookSeriesTitle: Bool = true
   var cardWidth: CGFloat = LayoutConfig.gridCardWidth
+  var coverOnly: Bool = false
 
   @AppStorage("showBookCardSeriesTitle") private var showBookCardSeriesTitle: Bool = true
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
@@ -37,8 +38,13 @@ struct CardPlaceholder: View {
     kind == .book && showBookSeriesTitle && showBookCardSeriesTitle
   }
 
+  /// Cover-only cards never render the text overlay, even in overlay mode.
+  private var showsTextOverlay: Bool {
+    cardTextOverlayMode && !coverOnly
+  }
+
   private var reservesBookProgressBar: Bool {
-    kind == .book && thumbnailShowProgressBar && !cardTextOverlayMode
+    kind == .book && thumbnailShowProgressBar && !showsTextOverlay
   }
 
   private var gridTitleTextStyle: Font.TextStyle {
@@ -50,7 +56,7 @@ struct CardPlaceholder: View {
   }
 
   private var gridContentSpacing: CGFloat {
-    if cardTextOverlayMode {
+    if showsTextOverlay {
       return 0
     }
     if reservesBookProgressBar {
@@ -77,7 +83,7 @@ struct CardPlaceholder: View {
           .opacity(0)
       }
 
-      if !cardTextOverlayMode && !coverOnlyCards {
+      if !showsTextOverlay && !coverOnlyCards && !coverOnly {
         VStack(alignment: .leading) {
           ForEach(Array(gridLines.enumerated()), id: \.offset) { item in
             placeholderLine(
@@ -97,7 +103,7 @@ struct CardPlaceholder: View {
       RoundedRectangle(cornerRadius: cornerRadius)
         .fill(Color.gray.opacity(0.2))
 
-      if cardTextOverlayMode {
+      if showsTextOverlay {
         CardTextOverlay(cornerRadius: cornerRadius) {
           ForEach(Array(gridLines.enumerated()), id: \.offset) { item in
             placeholderLine(
