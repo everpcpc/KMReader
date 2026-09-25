@@ -33,8 +33,13 @@ struct SeriesDetailView: View {
   /// completions must not resurrect the accessory after the view disappeared.
   @State private var isReadingBarVisible = false
   /// Measured detail-column width driving the single/two-column layout switch.
-  /// Defaults wide on iPad so the first frame doesn't flash the single column.
-  @State private var detailContentWidth: CGFloat = PlatformHelper.isPad ? .infinity : 0
+  /// Defaults wide where the wide layout can engage (iPad, macOS) so the first
+  /// frame doesn't flash the single column.
+  #if os(macOS)
+    @State private var detailContentWidth: CGFloat = .infinity
+  #else
+    @State private var detailContentWidth: CGFloat = PlatformHelper.isPad ? .infinity : 0
+  #endif
   @AppStorage("seriesBookBrowseOptions") private var seriesBookBrowseOptions: BookBrowseOptions =
     BookBrowseOptions()
 
@@ -106,13 +111,16 @@ struct SeriesDetailView: View {
     return true
   }
 
-  /// iPad keeps the two-column layout only while the detail column is wide
-  /// enough for it; a docked sidebar in portrait (and iPad mini in portrait)
-  /// narrows the column below the threshold and falls back to single column.
+  /// The two-column layout engages only while the detail column is wide
+  /// enough for it. iPad additionally requires regular width (a docked sidebar
+  /// in portrait, or iPad mini portrait, narrows the column below the
+  /// threshold); macOS decides by window width alone.
   private var usesWideLayout: Bool {
     #if os(iOS)
       return PlatformHelper.isPad && horizontalSizeClass == .regular
         && detailContentWidth >= wideLayoutMinimumWidth
+    #elseif os(macOS)
+      return detailContentWidth >= wideLayoutMinimumWidth
     #else
       return false
     #endif
