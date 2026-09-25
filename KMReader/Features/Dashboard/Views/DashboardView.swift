@@ -101,7 +101,7 @@ struct DashboardView: View {
   }
 
   @MainActor
-  private func refreshDashboard(reason: String) async {
+  private func refreshDashboard(reason: String, showsToolbarIndicator: Bool = true) async {
     logger.debug("Dashboard refresh requested: \(reason)")
 
     // Check SSE connection status and reconnect if disconnected
@@ -109,12 +109,16 @@ struct DashboardView: View {
       await SSEService.shared.connect()
     }
 
-    withAnimation {
-      isRefreshing = true
+    if showsToolbarIndicator {
+      withAnimation {
+        isRefreshing = true
+      }
     }
     await DashboardSectionRefreshNotifier.postAll(source: .manual, reason: reason)
-    withAnimation {
-      isRefreshing = false
+    if showsToolbarIndicator {
+      withAnimation {
+        isRefreshing = false
+      }
     }
   }
 
@@ -273,8 +277,11 @@ struct DashboardView: View {
           }
         }
       }
-      .refreshable {
-        await refreshDashboard(reason: "Pull to refresh")
+      .refreshableWithMinimumHold {
+        // The refresh control is the pull gesture's own indicator, so the
+        // toolbar stays untouched; swapping it mid-gesture stutters the
+        // pin and bounce-back animations.
+        await refreshDashboard(reason: "Pull to refresh", showsToolbarIndicator: false)
       }
       .sheet(isPresented: $showLibraryPicker) {
         LibraryPickerSheet()

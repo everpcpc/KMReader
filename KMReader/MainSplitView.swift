@@ -33,7 +33,11 @@ import SwiftUI
       } detail: {
         NavigationStack(path: $detailPath) {
           if let nav {
+            // Recreate the detail root per selection: same-type swaps
+            // (collection A → B) otherwise keep the previous view's state,
+            // leaving stale content behind.
             detailContent(for: nav)
+              .id(nav)
           } else {
             ContentUnavailableView {
               Label(String(localized: "Select a Category"), systemImage: "sidebar.left")

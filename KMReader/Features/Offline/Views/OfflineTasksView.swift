@@ -11,10 +11,7 @@ struct OfflineTasksView: View {
   @AppStorage("isOffline") private var isOffline: Bool = false
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
   @AppStorage("offlinePaused") private var isPaused: Bool = false
-  @AppStorage("offlineAutoDeleteRead") private var autoDeleteRead: Bool = false
-  @AppStorage("offlineFirstReading") private var offlineFirstReading: Bool = false
   @State private var showingBulkAlert = false
-  @State private var showingAutoDeleteAlert = false
   @State private var pendingBulkAction: BulkAction?
   @State private var tasks: [OfflineTaskItem] = []
   @State private var progressTracker = DownloadProgressTracker.shared
@@ -59,55 +56,8 @@ struct OfflineTasksView: View {
     )
   }
 
-  private var autoDeleteReadBinding: Binding<Bool> {
-    Binding(
-      get: { autoDeleteRead },
-      set: { newValue in
-        if newValue {
-          showingAutoDeleteAlert = true
-        } else {
-          withAnimation {
-            autoDeleteRead = false
-          }
-        }
-      }
-    )
-  }
-
   var body: some View {
     Form {
-      Section {
-        Toggle(isOn: $offlineFirstReading) {
-          VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 6) {
-              Image(systemName: offlineFirstReading ? "arrow.down.circle.fill" : "arrow.down.circle")
-              Text(String(localized: "Offline-first Reading"))
-            }
-            Text(
-              String(localized: "Download books before opening them, then read from local storage.")
-            )
-            .font(.caption)
-            .foregroundStyle(.secondary)
-          }
-        }
-
-        Toggle(
-          isOn: autoDeleteReadBinding
-        ) {
-          VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 6) {
-              Image(systemName: autoDeleteRead ? "checkmark.circle.fill" : "circle")
-              Text(String(localized: "settings.offline.auto_delete_read"))
-            }
-            Text(String(localized: "settings.offline.auto_delete_read.message"))
-              .font(.caption)
-              .foregroundStyle(.secondary)
-          }
-        }
-      } header: {
-        Text(String(localized: "Offline Reading"))
-      }
-
       Section {
         Toggle(
           isOn: downloadsEnabledBinding
@@ -259,23 +209,6 @@ struct OfflineTasksView: View {
       Task {
         await loadTasks()
       }
-    }
-    .alert(
-      String(localized: "settings.offline.auto_delete_read"),
-      isPresented: $showingAutoDeleteAlert
-    ) {
-      Button(String(localized: "Cancel"), role: .cancel) {}
-      Button(String(localized: "Confirm"), role: .destructive) {
-        withAnimation {
-          autoDeleteRead = true
-          isPaused = true
-        }
-        ErrorManager.shared.notify(
-          message: String(localized: "notification.offline.autoDeleteReadEnabled")
-        )
-      }
-    } message: {
-      Text(String(localized: "settings.offline.auto_delete_read.message"))
     }
   }
 

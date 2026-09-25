@@ -8,6 +8,8 @@ import SwiftUI
 /// Settings shared by all readers (DIVINA, EPUB, PDF). Per-reader options
 /// stay in the per-reader pages and the in-reader sheets.
 struct ReaderPreferencesView: View {
+  @AppStorage("offlineFirstReading") private var offlineFirstReading: Bool = false
+  @AppStorage("offlineAutoDeleteRead") private var autoDeleteRead: Bool = false
   @AppStorage("progressRecordingThreshold") private var progressRecordingThreshold: Int =
     AppConfig.progressRecordingThreshold
   #if os(iOS)
@@ -17,8 +19,47 @@ struct ReaderPreferencesView: View {
     @AppStorage("keepScreenAwakeWhileReading") private var keepScreenAwakeWhileReading: Bool = false
   #endif
 
+  @State private var showingAutoDeleteAlert = false
+
+  private var autoDeleteReadBinding: Binding<Bool> {
+    Binding(
+      get: { autoDeleteRead },
+      set: { newValue in
+        if newValue {
+          showingAutoDeleteAlert = true
+        } else {
+          withAnimation {
+            autoDeleteRead = false
+          }
+        }
+      }
+    )
+  }
+
   var body: some View {
     Form {
+      Section(header: Text(String(localized: "Offline Reading"))) {
+        Toggle(isOn: $offlineFirstReading) {
+          VStack(alignment: .leading, spacing: 4) {
+            Text(String(localized: "Offline-first Reading"))
+            Text(
+              String(localized: "Download books before opening them, then read from local storage.")
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+          }
+        }
+
+        Toggle(isOn: autoDeleteReadBinding) {
+          VStack(alignment: .leading, spacing: 4) {
+            Text(String(localized: "settings.offline.auto_delete_read"))
+            Text(String(localized: "settings.offline.auto_delete_read.message"))
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          }
+        }
+      }
+
       Section(header: Text("Reading Progress")) {
         VStack(alignment: .leading, spacing: 8) {
           Picker("Record Progress After", selection: $progressRecordingThreshold) {
@@ -61,6 +102,22 @@ struct ReaderPreferencesView: View {
     }
     .formStyle(.grouped)
     .inlineNavigationBarTitle(SettingsSection.reading.title)
+    .alert(
+      String(localized: "settings.offline.auto_delete_read"),
+      isPresented: $showingAutoDeleteAlert
+    ) {
+      Button(String(localized: "Cancel"), role: .cancel) {}
+      Button(String(localized: "Confirm"), role: .destructive) {
+        withAnimation {
+          autoDeleteRead = true
+        }
+        ErrorManager.shared.notify(
+          message: String(localized: "notification.offline.autoDeleteReadEnabled")
+        )
+      }
+    } message: {
+      Text(String(localized: "settings.offline.auto_delete_read.message"))
+    }
   }
 
   private func progressRecordingThresholdLabel(for value: Int) -> String {
