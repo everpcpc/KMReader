@@ -75,6 +75,15 @@ struct ReadListContinuationCardView: View {
                 Text("•")
               }
               Text(progressText)
+              if let icon = continuation.downloadStatus.displayIcon {
+                Spacer()
+                DownloadStatusIcon(
+                  systemName: icon,
+                  spinning: continuation.downloadStatus.isPending,
+                  color: secondaryTextColor
+                )
+                .font(.system(LayoutConfig.horizontalCardTertiaryTextStyle))
+              }
             }
             .lineLimit(1)
           }

@@ -61,15 +61,23 @@ struct ReadListsInProgressSectionView: View {
       #endif
 
       VStack(alignment: .leading, spacing: 0) {
-        Text(section.displayName)
-          .font(.title2)
-          .bold()
-          .fontDesign(.serif)
-          .padding(.horizontal)
-          .padding(.top)
-          #if os(macOS)
-            .padding(.leading, 16)
-          #endif
+        NavigationLink(value: NavDestination.browseReadLists) {
+          HStack {
+            Text(section.displayName)
+              .font(.title2)
+              .bold()
+              .fontDesign(.serif)
+            Image(systemName: "chevron.right")
+              .foregroundStyle(.secondary)
+          }
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal)
+        .padding(.top)
+        #if os(macOS)
+          .padding(.leading, 16)
+        #endif
+        .disabled(continuations.isEmpty)
 
         ScrollViewReader { proxy in
           ScrollView(.horizontal, showsIndicators: false) {

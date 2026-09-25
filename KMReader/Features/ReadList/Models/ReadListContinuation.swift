@@ -15,6 +15,8 @@ nonisolated struct ReadListContinuation: Equatable, Sendable {
   let bookTitle: String
   /// How much of `bookId` is read while it is in progress; nil while unread.
   let bookProgress: Double?
+  /// Offline status of `bookId`, shown as the card's download icon.
+  let downloadStatus: DownloadStatus
   let libraryId: String
   let booksRead: Int
   let bookCount: Int

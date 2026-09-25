@@ -231,6 +231,7 @@ extension DatabaseOperator {
               bookId: book.bookId,
               bookTitle: book.oneshot ? book.metaTitle : "\(book.metaNumber) - \(book.metaTitle)",
               bookProgress: bookProgress,
+              downloadStatus: book.downloadStatus,
               libraryId: book.libraryId,
               booksRead: booksRead,
               bookCount: bookIds.count,

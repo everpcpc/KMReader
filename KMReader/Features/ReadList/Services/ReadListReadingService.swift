@@ -169,15 +169,14 @@ final class ReadListReadingService {
     snapshotInstanceId = instanceId
   }
 
-  /// Continuations are derived from book progress and read list membership, so
-  /// local changes to either re-derive them, wherever they came from (the
-  /// reader, a sync, another device through SSE).
+  /// Continuations are derived from book progress, download status, and read
+  /// list membership, so local changes to any of them re-derive them, wherever
+  /// they came from (the reader, a sync, another device through SSE).
   private func observeContentChanges() {
     contentObserverTasks.append(
       Task { @MainActor [weak self] in
-        for await notification in NotificationCenter.default.notifications(named: .bookProjectionDidChange) {
-          let reasons = ContentProjectionNotifier.changeReasons(from: notification)
-          guard let self, !activeReadListIds.isEmpty, reasons != [.downloadStatus] else { continue }
+        for await _ in NotificationCenter.default.notifications(named: .bookProjectionDidChange) {
+          guard let self, !activeReadListIds.isEmpty else { continue }
           requestRefresh()
         }
       }
@@ -200,11 +199,15 @@ final class ReadListReadingService {
     if !AppConfig.isOffline {
       do {
         let settings = try await ClientSettingsService.getUserSettings()
-        await database.applyRemoteReadListReadingStates(
-          Self.decodeRemoteStates(settings),
-          instanceId: instanceId
-        )
-        await uploadPendingChanges(instanceId: instanceId, database: database)
+        // A server switch while the pull was in flight must not apply or push
+        // the previous server's read lists.
+        if instanceId == AppConfig.current.instanceId {
+          await database.applyRemoteReadListReadingStates(
+            Self.decodeRemoteStates(settings),
+            instanceId: instanceId
+          )
+          await uploadPendingChanges(instanceId: instanceId, database: database)
+        }
       } catch {
         logger.debug("📚 Skipped read list reading state sync: \(error)")
       }
@@ -213,6 +216,9 @@ final class ReadListReadingService {
   }
 
   private func uploadPendingChanges(instanceId: String, database: DatabaseOperator) async {
+    // Pushes go to the current server; a switch mid-flight must not write the
+    // previous server's state to it.
+    guard instanceId == AppConfig.current.instanceId else { return }
     let pending = await database.fetchReadListReadingStates(instanceId: instanceId).filter(\.needsUpload)
     let updated = pending.filter { !$0.isStopped }
     let stopped = pending.filter(\.isStopped)
