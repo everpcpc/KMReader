@@ -162,10 +162,6 @@ enum DashboardSection: String, CaseIterable, Identifiable, Codable, Sendable {
     }
   }
 
-  static var latestOfflineQueueSections: [DashboardSection] {
-    allCases.filter(\.supportsDownloadLatest)
-  }
-
   var supportsDownloadLatest: Bool {
     switch self {
     case .keepReading, .onDeck, .recentlyReleasedBooks, .recentlyAddedBooks:

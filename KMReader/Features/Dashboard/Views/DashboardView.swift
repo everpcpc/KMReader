@@ -13,7 +13,6 @@ struct DashboardView: View {
   @State private var showLibraryPicker = false
   @State private var showLibraryAddSheet = false
   @State private var isCheckingConnection = false
-  @State private var offlineQueueingSections: Set<DashboardSection> = []
   @State private var scopeLibraries: [SidebarLibraryItem] = []
   @State private var hasLoadedScopeLibraries = false
 
@@ -24,12 +23,7 @@ struct DashboardView: View {
   @AppStorage("isOffline") private var isOffline: Bool = false
 
   private let sseService = SSEService.shared
-  private let sectionCacheStore = DashboardSectionCacheStore.shared
   private let logger = AppLogger(.dashboard)
-
-  private var isQueueingDashboardOffline: Bool {
-    !offlineQueueingSections.isEmpty
-  }
 
   private var showsEmptyLibraryGuidance: Bool {
     hasLoadedScopeLibraries && scopeLibraries.isEmpty && !isOffline
@@ -255,26 +249,6 @@ struct DashboardView: View {
 
               Divider()
 
-              Menu {
-                ForEach(DashboardSection.latestOfflineQueueSections) { section in
-                  Button {
-                    queueDashboardSectionOffline(section)
-                  } label: {
-                    Label(
-                      section.displayName,
-                      systemImage: section.icon
-                    )
-                  }
-                  .disabled(isQueueingDashboardOffline)
-                }
-              } label: {
-                Label(
-                  String(localized: "dashboard.downloadLatest", defaultValue: "Download Latest"),
-                  systemImage: "arrow.down.circle"
-                )
-              }
-              .disabled(isOffline || isQueueingDashboardOffline)
-
               Button {
                 Task {
                   await refreshDashboard(reason: "Manual toolbar button")
@@ -356,83 +330,6 @@ struct DashboardView: View {
       ErrorManager.shared.notify(message: String(localized: "settings.connection_restored"))
       await refreshDashboard(reason: "Reconnected")
     }
-  }
-
-  private func queueDashboardSectionOffline(_ section: DashboardSection) {
-    guard section.supportsDownloadLatest, !current.instanceId.isEmpty, !isOffline else { return }
-    guard !offlineQueueingSections.contains(section) else { return }
-
-    withAnimation {
-      _ = offlineQueueingSections.insert(section)
-    }
-    let instanceId = current.instanceId
-    let libraryIds = dashboard.libraryIds
-
-    Task {
-      defer {
-        Task { @MainActor in
-          withAnimation {
-            offlineQueueingSections.remove(section)
-          }
-        }
-      }
-
-      do {
-        let ids = try await bookIdsForOfflineQueue(section: section, libraryIds: libraryIds)
-        guard !ids.isEmpty else {
-          ErrorManager.shared.notify(
-            message: String(localized: "No books found to queue for offline reading.")
-          )
-          return
-        }
-
-        let queuedCount =
-          await DatabaseOperator.databaseIfConfigured()?.queueBooksOffline(
-            bookIds: ids,
-            instanceId: instanceId
-          ) ?? 0
-
-        if queuedCount > 0 {
-          OfflineManager.shared.triggerSync(instanceId: instanceId)
-          ErrorManager.shared.notify(
-            message: String(
-              format: String(localized: "Queued %lld books for offline reading."),
-              Int64(queuedCount)
-            )
-          )
-        } else {
-          ErrorManager.shared.notify(
-            message: String(localized: "No new books were added to the offline queue.")
-          )
-        }
-      } catch {
-        ErrorManager.shared.alert(error: error)
-      }
-    }
-  }
-
-  private func bookIdsForOfflineQueue(
-    section: DashboardSection,
-    libraryIds: [String]
-  ) async throws -> [String] {
-    let cachedIds = sectionCacheStore.ids(for: section)
-    if !cachedIds.isEmpty {
-      return cachedIds
-    }
-
-    guard
-      let page = try await section.fetchBooks(
-        libraryIds: libraryIds,
-        page: 0,
-        size: 20
-      )
-    else {
-      return []
-    }
-
-    let ids = page.content.map(\.id)
-    _ = sectionCacheStore.updateIfChanged(section: section, ids: ids)
-    return ids
   }
 
   private func enterOfflineMode() {
