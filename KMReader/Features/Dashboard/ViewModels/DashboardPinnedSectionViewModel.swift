@@ -30,7 +30,7 @@ final class DashboardPinnedSectionViewModel {
 
   /// Refreshes when the row appears, joining a refresh already running for
   /// the same server.
-  func refreshIfIdle(instanceId: String) {
+  func refreshIfNeeded(instanceId: String) {
     guard refreshTask == nil || refreshingInstanceId != instanceId else { return }
     startRefresh(instanceId: instanceId)
   }

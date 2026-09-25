@@ -24,10 +24,6 @@ struct DashboardSectionView: View {
     _viewModel = State(initialValue: DashboardSectionViewModel(section: section))
   }
 
-  private var pagination: PaginationState<IdentifiedString> {
-    viewModel.pagination
-  }
-
   private var backgroundColors: [Color] {
     if colorScheme == .dark {
       return [
@@ -97,7 +93,7 @@ struct DashboardSectionView: View {
             }
           }
           .buttonStyle(.plain)
-          .disabled(pagination.isEmpty)
+          .disabled(viewModel.pagination.isEmpty)
 
           Spacer()
 
@@ -127,7 +123,7 @@ struct DashboardSectionView: View {
         ScrollViewReader { proxy in
           ScrollView(.horizontal, showsIndicators: false) {
             LazyHStack(alignment: .top, spacing: spacing) {
-              ForEach(pagination.items) { item in
+              ForEach(viewModel.pagination.items) { item in
                 itemView(for: item.id)
                   .id(item.id)
                   .frame(width: itemWidth)
@@ -146,14 +142,14 @@ struct DashboardSectionView: View {
           #if os(macOS)
             .macHorizontalScrollButtons(
               scrollProxy: proxy,
-              itemIds: pagination.items.map(\.id)
+              itemIds: viewModel.pagination.items.map(\.id)
             )
           #endif
         }
       }
     }
-    .opacity(pagination.isEmpty ? 0 : 1)
-    .frame(height: pagination.isEmpty ? 0 : nil)
+    .opacity(viewModel.pagination.isEmpty ? 0 : 1)
+    .frame(height: viewModel.pagination.isEmpty ? 0 : nil)
     .onReceive(NotificationCenter.default.publisher(for: .dashboardSectionsShouldReload)) {
       notification in
       guard let command = DashboardSectionRefreshNotifier.reloadCommand(from: notification) else {
@@ -204,9 +200,9 @@ struct DashboardSectionView: View {
       return
     }
 
-    if command.source == .auto, pagination.currentPage > 1 {
+    if command.source == .auto, viewModel.pagination.currentPage > 1 {
       logger.debug(
-        "Dashboard section \(section) skipping auto-refresh: deep in pagination (page \(pagination.currentPage))"
+        "Dashboard section \(section) skipping auto-refresh: deep in pagination (page \(viewModel.pagination.currentPage))"
       )
       return
     }
