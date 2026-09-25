@@ -11,15 +11,51 @@ struct CollectionDetailView: View {
   @AppStorage("currentAccount") private var current: Current = .init()
 
   @Environment(\.dismiss) private var dismiss
+  @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
   @State private var item: CollectionDisplayItem?
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
   @State private var showFilterSheet = false
   @State private var showSavedFilters = false
+  /// Measured detail-column width driving the single/two-column layout switch.
+  /// Defaults wide where the wide layout can engage (iPad, macOS) so the first
+  /// frame doesn't flash the single column.
+  #if os(macOS)
+    @State private var detailContentWidth: CGFloat = .infinity
+  #else
+    @State private var detailContentWidth: CGFloat = PlatformHelper.isPad ? .infinity : 0
+  #endif
 
   init(collectionId: String) {
     self.collectionId = collectionId
+  }
+
+  /// The two-column layout engages only while the detail column is wide
+  /// enough for it. iPad additionally requires regular width; macOS decides
+  /// by window width alone.
+  private var usesWideLayout: Bool {
+    #if os(iOS)
+      return PlatformHelper.isPad && horizontalSizeClass == .regular
+        && detailContentWidth >= wideLayoutMinimumWidth
+    #elseif os(macOS)
+      return detailContentWidth >= wideLayoutMinimumWidth
+    #else
+      return false
+    #endif
+  }
+
+  private let wideLayoutMinimumWidth: CGFloat = 960
+
+  /// iPad's single-column fallback (narrow detail column) presents the compact
+  /// centered hero and a capped centered card instead of stretching the
+  /// side-by-side hero and a full-width card across the column.
+  private var usesCompactHeaderLayout: Bool {
+    #if os(iOS)
+      return PlatformHelper.isPad && horizontalSizeClass == .regular
+    #else
+      return false
+    #endif
   }
 
   private var collection: SeriesCollection? {
@@ -35,32 +71,55 @@ struct CollectionDetailView: View {
   }
 
   var body: some View {
-    ScrollView {
-      VStack(alignment: .leading) {
+    Group {
+      if usesWideLayout {
         if let collection = collection {
-
-          #if os(tvOS)
-            collectionToolbarContent
-              .padding(.vertical, 8)
-          #endif
-
-          CollectionDetailContentView(
-            collection: collection
-          ).padding(.horizontal)
-
-          // Series list
-          if item != nil {
-            CollectionSeriesListView(
-              collectionId: collectionId,
-              showFilterSheet: $showFilterSheet,
-              showSavedFilters: $showSavedFilters
-            )
-          }
+          CollectionDetailWideLayoutView(
+            collection: collection,
+            item: item,
+            collectionId: collectionId,
+            availableWidth: detailContentWidth,
+            showFilterSheet: $showFilterSheet,
+            showSavedFilters: $showSavedFilters
+          )
         } else {
           ProgressView()
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+      } else {
+        ScrollView {
+          VStack(alignment: .leading) {
+            if let collection = collection {
+
+              #if os(tvOS)
+                collectionToolbarContent
+                  .padding(.vertical, 8)
+              #endif
+
+              CollectionDetailContentView(
+                collection: collection,
+                forceCompactHero: usesCompactHeaderLayout
+              ).padding(.horizontal)
+
+              // Series list
+              if item != nil {
+                CollectionSeriesListView(
+                  collectionId: collectionId,
+                  showFilterSheet: $showFilterSheet,
+                  showSavedFilters: $showSavedFilters
+                )
+              }
+            } else {
+              ProgressView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+          }
+          .padding(.vertical)
+        }
       }
+    }
+    .onGeometryChange(for: CGFloat.self, of: { $0.size.width }) {
+      detailContentWidth = $0
     }
     .inlineNavigationBarTitle(navigationTitle)
     .komgaHandoff(

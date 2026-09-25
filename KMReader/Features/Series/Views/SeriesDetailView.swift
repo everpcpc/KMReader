@@ -199,6 +199,7 @@ struct SeriesDetailView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
           }
+          .padding(.vertical)
         }
       }
     }

@@ -47,30 +47,26 @@ struct BooksListViewForReadList: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
-      HStack {
-        Spacer()
+      HStack(spacing: 8) {
+        ReadListBookFilterView(
+          browseOpts: $browseOpts,
+          showFilterSheet: $showFilterSheet,
+          showSavedFilters: $showSavedFilters,
+          readListId: readListId,
+          layoutMode: $layoutMode
+        )
 
-        HStack(spacing: 8) {
-          ReadListBookFilterView(
-            browseOpts: $browseOpts,
-            showFilterSheet: $showFilterSheet,
-            showSavedFilters: $showSavedFilters,
-            readListId: readListId,
-            layoutMode: $layoutMode
-          )
-
-          if supportsSelectionMode && !isSelectionMode && current.isAdmin {
-            Button {
-              withAnimation {
-                isSelectionMode = true
-              }
-            } label: {
-              Image(systemName: "checkmark.circle")
+        if supportsSelectionMode && !isSelectionMode && current.isAdmin {
+          Button {
+            withAnimation {
+              isSelectionMode = true
             }
-            .adaptiveButtonStyle(.bordered)
-            .optimizedControlSize()
-            .transition(.opacity.combined(with: .scale))
+          } label: {
+            Image(systemName: "checkmark.circle")
           }
+          .adaptiveButtonStyle(.bordered)
+          .optimizedControlSize()
+          .transition(.opacity.combined(with: .scale))
         }
       }
       .padding(.horizontal)

@@ -10,7 +10,15 @@ import SwiftUI
 struct SeriesBookCountView: View {
   let series: Series
 
+  @Environment(\.detailHeroCentered) private var heroCentered
+
   var body: some View {
+    content
+      .frame(maxWidth: .infinity, alignment: heroCentered ? .center : .leading)
+  }
+
+  @ViewBuilder
+  private var content: some View {
     if series.deleted {
       Label("Unavailable", systemImage: "exclamationmark.circle")
         .font(.subheadline)

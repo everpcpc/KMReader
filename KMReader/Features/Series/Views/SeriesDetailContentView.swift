@@ -40,6 +40,7 @@ struct SeriesDetailContentView<Actions: View>: View {
 
         actions
       }
+      .environment(\.detailHeroCentered, forceCompactHero)
       .frame(maxWidth: forceCompactHero ? 480 : .infinity)
       .frame(maxWidth: .infinity, alignment: forceCompactHero ? .center : .leading)
 

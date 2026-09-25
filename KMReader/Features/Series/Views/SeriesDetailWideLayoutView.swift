@@ -83,6 +83,7 @@ struct SeriesDetailWideLayoutView<Actions: View>: View {
             SeriesBookCountView(series: series)
             actions
           }
+          .environment(\.detailHeroCentered, true)
           .frame(width: cardWidth)
           .frame(maxWidth: .infinity, alignment: .center)
 
@@ -95,6 +96,7 @@ struct SeriesDetailWideLayoutView<Actions: View>: View {
             SeriesAlternateTitlesView(series: series)
           }
         }
+        .padding(.vertical)
       }
       .scrollIndicators(.hidden)
       .frame(width: railWidth)
@@ -113,6 +115,7 @@ struct SeriesDetailWideLayoutView<Actions: View>: View {
             )
           }
         }
+        .padding(.vertical)
         .frame(maxWidth: .infinity, alignment: .leading)
       }
     }

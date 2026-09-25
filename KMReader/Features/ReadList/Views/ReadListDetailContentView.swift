@@ -5,67 +5,47 @@
 
 import SwiftUI
 
-struct ReadListDetailContentView: View {
+struct ReadListDetailContentView<Actions: View>: View {
   let readList: ReadList
-  @State private var thumbnailRefreshKey = UUID()
+  /// iPad's narrow single-column fallback forces the compact centered hero
+  /// and caps the action card instead of stretching both across the column.
+  let forceCompactHero: Bool
+  @ViewBuilder let actions: Actions
+
+  init(
+    readList: ReadList,
+    forceCompactHero: Bool = false,
+    @ViewBuilder actions: () -> Actions
+  ) {
+    self.readList = readList
+    self.forceCompactHero = forceCompactHero
+    self.actions = actions()
+  }
 
   var body: some View {
-    HStack(alignment: .top, spacing: 12) {
-      ThumbnailImage(
+    VStack(alignment: .leading, spacing: 16) {
+      DetailHeroView(
         id: readList.id,
         type: .readlist,
-        width: PlatformHelper.detailThumbnailWidth,
-        isTransitionSource: false,
-        onAction: {}
+        contentBlurRadius: 0,
+        forceCentered: forceCompactHero
       ) {
-      } menu: {
-        Button {
-          Task {
-            do {
-              _ = try await ThumbnailCache.shared.ensureThumbnail(
-                id: readList.id,
-                type: .readlist,
-                force: true
-              )
-              thumbnailRefreshKey = UUID()
-              ErrorManager.shared.notify(
-                message: String(localized: "notification.cover.refreshed"))
-            } catch {
-              ErrorManager.shared.notify(
-                message: String(localized: "notification.cover.refreshFailed"))
-            }
-          }
-        } label: {
-          Label(String(localized: "Refresh Cover"), systemImage: "arrow.clockwise")
-        }
+        ReadListHeroInfoView(readList: readList)
       }
-      .id(thumbnailRefreshKey)
 
-      VStack(alignment: .leading, spacing: 6) {
-        DetailTitleView(title: readList.name)
+      DetailActionCard {
+        ReadListBookCountView(readList: readList)
 
-        // Summary
-        if !readList.summary.isEmpty {
-          Text(readList.summary)
-            .font(.subheadline)
-            .foregroundColor(.secondary)
-            .textSelectionIfAvailable()
-        }
-
-        // Info rows
-        DetailMetadataRow(
-          systemImage: ContentIcon.book,
-          text: Text("\(readList.bookIds.count) books")
-        )
-        if readList.ordered {
-          DetailMetadataRow(
-            systemImage: "arrow.up.arrow.down",
-            text: Text("Ordered")
-          )
-        }
-        DetailTimestampsView(
-          created: readList.createdDate, lastModified: readList.lastModifiedDate)
+        actions
       }
+      .environment(\.detailHeroCentered, forceCompactHero)
+      .frame(maxWidth: forceCompactHero ? 480 : .infinity)
+      .frame(maxWidth: .infinity, alignment: forceCompactHero ? .center : .leading)
+
+      DetailTimestampsView(
+        created: readList.createdDate, lastModified: readList.lastModifiedDate
+      )
+      .frame(maxWidth: .infinity, alignment: forceCompactHero ? .center : .leading)
     }
   }
 }
