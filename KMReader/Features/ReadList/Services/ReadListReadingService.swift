@@ -15,7 +15,7 @@ import Foundation
 ///
 /// State lives in `read_list_reading_states` and syncs through Komga's per-user
 /// client settings, one key per read list, so it follows the user across
-/// devices. Servers without that API (Komga < 1.20) keep it local.
+/// devices (requires Komga 1.20.0+, the app's minimum server version).
 ///
 /// What the read lists surface is published as `snapshot`, re-derived after
 /// every reading state write and whenever local book progress or read list

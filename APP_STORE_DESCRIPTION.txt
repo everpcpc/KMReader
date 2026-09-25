@@ -21,7 +21,7 @@ Save multiple Komga servers, protect private servers with device authentication,
 Sign in with password or API key, set up a brand-new Komga server right from the login screen, and manage API keys in the app.
 Edit metadata, manage libraries and media, find missing posters or duplicates, monitor tasks, and browse, export, or clear paginated logs.
 
-KMReader targets Komga 1.19.0+ and supports API v1/v2.
+KMReader targets Komga 1.20.0+ and supports API v1/v2.
 KMReader UI is localized in English, German, French, Japanese, Korean, Simplified Chinese, Traditional Chinese, Italian, Russian, and Spanish.
 
 Privacy Policy: https://kmworks.github.io/kmreader/privacy/
