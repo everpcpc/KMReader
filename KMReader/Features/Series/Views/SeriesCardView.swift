@@ -13,6 +13,8 @@ struct SeriesCardView: View {
   /// Small dashboard cards are cover-only: at 72pt every text line truncates
   /// and stops carrying information.
   var coverOnly: Bool = false
+  /// Large dashboard cards bump the text below the cover one text-style step up.
+  var prominentText: Bool = false
 
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
   @AppStorage("cardTextOverlayMode") private var cardTextOverlayMode: Bool = false
@@ -43,6 +45,28 @@ struct SeriesCardView: View {
     thumbnailBlurUnreadCovers && item.isUnread ? CoverBlurStyle.unreadRadius : 0
   }
 
+  private var titleTextStyle: Font.TextStyle {
+    prominentText ? LayoutConfig.largeCardTitleTextStyle : .footnote
+  }
+
+  private var secondaryTextStyle: Font.TextStyle {
+    prominentText ? LayoutConfig.largeCardSecondaryTextStyle : .caption
+  }
+
+  private var tertiaryTextStyle: Font.TextStyle {
+    prominentText ? LayoutConfig.largeCardTertiaryTextStyle : .caption2
+  }
+
+  private var badgeSize: CGFloat {
+    if prominentText {
+      return LayoutConfig.cardBadgeSize(cardWidth: LayoutConfig.dashboardLargeCardWidth)
+    }
+    if coverOnly {
+      return LayoutConfig.cardBadgeSize(cardWidth: LayoutConfig.dashboardSmallCardWidth)
+    }
+    return LayoutConfig.cardBadgeSize(cardWidth: LayoutConfig.gridCardWidth)
+  }
+
   var body: some View {
     VStack(alignment: .leading, spacing: contentSpacing) {
       ThumbnailImage(
@@ -62,7 +86,7 @@ struct SeriesCardView: View {
           }
           if thumbnailShowUnreadIndicator && showUnreadIndicator && item.booksUnreadCount > 0 {
             VStack(alignment: .trailing) {
-              UnreadCountBadge(count: item.booksUnreadCount)
+              UnreadCountBadge(count: item.booksUnreadCount, size: badgeSize)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
             }
           }
@@ -112,7 +136,7 @@ struct SeriesCardView: View {
               if progress == 1 {
                 Image(systemName: "checkmark.circle")
                   .foregroundColor(.secondary)
-                  .font(.caption2)
+                  .font(.system(tertiaryTextStyle))
               }
               Text("\(item.booksCount) books")
                 .lineLimit(1)
@@ -120,12 +144,12 @@ struct SeriesCardView: View {
             if let icon = item.downloadStatus.icon {
               Spacer()
               DownloadStatusIcon(systemName: icon, spinning: item.downloadStatus.isPending)
-                .font(.caption2)
+                .font(.system(tertiaryTextStyle))
             }
           }
-          .font(.caption)
+          .font(.system(secondaryTextStyle))
           .foregroundColor(.secondary)
-        }.font(.footnote)
+        }.font(.system(titleTextStyle))
       }
     }
     .frame(maxWidth: .infinity, alignment: .leading)

@@ -88,14 +88,102 @@ struct LayoutConfig {
     #endif
   }
 
+  /// Title text style below large dashboard card covers (book/series title).
+  static var largeCardTitleTextStyle: Font.TextStyle {
+    #if os(tvOS)
+      return .callout
+    #elseif os(macOS)
+      return .body
+    #else
+      if UIDevice.current.userInterfaceIdiom == .pad {
+        return .body
+      } else {
+        return .callout
+      }
+    #endif
+  }
+
+  /// Secondary text style below large dashboard card covers (series, progress, metadata).
+  static var largeCardSecondaryTextStyle: Font.TextStyle {
+    #if os(tvOS)
+      return .footnote
+    #elseif os(macOS)
+      return .callout
+    #else
+      if UIDevice.current.userInterfaceIdiom == .pad {
+        return .subheadline
+      } else {
+        return .footnote
+      }
+    #endif
+  }
+
+  /// Tertiary text style for small icons below large dashboard card covers.
+  static var largeCardTertiaryTextStyle: Font.TextStyle {
+    #if os(tvOS)
+      return .caption
+    #elseif os(macOS)
+      return .footnote
+    #else
+      if UIDevice.current.userInterfaceIdiom == .pad {
+        return .footnote
+      } else {
+        return .caption
+      }
+    #endif
+  }
+
   /// Title text style inside horizontal cards (book title, read list/collection name).
-  static var horizontalCardTitleTextStyle: Font.TextStyle { .footnote }
+  static var horizontalCardTitleTextStyle: Font.TextStyle {
+    #if os(tvOS)
+      return .callout
+    #elseif os(macOS)
+      return .body
+    #else
+      if UIDevice.current.userInterfaceIdiom == .pad {
+        return .callout
+      } else {
+        return .footnote
+      }
+    #endif
+  }
 
   /// Secondary text style inside horizontal cards (series, progress, metadata).
-  static var horizontalCardSecondaryTextStyle: Font.TextStyle { .caption }
+  static var horizontalCardSecondaryTextStyle: Font.TextStyle {
+    #if os(tvOS)
+      return .footnote
+    #elseif os(macOS)
+      return .callout
+    #else
+      if UIDevice.current.userInterfaceIdiom == .pad {
+        return .footnote
+      } else {
+        return .caption
+      }
+    #endif
+  }
 
   /// Tertiary text style for small icons in horizontal card accessory rows.
-  static var horizontalCardTertiaryTextStyle: Font.TextStyle { .caption2 }
+  static var horizontalCardTertiaryTextStyle: Font.TextStyle {
+    #if os(tvOS)
+      return .caption
+    #elseif os(macOS)
+      return .footnote
+    #else
+      if UIDevice.current.userInterfaceIdiom == .pad {
+        return .caption
+      } else {
+        return .caption2
+      }
+    #endif
+  }
+
+  /// Corner badge (unread count/indicator) size on card covers. Scales with
+  /// the card width so wide cards get a larger badge, but never drops below
+  /// the badge's own base size.
+  static func cardBadgeSize(cardWidth: CGFloat) -> CGFloat {
+    max(UnreadCountBadge.defaultSize, (cardWidth * 0.1).rounded())
+  }
 
   /// Default spacing between cards
   static var defaultSpacing: CGFloat {

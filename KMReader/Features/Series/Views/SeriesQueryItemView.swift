@@ -10,6 +10,7 @@ struct SeriesQueryItemView: View {
   let seriesId: String
   let layout: BrowseLayoutMode
   var coverOnly: Bool = false
+  var prominentText: Bool = false
   var onItemMissing: (() -> Void)? = nil
 
   @AppStorage("currentAccount") private var current: Current = .init()
@@ -20,11 +21,13 @@ struct SeriesQueryItemView: View {
     seriesId: String,
     layout: BrowseLayoutMode,
     coverOnly: Bool = false,
+    prominentText: Bool = false,
     onItemMissing: (() -> Void)? = nil
   ) {
     self.seriesId = seriesId
     self.layout = layout
     self.coverOnly = coverOnly
+    self.prominentText = prominentText
     self.onItemMissing = onItemMissing
 
   }
@@ -40,7 +43,8 @@ struct SeriesQueryItemView: View {
             onDeleteRequested: {
               showDeleteConfirmation = true
             },
-            coverOnly: coverOnly
+            coverOnly: coverOnly,
+            prominentText: prominentText
           )
         case .list:
           SeriesRowView(
@@ -52,7 +56,7 @@ struct SeriesQueryItemView: View {
           )
         }
       } else {
-        CardPlaceholder(layout: layout, kind: .series)
+        CardPlaceholder(layout: layout, kind: .series, prominentText: prominentText)
       }
     }
     .task(id: "\(current.instanceId)|\(seriesId)") {

@@ -10,6 +10,7 @@ struct CardPlaceholder: View {
   let layout: BrowseLayoutMode
   let kind: CardPlaceholderKind
   var showBookSeriesTitle: Bool = true
+  var prominentText: Bool = false
 
   @AppStorage("showBookCardSeriesTitle") private var showBookCardSeriesTitle: Bool = true
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
@@ -38,6 +39,14 @@ struct CardPlaceholder: View {
 
   private var reservesBookProgressBar: Bool {
     kind == .book && thumbnailShowProgressBar && !cardTextOverlayMode
+  }
+
+  private var gridTitleTextStyle: Font.TextStyle {
+    prominentText ? LayoutConfig.largeCardTitleTextStyle : .footnote
+  }
+
+  private var gridSecondaryTextStyle: Font.TextStyle {
+    prominentText ? LayoutConfig.largeCardSecondaryTextStyle : .caption
   }
 
   private var gridContentSpacing: CGFloat {
@@ -129,17 +138,17 @@ struct CardPlaceholder: View {
     switch kind {
     case .book:
       let titleLines: [(textStyle: Font.TextStyle, text: String, width: CGFloat, opacity: Double)] = [
-        (textStyle: .footnote, text: "1 - Book Title", width: 0.85, opacity: 0.2),
-        (textStyle: .caption, text: "200 pages", width: 0.6, opacity: 0.15),
+        (textStyle: gridTitleTextStyle, text: "1 - Book Title", width: 0.85, opacity: 0.2),
+        (textStyle: gridSecondaryTextStyle, text: "200 pages", width: 0.6, opacity: 0.15),
       ]
       guard showsBookSeriesTitleLine else { return titleLines }
       return [
-        (textStyle: .caption, text: "Series Title", width: 0.55, opacity: 0.18)
+        (textStyle: gridSecondaryTextStyle, text: "Series Title", width: 0.55, opacity: 0.18)
       ] + titleLines
     case .series:
       return [
-        (textStyle: .footnote, text: "Series Title", width: 0.8, opacity: 0.2),
-        (textStyle: .caption, text: "12 books", width: 0.6, opacity: 0.15),
+        (textStyle: gridTitleTextStyle, text: "Series Title", width: 0.8, opacity: 0.2),
+        (textStyle: gridSecondaryTextStyle, text: "12 books", width: 0.6, opacity: 0.15),
       ]
     case .collection:
       return [

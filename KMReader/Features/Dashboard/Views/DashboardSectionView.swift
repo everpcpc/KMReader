@@ -176,6 +176,7 @@ struct DashboardSectionView: View {
         showSeriesTitle: true,
         horizontalCoverWidth: horizontalCoverWidth,
         coverOnly: cardKind == .small,
+        prominentText: cardKind == .large,
         onItemMissing: {
           viewModel.removeItem(id: itemId)
         }
@@ -185,6 +186,7 @@ struct DashboardSectionView: View {
         seriesId: itemId,
         layout: .grid,
         coverOnly: cardKind == .small,
+        prominentText: cardKind == .large,
         onItemMissing: {
           viewModel.removeItem(id: itemId)
         }

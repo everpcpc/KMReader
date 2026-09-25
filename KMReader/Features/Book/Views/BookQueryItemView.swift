@@ -14,6 +14,7 @@ struct BookQueryItemView: View {
   var readListContext: ReaderReadListContext? = nil
   var horizontalCoverWidth: CGFloat? = nil
   var coverOnly: Bool = false
+  var prominentText: Bool = false
   var onItemMissing: (() -> Void)? = nil
 
   @AppStorage("currentAccount") private var current: Current = .init()
@@ -29,6 +30,7 @@ struct BookQueryItemView: View {
     readListContext: ReaderReadListContext? = nil,
     horizontalCoverWidth: CGFloat? = nil,
     coverOnly: Bool = false,
+    prominentText: Bool = false,
     onItemMissing: (() -> Void)? = nil
   ) {
     self.bookId = bookId
@@ -38,6 +40,7 @@ struct BookQueryItemView: View {
     self.readListContext = readListContext
     self.horizontalCoverWidth = horizontalCoverWidth
     self.coverOnly = coverOnly
+    self.prominentText = prominentText
     self.onItemMissing = onItemMissing
 
   }
@@ -80,7 +83,8 @@ struct BookQueryItemView: View {
               },
               showSeriesTitle: showSeriesTitle,
               showSeriesNavigation: showSeriesNavigation,
-              coverOnly: coverOnly
+              coverOnly: coverOnly,
+              prominentText: prominentText
             )
           case .list:
             BookRowView(
@@ -108,7 +112,8 @@ struct BookQueryItemView: View {
           CardPlaceholder(
             layout: layout,
             kind: .book,
-            showBookSeriesTitle: showSeriesTitle
+            showBookSeriesTitle: showSeriesTitle,
+            prominentText: prominentText
           )
         }
       }
