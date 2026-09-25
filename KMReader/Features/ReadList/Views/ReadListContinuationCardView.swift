@@ -5,123 +5,152 @@
 
 import SwiftUI
 
-/// Horizontal card for a read list the user is reading: the next book's cover,
-/// the read list's name, and how far along the list is. Opens the next book in
-/// the read list's order. Tinted by the next book's cover, like the Keep
-/// Reading card it sits next to.
-@MainActor
+/// Large or small card for a read list the user is reading, laid out like a
+/// book card: the next book's cover and progress bar, then the read list's
+/// name, the book's title, and how far along the list is. Opens the next book
+/// in the read list's order.
 struct ReadListContinuationCardView: View {
   let continuation: ReadListContinuation
-  var coverWidth: CGFloat = 80
+  /// Small dashboard cards are cover-only: at that width every text line
+  /// truncates and stops carrying information.
+  var coverOnly: Bool = false
+  /// Text styles scale with this width.
+  var cardWidth: CGFloat = LayoutConfig.gridCardWidth
 
-  @AppStorage("currentAccount") private var current: Current = .init()
+  @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
+  @AppStorage("cardTextOverlayMode") private var cardTextOverlayMode: Bool = false
+  @AppStorage("thumbnailShowProgressBar") private var thumbnailShowProgressBar: Bool = true
+  @AppStorage("thumbnailBlurUnreadCovers") private var thumbnailBlurUnreadCovers: Bool = false
   @Environment(\.readerActions) private var readerActions
-  @State private var coverArtwork: PlatformImage?
 
-  private var isCoverTinted: Bool {
-    coverArtwork != nil
+  /// The book a list continues with is in progress or unread; only a book in
+  /// progress has progress.
+  private var isInProgress: Bool {
+    continuation.bookProgress != nil
   }
 
-  private var primaryTextColor: Color {
-    isCoverTinted ? .white : .primary
+  /// Cover-only cards never render the text overlay, even in overlay mode.
+  private var showsTextOverlay: Bool {
+    cardTextOverlayMode && !coverOnly
   }
 
-  private var secondaryTextColor: Color {
-    isCoverTinted ? .white.opacity(0.65) : .secondary
+  private var contentSpacing: CGFloat {
+    if showsTextOverlay {
+      return 0
+    }
+    if thumbnailShowProgressBar {
+      return 2
+    }
+    return 12
   }
 
-  private var progressText: String {
-    String(
-      format: String(localized: "readList.continuation.progress"),
-      Int64(continuation.booksRead),
-      Int64(continuation.bookCount)
-    )
+  private var coverBlurRadius: CGFloat {
+    thumbnailBlurUnreadCovers && !isInProgress ? CoverBlurStyle.unreadRadius : 0
+  }
+
+  private var titleTextStyle: Font.TextStyle {
+    LayoutConfig.cardTitleTextStyle(cardWidth: cardWidth)
+  }
+
+  private var secondaryTextStyle: Font.TextStyle {
+    LayoutConfig.cardSecondaryTextStyle(cardWidth: cardWidth)
+  }
+
+  private var tertiaryTextStyle: Font.TextStyle {
+    LayoutConfig.cardTertiaryTextStyle(cardWidth: cardWidth)
   }
 
   var body: some View {
-    Button {
-      openNextBook()
-    } label: {
-      HStack(alignment: .center, spacing: 10) {
-        ThumbnailImage(
-          id: continuation.bookId,
-          type: .book,
-          shadowStyle: .platform,
-          width: coverWidth,
-          preserveAspectRatioOverride: false
-        )
-        .frame(width: coverWidth)
-        .allowsHitTesting(false)
-
-        VStack(alignment: .leading, spacing: 0) {
-          Spacer(minLength: 0)
-
-          Text(continuation.readListName)
-            .font(.system(LayoutConfig.horizontalCardTitleTextStyle, weight: .medium))
-            .foregroundColor(primaryTextColor)
-            .lineLimit(2)
-            .multilineTextAlignment(.leading)
-
-          Spacer(minLength: 0)
-
-          VStack(alignment: .leading, spacing: 4) {
-            Text(continuation.bookTitle)
-              .lineLimit(1)
-
-            // Book progress first, like the Keep Reading card's "50% • 8 pages".
-            HStack(spacing: 4) {
-              if let bookProgress = continuation.bookProgress {
-                Text(bookProgress, format: .percent.precision(.fractionLength(0)))
-                Text("•")
-              }
-              Text(progressText)
-              if let icon = continuation.downloadStatus.displayIcon {
-                Spacer()
-                DownloadStatusIcon(
-                  systemName: icon,
-                  spinning: continuation.downloadStatus.isPending,
-                  color: secondaryTextColor
-                )
-                .font(.system(LayoutConfig.horizontalCardTertiaryTextStyle))
-              }
-            }
-            .lineLimit(1)
+    VStack(alignment: .leading, spacing: contentSpacing) {
+      ThumbnailImage(
+        id: continuation.bookId,
+        type: .book,
+        shadowStyle: .platform,
+        contentBlurRadius: coverBlurRadius,
+        alignment: .bottom,
+        preserveAspectRatioOverride: showsTextOverlay ? false : nil,
+        onAction: { readerActions.open(continuation: continuation) }
+      ) {
+        if showsTextOverlay {
+          CardTextOverlay(cornerRadius: 8) {
+            overlayTextContent
           }
-          .font(.system(LayoutConfig.horizontalCardSecondaryTextStyle))
-          .foregroundColor(secondaryTextColor)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+      } menu: {
+        ReadListContinuationContextMenu(continuation: continuation)
       }
-      .padding(6)
-      .frame(maxWidth: .infinity, alignment: .leading)
-      .background {
-        CoverTintedCardBackground(artwork: coverArtwork)
+
+      if thumbnailShowProgressBar && !showsTextOverlay {
+        ReadingProgressBar(progress: continuation.bookProgress ?? 0, type: .card)
+          .opacity(isInProgress ? 1 : 0)
       }
-      .contentShape(Rectangle())
-      #if os(iOS)
-        .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: 12))
-      #endif
+
+      if !showsTextOverlay && !coverOnlyCards && !coverOnly {
+        VStack(alignment: .leading) {
+          Text(continuation.readListName)
+            .font(.system(secondaryTextStyle))
+            .foregroundColor(.secondary)
+            .lineLimit(1)
+
+          Text(continuation.bookTitle)
+            .lineLimit(1)
+
+          HStack(spacing: 4) {
+            ReadListContinuationProgressText(continuation: continuation)
+              .lineLimit(1)
+            if let icon = continuation.downloadStatus.displayIcon {
+              Spacer()
+              DownloadStatusIcon(systemName: icon, spinning: continuation.downloadStatus.isPending)
+                .font(.system(tertiaryTextStyle))
+            }
+          }
+          .font(.system(secondaryTextStyle))
+          .foregroundColor(.secondary)
+        }
+        .font(.system(titleTextStyle))
+      }
     }
-    .adaptiveButtonStyle(.plain)
-    .contextMenu {
-      NavigationLink(value: NavDestination.readListDetail(readListId: continuation.readListId)) {
-        Label("View Details", systemImage: "info.circle")
-      }
-      ReadListStopReadingButton(readListId: continuation.readListId, instanceId: current.instanceId)
-    }
-    .coverArtwork(instanceId: current.instanceId, bookId: continuation.bookId, into: $coverArtwork)
+    .frame(maxHeight: .infinity, alignment: .top)
   }
 
-  private func openNextBook() {
-    let readListContext = ReaderReadListContext(
-      id: continuation.readListId,
-      name: continuation.readListName
-    )
-    Task {
-      guard let database = await DatabaseOperator.databaseIfConfigured(),
-        let book = await database.fetchBook(id: continuation.bookId)
-      else { return }
-      readerActions.open(book: book, incognito: false, readListContext: readListContext)
+  @ViewBuilder
+  private var overlayTextContent: some View {
+    let style = CardOverlayTextStyle.standard
+    let downloadIcon = continuation.downloadStatus.displayIcon
+    let showProgressBar = isInProgress && thumbnailShowProgressBar
+
+    CardOverlayTextStack(
+      title: continuation.bookTitle,
+      subtitle: continuation.readListName,
+      style: style
+    ) {
+      HStack(spacing: 4) {
+        ReadListContinuationProgressText(continuation: continuation)
+          .lineLimit(1)
+        if let icon = downloadIcon, !showProgressBar {
+          Spacer()
+          DownloadStatusIcon(
+            systemName: icon, spinning: continuation.downloadStatus.isPending,
+            color: style.secondaryColor
+          )
+          .font(.caption2)
+        }
+      }
+    } progress: {
+      if showProgressBar {
+        HStack(spacing: 6) {
+          ReadingProgressBar(progress: continuation.bookProgress ?? 0, type: .card)
+            .padding(.top, 2)
+            .layoutPriority(1)
+          if let icon = downloadIcon {
+            DownloadStatusIcon(
+              systemName: icon, spinning: continuation.downloadStatus.isPending,
+              color: style.secondaryColor
+            )
+            .font(.caption2)
+          }
+        }
+      }
     }
   }
 }
