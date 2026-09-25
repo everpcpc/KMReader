@@ -20,11 +20,7 @@ struct BookCardView: View {
   var cardWidth: CGFloat = LayoutConfig.gridCardWidth
 
   @AppStorage("showBookCardSeriesTitle") private var showBookCardSeriesTitle: Bool = true
-  @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
-  @AppStorage("cardTextOverlayMode") private var cardTextOverlayMode: Bool = false
   @AppStorage("thumbnailShowUnreadIndicator") private var thumbnailShowUnreadIndicator: Bool = true
-  @AppStorage("thumbnailShowProgressBar") private var thumbnailShowProgressBar: Bool = true
-  @AppStorage("thumbnailBlurUnreadCovers") private var thumbnailBlurUnreadCovers: Bool = false
   @State private var showReadListPicker = false
   @State private var showEditSheet = false
 
@@ -49,39 +45,24 @@ struct BookCardView: View {
     (shouldShowSeriesTitle || item.oneshot) ? 1 : 2
   }
 
-  /// Cover-only cards never render the text overlay, even in overlay mode.
-  private var showsTextOverlay: Bool {
-    cardTextOverlayMode && !coverOnly
-  }
-
-  var contentSpacing: CGFloat {
-    if showsTextOverlay {
-      return 0
+  private var subtitle: String? {
+    if item.oneshot {
+      return String(localized: "Oneshot")
     }
-    if thumbnailShowProgressBar {
-      return 2
-    }
-    return 12
+    return shouldShowSeriesTitle ? item.seriesTitle : nil
   }
 
-  private var coverBlurRadius: CGFloat {
-    thumbnailBlurUnreadCovers && item.isUnread ? CoverBlurStyle.unreadRadius : 0
-  }
-
-  private var titleTextStyle: Font.TextStyle {
-    LayoutConfig.cardTitleTextStyle(cardWidth: cardWidth)
-  }
-
-  private var secondaryTextStyle: Font.TextStyle {
-    LayoutConfig.cardSecondaryTextStyle(cardWidth: cardWidth)
-  }
-
-  private var tertiaryTextStyle: Font.TextStyle {
-    LayoutConfig.cardTertiaryTextStyle(cardWidth: cardWidth)
+  /// The overlay has no room for the oneshot label; only the series line.
+  private var overlaySubtitle: String? {
+    shouldShowSeriesTitle && !item.oneshot ? item.seriesTitle : nil
   }
 
   private var badgeSize: CGFloat {
     LayoutConfig.cardBadgeSize(cardWidth: cardWidth)
+  }
+
+  private var tertiaryTextStyle: Font.TextStyle {
+    LayoutConfig.cardTertiaryTextStyle(cardWidth: cardWidth)
   }
 
   private var completedMetaText: String {
@@ -89,107 +70,53 @@ struct BookCardView: View {
   }
 
   var body: some View {
-    VStack(alignment: .leading, spacing: contentSpacing) {
-      ThumbnailImage(
-        id: item.bookId,
-        type: .book,
-        shadowStyle: .platform,
-        contentBlurRadius: coverBlurRadius,
-        alignment: .bottom,
-        preserveAspectRatioOverride: showsTextOverlay ? false : nil,
-        onAction: { onReadBook?(false) }
-      ) {
-        ZStack {
-          if showsTextOverlay {
-            CardTextOverlay(cornerRadius: 8) {
-              overlayTextContent
-            }
-          }
-
-          if item.isCompleted && thumbnailShowUnreadIndicator && showCompletedIndicator {
-            CompletedIndicator(size: badgeSize)
-              .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-          }
-        }
-      } menu: {
-        BookContextMenu(
-          book: item.book,
-          downloadStatus: item.downloadStatus,
-          onReadBook: onReadBook,
-          onShowReadListPicker: {
-            #if os(macOS)
-              // Present in a standalone window: a view-attached sheet
-              // triggered from an NSMenu action can wedge the app on
-              // macOS 15 (#959).
-              PickerWindowOpener.shared.open(.readList(bookId: item.bookId))
-            #else
-              showReadListPicker = true
-            #endif
-          },
-          onDeleteRequested: onDeleteRequested,
-          onEditRequested: {
-            showEditSheet = true
-          },
-          onMutationCompleted: onMutationCompleted,
-          showSeriesNavigation: showSeriesNavigation
-        )
+    GridCardView(
+      thumbnailId: item.bookId,
+      thumbnailType: .book,
+      title: bookTitleLine,
+      coverOnly: coverOnly,
+      cardWidth: cardWidth,
+      isUnread: item.isUnread,
+      onAction: { onReadBook?(false) },
+      titleLineLimit: bookTitleLineLimit,
+      subtitle: subtitle,
+      overlaySubtitle: overlaySubtitle,
+      downloadIcon: item.downloadStatus.displayIcon,
+      downloadSpinning: item.downloadStatus.isPending,
+      progress: progress,
+      isInProgress: item.isInProgress
+    ) {
+      if item.isCompleted && thumbnailShowUnreadIndicator && showCompletedIndicator {
+        CompletedIndicator(size: badgeSize)
+          .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
       }
-
-      if thumbnailShowProgressBar && !showsTextOverlay {
-        ReadingProgressBar(progress: progress, type: .card)
-          .opacity(item.isInProgress ? 1 : 0)
-      }
-
-      if !showsTextOverlay && !coverOnlyCards && !coverOnly {
-        VStack(alignment: .leading) {
-          if item.oneshot {
-            Text("Oneshot")
-              .font(.system(secondaryTextStyle))
-              .foregroundColor(.secondary)
-              .lineLimit(1)
-          } else if shouldShowSeriesTitle {
-            Text(item.seriesTitle)
-              .font(.system(secondaryTextStyle))
-              .foregroundColor(.secondary)
-              .lineLimit(1)
-          }
-
-          Text(bookTitleLine)
-            .lineLimit(bookTitleLineLimit)
-
-          HStack(spacing: 4) {
-            let mediaStatus = item.media.statusValue
-            if item.isUnavailable {
-              Text("Unavailable")
-                .foregroundColor(.red)
-            } else if mediaStatus != .ready {
-              Text(mediaStatus.label)
-                .foregroundColor(mediaStatus.color)
-            } else {
-              if progress > 0 && progress < 1 {
-                Text(progress, format: .percent.precision(.fractionLength(0)))
-                Text("•")
-              }
-              if progress == 1 {
-                Image(systemName: "checkmark.circle")
-                  .foregroundColor(.secondary)
-                  .font(.system(tertiaryTextStyle))
-              }
-              Text(progress == 1 ? completedMetaText : "\(item.mediaPagesCount) pages")
-                .lineLimit(1)
-            }
-            if let icon = item.downloadStatus.displayIcon {
-              Spacer()
-              DownloadStatusIcon(systemName: icon, spinning: item.downloadStatus.isPending)
-                .font(.system(tertiaryTextStyle))
-            }
-          }
-          .font(.system(secondaryTextStyle))
-          .foregroundColor(.secondary)
-        }.font(.system(titleTextStyle))
-      }
+    } menu: {
+      BookContextMenu(
+        book: item.book,
+        downloadStatus: item.downloadStatus,
+        onReadBook: onReadBook,
+        onShowReadListPicker: {
+          #if os(macOS)
+            // Present in a standalone window: a view-attached sheet
+            // triggered from an NSMenu action can wedge the app on
+            // macOS 15 (#959).
+            PickerWindowOpener.shared.open(.readList(bookId: item.bookId))
+          #else
+            showReadListPicker = true
+          #endif
+        },
+        onDeleteRequested: onDeleteRequested,
+        onEditRequested: {
+          showEditSheet = true
+        },
+        onMutationCompleted: onMutationCompleted,
+        showSeriesNavigation: showSeriesNavigation
+      )
+    } detail: {
+      statusContent(overlay: false)
+    } overlayDetail: {
+      statusContent(overlay: true)
     }
-    .frame(maxHeight: .infinity, alignment: .top)
     .sheet(isPresented: $showReadListPicker) {
       ReadListPickerSheet(
         bookId: item.bookId,
@@ -201,65 +128,29 @@ struct BookCardView: View {
     .sheet(isPresented: $showEditSheet) {
       BookEditSheet(book: item.book)
     }
-
   }
 
   @ViewBuilder
-  private var overlayTextContent: some View {
-    let style = CardOverlayTextStyle.standard
-    let downloadIcon = item.downloadStatus.displayIcon
-    let showProgressBar = item.isInProgress && thumbnailShowProgressBar
-
-    CardOverlayTextStack(
-      title: bookTitleLine,
-      subtitle: (shouldShowSeriesTitle && !item.oneshot) ? item.seriesTitle : nil,
-      titleLineLimit: bookTitleLineLimit,
-      style: style
-    ) {
-      HStack(spacing: 4) {
-        let mediaStatus = item.media.statusValue
-        if item.isUnavailable {
-          Text("Unavailable")
-            .foregroundColor(.red)
-        } else if mediaStatus != .ready {
-          Text(mediaStatus.label)
-            .foregroundColor(mediaStatus.color)
-        } else {
-          if progress > 0 && progress < 1 {
-            Text(progress, format: .percent.precision(.fractionLength(0)))
-            Text("•")
-          }
-          if progress == 1 {
-            Image(systemName: "checkmark.circle")
-              .foregroundColor(style.secondaryColor)
-              .font(.caption2)
-          }
-          Text(progress == 1 ? completedMetaText : "\(item.mediaPagesCount) pages")
-            .lineLimit(1)
-        }
-        if let icon = downloadIcon, !showProgressBar {
-          Spacer()
-          DownloadStatusIcon(
-            systemName: icon, spinning: item.downloadStatus.isPending, color: style.secondaryColor
-          )
-          .font(.caption2)
-        }
+  private func statusContent(overlay: Bool) -> some View {
+    let mediaStatus = item.media.statusValue
+    if item.isUnavailable {
+      Text("Unavailable")
+        .foregroundColor(.red)
+    } else if mediaStatus != .ready {
+      Text(mediaStatus.label)
+        .foregroundColor(mediaStatus.color)
+    } else {
+      if progress > 0 && progress < 1 {
+        Text(progress, format: .percent.precision(.fractionLength(0)))
+        Text("•")
       }
-    } progress: {
-      if showProgressBar {
-        HStack(spacing: 6) {
-          ReadingProgressBar(progress: progress, type: .card)
-            .padding(.top, 2)
-            .layoutPriority(1)
-          if let icon = downloadIcon {
-            DownloadStatusIcon(
-              systemName: icon, spinning: item.downloadStatus.isPending,
-              color: style.secondaryColor
-            )
-            .font(.caption2)
-          }
-        }
+      if progress == 1 {
+        Image(systemName: "checkmark.circle")
+          .foregroundColor(overlay ? CardOverlayTextStyle.standard.secondaryColor : .secondary)
+          .font(overlay ? .caption2 : .system(tertiaryTextStyle))
       }
+      Text(progress == 1 ? completedMetaText : "\(item.mediaPagesCount) pages")
+        .lineLimit(1)
     }
   }
 
