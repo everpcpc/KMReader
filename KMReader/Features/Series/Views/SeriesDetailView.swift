@@ -532,20 +532,6 @@ extension SeriesDetailView {
         }
       #endif
 
-      Button {
-        deferMenuActionPresentation { showFilterSheet = true }
-      } label: {
-        Label(String(localized: "Filter"), systemImage: "line.3.horizontal.decrease.circle")
-      }
-
-      Button {
-        deferMenuActionPresentation { showSavedFilters = true }
-      } label: {
-        Label(String(localized: "Saved Filters"), systemImage: "bookmark")
-      }
-
-      Divider()
-
       if current.isAdmin {
         Button {
           deferMenuActionPresentation { showEditSheet = true }
@@ -566,9 +552,9 @@ extension SeriesDetailView {
         } label: {
           Label("Refresh Metadata", systemImage: "arrow.clockwise")
         }
-      }
 
-      Divider()
+        Divider()
+      }
 
       Button {
         #if os(macOS)

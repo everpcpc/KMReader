@@ -206,20 +206,6 @@ extension ReadListDetailView {
   private var readListToolbarContent: some View {
     Menu {
       Button {
-        deferMenuActionPresentation { showFilterSheet = true }
-      } label: {
-        Label(String(localized: "Filter"), systemImage: "line.3.horizontal.decrease.circle")
-      }
-
-      Button {
-        deferMenuActionPresentation { showSavedFilters = true }
-      } label: {
-        Label(String(localized: "Saved Filters"), systemImage: "bookmark")
-      }
-
-      Divider()
-
-      Button {
         togglePinned()
       } label: {
         Label(
