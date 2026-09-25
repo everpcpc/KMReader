@@ -16554,66 +16554,67 @@
         }
       }
     },
-    "dashboard.downloadLatest" : {
+    "dashboard.downloadLatest20" : {
+      "extractionState" : "extracted_with_value",
       "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Neueste herunterladen"
-          }
-        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Download Latest"
+            "value" : "Download Latest 20 Books"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neueste 20 Bücher herunterladen"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Descargar recientes"
+            "value" : "Descargar los 20 libros más recientes"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Télécharger les derniers"
+            "value" : "Télécharger les 20 derniers livres"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Scarica i più recenti"
+            "value" : "Scarica gli ultimi 20 libri"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "最新をダウンロード"
+            "value" : "最新の20冊をダウンロード"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "최신 항목 다운로드"
+            "value" : "최신 책 20권 다운로드"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Скачать последние"
+            "value" : "Скачать последние 20 книг"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "下载最新"
+            "value" : "下载最新 20 本"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "下載最新"
+            "value" : "下載最新 20 本"
           }
         }
       }
