@@ -408,6 +408,13 @@ enum AppConfig {
     }
   }
 
+  /// Opt-in: ordered read lists the user reads through continue like series
+  /// (reader order from any entry point, the Read Lists in Progress section).
+  static nonisolated var readListContinuationEnabled: Bool {
+    get { UserDefaults.standard.bool(forKey: "readListContinuationEnabled") }
+    set { UserDefaults.standard.set(newValue, forKey: "readListContinuationEnabled") }
+  }
+
   // MARK: - Browse Layouts
   static nonisolated var seriesBrowseLayout: BrowseLayoutMode {
     get {

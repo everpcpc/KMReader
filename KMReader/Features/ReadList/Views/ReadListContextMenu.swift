@@ -54,6 +54,8 @@ struct ReadListContextMenu: View {
         )
       }
 
+      ReadListStopReadingButton(readListId: readListId, instanceId: current.instanceId)
+
       if !isOffline {
         Divider()
         Menu {

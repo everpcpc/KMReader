@@ -38,6 +38,10 @@ struct SettingsDashboardView: View {
     var body: some View {
       List {
         Section {
+          SettingsReadListContinuationToggle()
+        }
+
+        Section {
           ForEach(controller.sections) { section in
             HStack(spacing: 12) {
               Image(systemName: section.icon)
@@ -127,6 +131,10 @@ struct SettingsDashboardView: View {
 
     var body: some View {
       Form {
+        Section {
+          SettingsReadListContinuationToggle()
+        }
+
         Section {
           VStack(spacing: 0) {
             ForEach(Array(controller.sections.enumerated()), id: \.element.id) { index, section in
@@ -280,7 +288,7 @@ struct SettingsDashboardView: View {
     private var displayHiddenSections: [DashboardSection] {
       if editModeValue == .active {
         return DashboardSection.allCases.filter { section in
-          !workingSections.contains(section)
+          !workingSections.contains(section) && section.isAvailable
         }
       } else {
         return controller.hiddenSections
@@ -317,6 +325,10 @@ struct SettingsDashboardView: View {
           }
         }
         .listRowBackground(Color.clear)
+
+        Section {
+          SettingsReadListContinuationToggle()
+        }
 
         // Active Sections
         Section {
@@ -460,7 +472,7 @@ private struct DashboardSectionsController {
   }
 
   var hiddenSections: [DashboardSection] {
-    DashboardSection.allCases.filter { !isSectionVisible($0) }
+    DashboardSection.allCases.filter { !isSectionVisible($0) && $0.isAvailable }
   }
 
   private var libraryIds: [String] {
@@ -516,7 +528,7 @@ private struct DashboardSectionsController {
   }
 
   func resetSections() {
-    updateSections(DashboardSection.allCases)
+    updateSections(DashboardSection.allCases.filter(\.isAvailable))
   }
 
   func sectionToggleBinding(for section: DashboardSection) -> Binding<Bool> {

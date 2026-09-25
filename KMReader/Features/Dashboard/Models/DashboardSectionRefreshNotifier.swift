@@ -31,6 +31,7 @@ nonisolated enum DashboardSectionRefreshNotifier {
   static let readingProgressSections: Set<DashboardSection> = [
     .keepReading,
     .onDeck,
+    .readListsInProgress,
     .recentlyReadBooks,
   ]
 

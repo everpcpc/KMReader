@@ -45,6 +45,9 @@ enum DashboardCardKind: String, Codable, Sendable, CaseIterable {
 }
 
 enum DashboardSection: String, CaseIterable, Identifiable, Codable, Sendable {
+  /// First by default: for users who opted in, a read list's next book is
+  /// where reading continues, ahead of the per-series suggestions below it.
+  case readListsInProgress = "readListsInProgress"
   case keepReading = "keepReading"
   case onDeck = "onDeck"
   case pinnedCollections = "pinnedCollections"
@@ -63,6 +66,8 @@ enum DashboardSection: String, CaseIterable, Identifiable, Codable, Sendable {
       return String(localized: "dashboard.keepReading")
     case .onDeck:
       return String(localized: "dashboard.onDeck")
+    case .readListsInProgress:
+      return String(localized: "dashboard.readListsInProgress")
     case .pinnedCollections:
       return String(localized: "dashboard.pinnedCollections")
     case .pinnedReadLists:
@@ -86,6 +91,8 @@ enum DashboardSection: String, CaseIterable, Identifiable, Codable, Sendable {
       return "book.fill"
     case .onDeck:
       return "bookmark.fill"
+    case .readListsInProgress:
+      return "list.number"
     case .pinnedCollections:
       return "square.stack.3d.down.right"
     case .pinnedReadLists:
@@ -111,14 +118,14 @@ enum DashboardSection: String, CaseIterable, Identifiable, Codable, Sendable {
       return .series
     case .pinnedCollections:
       return .collections
-    case .pinnedReadLists:
+    case .pinnedReadLists, .readListsInProgress:
       return .readLists
     }
   }
 
   var cardKind: DashboardCardKind {
     switch self {
-    case .keepReading, .pinnedCollections, .pinnedReadLists:
+    case .keepReading, .readListsInProgress, .pinnedCollections, .pinnedReadLists:
       return .horizontal
     case .onDeck, .recentlyReleasedBooks, .recentlyAddedBooks, .recentlyUpdatedSeries:
       return .large
@@ -184,6 +191,18 @@ enum DashboardSection: String, CaseIterable, Identifiable, Codable, Sendable {
     default:
       return false
     }
+  }
+
+  /// Sections a new or reset dashboard shows. Read Lists in Progress belongs to
+  /// an opt-in feature, so its setting adds and removes it instead.
+  nonisolated static var defaultSections: [DashboardSection] {
+    allCases.filter { $0 != .readListsInProgress }
+  }
+
+  /// Whether the section can be shown at all: Read Lists in Progress needs its
+  /// opt-in setting.
+  nonisolated var isAvailable: Bool {
+    self != .readListsInProgress || AppConfig.readListContinuationEnabled
   }
 
   func fetchBooks(libraryIds: [String], page: Int, size: Int) async throws -> Page<Book>? {
@@ -287,7 +306,7 @@ struct DashboardConfiguration: Equatable, RawRepresentable, Sendable {
   var cardKindOverrides: [DashboardSection: DashboardCardKind]
 
   nonisolated init(
-    sections: [DashboardSection] = DashboardSection.allCases,
+    sections: [DashboardSection] = DashboardSection.defaultSections,
     libraryIds: [String] = [],
     cardKindOverrides: [DashboardSection: DashboardCardKind] = [:]
   ) {
@@ -309,6 +328,20 @@ struct DashboardConfiguration: Equatable, RawRepresentable, Sendable {
     cardKindOverrides[section] = kind
   }
 
+  /// Shows a section at its position in `DashboardSection.allCases`: before the
+  /// first shown section that comes after it.
+  mutating func insertSection(_ section: DashboardSection) {
+    guard !sections.contains(section), let order = DashboardSection.allCases.firstIndex(of: section)
+    else { return }
+    let index =
+      sections.firstIndex { (DashboardSection.allCases.firstIndex(of: $0) ?? 0) > order } ?? sections.count
+    sections.insert(section, at: index)
+  }
+
+  mutating func removeSection(_ section: DashboardSection) {
+    sections.removeAll { $0 == section }
+  }
+
   nonisolated var rawValue: String {
     let dict: [String: Any] = [
       "sections": sections.map { $0.rawValue },
@@ -326,7 +359,7 @@ struct DashboardConfiguration: Equatable, RawRepresentable, Sendable {
 
   nonisolated init?(rawValue: String) {
     guard !rawValue.isEmpty else {
-      self.sections = DashboardSection.allCases
+      self.sections = DashboardSection.defaultSections
       self.libraryIds = []
       self.cardKindOverrides = [:]
       return
@@ -334,7 +367,7 @@ struct DashboardConfiguration: Equatable, RawRepresentable, Sendable {
     guard let data = rawValue.data(using: .utf8),
       let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
     else {
-      self.sections = DashboardSection.allCases
+      self.sections = DashboardSection.defaultSections
       self.libraryIds = []
       self.cardKindOverrides = [:]
       return
@@ -344,10 +377,10 @@ struct DashboardConfiguration: Equatable, RawRepresentable, Sendable {
     if let sectionsArray = dict["sections"] as? [String] {
       self.sections = sectionsArray.compactMap { DashboardSection(rawValue: $0) }
       if self.sections.isEmpty {
-        self.sections = DashboardSection.allCases
+        self.sections = DashboardSection.defaultSections
       }
     } else {
-      self.sections = DashboardSection.allCases
+      self.sections = DashboardSection.defaultSections
     }
 
     // Parse libraryIds

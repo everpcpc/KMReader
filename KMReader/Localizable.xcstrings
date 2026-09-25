@@ -17002,6 +17002,70 @@
         }
       }
     },
+    "dashboard.readListsInProgress" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Laufende Leselisten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Read Lists in Progress"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Listas de lectura en progreso"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Listes de lecture entamées"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liste di lettura in corso"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読書中の読書リスト"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "읽는 중인 읽기 목록"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Списки чтения в процессе"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "进行中的阅读列表"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "進行中的閱讀列表"
+          }
+        }
+      }
+    },
     "dashboard.recentlyAddedBooks" : {
       "localizations" : {
         "de" : {
@@ -49463,6 +49527,70 @@
         }
       }
     },
+    "notification.readList.stoppedReading" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Leseliste wird nicht mehr gelesen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stopped reading this read list"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Has dejado de leer esta lista de lectura"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lecture de cette liste de lecture arrêtée"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lettura di questa lista di lettura interrotta"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この読書リストの読書を終了しました"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이 읽기 목록 읽기를 중지했습니다"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Чтение этого списка чтения прекращено"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已停止阅读此阅读列表"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已停止閱讀此閱讀列表"
+          }
+        }
+      }
+    },
     "notification.readList.updated" : {
       "localizations" : {
         "de" : {
@@ -60921,6 +61049,198 @@
         }
       }
     },
+    "readList.continuation.hint" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktiviere „Leselisten wie Serien fortsetzen“ unter Einstellungen › Dashboard, um diese Liste serienübergreifend zu lesen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn on Continue Read Lists Like Series in Settings › Dashboard to read this list across series."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activa «Continuar listas de lectura como series» en Ajustes › Panel para leer esta lista a través de las series."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activez « Poursuivre les listes de lecture comme des séries » dans Paramètres › Tableau de bord pour lire cette liste d'une série à l'autre."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Attiva «Continua le liste di lettura come serie» in Impostazioni › Dashboard per leggere questa lista attraverso le serie."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定 › ダッシュボードで「読書リストをシリーズのように続ける」をオンにすると、このリストをシリーズをまたいで読めます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "설정 › 대시보드에서 '읽기 목록을 시리즈처럼 이어 읽기'를 켜면 이 목록을 시리즈를 넘나들며 읽을 수 있습니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Включите «Продолжать списки чтения как серии» в Настройки › Панель, чтобы читать этот список через разные серии."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 设置 › 主页 中开启“像系列一样继续阅读列表”，即可跨系列阅读此列表。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 設定 › 主頁 中開啟「像系列一樣繼續閱讀列表」，即可跨系列閱讀此列表。"
+          }
+        }
+      }
+    },
+    "readList.continuation.progress" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld von %2$lld gelesen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld of %2$lld read"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld de %2$lld leídos"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld sur %2$lld lus"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld di %2$lld letti"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%2$lld冊中%1$lld冊読了"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%2$lld권 중 %1$lld권 읽음"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Прочитано %1$lld из %2$lld"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已读 %1$lld / %2$lld"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已讀 %1$lld / %2$lld"
+          }
+        }
+      }
+    },
+    "readList.stopReading" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lesen beenden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop Reading"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dejar de leer"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrêter la lecture"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interrompi lettura"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読むのをやめる"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "읽기 중지"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Прекратить чтение"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止阅读"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止閱讀"
+          }
+        }
+      }
+    },
     "readStatus.inProgress" : {
       "localizations" : {
         "de" : {
@@ -69750,6 +70070,134 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "連線已恢復"
+          }
+        }
+      }
+    },
+    "settings.dashboard.readListContinuation.caption" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bücher aus einer geordneten Leseliste, die du liest, werden überall in der Reihenfolge der Liste fortgesetzt, und „Laufende Leselisten“ zeigt das nächste Buch jeder Liste."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Books from an ordered read list you're reading continue in the list's order wherever you open them, and Read Lists in Progress shows each list's next book."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los libros de una lista de lectura ordenada que estás leyendo continúan en el orden de la lista dondequiera que los abras, y «Listas de lectura en progreso» muestra el siguiente libro de cada lista."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les livres d'une liste de lecture ordonnée que vous lisez se poursuivent dans l'ordre de la liste où que vous les ouvriez, et « Listes de lecture entamées » affiche le prochain livre de chaque liste."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I libri di una lista di lettura ordinata che stai leggendo proseguono nell'ordine della lista ovunque li apri, e «Liste di lettura in corso» mostra il prossimo libro di ogni lista."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読んでいる順序付き読書リストの本は、どこから開いてもリストの順序で続き、「読書中の読書リスト」に各リストの次の本が表示されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "읽고 있는 순서 있는 읽기 목록의 책은 어디서 열든 목록 순서대로 이어지며, '읽는 중인 읽기 목록'에 각 목록의 다음 책이 표시됩니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Книги из упорядоченного списка чтения, который вы читаете, продолжаются в порядке списка, откуда бы вы их ни открыли, а «Списки чтения в процессе» показывают следующую книгу каждого списка."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你正在阅读的有序阅读列表中的书籍，无论从哪里打开，都会按列表顺序继续，“进行中的阅读列表”会显示每个列表的下一本书。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你正在閱讀的有序閱讀列表中的書籍，無論從哪裡開啟，都會按列表順序繼續，「進行中的閱讀列表」會顯示每個列表的下一本書。"
+          }
+        }
+      }
+    },
+    "settings.dashboard.readListContinuation.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leselisten wie Serien fortsetzen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue Read Lists Like Series"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continuar listas de lectura como series"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Poursuivre les listes de lecture comme des séries"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continua le liste di lettura come serie"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読書リストをシリーズのように続ける"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "읽기 목록을 시리즈처럼 이어 읽기"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Продолжать списки чтения как серии"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "像系列一样继续阅读列表"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "像系列一樣繼續閱讀列表"
           }
         }
       }

@@ -62,7 +62,7 @@ KMReader UI is localized in English, German, French, Japanese, Korean, Simplifie
 
 ### Prerequisites
 
-- Komga 1.19.0+
+- Komga 1.20.0+
 - Xcode 15.0+
 - iOS 17.0+, macOS 14.0+, tvOS 17.0+
 

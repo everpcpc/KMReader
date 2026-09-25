@@ -84,6 +84,18 @@ nonisolated enum LocalDatabase {
       }
     }
 
+    migrator.registerMigration("00009_add_read_list_reading_states") { db in
+      try db.create(table: ReadListReadingState.databaseTableName) { table in
+        table.column("instance_id", .text).notNull()
+        table.column("read_list_id", .text).notNull()
+        table.column("last_read_book_id", .text).notNull()
+        table.column("last_read_at", .datetime).notNull()
+        table.column("needs_upload", .boolean).notNull().defaults(to: false)
+        table.column("is_stopped", .boolean).notNull().defaults(to: false)
+        table.primaryKey(["instance_id", "read_list_id"], onConflict: .replace)
+      }
+    }
+
     try migrator.migrate(writer)
   }
 

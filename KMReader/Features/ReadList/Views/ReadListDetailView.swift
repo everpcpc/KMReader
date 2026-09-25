@@ -9,6 +9,7 @@ struct ReadListDetailView: View {
   let readListId: String
 
   @AppStorage("currentAccount") private var current: Current = .init()
+  @AppStorage("readListContinuationEnabled") private var readListContinuationEnabled: Bool = false
 
   @Environment(\.dismiss) private var dismiss
   @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -60,6 +61,9 @@ struct ReadListDetailView: View {
 
   @ViewBuilder
   private var readListActions: some View {
+    if let readList, readList.ordered, !readList.bookIds.isEmpty, !readListContinuationEnabled {
+      ReadListContinuationHintView()
+    }
     if let item {
       ReadListDownloadActionsSection(
         readListId: item.readListId,
@@ -277,6 +281,8 @@ extension ReadListDetailView {
           systemImage: isPinned ? "pin.slash" : "pin"
         )
       }
+
+      ReadListStopReadingButton(readListId: readListId, instanceId: current.instanceId)
 
       if current.isAdmin {
         Divider()

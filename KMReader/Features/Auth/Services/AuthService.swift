@@ -6,10 +6,6 @@
 import Foundation
 import OSLog
 
-nonisolated private struct ClientSetting: Decodable, Sendable {
-  let value: String
-}
-
 nonisolated enum AuthService {
   private static let apiClient = APIClient.shared
   private static let logger = AppLogger(.auth)
@@ -115,7 +111,7 @@ nonisolated enum AuthService {
     logger.info("📡 Testing connection to \(serverURL)")
 
     // Use ephemeral session to avoid any side effects
-    let _: [String: ClientSetting] = try await apiClient.performLoginTemporary(
+    let _: [String: ClientSettingDto] = try await apiClient.performLoginTemporary(
       serverURL: serverURL,
       path: "/api/v1/client-settings/global/list",
       method: "GET"
