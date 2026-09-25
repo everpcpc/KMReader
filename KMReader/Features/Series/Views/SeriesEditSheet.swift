@@ -150,26 +150,37 @@ struct SeriesEditSheet: View {
         }
         VStack {
           TextField("Label", text: $newAlternateTitleLabel)
+            .onSubmit { commitPendingAlternateTitle() }
           TextField("Title", text: $newAlternateTitle)
-          Button {
-            if !newAlternateTitleLabel.isEmpty && !newAlternateTitle.isEmpty {
-              withAnimation {
-                metadataUpdate.alternateTitles.append(
-                  AlternateTitle(label: newAlternateTitleLabel, title: newAlternateTitle))
-                newAlternateTitleLabel = ""
-                newAlternateTitle = ""
-                metadataUpdate.alternateTitlesLock = true
-              }
-            }
-          } label: {
+            .onSubmit { commitPendingAlternateTitle() }
+          Button(action: commitPendingAlternateTitle) {
             Label("Add Alternate Title", systemImage: "plus.circle.fill")
           }
-          .disabled(newAlternateTitleLabel.isEmpty || newAlternateTitle.isEmpty)
+          .adaptiveButtonStyle(hasPendingAlternateTitle ? .borderedProminent : .borderless)
+          .disabled(!hasPendingAlternateTitle)
+          .opacity(hasPendingAlternateTitle ? 1 : 0.5)
         }
       } header: {
         Text("Alternate Titles")
           .lockToggle(isLocked: $metadataUpdate.alternateTitlesLock)
       }
+    }
+  }
+
+  private var hasPendingAlternateTitle: Bool {
+    !newAlternateTitleLabel.trimmingCharacters(in: .whitespaces).isEmpty
+      && !newAlternateTitle.trimmingCharacters(in: .whitespaces).isEmpty
+  }
+
+  private func commitPendingAlternateTitle() {
+    let label = newAlternateTitleLabel.trimmingCharacters(in: .whitespaces)
+    let title = newAlternateTitle.trimmingCharacters(in: .whitespaces)
+    guard !label.isEmpty, !title.isEmpty else { return }
+    withAnimation {
+      metadataUpdate.alternateTitles.append(AlternateTitle(label: label, title: title))
+      metadataUpdate.alternateTitlesLock = true
+      newAlternateTitleLabel = ""
+      newAlternateTitle = ""
     }
   }
 
@@ -193,18 +204,11 @@ struct SeriesEditSheet: View {
         }
         HStack {
           TextField("Genre", text: $newGenre)
-          Button {
-            if !newGenre.isEmpty && !metadataUpdate.genres.contains(newGenre) {
-              withAnimation {
-                metadataUpdate.genres.append(newGenre)
-                newGenre = ""
-                metadataUpdate.genresLock = true
-              }
-            }
-          } label: {
+            .onSubmit { commitPendingGenre() }
+          Button(action: commitPendingGenre) {
             Image(systemName: "plus.circle.fill")
           }
-          .disabled(newGenre.isEmpty)
+          .disabled(!hasPendingGenre)
         }
       } header: {
         Text("Genres")
@@ -229,23 +233,44 @@ struct SeriesEditSheet: View {
         }
         HStack {
           TextField("Tag", text: $newTag)
-          Button {
-            if !newTag.isEmpty && !metadataUpdate.tags.contains(newTag) {
-              withAnimation {
-                metadataUpdate.tags.append(newTag)
-                newTag = ""
-                metadataUpdate.tagsLock = true
-              }
-            }
-          } label: {
+            .onSubmit { commitPendingTag() }
+          Button(action: commitPendingTag) {
             Image(systemName: "plus.circle.fill")
           }
-          .disabled(newTag.isEmpty)
+          .disabled(!hasPendingTag)
         }
       } header: {
         Text("Tags")
           .lockToggle(isLocked: $metadataUpdate.tagsLock)
       }
+    }
+  }
+
+  private var hasPendingGenre: Bool {
+    !newGenre.trimmingCharacters(in: .whitespaces).isEmpty
+  }
+
+  private var hasPendingTag: Bool {
+    !newTag.trimmingCharacters(in: .whitespaces).isEmpty
+  }
+
+  private func commitPendingGenre() {
+    let genre = newGenre.trimmingCharacters(in: .whitespaces)
+    guard !genre.isEmpty, !metadataUpdate.genres.contains(genre) else { return }
+    withAnimation {
+      metadataUpdate.genres.append(genre)
+      metadataUpdate.genresLock = true
+      newGenre = ""
+    }
+  }
+
+  private func commitPendingTag() {
+    let tag = newTag.trimmingCharacters(in: .whitespaces)
+    guard !tag.isEmpty, !metadataUpdate.tags.contains(tag) else { return }
+    withAnimation {
+      metadataUpdate.tags.append(tag)
+      metadataUpdate.tagsLock = true
+      newTag = ""
     }
   }
 
@@ -273,28 +298,40 @@ struct SeriesEditSheet: View {
       }
       VStack {
         TextField("Label", text: $newLinkLabel)
+          .onSubmit { commitPendingLink() }
         TextField("URL", text: $newLinkURL)
           #if os(iOS) || os(tvOS)
             .keyboardType(.URL)
             .autocapitalization(.none)
           #endif
-        Button {
-          if !newLinkLabel.isEmpty && !newLinkURL.isEmpty {
-            withAnimation {
-              metadataUpdate.links.append(WebLink(label: newLinkLabel, url: newLinkURL))
-              newLinkLabel = ""
-              newLinkURL = ""
-              metadataUpdate.linksLock = true
-            }
-          }
-        } label: {
+          .onSubmit { commitPendingLink() }
+        Button(action: commitPendingLink) {
           Label("Add Link", systemImage: "plus.circle.fill")
         }
-        .disabled(newLinkLabel.isEmpty || newLinkURL.isEmpty)
+        .adaptiveButtonStyle(hasPendingLink ? .borderedProminent : .borderless)
+        .disabled(!hasPendingLink)
+        .opacity(hasPendingLink ? 1 : 0.5)
       }
     } header: {
       Text("Links")
         .lockToggle(isLocked: $metadataUpdate.linksLock)
+    }
+  }
+
+  private var hasPendingLink: Bool {
+    !newLinkLabel.trimmingCharacters(in: .whitespaces).isEmpty
+      && !newLinkURL.trimmingCharacters(in: .whitespaces).isEmpty
+  }
+
+  private func commitPendingLink() {
+    let label = newLinkLabel.trimmingCharacters(in: .whitespaces)
+    let url = newLinkURL.trimmingCharacters(in: .whitespaces)
+    guard !label.isEmpty, !url.isEmpty else { return }
+    withAnimation {
+      metadataUpdate.links.append(WebLink(label: label, url: url))
+      metadataUpdate.linksLock = true
+      newLinkLabel = ""
+      newLinkURL = ""
     }
   }
 
@@ -317,22 +354,29 @@ struct SeriesEditSheet: View {
       }
       HStack {
         TextField("Label", text: $newSharingLabel)
-        Button {
-          if !newSharingLabel.isEmpty && !metadataUpdate.sharingLabels.contains(newSharingLabel) {
-            withAnimation {
-              metadataUpdate.sharingLabels.append(newSharingLabel)
-              newSharingLabel = ""
-              metadataUpdate.sharingLabelsLock = true
-            }
-          }
-        } label: {
+          .onSubmit { commitPendingSharingLabel() }
+        Button(action: commitPendingSharingLabel) {
           Image(systemName: "plus.circle.fill")
         }
-        .disabled(newSharingLabel.isEmpty)
+        .disabled(!hasPendingSharingLabel)
       }
     } header: {
       Text("Sharing Labels")
         .lockToggle(isLocked: $metadataUpdate.sharingLabelsLock)
+    }
+  }
+
+  private var hasPendingSharingLabel: Bool {
+    !newSharingLabel.trimmingCharacters(in: .whitespaces).isEmpty
+  }
+
+  private func commitPendingSharingLabel() {
+    let label = newSharingLabel.trimmingCharacters(in: .whitespaces)
+    guard !label.isEmpty, !metadataUpdate.sharingLabels.contains(label) else { return }
+    withAnimation {
+      metadataUpdate.sharingLabels.append(label)
+      metadataUpdate.sharingLabelsLock = true
+      newSharingLabel = ""
     }
   }
 
