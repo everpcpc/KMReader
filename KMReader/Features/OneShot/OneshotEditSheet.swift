@@ -482,6 +482,18 @@ struct OneshotEditSheet: View {
         // Update series metadata
         try await saveSeriesMetadata()
 
+        _ = try? await SyncService.syncBookAndSeries(bookId: book.id, seriesId: series.id)
+        await ContentProjectionNotifier.postBookAndSeriesDidChange(
+          bookId: book.id,
+          seriesId: series.id,
+          reason: .content
+        )
+        await DashboardSectionRefreshNotifier.post(
+          sections: DashboardSectionRefreshNotifier.bookContentSections
+            .union(DashboardSectionRefreshNotifier.seriesContentSections),
+          source: .manual,
+          reason: "One shot metadata updated"
+        )
         ErrorManager.shared.notify(message: String(localized: "notification.book.updated"))
         dismiss()
       } catch {
