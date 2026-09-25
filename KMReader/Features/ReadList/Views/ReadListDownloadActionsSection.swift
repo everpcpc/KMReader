@@ -13,6 +13,7 @@ struct ReadListDownloadActionsSection: View {
   var onMutationCompleted: (() -> Void)? = nil
 
   @AppStorage("currentAccount") private var current: Current = .init()
+  @Environment(\.detailHeroCentered) private var heroCentered
 
   @State private var pendingAction: SeriesDownloadAction?
   @State private var pendingUnreadLimit: Int?
@@ -79,7 +80,9 @@ struct ReadListDownloadActionsSection: View {
       .adaptiveButtonStyle(.bordered)
       .optimizedControlSize()
 
-      Spacer()
+      if !heroCentered {
+        Spacer()
+      }
 
       if let icon = status.icon {
         DownloadStatusIcon(systemName: icon, spinning: status.isPending)
@@ -87,6 +90,7 @@ struct ReadListDownloadActionsSection: View {
           .accessibilityLabel(status.label)
       }
     }
+    .frame(maxWidth: .infinity, alignment: heroCentered ? .center : .leading)
     .padding(.vertical, 4)
     .animation(.default, value: status)
     .alert(

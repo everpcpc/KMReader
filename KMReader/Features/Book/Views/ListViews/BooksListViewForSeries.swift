@@ -33,31 +33,27 @@ struct BooksListViewForSeries: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
-      HStack {
-        Spacer()
+      HStack(spacing: 8) {
+        BookFilterView(
+          browseOpts: $browseOpts,
+          showFilterSheet: $showFilterSheet,
+          showSavedFilters: $showSavedFilters,
+          filterType: .seriesBooks,
+          seriesId: seriesId,
+          layoutMode: $layoutMode
+        )
 
-        HStack(spacing: 8) {
-          BookFilterView(
-            browseOpts: $browseOpts,
-            showFilterSheet: $showFilterSheet,
-            showSavedFilters: $showSavedFilters,
-            filterType: .seriesBooks,
-            seriesId: seriesId,
-            layoutMode: $layoutMode
-          )
-
-          if supportsSelectionMode && !isSelectionMode && !isOffline {
-            Button {
-              withAnimation {
-                isSelectionMode = true
-              }
-            } label: {
-              Image(systemName: "checkmark.circle")
+        if supportsSelectionMode && !isSelectionMode && !isOffline {
+          Button {
+            withAnimation {
+              isSelectionMode = true
             }
-            .adaptiveButtonStyle(.bordered)
-            .optimizedControlSize()
-            .transition(.opacity.combined(with: .scale))
+          } label: {
+            Image(systemName: "checkmark.circle")
           }
+          .adaptiveButtonStyle(.bordered)
+          .optimizedControlSize()
+          .transition(.opacity.combined(with: .scale))
         }
       }
       .padding(.horizontal)
