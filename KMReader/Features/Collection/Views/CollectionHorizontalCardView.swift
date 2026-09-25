@@ -25,14 +25,16 @@ struct CollectionHorizontalCardView: View {
         .frame(width: coverWidth)
         .allowsHitTesting(false)
 
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 0) {
+          Spacer(minLength: 0)
+
           Text(item.name)
             .font(.system(LayoutConfig.horizontalCardTitleTextStyle, weight: .medium))
             .lineLimit(2)
             .multilineTextAlignment(.leading)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .overlay(alignment: .bottomLeading) {
+
+          Spacer(minLength: 0)
+
           VStack(alignment: .leading, spacing: 4) {
             Text("\(item.seriesCount) series")
               .font(.system(LayoutConfig.horizontalCardSecondaryTextStyle))
@@ -43,6 +45,7 @@ struct CollectionHorizontalCardView: View {
               .foregroundColor(.secondary)
           }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
       }
       .padding(6)
       .frame(maxWidth: .infinity, alignment: .leading)

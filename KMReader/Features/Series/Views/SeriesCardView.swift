@@ -13,6 +13,8 @@ struct SeriesCardView: View {
   /// Small dashboard cards are cover-only: at 72pt every text line truncates
   /// and stops carrying information.
   var coverOnly: Bool = false
+  /// Text styles and the corner badge scale with this width.
+  var cardWidth: CGFloat = LayoutConfig.gridCardWidth
 
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
   @AppStorage("cardTextOverlayMode") private var cardTextOverlayMode: Bool = false
@@ -43,6 +45,22 @@ struct SeriesCardView: View {
     thumbnailBlurUnreadCovers && item.isUnread ? CoverBlurStyle.unreadRadius : 0
   }
 
+  private var titleTextStyle: Font.TextStyle {
+    LayoutConfig.cardTitleTextStyle(cardWidth: cardWidth)
+  }
+
+  private var secondaryTextStyle: Font.TextStyle {
+    LayoutConfig.cardSecondaryTextStyle(cardWidth: cardWidth)
+  }
+
+  private var tertiaryTextStyle: Font.TextStyle {
+    LayoutConfig.cardTertiaryTextStyle(cardWidth: cardWidth)
+  }
+
+  private var badgeSize: CGFloat {
+    LayoutConfig.cardBadgeSize(cardWidth: cardWidth)
+  }
+
   var body: some View {
     VStack(alignment: .leading, spacing: contentSpacing) {
       ThumbnailImage(
@@ -62,7 +80,7 @@ struct SeriesCardView: View {
           }
           if thumbnailShowUnreadIndicator && showUnreadIndicator && item.booksUnreadCount > 0 {
             VStack(alignment: .trailing) {
-              UnreadCountBadge(count: item.booksUnreadCount)
+              UnreadCountBadge(count: item.booksUnreadCount, size: badgeSize)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
             }
           }
@@ -112,7 +130,7 @@ struct SeriesCardView: View {
               if progress == 1 {
                 Image(systemName: "checkmark.circle")
                   .foregroundColor(.secondary)
-                  .font(.caption2)
+                  .font(.system(tertiaryTextStyle))
               }
               Text("\(item.booksCount) books")
                 .lineLimit(1)
@@ -120,12 +138,12 @@ struct SeriesCardView: View {
             if let icon = item.downloadStatus.icon {
               Spacer()
               DownloadStatusIcon(systemName: icon, spinning: item.downloadStatus.isPending)
-                .font(.caption2)
+                .font(.system(tertiaryTextStyle))
             }
           }
-          .font(.caption)
+          .font(.system(secondaryTextStyle))
           .foregroundColor(.secondary)
-        }.font(.footnote)
+        }.font(.system(titleTextStyle))
       }
     }
     .frame(maxWidth: .infinity, alignment: .leading)

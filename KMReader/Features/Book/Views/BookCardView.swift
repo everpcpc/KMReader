@@ -16,6 +16,8 @@ struct BookCardView: View {
   /// Small dashboard cards are cover-only: at 72pt every text line truncates
   /// and stops carrying information.
   var coverOnly: Bool = false
+  /// Text styles and the corner badge scale with this width.
+  var cardWidth: CGFloat = LayoutConfig.gridCardWidth
 
   @AppStorage("showBookCardSeriesTitle") private var showBookCardSeriesTitle: Bool = true
   @AppStorage("coverOnlyCards") private var coverOnlyCards: Bool = false
@@ -61,6 +63,22 @@ struct BookCardView: View {
     thumbnailBlurUnreadCovers && item.isUnread ? CoverBlurStyle.unreadRadius : 0
   }
 
+  private var titleTextStyle: Font.TextStyle {
+    LayoutConfig.cardTitleTextStyle(cardWidth: cardWidth)
+  }
+
+  private var secondaryTextStyle: Font.TextStyle {
+    LayoutConfig.cardSecondaryTextStyle(cardWidth: cardWidth)
+  }
+
+  private var tertiaryTextStyle: Font.TextStyle {
+    LayoutConfig.cardTertiaryTextStyle(cardWidth: cardWidth)
+  }
+
+  private var badgeSize: CGFloat {
+    LayoutConfig.cardBadgeSize(cardWidth: cardWidth)
+  }
+
   private var completedMetaText: String {
     item.completedLastReadText ?? "\(item.mediaPagesCount) pages"
   }
@@ -84,7 +102,7 @@ struct BookCardView: View {
           }
 
           if item.isUnread && thumbnailShowUnreadIndicator && showUnreadIndicator {
-            UnreadIndicator()
+            UnreadIndicator(size: badgeSize)
               .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
           }
         }
@@ -121,12 +139,12 @@ struct BookCardView: View {
         VStack(alignment: .leading) {
           if item.oneshot {
             Text("Oneshot")
-              .font(.caption)
+              .font(.system(secondaryTextStyle))
               .foregroundColor(.secondary)
               .lineLimit(1)
           } else if shouldShowSeriesTitle {
             Text(item.seriesTitle)
-              .font(.caption)
+              .font(.system(secondaryTextStyle))
               .foregroundColor(.secondary)
               .lineLimit(1)
           }
@@ -150,7 +168,7 @@ struct BookCardView: View {
               if progress == 1 {
                 Image(systemName: "checkmark.circle")
                   .foregroundColor(.secondary)
-                  .font(.caption2)
+                  .font(.system(tertiaryTextStyle))
               }
               Text(progress == 1 ? completedMetaText : "\(item.mediaPagesCount) pages")
                 .lineLimit(1)
@@ -158,12 +176,12 @@ struct BookCardView: View {
             if let icon = item.downloadStatus.displayIcon {
               Spacer()
               DownloadStatusIcon(systemName: icon, spinning: item.downloadStatus.isPending)
-                .font(.caption2)
+                .font(.system(tertiaryTextStyle))
             }
           }
-          .font(.caption)
+          .font(.system(secondaryTextStyle))
           .foregroundColor(.secondary)
-        }.font(.footnote)
+        }.font(.system(titleTextStyle))
       }
     }
     .frame(maxHeight: .infinity, alignment: .top)

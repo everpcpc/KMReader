@@ -174,11 +174,18 @@ struct SettingsBrowseCardPreview: View {
       }
       .overlay(alignment: .topTrailing) {
         if shouldShowUnreadBadge, let unreadCount = unreadCount {
-          UnreadCountBadge(count: unreadCount)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+          UnreadCountBadge(
+            count: unreadCount,
+            size: LayoutConfig.cardBadgeSize(cardWidth: LayoutConfig.gridCardWidth),
+            cornerRadius: imageCornerRadius
+          )
+          .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
         } else if shouldShowUnreadDot {
-          UnreadIndicator()
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+          UnreadIndicator(
+            size: LayoutConfig.cardBadgeSize(cardWidth: LayoutConfig.gridCardWidth),
+            cornerRadius: imageCornerRadius
+          )
+          .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
         }
       }
   }

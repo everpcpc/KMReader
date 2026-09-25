@@ -105,13 +105,13 @@ struct BookHorizontalCardView: View {
           preserveAspectRatioOverride: false
         ) {
           if item.isUnread && thumbnailShowUnreadIndicator {
-            UnreadIndicator()
+            UnreadIndicator(size: LayoutConfig.cardBadgeSize(cardWidth: coverWidth))
               .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
           }
         }
         .frame(width: coverWidth)
 
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 0) {
           if item.oneshot {
             Text("Oneshot")
               .font(.system(secondaryTextStyle))
@@ -124,16 +124,19 @@ struct BookHorizontalCardView: View {
               .lineLimit(1)
           }
 
+          Spacer(minLength: 4)
+
           Text(bookTitleLine)
             .font(.system(titleTextStyle, weight: .medium))
             .foregroundColor(item.isCompleted ? secondaryTextColor : primaryTextColor)
             .lineLimit(2)
             .multilineTextAlignment(.leading)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .overlay(alignment: .bottomLeading) {
+
+          Spacer(minLength: 0)
+
           bottomBar
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
       }
       .padding(6)
       .frame(maxWidth: .infinity, alignment: .leading)

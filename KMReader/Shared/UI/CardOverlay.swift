@@ -8,6 +8,10 @@ import SwiftUI
 struct UnreadCountBadge: View {
   let count: Int
   let size: CGFloat
+  /// Must match the cover's corner radius so the badge arc overlaps the
+  /// cover clip exactly; a different radius or corner style lets the cover
+  /// bleed through at the top-right corner.
+  let cornerRadius: CGFloat
 
   #if os(tvOS)
     static let defaultSize: CGFloat = 24
@@ -15,9 +19,10 @@ struct UnreadCountBadge: View {
     static let defaultSize: CGFloat = 12
   #endif
 
-  init(count: Int, size: CGFloat = defaultSize) {
+  init(count: Int, size: CGFloat = defaultSize, cornerRadius: CGFloat = 8) {
     self.count = count
     self.size = size
+    self.cornerRadius = cornerRadius
   }
 
   var body: some View {
@@ -29,8 +34,8 @@ struct UnreadCountBadge: View {
       .background(
         UnevenRoundedRectangle(
           bottomLeadingRadius: size * 0.65,
-          topTrailingRadius: 8,
-          style: .continuous
+          topTrailingRadius: cornerRadius,
+          style: .circular
         )
         .fill(Color(white: 0.12))
       )
@@ -39,6 +44,8 @@ struct UnreadCountBadge: View {
 
 struct UnreadIndicator: View {
   let size: CGFloat
+  /// See UnreadCountBadge.cornerRadius.
+  let cornerRadius: CGFloat
 
   #if os(tvOS)
     static let defaultSize: CGFloat = 24
@@ -46,8 +53,9 @@ struct UnreadIndicator: View {
     static let defaultSize: CGFloat = 12
   #endif
 
-  init(size: CGFloat = defaultSize) {
+  init(size: CGFloat = defaultSize, cornerRadius: CGFloat = 8) {
     self.size = size
+    self.cornerRadius = cornerRadius
   }
 
   var body: some View {
@@ -58,8 +66,8 @@ struct UnreadIndicator: View {
       .background(
         UnevenRoundedRectangle(
           bottomLeadingRadius: size * 0.65,
-          topTrailingRadius: 8,
-          style: .continuous
+          topTrailingRadius: cornerRadius,
+          style: .circular
         )
         .fill(Color(white: 0.12))
       )
