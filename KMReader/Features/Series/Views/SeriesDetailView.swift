@@ -17,6 +17,7 @@ struct SeriesDetailView: View {
   @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
   @State private var item: SeriesDisplayItem?
+  @State private var loadedSeriesId: String?
   @State private var collections: [SidebarCollectionItem] = []
   @State private var bookViewModel = BookViewModel()
   @State private var showDeleteConfirmation = false
@@ -266,6 +267,8 @@ struct SeriesDetailView: View {
       SavedFiltersView(filterType: .seriesBooks)
     }
     .task {
+      guard loadedSeriesId != seriesId else { return }
+      loadedSeriesId = seriesId
       await refreshSeriesData()
     }
     .onChange(of: current) {

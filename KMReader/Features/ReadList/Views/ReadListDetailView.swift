@@ -15,6 +15,7 @@ struct ReadListDetailView: View {
   @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
   @State private var item: ReadListDisplayItem?
+  @State private var loadedReadListId: String?
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
   @State private var showFilterSheet = false
@@ -173,6 +174,8 @@ struct ReadListDetailView: View {
       SavedFiltersView(filterType: .readListBooks)
     }
     .task {
+      guard loadedReadListId != readListId else { return }
+      loadedReadListId = readListId
       await loadReadListDetails()
     }
     .onReceive(NotificationCenter.default.publisher(for: .readListProjectionDidChange)) {

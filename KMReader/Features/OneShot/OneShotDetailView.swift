@@ -13,6 +13,7 @@ struct OneshotDetailView: View {
   @AppStorage("currentAccount") private var current: Current = .init()
 
   @State private var seriesItem: SeriesDisplayItem?
+  @State private var loadedSeriesId: String?
   @State private var bookItem: BookDisplayItem?
   @State private var collections: [SidebarCollectionItem] = []
   @State private var readLists: [SidebarReadListItem] = []
@@ -137,6 +138,8 @@ struct OneshotDetailView: View {
       }
     }
     .task {
+      guard loadedSeriesId != seriesId else { return }
+      loadedSeriesId = seriesId
       await refreshOneshotData()
     }
     .onReceive(NotificationCenter.default.publisher(for: .bookProjectionDidChange)) {
