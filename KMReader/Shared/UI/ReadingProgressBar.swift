@@ -16,6 +16,9 @@ struct ReadingProgressBar: View {
   let color: Color
   let background: Color
   let showsShadow: Bool
+  /// The bottom padding separates the bar from the text block below it;
+  /// callers that place nothing below the bar (overlay mode) leave it out.
+  let padsBottom: Bool
 
   @ViewBuilder
   private var progressContent: some View {
@@ -36,9 +39,10 @@ struct ReadingProgressBar: View {
     }
   }
 
-  init(progress: Double, type: ReadingProgressBarType) {
+  init(progress: Double, type: ReadingProgressBarType, padsBottom: Bool = true) {
     self.progress = progress
     self.height = PlatformHelper.progressBarHeight
+    self.padsBottom = padsBottom
     switch type {
     case .reader:
       self.color = .white
@@ -61,6 +65,8 @@ struct ReadingProgressBar: View {
       }
     }
     .frame(height: height)
-    .padding(height)
+    .padding(.horizontal, height)
+    .padding(.top, height)
+    .padding(.bottom, padsBottom ? height : 0)
   }
 }

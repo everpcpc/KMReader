@@ -44,7 +44,7 @@ struct CardPlaceholder: View {
   }
 
   private var reservesBookProgressBar: Bool {
-    kind == .book && thumbnailShowProgressBar && !showsTextOverlay
+    kind == .book && thumbnailShowProgressBar
   }
 
   private var gridTitleTextStyle: Font.TextStyle {
@@ -56,11 +56,11 @@ struct CardPlaceholder: View {
   }
 
   private var gridContentSpacing: CGFloat {
-    if showsTextOverlay {
-      return 0
-    }
     if reservesBookProgressBar {
       return 2
+    }
+    if showsTextOverlay {
+      return 0
     }
     return 12
   }
@@ -79,7 +79,7 @@ struct CardPlaceholder: View {
       gridThumbnail
 
       if reservesBookProgressBar {
-        ReadingProgressBar(progress: 0, type: .card)
+        ReadingProgressBar(progress: 0, type: .card, padsBottom: !showsTextOverlay)
           .opacity(0)
       }
 
@@ -94,6 +94,7 @@ struct CardPlaceholder: View {
             )
           }
         }
+        .padding(.horizontal, PlatformHelper.progressBarHeight)
       }
     }
   }

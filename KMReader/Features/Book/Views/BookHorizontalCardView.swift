@@ -15,7 +15,6 @@ struct BookHorizontalCardView: View {
   var onDeleteRequested: (() -> Void)? = nil
   var showSeriesNavigation: Bool = true
 
-  @AppStorage("thumbnailShowUnreadIndicator") private var thumbnailShowUnreadIndicator: Bool = true
   @AppStorage("thumbnailBlurUnreadCovers") private var thumbnailBlurUnreadCovers: Bool = false
   @State private var showReadListPicker = false
   @State private var showEditSheet = false
@@ -87,12 +86,7 @@ struct BookHorizontalCardView: View {
           contentBlurRadius: coverBlurRadius,
           width: coverWidth,
           preserveAspectRatioOverride: false
-        ) {
-          if item.isCompleted && thumbnailShowUnreadIndicator {
-            CompletedIndicator(size: LayoutConfig.cardBadgeSize(cardWidth: coverWidth))
-              .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-          }
-        }
+        )
         .frame(width: coverWidth)
 
         VStack(alignment: .leading, spacing: 0) {

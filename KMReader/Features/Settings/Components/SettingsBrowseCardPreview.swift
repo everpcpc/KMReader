@@ -63,10 +63,10 @@ struct SettingsBrowseCardPreview: View {
   }
 
   private var spacing: CGFloat {
-    if cardTextOverlayMode {
-      return 0
+    if shouldShowProgressBar {
+      return 4
     }
-    return shouldShowProgressBar ? 4 : 12
+    return cardTextOverlayMode ? 0 : 12
   }
 
   private var imageFill: LinearGradient {
@@ -99,8 +99,8 @@ struct SettingsBrowseCardPreview: View {
     VStack(alignment: .leading, spacing: spacing) {
       coverView
 
-      if shouldShowProgressBar, let progress = progress, !cardTextOverlayMode {
-        ReadingProgressBar(progress: progress, type: .card)
+      if shouldShowProgressBar, let progress = progress {
+        ReadingProgressBar(progress: progress, type: .card, padsBottom: !cardTextOverlayMode)
       }
 
       if !cardTextOverlayMode && !coverOnlyCards {
@@ -121,6 +121,7 @@ struct SettingsBrowseCardPreview: View {
             .lineLimit(1)
         }
         .font(.footnote)
+        .padding(.horizontal, PlatformHelper.progressBarHeight)
       }
     }
     .frame(maxHeight: .infinity, alignment: .top)
@@ -204,10 +205,6 @@ struct SettingsBrowseCardPreview: View {
     ) {
       Text(detail)
         .lineLimit(1)
-    } progress: {
-      if shouldShowProgressBar, let progress = progress {
-        ReadingProgressBar(progress: progress, type: .card)
-      }
     }
   }
 
