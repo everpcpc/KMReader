@@ -24,28 +24,8 @@ struct BookContextMenu: View {
   @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("isOffline") private var isOffline: Bool = false
 
-  private var menuTitle: String {
-    if book.oneshot {
-      return book.metadata.title
-    }
-    let number = book.metadata.number
-    if number.isEmpty {
-      return book.metadata.title
-    }
-    return "#\(number) - \(book.metadata.title)"
-  }
-
   var body: some View {
     Group {
-      Button(action: {}) {
-        Text(menuTitle.isEmpty ? "Untitled" : menuTitle)
-          .font(.footnote)
-          .foregroundStyle(.secondary)
-          .lineLimit(2)
-      }
-      .disabled(true)
-      Divider()
-
       detailsSection
 
       if !isOffline {

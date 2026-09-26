@@ -36,7 +36,6 @@ struct CollectionCardView: View {
       } menu: {
         CollectionContextMenu(
           collectionId: item.collectionId,
-          menuTitle: item.name,
           isPinned: item.isPinned,
           onDeleteRequested: {
             onDeleteRequested()

@@ -17,7 +17,6 @@ struct CollectionHorizontalCardView: View {
   private var collectionContextMenu: some View {
     CollectionContextMenu(
       collectionId: item.collectionId,
-      menuTitle: item.name,
       isPinned: item.isPinned,
       onDeleteRequested: {
         onDeleteRequested()

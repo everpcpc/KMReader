@@ -55,7 +55,6 @@ struct SeriesCardView: View {
     } menu: {
       SeriesContextMenu(
         seriesId: item.seriesId,
-        menuTitle: item.metaTitle,
         downloadStatus: item.downloadStatus,
         offlinePolicy: item.offlinePolicy,
         offlinePolicyLimit: item.offlinePolicyLimit,

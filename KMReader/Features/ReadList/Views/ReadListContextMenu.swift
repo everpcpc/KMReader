@@ -7,7 +7,6 @@ import SwiftUI
 
 struct ReadListContextMenu: View {
   let readListId: String
-  let menuTitle: String
   let downloadStatus: SeriesDownloadStatus
   let offlinePolicy: OfflinePolicy
   let offlinePolicyLimit: Int
@@ -31,15 +30,6 @@ struct ReadListContextMenu: View {
 
   var body: some View {
     Group {
-      Button(action: {}) {
-        Text(menuTitle.isEmpty ? "Untitled" : menuTitle)
-          .font(.footnote)
-          .foregroundStyle(.secondary)
-          .lineLimit(2)
-      }
-      .disabled(true)
-      Divider()
-
       NavigationLink(value: NavDestination.readListDetail(readListId: readListId)) {
         Label("View Details", systemImage: "info.circle")
       }
