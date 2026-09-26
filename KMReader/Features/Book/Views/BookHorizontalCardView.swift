@@ -45,25 +45,8 @@ struct BookHorizontalCardView: View {
     LayoutConfig.horizontalCardTertiaryTextStyle
   }
 
-  private var progress: Double {
-    guard let progressPage = item.progressPage else { return 0 }
-    guard item.mediaPagesCount > 0 else { return 0 }
-    return Double(progressPage) / Double(item.mediaPagesCount)
-  }
-
-  var bookTitleLine: String {
-    if item.oneshot {
-      return item.metaTitle
-    }
-    return String("\(item.metaNumber) - \(item.metaTitle)")
-  }
-
   private var coverBlurRadius: CGFloat {
     thumbnailBlurUnreadCovers && item.isUnread ? CoverBlurStyle.unreadRadius : 0
-  }
-
-  private var completedMetaText: String {
-    item.completedLastReadText ?? "\(item.mediaPagesCount) pages"
   }
 
   private var bookContextMenu: some View {
@@ -85,6 +68,7 @@ struct BookHorizontalCardView: View {
         showEditSheet = true
       },
       onMutationCompleted: onMutationCompleted,
+      showDetailNavigation: true,
       showSeriesNavigation: showSeriesNavigation
     )
   }
@@ -126,7 +110,7 @@ struct BookHorizontalCardView: View {
 
           Spacer(minLength: 4)
 
-          Text(bookTitleLine)
+          Text(item.bookTitleLine)
             .font(.system(titleTextStyle, weight: .medium))
             .foregroundColor(item.isCompleted ? secondaryTextColor : primaryTextColor)
             .lineLimit(2)
@@ -177,16 +161,16 @@ struct BookHorizontalCardView: View {
         Text(mediaStatus.label)
           .foregroundColor(mediaStatus.color)
       } else {
-        if progress > 0 && progress < 1 {
-          Text(progress, format: .percent.precision(.fractionLength(0)))
+        if item.progress > 0 && item.progress < 1 {
+          Text(item.progress, format: .percent.precision(.fractionLength(0)))
           Text("•")
         }
-        if progress == 1 {
+        if item.progress == 1 {
           Image(systemName: "checkmark.circle")
             .foregroundColor(secondaryTextColor)
             .font(.system(tertiaryTextStyle))
         }
-        Text(progress == 1 ? completedMetaText : "\(item.mediaPagesCount) pages")
+        Text(item.progress == 1 ? item.completedMetaText : "\(item.mediaPagesCount) pages")
       }
       if let icon = item.downloadStatus.displayIcon {
         Spacer()

@@ -24,21 +24,8 @@ struct BookCardView: View {
   @State private var showReadListPicker = false
   @State private var showEditSheet = false
 
-  private var progress: Double {
-    guard let progressPage = item.progressPage else { return 0 }
-    guard item.mediaPagesCount > 0 else { return 0 }
-    return Double(progressPage) / Double(item.mediaPagesCount)
-  }
-
   var shouldShowSeriesTitle: Bool {
     return showSeriesTitle && showBookCardSeriesTitle && !item.seriesTitle.isEmpty
-  }
-
-  var bookTitleLine: String {
-    if item.oneshot {
-      return item.metaTitle
-    }
-    return String("\(item.metaNumber) - \(item.metaTitle)")
   }
 
   var bookTitleLineLimit: Int {
@@ -65,25 +52,21 @@ struct BookCardView: View {
     LayoutConfig.cardTertiaryTextStyle(cardWidth: cardWidth)
   }
 
-  private var completedMetaText: String {
-    item.completedLastReadText ?? "\(item.mediaPagesCount) pages"
-  }
-
   var body: some View {
     GridCardView(
       thumbnailId: item.bookId,
       thumbnailType: .book,
-      title: bookTitleLine,
+      title: item.bookTitleLine,
       coverOnly: coverOnly,
       cardWidth: cardWidth,
       isUnread: item.isUnread,
-      onAction: { onReadBook?(false) },
+      navigationLink: item.navDestination,
       titleLineLimit: bookTitleLineLimit,
       subtitle: subtitle,
       overlaySubtitle: overlaySubtitle,
       downloadIcon: item.downloadStatus.displayIcon,
       downloadSpinning: item.downloadStatus.isPending,
-      progress: progress,
+      progress: item.progress,
       isInProgress: item.isInProgress
     ) {
       if item.isCompleted && thumbnailShowUnreadIndicator && showCompletedIndicator {
@@ -140,16 +123,16 @@ struct BookCardView: View {
       Text(mediaStatus.label)
         .foregroundColor(mediaStatus.color)
     } else {
-      if progress > 0 && progress < 1 {
-        Text(progress, format: .percent.precision(.fractionLength(0)))
+      if item.progress > 0 && item.progress < 1 {
+        Text(item.progress, format: .percent.precision(.fractionLength(0)))
         Text("•")
       }
-      if progress == 1 {
+      if item.progress == 1 {
         Image(systemName: "checkmark.circle")
           .foregroundColor(overlay ? CardOverlayTextStyle.standard.secondaryColor : .secondary)
           .font(overlay ? .caption2 : .system(tertiaryTextStyle))
       }
-      Text(progress == 1 ? completedMetaText : "\(item.mediaPagesCount) pages")
+      Text(item.progress == 1 ? item.completedMetaText : "\(item.mediaPagesCount) pages")
         .lineLimit(1)
     }
   }

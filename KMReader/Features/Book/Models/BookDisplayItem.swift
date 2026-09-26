@@ -81,6 +81,27 @@ nonisolated struct BookDisplayItem: Equatable, Identifiable, Sendable {
     return readDate.formatted(.relative(presentation: .named, unitsStyle: .abbreviated))
   }
 
+  var navDestination: NavDestination {
+    book.navDestination
+  }
+
+  var bookTitleLine: String {
+    if book.oneshot {
+      return book.metadata.title
+    }
+    return String("\(book.metadata.number) - \(book.metadata.title)")
+  }
+
+  var progress: Double {
+    guard let progressPage = book.readProgress?.page else { return 0 }
+    guard book.media.pagesCount > 0 else { return 0 }
+    return Double(progressPage) / Double(book.media.pagesCount)
+  }
+
+  var completedMetaText: String {
+    completedLastReadText ?? "\(book.media.pagesCount) pages"
+  }
+
   var oneshot: Bool {
     book.oneshot
   }

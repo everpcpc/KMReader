@@ -21,14 +21,6 @@ struct SeriesCardView: View {
   @State private var showCollectionPicker = false
   @State private var showEditSheet = false
 
-  var navDestination: NavDestination {
-    if item.oneshot {
-      return NavDestination.oneshotDetail(seriesId: item.seriesId)
-    } else {
-      return NavDestination.seriesDetail(seriesId: item.seriesId)
-    }
-  }
-
   var progress: Double {
     guard item.booksCount > 0 else { return 0 }
     return Double(item.booksReadCount) / Double(item.booksCount)
@@ -50,7 +42,7 @@ struct SeriesCardView: View {
       coverOnly: coverOnly,
       cardWidth: cardWidth,
       isUnread: item.isUnread,
-      navigationLink: navDestination,
+      navigationLink: item.navDestination,
       downloadIcon: item.downloadStatus.icon,
       downloadSpinning: item.downloadStatus.isPending
     ) {

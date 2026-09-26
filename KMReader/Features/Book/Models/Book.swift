@@ -40,4 +40,12 @@ nonisolated struct Book: Codable, Identifiable, Equatable, Sendable {
   var isInProgress: Bool {
     hasStartedReading && !isCompleted
   }
+
+  var navDestination: NavDestination {
+    if oneshot {
+      return NavDestination.oneshotDetail(seriesId: seriesId)
+    } else {
+      return NavDestination.bookDetail(bookId: id)
+    }
+  }
 }

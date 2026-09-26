@@ -114,6 +114,7 @@ Subsystem conventions and invariants for KMReader. `AGENTS.md` holds repo-wide r
 - Small cards are cover-only (`coverOnly`): every text line truncates at that width and stops carrying information, and card text overlay mode never renders on them.
 - Cover corner badges are gated on `thumbnailShowUnreadIndicator`: series cards show the unread count, book cards show a completed checkmark — books have no unread dot.
 - On horizontal cards the series line and the bottom bar (progress, download icon) stay anchored to the card's top and bottom, while the title is vertically centered in the space between them, so a single-line title splits the slack instead of leaving a full empty line in the middle.
+- Book cards navigate on tap, never straight into the reader: grid cards and list rows push the book detail page (oneshots push the oneshot detail), matching series cards; only horizontal cards (`BookHorizontalCardView`, read list continuation cards) open the reader directly. The context menu complements the tap and never duplicates it: grid/list cards get a Read action, horizontal cards get the detail navigation instead (`BookContextMenu.showDetailNavigation`), so Read and Details are mutually exclusive; Peek (incognito) appears in both.
 
 ## Detail Pages
 

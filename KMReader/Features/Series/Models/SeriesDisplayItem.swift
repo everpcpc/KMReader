@@ -59,6 +59,14 @@ nonisolated struct SeriesDisplayItem: Equatable, Identifiable, Sendable {
     series.oneshot
   }
 
+  var navDestination: NavDestination {
+    if series.oneshot {
+      return NavDestination.oneshotDetail(seriesId: series.id)
+    } else {
+      return NavDestination.seriesDetail(seriesId: series.id)
+    }
+  }
+
   var isUnavailable: Bool {
     series.deleted
   }

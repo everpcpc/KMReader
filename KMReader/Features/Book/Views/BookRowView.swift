@@ -18,21 +18,8 @@ struct BookRowView: View {
   @State private var showReadListPicker = false
   @State private var showEditSheet = false
 
-  private var progress: Double {
-    guard let progressPage = item.progressPage else { return 0 }
-    guard item.mediaPagesCount > 0 else { return 0 }
-    return Double(progressPage) / Double(item.mediaPagesCount)
-  }
-
   var shouldShowSeriesTitle: Bool {
     return showSeriesTitle && !item.seriesTitle.isEmpty
-  }
-
-  var bookTitleLine: String {
-    if item.oneshot {
-      return item.metaTitle
-    }
-    return String("\(item.metaNumber) - \(item.metaTitle)")
   }
 
   var bookTitleLineLimit: Int {
@@ -45,9 +32,7 @@ struct BookRowView: View {
 
   var body: some View {
     HStack(spacing: 12) {
-      Button {
-        onReadBook?(false)
-      } label: {
+      NavigationLink(value: item.navDestination) {
         ThumbnailImage(
           id: item.bookId,
           type: .book,
@@ -57,9 +42,7 @@ struct BookRowView: View {
       }.adaptiveButtonStyle(.plain)
 
       VStack(alignment: .leading, spacing: 4) {
-        Button {
-          onReadBook?(false)
-        } label: {
+        NavigationLink(value: item.navDestination) {
           VStack(alignment: .leading, spacing: 4) {
             if item.oneshot {
               Text("Oneshot")
@@ -103,7 +86,7 @@ struct BookRowView: View {
                   Text("Page \(progressPage + 1)")
                     .foregroundColor(.orange)
                   Text("•")
-                  Text(progress, format: .percent.precision(.fractionLength(0)))
+                  Text(item.progress, format: .percent.precision(.fractionLength(0)))
                 }
               }
             }
