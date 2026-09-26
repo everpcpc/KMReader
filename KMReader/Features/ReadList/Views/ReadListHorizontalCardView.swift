@@ -27,7 +27,7 @@ struct ReadListHorizontalCardView: View {
           Spacer(minLength: 0)
 
           Text(item.name)
-            .font(.system(LayoutConfig.horizontalCardTitleTextStyle, weight: .medium))
+            .font(.system(size: LayoutConfig.horizontalCardFontSize, weight: .bold))
             .lineLimit(2)
             .multilineTextAlignment(.leading)
 
@@ -35,13 +35,15 @@ struct ReadListHorizontalCardView: View {
 
           VStack(alignment: .leading, spacing: 4) {
             Text("\(item.bookCount) books")
-              .font(.system(LayoutConfig.horizontalCardSecondaryTextStyle))
+              .font(.system(size: LayoutConfig.horizontalCardFontSize))
               .foregroundColor(.secondary)
 
             Text(item.lastModifiedDate.formattedMediumDate)
-              .font(.system(LayoutConfig.horizontalCardSecondaryTextStyle))
+              .font(.system(size: LayoutConfig.horizontalCardFontSize))
               .foregroundColor(.secondary)
           }
+
+          Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
       }

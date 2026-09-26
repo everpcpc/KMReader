@@ -112,7 +112,7 @@ struct SeriesCardView: View {
           .foregroundColor(overlay ? CardOverlayTextStyle.standard.secondaryColor : .secondary)
           .font(overlay ? .caption2 : .system(tertiaryTextStyle))
       }
-      Text("\(item.booksCount) books")
+      Text(item.oneshot ? String(localized: "Oneshot") : "\(item.booksCount) books")
         .lineLimit(1)
     }
   }

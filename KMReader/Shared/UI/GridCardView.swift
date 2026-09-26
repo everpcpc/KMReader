@@ -21,7 +21,6 @@ struct GridCardView<Badge: View, Menu: View, Detail: View, OverlayDetail: View>:
   var onAction: (() -> Void)? = nil
   var titleLineLimit: Int = 1
   var subtitle: String? = nil
-  var overlaySubtitle: String? = nil
   var downloadIcon: String? = nil
   var downloadSpinning: Bool = false
   /// nil drops the progress bar row and the overlay progress slot entirely.
@@ -48,7 +47,6 @@ struct GridCardView<Badge: View, Menu: View, Detail: View, OverlayDetail: View>:
     onAction: (() -> Void)? = nil,
     titleLineLimit: Int = 1,
     subtitle: String? = nil,
-    overlaySubtitle: String? = nil,
     downloadIcon: String? = nil,
     downloadSpinning: Bool = false,
     progress: Double? = nil,
@@ -68,7 +66,6 @@ struct GridCardView<Badge: View, Menu: View, Detail: View, OverlayDetail: View>:
     self.onAction = onAction
     self.titleLineLimit = titleLineLimit
     self.subtitle = subtitle
-    self.overlaySubtitle = overlaySubtitle
     self.downloadIcon = downloadIcon
     self.downloadSpinning = downloadSpinning
     self.progress = progress
@@ -176,7 +173,7 @@ struct GridCardView<Badge: View, Menu: View, Detail: View, OverlayDetail: View>:
 
     CardOverlayTextStack(
       title: title,
-      subtitle: overlaySubtitle,
+      subtitle: subtitle,
       titleLineLimit: titleLineLimit,
       style: style
     ) {
@@ -206,7 +203,6 @@ extension GridCardView where Badge == EmptyView {
     onAction: (() -> Void)? = nil,
     titleLineLimit: Int = 1,
     subtitle: String? = nil,
-    overlaySubtitle: String? = nil,
     downloadIcon: String? = nil,
     downloadSpinning: Bool = false,
     progress: Double? = nil,
@@ -226,7 +222,6 @@ extension GridCardView where Badge == EmptyView {
       onAction: onAction,
       titleLineLimit: titleLineLimit,
       subtitle: subtitle,
-      overlaySubtitle: overlaySubtitle,
       downloadIcon: downloadIcon,
       downloadSpinning: downloadSpinning,
       progress: progress,

@@ -20,13 +20,13 @@ struct BookHorizontalCardPlaceholder: View {
 
       VStack(alignment: .leading, spacing: 4) {
         placeholderLine(
-          textStyle: LayoutConfig.horizontalCardSecondaryTextStyle,
+          size: LayoutConfig.horizontalCardFontSize,
           text: "Series Title", widthScale: 0.45, opacity: 0.18)
         placeholderLine(
-          textStyle: LayoutConfig.horizontalCardTitleTextStyle,
+          size: LayoutConfig.horizontalCardFontSize,
           text: "Book Title", widthScale: 0.8, opacity: 0.2)
         placeholderLine(
-          textStyle: LayoutConfig.horizontalCardSecondaryTextStyle,
+          size: LayoutConfig.horizontalCardFontSize,
           text: "Page 42 • 36%", widthScale: 0.55, opacity: 0.15)
       }
       .frame(maxWidth: .infinity, alignment: .leading)
@@ -41,13 +41,13 @@ struct BookHorizontalCardPlaceholder: View {
   }
 
   private func placeholderLine(
-    textStyle: Font.TextStyle,
+    size: CGFloat,
     text: String,
     widthScale: CGFloat,
     opacity: Double
   ) -> some View {
     Text(text)
-      .font(Font.system(textStyle))
+      .font(.system(size: size))
       .foregroundColor(.clear)
       .lineLimit(1)
       .frame(maxWidth: .infinity, alignment: .leading)
