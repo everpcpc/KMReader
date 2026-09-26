@@ -39,11 +39,6 @@ struct BookCardView: View {
     return shouldShowSeriesTitle ? item.seriesTitle : nil
   }
 
-  /// The overlay has no room for the oneshot label; only the series line.
-  private var overlaySubtitle: String? {
-    shouldShowSeriesTitle && !item.oneshot ? item.seriesTitle : nil
-  }
-
   private var badgeSize: CGFloat {
     LayoutConfig.cardBadgeSize(cardWidth: cardWidth)
   }
@@ -63,7 +58,6 @@ struct BookCardView: View {
       navigationLink: item.navDestination,
       titleLineLimit: bookTitleLineLimit,
       subtitle: subtitle,
-      overlaySubtitle: overlaySubtitle,
       downloadIcon: item.downloadStatus.displayIcon,
       downloadSpinning: item.downloadStatus.isPending,
       progress: item.progress,

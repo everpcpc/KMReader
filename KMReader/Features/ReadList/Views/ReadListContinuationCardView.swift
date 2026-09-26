@@ -35,7 +35,6 @@ struct ReadListContinuationCardView: View {
       isUnread: !isInProgress,
       onAction: { readerActions.open(continuation: continuation) },
       subtitle: continuation.readListName,
-      overlaySubtitle: continuation.readListName,
       downloadIcon: continuation.downloadStatus.displayIcon,
       downloadSpinning: continuation.downloadStatus.isPending,
       progress: continuation.bookProgress ?? 0,
