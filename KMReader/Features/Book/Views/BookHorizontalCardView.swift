@@ -32,16 +32,12 @@ struct BookHorizontalCardView: View {
     isCoverTinted ? .white.opacity(0.65) : .secondary
   }
 
-  private var titleTextStyle: Font.TextStyle {
-    LayoutConfig.horizontalCardTitleTextStyle
+  private var textSize: CGFloat {
+    LayoutConfig.horizontalCardFontSize
   }
 
-  private var secondaryTextStyle: Font.TextStyle {
-    LayoutConfig.horizontalCardSecondaryTextStyle
-  }
-
-  private var tertiaryTextStyle: Font.TextStyle {
-    LayoutConfig.horizontalCardTertiaryTextStyle
+  private var iconSize: CGFloat {
+    LayoutConfig.horizontalCardIconSize
   }
 
   private var coverBlurRadius: CGFloat {
@@ -90,22 +86,24 @@ struct BookHorizontalCardView: View {
         .frame(width: coverWidth)
 
         VStack(alignment: .leading, spacing: 0) {
+          Spacer(minLength: 0)
+
           if item.oneshot {
             Text("Oneshot")
-              .font(.system(secondaryTextStyle))
-              .foregroundColor(isCoverTinted ? secondaryTextColor : .secondary)
+              .font(.system(size: textSize))
+              .foregroundColor(primaryTextColor)
               .lineLimit(1)
+              .padding(.bottom, 4)
           } else if !item.seriesTitle.isEmpty {
             Text(item.seriesTitle)
-              .font(.system(secondaryTextStyle))
-              .foregroundColor(secondaryTextColor)
+              .font(.system(size: textSize))
+              .foregroundColor(primaryTextColor)
               .lineLimit(1)
+              .padding(.bottom, 4)
           }
 
-          Spacer(minLength: 4)
-
           Text(item.bookTitleLine)
-            .font(.system(titleTextStyle, weight: .medium))
+            .font(.system(size: textSize, weight: .bold))
             .foregroundColor(item.isCompleted ? secondaryTextColor : primaryTextColor)
             .lineLimit(2)
             .multilineTextAlignment(.leading)
@@ -113,6 +111,8 @@ struct BookHorizontalCardView: View {
           Spacer(minLength: 0)
 
           bottomBar
+
+          Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
       }
@@ -162,7 +162,7 @@ struct BookHorizontalCardView: View {
         if item.progress == 1 {
           Image(systemName: "checkmark.circle")
             .foregroundColor(secondaryTextColor)
-            .font(.system(tertiaryTextStyle))
+            .font(.system(size: iconSize))
         }
         Text(item.progress == 1 ? item.completedMetaText : "\(item.mediaPagesCount) pages")
       }
@@ -171,10 +171,10 @@ struct BookHorizontalCardView: View {
         DownloadStatusIcon(
           systemName: icon, spinning: item.downloadStatus.isPending, color: secondaryTextColor
         )
-        .font(.system(tertiaryTextStyle))
+        .font(.system(size: iconSize))
       }
     }
-    .font(.system(secondaryTextStyle))
+    .font(.system(size: textSize))
     .foregroundColor(secondaryTextColor)
     .lineLimit(1)
   }

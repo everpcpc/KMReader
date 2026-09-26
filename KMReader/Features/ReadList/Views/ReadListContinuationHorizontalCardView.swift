@@ -49,7 +49,7 @@ struct ReadListContinuationHorizontalCardView: View {
           Spacer(minLength: 0)
 
           Text(continuation.readListName)
-            .font(.system(LayoutConfig.horizontalCardTitleTextStyle, weight: .medium))
+            .font(.system(size: LayoutConfig.horizontalCardFontSize, weight: .bold))
             .foregroundColor(primaryTextColor)
             .lineLimit(2)
             .multilineTextAlignment(.leading)
@@ -69,13 +69,15 @@ struct ReadListContinuationHorizontalCardView: View {
                   spinning: continuation.downloadStatus.isPending,
                   color: secondaryTextColor
                 )
-                .font(.system(LayoutConfig.horizontalCardTertiaryTextStyle))
+                .font(.system(size: LayoutConfig.horizontalCardIconSize))
               }
             }
             .lineLimit(1)
           }
-          .font(.system(LayoutConfig.horizontalCardSecondaryTextStyle))
+          .font(.system(size: LayoutConfig.horizontalCardFontSize))
           .foregroundColor(secondaryTextColor)
+
+          Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
       }
