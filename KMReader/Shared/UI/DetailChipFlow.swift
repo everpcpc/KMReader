@@ -9,8 +9,8 @@ import SwiftUI
 /// Flow of tappable chips for detail pages — the hero creator row
 /// (publisher + authors) as well as the genre / tag / link flows below the
 /// summary. Long flows collapse behind a trailing "+N" chip that expands in
-/// place. Alignment follows `detailHeroCentered`: centered inside the
-/// compact hero, leading elsewhere.
+/// place. Alignment follows `detailHeroCentered`: centered inside the hero,
+/// leading in the sections below.
 struct DetailChipFlow: View {
   struct Item: Hashable {
     let title: String

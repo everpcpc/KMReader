@@ -6,8 +6,7 @@
 import SwiftUI
 
 /// Title, age rating, creator chips, and metadata rows of the series detail
-/// hero. Centered under the compact stacked hero (via `detailHeroCentered`),
-/// leading elsewhere.
+/// hero.
 struct SeriesHeroInfoView: View {
   let series: Series
 

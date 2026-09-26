@@ -32,7 +32,7 @@ struct BookDetailContentView: View {
     thumbnailBlurUnreadCovers && book.isUnread ? CoverBlurStyle.unreadRadius : 0
   }
 
-  private var isCompactHero: Bool {
+  private var isCompactLayout: Bool {
     horizontalSizeClass == .compact
   }
 
@@ -43,7 +43,7 @@ struct BookDetailContentView: View {
         type: .book,
         contentBlurRadius: coverBlurRadius
       ) {
-        VStack(alignment: isCompactHero ? .center : .leading, spacing: 6) {
+        VStack(alignment: isCompactLayout ? .center : .leading, spacing: 6) {
           if !inSheet {
             NavigationLink(value: NavDestination.seriesDetail(seriesId: book.seriesId)) {
               HStack(spacing: 4) {
@@ -55,9 +55,9 @@ struct BookDetailContentView: View {
               }
               .font(.subheadline)
               .foregroundColor(.secondary)
+              .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .contentShape(Rectangle())
           }
 
           DetailTitleView(title: book.metadata.title)
@@ -83,7 +83,7 @@ struct BookDetailContentView: View {
       }
 
       DetailActionCard {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: isCompactLayout ? .center : .leading, spacing: 2) {
           let mediaStatus = book.media.statusValue
           let number = book.metadata.number
           HStack(alignment: .firstTextBaseline, spacing: 8) {
@@ -125,7 +125,9 @@ struct BookDetailContentView: View {
             }
 
             if let downloadStatus, let icon = downloadStatus.displayIcon {
-              Spacer()
+              if !isCompactLayout {
+                Spacer()
+              }
               OfflineProtectionStatusChip(
                 label: downloadStatus.displayLabel,
                 systemImage: icon,
@@ -144,6 +146,7 @@ struct BookDetailContentView: View {
             .foregroundStyle(.secondary)
           }
         }
+        .frame(maxWidth: .infinity, alignment: isCompactLayout ? .center : .leading)
 
         if !inSheet {
           BookActionsSection(
@@ -152,10 +155,11 @@ struct BookDetailContentView: View {
           )
         }
       }
-      .frame(maxWidth: isCompactHero ? 480 : .infinity)
-      .frame(maxWidth: .infinity, alignment: isCompactHero ? .center : .leading)
+      .frame(maxWidth: isCompactLayout ? 480 : .infinity)
+      .frame(maxWidth: .infinity, alignment: isCompactLayout ? .center : .leading)
 
       DetailTimestampsView(created: book.created, lastModified: book.lastModified)
+        .frame(maxWidth: .infinity, alignment: isCompactLayout ? .center : .leading)
 
       if let summary = book.metadata.summary, !summary.isEmpty {
         ExpandableSummaryView(
@@ -223,6 +227,7 @@ struct BookDetailContentView: View {
         }
       }
     }
+    .environment(\.detailHeroCentered, isCompactLayout)
   }
 
   private var authorItems: [DetailChipFlow.Item] {

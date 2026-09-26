@@ -48,17 +48,6 @@ struct ReadListDetailView: View {
 
   private let wideLayoutMinimumWidth: CGFloat = 960
 
-  /// iPad's single-column fallback (narrow detail column) presents the compact
-  /// centered hero and a capped centered card instead of stretching the
-  /// side-by-side hero and a full-width card across the column.
-  private var usesCompactHeaderLayout: Bool {
-    #if os(iOS)
-      return PlatformHelper.isPad && horizontalSizeClass == .regular
-    #else
-      return false
-    #endif
-  }
-
   @ViewBuilder
   private var readListActions: some View {
     if let readList, readList.ordered, !readList.bookIds.isEmpty, !readListContinuationEnabled {
@@ -120,8 +109,7 @@ struct ReadListDetailView: View {
                 #endif
 
                 ReadListDetailContentView(
-                  readList: readList,
-                  forceCompactHero: usesCompactHeaderLayout
+                  readList: readList
                 ) {
                   readListActions
                 }

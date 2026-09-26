@@ -6,8 +6,7 @@
 import SwiftUI
 
 /// Book count and ordering line shown inside the read list detail action
-/// card. Centered in centered layouts (via `detailHeroCentered`), leading
-/// otherwise.
+/// card.
 struct ReadListBookCountView: View {
   let readList: ReadList
 

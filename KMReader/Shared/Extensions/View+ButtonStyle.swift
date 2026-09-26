@@ -21,8 +21,11 @@ extension View {
         #if os(tvOS)
           self.buttonStyle(.glass)
         #else
+          // Prominent styles don't auto-contrast the label against the tint;
+          // the tint/foreground asset pair carries both appearances.
           self.buttonStyle(.glassProminent)
-            .tint(Color(white: 0.15))
+            .tint(Color.prominentButtonTint)
+            .foregroundStyle(Color.prominentButtonForeground)
         #endif
       case .bordered:
         self.buttonStyle(.glass)
@@ -43,7 +46,8 @@ extension View {
       switch style {
       case .borderedProminent:
         self.buttonStyle(.borderedProminent)
-          .tint(Color(white: 0.15))
+          .tint(Color.prominentButtonTint)
+          .foregroundStyle(Color.prominentButtonForeground)
       case .bordered:
         self.buttonStyle(.bordered)
       case .borderless:

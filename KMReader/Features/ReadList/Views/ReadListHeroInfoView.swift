@@ -5,9 +5,7 @@
 
 import SwiftUI
 
-/// Title and summary of the read list detail hero. Centered under the
-/// compact stacked hero and in the wide rail (via `detailHeroCentered`),
-/// leading otherwise.
+/// Title and summary of the read list detail hero.
 struct ReadListHeroInfoView: View {
   let readList: ReadList
 
@@ -25,6 +23,6 @@ struct ReadListHeroInfoView: View {
           .textSelectionIfAvailable()
       }
     }
-    .frame(maxWidth: .infinity)
+    .frame(maxWidth: .infinity, alignment: heroCentered ? .center : .leading)
   }
 }

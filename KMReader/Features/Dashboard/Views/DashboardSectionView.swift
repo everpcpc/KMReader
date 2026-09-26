@@ -66,9 +66,9 @@ struct DashboardSectionView: View {
               Image(systemName: "chevron.right")
                 .foregroundStyle(.secondary)
             }
+            .contentShape(Rectangle())
           }
           .buttonStyle(.plain)
-          .contentShape(Rectangle())
           .disabled(viewModel.pagination.isEmpty)
 
           Spacer()
