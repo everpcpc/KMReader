@@ -59,32 +59,37 @@ struct LayoutConfig {
   }
 
   /// Width of horizontal cards (dashboard book sections, pinned read lists/collections).
-  /// iOS/tvOS tie it to the small card by φ² so the strip stays balanced next
-  /// to small cards; macOS keeps its denser band, already below that ratio.
+  /// iOS/tvOS span three small-card widths so the strip stays balanced next to
+  /// small cards while matching Apple Books' Reading Now length; macOS keeps
+  /// its denser band at 2.5x.
   static var horizontalCardWidth: CGFloat {
     #if os(tvOS)
-      return 497
+      return 570
     #elseif os(macOS)
-      return 224
+      return 250
     #else
       if UIDevice.current.userInterfaceIdiom == .pad {
-        return 251
+        return 288
       } else {
-        return 209
+        return 240
       }
     #endif
   }
 
-  /// Cover width inside horizontal cards
+  /// Cover width inside horizontal cards. The cover is as tall as the text
+  /// column it sits next to (top line + two-line title + bottom bar ≈ 4 lines
+  /// + 4pt spacing), so the card is no taller than its text.
   static var horizontalCoverWidth: CGFloat {
-    let cardWidth = horizontalCardWidth
-    // The cover must stay taller than the text column (series + two-line
-    // title + bottom bar ≈ 70pt on iPhone) so the cover, not the text,
-    // drives the card height.
     #if os(tvOS)
-      return min(max(cardWidth * 0.24, 56), 140)
+      return 103
+    #elseif os(macOS)
+      return 51
     #else
-      return min(max(cardWidth * 0.24, 32), 96)
+      if UIDevice.current.userInterfaceIdiom == .pad {
+        return 60
+      } else {
+        return 51
+      }
     #endif
   }
 
@@ -122,47 +127,35 @@ struct LayoutConfig {
     #endif
   }
 
-  /// Title text style inside horizontal cards (book title, read list/collection name).
-  static var horizontalCardTitleTextStyle: Font.TextStyle {
+  /// Font size (pt) for every text line inside horizontal cards; the title
+  /// differs only by bold weight (Apple Books style). Fixed pt instead of a
+  /// text style keeps the text column height directly computable for
+  /// `horizontalCoverWidth` (4 lines ≈ 5.2x the size, +4pt spacing).
+  static var horizontalCardFontSize: CGFloat {
     #if os(tvOS)
-      return .callout
+      return 28
     #elseif os(macOS)
-      return .body
+      return 13
     #else
       if UIDevice.current.userInterfaceIdiom == .pad {
-        return .callout
+        return 16
       } else {
-        return .footnote
+        return 13
       }
     #endif
   }
 
-  /// Secondary text style inside horizontal cards (series, progress, metadata).
-  static var horizontalCardSecondaryTextStyle: Font.TextStyle {
+  /// Icon size (pt) for small glyphs in horizontal card accessory rows.
+  static var horizontalCardIconSize: CGFloat {
     #if os(tvOS)
-      return .footnote
+      return 26
     #elseif os(macOS)
-      return .callout
+      return 12
     #else
       if UIDevice.current.userInterfaceIdiom == .pad {
-        return .footnote
+        return 13
       } else {
-        return .caption
-      }
-    #endif
-  }
-
-  /// Tertiary text style for small icons in horizontal card accessory rows.
-  static var horizontalCardTertiaryTextStyle: Font.TextStyle {
-    #if os(tvOS)
-      return .caption
-    #elseif os(macOS)
-      return .footnote
-    #else
-      if UIDevice.current.userInterfaceIdiom == .pad {
-        return .caption
-      } else {
-        return .caption2
+        return 12
       }
     #endif
   }

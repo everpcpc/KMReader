@@ -30,10 +30,10 @@ struct CoverTintedCardBackground: View {
             .scaleEffect(1.3)
             .compositingGroup()
             .blur(radius: 28)
-            .saturation(0.7)
+            .saturation(0.45)
             // Even dimming layer: tinted cards force white text, so light
             // covers still need enough overlay for the title to stay readable.
-            .overlay(Color.black.opacity(0.4))
+            .overlay(Color.black.opacity(0.55))
             .transition(.opacity)
         }
       }
