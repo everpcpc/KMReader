@@ -7,6 +7,7 @@ import SwiftUI
 
 struct EllipsisMenuButton<Content: View>: View {
   var color: Color = .secondary
+  var hoverEffect: Bool = true
   @ViewBuilder let content: () -> Content
 
   var body: some View {
@@ -21,7 +22,7 @@ struct EllipsisMenuButton<Content: View>: View {
             .frame(width: 40, height: 40)
             .contentShape(Rectangle())
         }
-        .adaptiveButtonStyle(.plain)
+        .adaptiveButtonStyle(.plain, hoverEffect: hoverEffect)
       )
   }
 }

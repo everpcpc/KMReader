@@ -32,4 +32,17 @@ extension View {
       self
     #endif
   }
+
+  /// Whole-card pointer hover for horizontal cards; inner buttons pass
+  /// hoverEffect: false so the card lifts as one piece.
+  @ViewBuilder
+  func cardHoverEffect() -> some View {
+    #if os(iOS)
+      self.hoverEffect(.lift)
+    #elseif os(macOS)
+      self.modifier(MouseHoverEffect())
+    #else
+      self
+    #endif
+  }
 }

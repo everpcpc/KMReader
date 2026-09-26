@@ -74,6 +74,7 @@ struct BookActionsSection: View {
         }
       }
       .font(.caption)
+      .buttonBorderShape(.capsule)
     }
     .frame(maxWidth: .infinity, alignment: heroCentered ? .center : .leading)
     .animation(.default, value: downloadStatus)

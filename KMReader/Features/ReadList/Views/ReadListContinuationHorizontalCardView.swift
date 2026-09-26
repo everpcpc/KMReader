@@ -78,7 +78,7 @@ struct ReadListContinuationHorizontalCardView: View {
         }
         .contentShape(Rectangle())
       }
-      .adaptiveButtonStyle(.plain)
+      .adaptiveButtonStyle(.plain, hoverEffect: false)
 
       accessories
     }
@@ -94,6 +94,7 @@ struct ReadListContinuationHorizontalCardView: View {
     #if os(iOS)
       .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: 12))
     #endif
+    .cardHoverEffect()
     .contextMenu {
       continuationContextMenu
     }
@@ -117,7 +118,7 @@ struct ReadListContinuationHorizontalCardView: View {
         .font(.system(size: LayoutConfig.horizontalCardAccessoryIconSize))
       }
 
-      EllipsisMenuButton(color: metaColor) {
+      EllipsisMenuButton(color: metaColor, hoverEffect: false) {
         continuationContextMenu
       }
       .font(.system(size: LayoutConfig.horizontalCardAccessoryIconSize, weight: .medium))
