@@ -283,20 +283,6 @@ enum PlatformHelper {
     return width <= maxScreenDimension * 1.2
   }
 
-  /// Convert SwiftUI Color to CGColor
-  /// - Parameter color: SwiftUI Color to convert
-  /// - Returns: CGColor representation of the color
-  static nonisolated func cgColor(from color: Color) -> CGColor {
-    #if os(iOS) || os(tvOS)
-      return UIColor(color).cgColor
-    #elseif os(macOS)
-      return NSColor(color).cgColor
-    #else
-      // Fallback: use default orange color
-      return CGColor(red: 1, green: 0.58, blue: 0, alpha: 1)
-    #endif
-  }
-
   /// Get system background color
   /// - Returns: System background color appropriate for the platform
   static nonisolated var systemBackgroundColor: Color {

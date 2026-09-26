@@ -35,18 +35,13 @@ struct ShadowPathView: View {
 
     func makeUIView(context: Context) -> ShadowPathUIView {
       let view = ShadowPathUIView()
-      view.apply(
-        color: PlatformHelper.cgColor(from: color),
-        radius: radius,
-        offset: CGSize(width: x, height: -y),
-        cornerRadius: cornerRadius
-      )
+      updateUIView(view, context: context)
       return view
     }
 
     func updateUIView(_ uiView: ShadowPathUIView, context: Context) {
       uiView.apply(
-        color: PlatformHelper.cgColor(from: color),
+        color: UIColor(color),
         radius: radius,
         offset: CGSize(width: x, height: y),
         cornerRadius: cornerRadius
@@ -55,7 +50,7 @@ struct ShadowPathView: View {
   }
 
   private final class ShadowPathUIView: UIView {
-    private var shadowColor: CGColor = UIColor.clear.cgColor
+    private var shadowColor: UIColor = .clear
     private var shadowRadius: CGFloat = 0
     private var shadowOffset: CGSize = .zero
     private var shadowCornerRadius: CGFloat = 0
@@ -65,6 +60,13 @@ struct ShadowPathView: View {
       isUserInteractionEnabled = false
       backgroundColor = .clear
       layer.masksToBounds = false
+      // SwiftUI skips representable updates on appearance changes when nothing
+      // in the view tree reads colorScheme, so the layer must re-resolve its
+      // frozen CGColor itself.
+      registerForTraitChanges([UITraitUserInterfaceStyle.self]) {
+        (view: ShadowPathUIView, _) in
+        view.updateShadowPath()
+      }
     }
 
     required init?(coder: NSCoder) {
@@ -79,7 +81,7 @@ struct ShadowPathView: View {
       updateShadowPath()
     }
 
-    func apply(color: CGColor, radius: CGFloat, offset: CGSize, cornerRadius: CGFloat) {
+    func apply(color: UIColor, radius: CGFloat, offset: CGSize, cornerRadius: CGFloat) {
       shadowColor = color
       shadowRadius = radius
       shadowOffset = offset
@@ -88,7 +90,7 @@ struct ShadowPathView: View {
     }
 
     private func updateShadowPath() {
-      layer.shadowColor = shadowColor
+      layer.shadowColor = shadowColor.resolvedColor(with: traitCollection).cgColor
       layer.shadowOpacity = 1
       layer.shadowRadius = shadowRadius
       layer.shadowOffset = shadowOffset
@@ -109,18 +111,13 @@ struct ShadowPathView: View {
 
     func makeNSView(context: Context) -> ShadowPathNSView {
       let view = ShadowPathNSView()
-      view.apply(
-        color: PlatformHelper.cgColor(from: color),
-        radius: radius,
-        offset: CGSize(width: x, height: y),
-        cornerRadius: cornerRadius
-      )
+      updateNSView(view, context: context)
       return view
     }
 
     func updateNSView(_ nsView: ShadowPathNSView, context: Context) {
       nsView.apply(
-        color: PlatformHelper.cgColor(from: color),
+        color: NSColor(color),
         radius: radius,
         offset: CGSize(width: x, height: -y),
         cornerRadius: cornerRadius
@@ -129,7 +126,7 @@ struct ShadowPathView: View {
   }
 
   private final class ShadowPathNSView: NSView {
-    private var shadowColor: CGColor = NSColor.clear.cgColor
+    private var shadowColor: NSColor = .clear
     private var shadowRadius: CGFloat = 0
     private var shadowOffset: CGSize = .zero
     private var shadowCornerRadius: CGFloat = 0
@@ -153,7 +150,13 @@ struct ShadowPathView: View {
       updateShadowPath()
     }
 
-    func apply(color: CGColor, radius: CGFloat, offset: CGSize, cornerRadius: CGFloat) {
+    // See ShadowPathUIView's trait-change registration.
+    override func viewDidChangeEffectiveAppearance() {
+      super.viewDidChangeEffectiveAppearance()
+      updateShadowPath()
+    }
+
+    func apply(color: NSColor, radius: CGFloat, offset: CGSize, cornerRadius: CGFloat) {
       shadowColor = color
       shadowRadius = radius
       shadowOffset = offset
@@ -163,7 +166,11 @@ struct ShadowPathView: View {
 
     private func updateShadowPath() {
       guard let layer = layer else { return }
-      layer.shadowColor = shadowColor
+      var resolvedColor = shadowColor.cgColor
+      effectiveAppearance.performAsCurrentDrawingAppearance {
+        resolvedColor = shadowColor.cgColor
+      }
+      layer.shadowColor = resolvedColor
       layer.shadowOpacity = 1
       layer.shadowRadius = shadowRadius
       layer.shadowOffset = shadowOffset
