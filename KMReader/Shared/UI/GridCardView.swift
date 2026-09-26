@@ -84,16 +84,12 @@ struct GridCardView<Badge: View, Menu: View, Detail: View, OverlayDetail: View>:
     cardTextOverlayMode && !coverOnly
   }
 
-  private var showsOverlayProgressBar: Bool {
-    progress != nil && isInProgress && thumbnailShowProgressBar
-  }
-
   private var contentSpacing: CGFloat {
-    if showsTextOverlay {
-      return 0
-    }
     if progress != nil && thumbnailShowProgressBar {
       return 2
+    }
+    if showsTextOverlay {
+      return 0
     }
     return 12
   }
@@ -138,8 +134,8 @@ struct GridCardView<Badge: View, Menu: View, Detail: View, OverlayDetail: View>:
         menu
       }
 
-      if let progress, thumbnailShowProgressBar, !showsTextOverlay {
-        ReadingProgressBar(progress: progress, type: .card)
+      if let progress, thumbnailShowProgressBar {
+        ReadingProgressBar(progress: progress, type: .card, padsBottom: !showsTextOverlay)
           .opacity(isInProgress ? 1 : 0)
       }
 
@@ -167,6 +163,8 @@ struct GridCardView<Badge: View, Menu: View, Detail: View, OverlayDetail: View>:
           .foregroundColor(.secondary)
         }
         .font(.system(titleTextStyle))
+        // Match the progress bar's horizontal inset.
+        .padding(.horizontal, PlatformHelper.progressBarHeight)
       }
     }
     .frame(maxHeight: .infinity, alignment: .top)
@@ -184,26 +182,12 @@ struct GridCardView<Badge: View, Menu: View, Detail: View, OverlayDetail: View>:
     ) {
       HStack(spacing: 4) {
         overlayDetail
-        if let downloadIcon, !showsOverlayProgressBar {
+        if let downloadIcon {
           Spacer()
           DownloadStatusIcon(
             systemName: downloadIcon, spinning: downloadSpinning, color: style.secondaryColor
           )
           .font(.caption2)
-        }
-      }
-    } progress: {
-      if let progress, showsOverlayProgressBar {
-        HStack(spacing: 6) {
-          ReadingProgressBar(progress: progress, type: .card)
-            .padding(.top, 2)
-            .layoutPriority(1)
-          if let downloadIcon {
-            DownloadStatusIcon(
-              systemName: downloadIcon, spinning: downloadSpinning, color: style.secondaryColor
-            )
-            .font(.caption2)
-          }
         }
       }
     }

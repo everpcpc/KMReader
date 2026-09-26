@@ -5,7 +5,7 @@
 
 import SwiftUI
 
-struct CardOverlayTextStack<Detail: View, Progress: View>: View {
+struct CardOverlayTextStack<Detail: View>: View {
   let title: String
   let titleLeadingSystemImage: String?
   let subtitle: String?
@@ -13,7 +13,6 @@ struct CardOverlayTextStack<Detail: View, Progress: View>: View {
   let style: CardOverlayTextStyle
   let spacing: CGFloat
   let detail: Detail
-  let progress: Progress
 
   init(
     title: String,
@@ -22,8 +21,7 @@ struct CardOverlayTextStack<Detail: View, Progress: View>: View {
     titleLineLimit: Int = 1,
     style: CardOverlayTextStyle = .standard,
     spacing: CGFloat = 4,
-    @ViewBuilder detail: () -> Detail,
-    @ViewBuilder progress: () -> Progress
+    @ViewBuilder detail: () -> Detail
   ) {
     self.title = title
     self.titleLeadingSystemImage = titleLeadingSystemImage
@@ -32,7 +30,6 @@ struct CardOverlayTextStack<Detail: View, Progress: View>: View {
     self.style = style
     self.spacing = spacing
     self.detail = detail()
-    self.progress = progress()
   }
 
   var body: some View {
@@ -58,32 +55,6 @@ struct CardOverlayTextStack<Detail: View, Progress: View>: View {
 
       detail
         .cardOverlayDetail(style)
-
-      progress
-    }
-  }
-}
-
-extension CardOverlayTextStack where Progress == EmptyView {
-  init(
-    title: String,
-    titleLeadingSystemImage: String? = nil,
-    subtitle: String? = nil,
-    titleLineLimit: Int = 1,
-    style: CardOverlayTextStyle = .standard,
-    spacing: CGFloat = 4,
-    @ViewBuilder detail: () -> Detail
-  ) {
-    self.init(
-      title: title,
-      titleLeadingSystemImage: titleLeadingSystemImage,
-      subtitle: subtitle,
-      titleLineLimit: titleLineLimit,
-      style: style,
-      spacing: spacing,
-      detail: detail
-    ) {
-      EmptyView()
     }
   }
 }

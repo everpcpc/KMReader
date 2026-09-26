@@ -69,6 +69,7 @@ struct ReadListCardView: View {
             Spacer()
           }.foregroundColor(.secondary)
         }.font(.footnote)
+          .padding(.horizontal, PlatformHelper.progressBarHeight)
       }
     }
     .frame(maxWidth: .infinity, alignment: .leading)
