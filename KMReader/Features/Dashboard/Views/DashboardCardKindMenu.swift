@@ -11,6 +11,7 @@ struct DashboardCardKindMenu: View {
   let section: DashboardSection
 
   @AppStorage("dashboard") private var dashboard: DashboardConfiguration = DashboardConfiguration()
+  @AppStorage("showDashboardCardKindMenu") private var showDashboardCardKindMenu: Bool = true
 
   private var cardKindBinding: Binding<DashboardCardKind> {
     Binding(
@@ -20,7 +21,7 @@ struct DashboardCardKindMenu: View {
   }
 
   var body: some View {
-    if section.availableCardKinds.count > 1 {
+    if showDashboardCardKindMenu && section.availableCardKinds.count > 1 {
       Menu {
         Picker(selection: cardKindBinding) {
           ForEach(section.availableCardKinds, id: \.self) { kind in

@@ -9,7 +9,7 @@ import SwiftUI
 /// lets the list continue across series.
 struct ReadListContinuationHintView: View {
   var body: some View {
-    NavigationLink(value: NavDestination.settingsDashboard) {
+    NavigationLink(value: NavDestination.settingsReading) {
       HStack(alignment: .firstTextBaseline, spacing: 8) {
         Image(systemName: "list.number")
         Text(String(localized: "readList.continuation.hint"))

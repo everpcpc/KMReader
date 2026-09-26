@@ -74,6 +74,10 @@ struct ReaderPreferencesView: View {
         }
       }
 
+      Section(header: Text(String(localized: "Read Lists"))) {
+        SettingsReadListContinuationToggle()
+      }
+
       #if os(iOS) || os(tvOS)
         Section(header: Text(String(localized: "Screen"))) {
           Toggle(isOn: $keepScreenAwakeWhileReading) {

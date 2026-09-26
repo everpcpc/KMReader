@@ -61054,61 +61054,61 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aktiviere „Leselisten wie Serien fortsetzen“ unter Einstellungen › Dashboard, um diese Liste serienübergreifend zu lesen."
+            "value" : "Aktiviere „Leselisten wie Serien fortsetzen“ unter Einstellungen › Allgemein, um diese Liste serienübergreifend zu lesen."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Turn on Continue Read Lists Like Series in Settings › Dashboard to read this list across series."
+            "value" : "Turn on Continue Read Lists Like Series in Settings › General to read this list across series."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Activa «Continuar listas de lectura como series» en Ajustes › Panel para leer esta lista a través de las series."
+            "value" : "Activa «Continuar listas de lectura como series» en Ajustes › General para leer esta lista a través de las series."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Activez « Poursuivre les listes de lecture comme des séries » dans Paramètres › Tableau de bord pour lire cette liste d'une série à l'autre."
+            "value" : "Activez « Poursuivre les listes de lecture comme des séries » dans Paramètres › Général pour lire cette liste d'une série à l'autre."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Attiva «Continua le liste di lettura come serie» in Impostazioni › Dashboard per leggere questa lista attraverso le serie."
+            "value" : "Attiva «Continua le liste di lettura come serie» in Impostazioni › Generale per leggere questa lista attraverso le serie."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "設定 › ダッシュボードで「読書リストをシリーズのように続ける」をオンにすると、このリストをシリーズをまたいで読めます。"
+            "value" : "設定 › 一般で「読書リストをシリーズのように続ける」をオンにすると、このリストをシリーズをまたいで読めます。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "설정 › 대시보드에서 '읽기 목록을 시리즈처럼 이어 읽기'를 켜면 이 목록을 시리즈를 넘나들며 읽을 수 있습니다."
+            "value" : "설정 › 일반에서 '읽기 목록을 시리즈처럼 이어 읽기'를 켜면 이 목록을 시리즈를 넘나들며 읽을 수 있습니다."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Включите «Продолжать списки чтения как серии» в Настройки › Панель, чтобы читать этот список через разные серии."
+            "value" : "Включите «Продолжать списки чтения как серии» в Настройки › Основные, чтобы читать этот список через разные серии."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在 设置 › 主页 中开启“像系列一样继续阅读列表”，即可跨系列阅读此列表。"
+            "value" : "在 设置 › 通用 中开启“像系列一样继续阅读列表”，即可跨系列阅读此列表。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在 設定 › 主頁 中開啟「像系列一樣繼續閱讀列表」，即可跨系列閱讀此列表。"
+            "value" : "在 設定 › 一般 中開啟「像系列一樣繼續閱讀列表」，即可跨系列閱讀此列表。"
           }
         }
       }
@@ -70070,6 +70070,134 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "連線已恢復"
+          }
+        }
+      }
+    },
+    "settings.dashboard.cardKindMenu.caption" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeigt in der Kopfzeile jedes Dashboard-Abschnitts ein Menü zum Wechseln des Kartenstils an."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show a menu in each dashboard section header to switch card styles."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Muestra un menú en la cabecera de cada sección del panel para cambiar el estilo de las tarjetas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Affiche un menu dans l'en-tête de chaque section du tableau de bord pour changer le style des cartes."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostra un menu nell'intestazione di ogni sezione della dashboard per cambiare lo stile delle schede."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ダッシュボードの各セクションヘッダーにカードスタイルを切り替えるメニューを表示します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "대시보드 각 섹션 헤더에 카드 스타일을 전환하는 메뉴를 표시합니다."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показывать меню переключения стиля карточек в заголовке каждого раздела панели."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在主页每个区块的标题栏显示切换卡片样式的菜单。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在主頁每個區塊的標題列顯示切換卡片樣式的選單。"
+          }
+        }
+      }
+    },
+    "settings.dashboard.cardKindMenu.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kartenstil-Menü"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Card Style Menu"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menú de estilo de tarjeta"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menu de style de carte"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Menu stile scheda"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カードスタイルメニュー"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "카드 스타일 메뉴"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Меню стиля карточек"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "卡片样式菜单"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "卡片樣式選單"
           }
         }
       }
@@ -83131,6 +83259,7 @@
       }
     },
     "View Series" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
