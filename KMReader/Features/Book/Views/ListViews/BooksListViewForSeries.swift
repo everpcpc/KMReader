@@ -22,6 +22,7 @@ struct BooksListViewForSeries: View {
   @State private var isSelectionMode = false
   @State private var isSubmitting = false
   @State private var allSeriesBookIds: [String] = []
+  @State private var loadedSeriesId: String?
 
   private var supportsSelectionMode: Bool {
     #if os(tvOS)
@@ -103,6 +104,8 @@ struct BooksListViewForSeries: View {
       )
     }
     .task(id: seriesId) {
+      guard loadedSeriesId != seriesId else { return }
+      loadedSeriesId = seriesId
       await refreshBooks(refresh: true)
     }
     .onChange(of: browseOpts) {

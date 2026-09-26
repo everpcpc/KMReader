@@ -14,6 +14,7 @@ struct CollectionDetailView: View {
   @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
   @State private var item: CollectionDisplayItem?
+  @State private var loadedCollectionId: String?
   @State private var showDeleteConfirmation = false
   @State private var showEditSheet = false
   @State private var showFilterSheet = false
@@ -146,6 +147,8 @@ struct CollectionDetailView: View {
       SavedFiltersView(filterType: .collectionSeries)
     }
     .task {
+      guard loadedCollectionId != collectionId else { return }
+      loadedCollectionId = collectionId
       await loadCollectionDetails()
     }
     .onReceive(NotificationCenter.default.publisher(for: .collectionProjectionDidChange)) {

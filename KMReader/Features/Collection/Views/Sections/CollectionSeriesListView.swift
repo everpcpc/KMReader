@@ -21,6 +21,7 @@ struct CollectionSeriesListView: View {
   @State private var isSelectionMode = false
   @State private var isDeleting = false
   @State private var collectionItem: CollectionDisplayItem?
+  @State private var loadedCollectionId: String?
 
   init(
     collectionId: String,
@@ -110,6 +111,8 @@ struct CollectionSeriesListView: View {
       }
     }
     .task(id: collectionId) {
+      guard loadedCollectionId != collectionId else { return }
+      loadedCollectionId = collectionId
       await refreshSeries()
     }
     .onChange(of: browseOpts) {

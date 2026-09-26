@@ -70,6 +70,7 @@ Subsystem conventions and invariants for KMReader. `AGENTS.md` holds repo-wide r
 ### Pagination & Ordering
 
 - Browse pages paginate with `PaginationState(pageSize: 50)`. Notification-driven refreshes revalidate the loaded window in place via `PaginationState.replaceItems`; full `pagination.reset()` is reserved for initial loads and explicit user actions.
+- `.task`/`.task(id:)` re-runs when a view re-appears after a pushed navigation child pops back to it, so initial-load tasks (detail pages and their book/series list views) guard on a `loadedXxxId` state key and skip re-fires for the same id; returning from a child must not re-sync or reset pagination.
 - User-facing metadata lists (authors, publishers, genres, tags, languages) sort with `Collection.localizedSorted()`; authors via `Author.sortedByRole()`. Never revert to raw `.sorted()`. (`MetadataIndex` encode keys and SQL clause ordering intentionally keep plain `.sorted()`.)
 - Online ordering is server-side; the app-local pinned flag is invisible to the server, so online pages prepend pinned items and filter them out of the server stream.
 

@@ -21,6 +21,7 @@ struct BooksListViewForReadList: View {
   @State private var isSelectionMode = false
   @State private var isDeleting = false
   @State private var readListItem: ReadListDisplayItem?
+  @State private var loadedReadListId: String?
 
   private var readListContext: ReaderReadListContext? {
     guard let readListItem else { return nil }
@@ -121,6 +122,8 @@ struct BooksListViewForReadList: View {
       }
     }
     .task(id: readListId) {
+      guard loadedReadListId != readListId else { return }
+      loadedReadListId = readListId
       await refreshBooks()
     }
     .onChange(of: browseOpts) {

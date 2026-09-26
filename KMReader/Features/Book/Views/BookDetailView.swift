@@ -13,6 +13,7 @@ struct BookDetailView: View {
   @AppStorage("currentAccount") private var current: Current = .init()
 
   @State private var item: BookDisplayItem?
+  @State private var loadedBookId: String?
   @State private var readLists: [SidebarReadListItem] = []
   @State private var hasError = false
   @State private var showDeleteConfirmation = false
@@ -114,6 +115,8 @@ struct BookDetailView: View {
       }
     }
     .task {
+      guard loadedBookId != bookId else { return }
+      loadedBookId = bookId
       await loadBook()
     }
     .onReceive(NotificationCenter.default.publisher(for: .bookProjectionDidChange)) {
