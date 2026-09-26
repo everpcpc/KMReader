@@ -44,12 +44,20 @@ struct BookDetailContentView: View {
         contentBlurRadius: coverBlurRadius
       ) {
         VStack(alignment: isCompactHero ? .center : .leading, spacing: 6) {
-          Text(book.seriesTitle)
-            .font(.subheadline)
-            .foregroundColor(.secondary)
-            .multilineTextAlignment(isCompactHero ? .center : .leading)
-            .fixedSize(horizontal: false, vertical: true)
-            .textSelectionIfAvailable()
+          if !inSheet {
+            NavigationLink(value: NavDestination.seriesDetail(seriesId: book.seriesId)) {
+              HStack(spacing: 4) {
+                Image(systemName: ContentIcon.series)
+                Text(book.seriesTitle)
+                  .lineLimit(1)
+                Image(systemName: "chevron.right")
+                  .font(.caption2)
+              }
+              .font(.subheadline)
+              .foregroundColor(.secondary)
+            }
+            .buttonStyle(.plain)
+          }
 
           DetailTitleView(title: book.metadata.title)
 
@@ -114,6 +122,16 @@ struct BookDetailContentView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
             }
+
+            if let downloadStatus, let icon = downloadStatus.displayIcon {
+              Spacer()
+              OfflineProtectionStatusChip(
+                label: downloadStatus.displayLabel,
+                systemImage: icon,
+                spinning: downloadStatus.isPending,
+                sources: protectionSources
+              )
+            }
           }
 
           if let readProgress = book.readProgress, !book.deleted {
@@ -129,15 +147,7 @@ struct BookDetailContentView: View {
         if !inSheet {
           BookActionsSection(
             book: book,
-            seriesLink: true
-          )
-        }
-
-        if let downloadStatus = downloadStatus {
-          BookDownloadActionsSection(
-            book: book,
-            status: downloadStatus,
-            protectionSources: protectionSources
+            downloadStatus: downloadStatus
           )
         }
       }
