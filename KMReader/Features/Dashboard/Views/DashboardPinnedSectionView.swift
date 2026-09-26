@@ -14,8 +14,6 @@ struct DashboardPinnedSectionView: View {
   private var showDashboardSectionGradientBackground: Bool =
     AppConfig.showDashboardSectionGradientBackground
 
-  @Environment(\.colorScheme) private var colorScheme
-
   @State private var viewModel: DashboardPinnedSectionViewModel
   @State private var collectionPendingDelete: CollectionDisplayItem?
   @State private var readListPendingDelete: ReadListDisplayItem?
@@ -70,17 +68,7 @@ struct DashboardPinnedSectionView: View {
   }
 
   private var backgroundColors: [Color] {
-    if colorScheme == .dark {
-      return [
-        Color.secondary.opacity(0.2),
-        Color.clear,
-      ]
-    } else {
-      return [
-        Color.clear,
-        Color.secondary.opacity(0.1),
-      ]
-    }
+    [Color.dashboardGradientStart, Color.dashboardGradientEnd]
   }
 
   private var horizontalCardWidth: CGFloat {

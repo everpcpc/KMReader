@@ -181,10 +181,13 @@ struct GridCardView<Badge: View, Menu: View, Detail: View, OverlayDetail: View>:
         overlayDetail
         if let downloadIcon {
           Spacer()
+          // Overlay mode renders the icon in white over the cover, which
+          // calls for the filled variant.
           DownloadStatusIcon(
             systemName: downloadIcon, spinning: downloadSpinning, color: style.secondaryColor
           )
           .font(.caption2)
+          .symbolVariant(.fill)
         }
       }
     }

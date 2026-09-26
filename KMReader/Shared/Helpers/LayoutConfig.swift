@@ -76,19 +76,19 @@ struct LayoutConfig {
     #endif
   }
 
-  /// Cover width inside horizontal cards. The cover is as tall as the text
-  /// column it sits next to (top line + two-line title + bottom bar ≈ 4 lines
-  /// + 4pt spacing), so the card is no taller than its text.
+  /// Cover width inside horizontal cards. The cover is about as tall as the
+  /// text column it sits next to (two-line title + series line + bottom bar ≈
+  /// 4 lines + 4pt spacing), so the card is no taller than its text.
   static var horizontalCoverWidth: CGFloat {
     #if os(tvOS)
-      return 103
+      return 99
     #elseif os(macOS)
-      return 51
+      return 45
     #else
       if UIDevice.current.userInterfaceIdiom == .pad {
-        return 60
+        return 56
       } else {
-        return 51
+        return 45
       }
     #endif
   }
@@ -127,10 +127,10 @@ struct LayoutConfig {
     #endif
   }
 
-  /// Font size (pt) for every text line inside horizontal cards; the title
-  /// differs only by bold weight (Apple Books style). Fixed pt instead of a
-  /// text style keeps the text column height directly computable for
-  /// `horizontalCoverWidth` (4 lines ≈ 5.2x the size, +4pt spacing).
+  /// Font size (pt) for the title line of horizontal cards (semibold, Apple
+  /// Books style); the series and meta lines step down from it. Fixed pt
+  /// instead of a text style keeps the text column height directly computable
+  /// for `horizontalCoverWidth` (4 lines ≈ 5.2x the size, +4pt spacing).
   static var horizontalCardFontSize: CGFloat {
     #if os(tvOS)
       return 28
@@ -145,17 +145,27 @@ struct LayoutConfig {
     #endif
   }
 
-  /// Icon size (pt) for small glyphs in horizontal card accessory rows.
-  static var horizontalCardIconSize: CGFloat {
+  /// Font size (pt) for the series line of horizontal cards.
+  static var horizontalCardSeriesFontSize: CGFloat {
+    horizontalCardFontSize - 1
+  }
+
+  /// Font size (pt) for the meta (bottom bar) line of horizontal cards.
+  static var horizontalCardMetaFontSize: CGFloat {
+    horizontalCardFontSize - 2
+  }
+
+  /// Icon size (pt) for the trailing accessory icons in horizontal cards.
+  static var horizontalCardAccessoryIconSize: CGFloat {
     #if os(tvOS)
-      return 26
+      return 30
     #elseif os(macOS)
-      return 12
+      return 14
     #else
       if UIDevice.current.userInterfaceIdiom == .pad {
-        return 13
+        return 16
       } else {
-        return 12
+        return 15
       }
     #endif
   }

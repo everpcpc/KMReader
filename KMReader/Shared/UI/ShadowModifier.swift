@@ -9,24 +9,6 @@ struct ShadowModifier: ViewModifier {
   let style: ShadowStyle
   let cornerRadius: CGFloat
 
-  @Environment(\.colorScheme) private var colorScheme
-
-  private var shadowColorNear: Color {
-    if colorScheme == .light {
-      return .black.opacity(0.4)
-    } else {
-      return .white.opacity(0.1)
-    }
-  }
-
-  private var shadowColorFar: Color {
-    if colorScheme == .light {
-      return .black.opacity(0.1)
-    } else {
-      return .white.opacity(0.05)
-    }
-  }
-
   @ViewBuilder
   func body(content: Content) -> some View {
     switch style {
@@ -36,7 +18,7 @@ struct ShadowModifier: ViewModifier {
       content
         .background(
           ShadowPathView(
-            color: shadowColorNear,
+            color: .shadowNear,
             radius: 2,
             x: 0,
             y: 0,
@@ -47,7 +29,7 @@ struct ShadowModifier: ViewModifier {
       content
         .background(
           ShadowPathView(
-            color: shadowColorFar,
+            color: .shadowFar,
             radius: 16,
             x: 0,
             y: 8,
@@ -56,7 +38,7 @@ struct ShadowModifier: ViewModifier {
         )
         .background(
           ShadowPathView(
-            color: shadowColorNear,
+            color: .shadowNear,
             radius: 4,
             x: 0,
             y: 4,

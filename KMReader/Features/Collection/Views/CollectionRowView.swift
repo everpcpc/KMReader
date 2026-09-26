@@ -56,7 +56,6 @@ struct CollectionRowView: View {
           EllipsisMenuButton {
             CollectionContextMenu(
               collectionId: item.collectionId,
-              menuTitle: item.name,
               isPinned: item.isPinned,
               onDeleteRequested: {
                 onDeleteRequested()

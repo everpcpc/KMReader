@@ -17,8 +17,6 @@ struct ReadListsInProgressSectionView: View {
   private var showDashboardSectionGradientBackground: Bool =
     AppConfig.showDashboardSectionGradientBackground
 
-  @Environment(\.colorScheme) private var colorScheme
-
   private let logger = AppLogger(.dashboard)
 
   /// The library scope hides entries by the library of the book each list
@@ -31,17 +29,7 @@ struct ReadListsInProgressSectionView: View {
   }
 
   private var backgroundColors: [Color] {
-    if colorScheme == .dark {
-      return [
-        Color.secondary.opacity(0.2),
-        Color.clear,
-      ]
-    } else {
-      return [
-        Color.clear,
-        Color.secondary.opacity(0.1),
-      ]
-    }
+    [Color.dashboardGradientStart, Color.dashboardGradientEnd]
   }
 
   private var cardKind: DashboardCardKind {

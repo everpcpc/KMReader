@@ -59,7 +59,6 @@ struct ReadListRowView: View {
           EllipsisMenuButton {
             ReadListContextMenu(
               readListId: item.readListId,
-              menuTitle: item.name,
               downloadStatus: item.downloadStatus,
               offlinePolicy: item.offlinePolicy,
               offlinePolicyLimit: item.offlinePolicyLimit,

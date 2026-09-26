@@ -8,7 +8,6 @@ import SwiftUI
 
 struct CollectionContextMenu: View {
   let collectionId: String
-  let menuTitle: String
   let isPinned: Bool
   var onDeleteRequested: (() -> Void)? = nil
   var onEditRequested: (() -> Void)? = nil
@@ -18,15 +17,6 @@ struct CollectionContextMenu: View {
 
   var body: some View {
     Group {
-      Button(action: {}) {
-        Text(menuTitle.isEmpty ? "Untitled" : menuTitle)
-          .font(.footnote)
-          .foregroundStyle(.secondary)
-          .lineLimit(2)
-      }
-      .disabled(true)
-      Divider()
-
       NavigationLink(value: NavDestination.collectionDetail(collectionId: collectionId)) {
         Label("View Details", systemImage: "info.circle")
       }

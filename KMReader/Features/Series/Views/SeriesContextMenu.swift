@@ -7,7 +7,6 @@ import SwiftUI
 
 struct SeriesContextMenu: View {
   let seriesId: String
-  let menuTitle: String
   let downloadStatus: SeriesDownloadStatus
   let offlinePolicy: OfflinePolicy
   let offlinePolicyLimit: Int
@@ -55,15 +54,6 @@ struct SeriesContextMenu: View {
 
   var body: some View {
     Group {
-      Button(action: {}) {
-        Text(menuTitle.isEmpty ? "Untitled" : menuTitle)
-          .font(.footnote)
-          .foregroundStyle(.secondary)
-          .lineLimit(2)
-      }
-      .disabled(true)
-      Divider()
-
       if canRead {
         Button {
           continueReading()

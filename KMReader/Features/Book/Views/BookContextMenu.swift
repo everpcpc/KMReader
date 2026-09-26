@@ -24,28 +24,8 @@ struct BookContextMenu: View {
   @AppStorage("currentAccount") private var current: Current = .init()
   @AppStorage("isOffline") private var isOffline: Bool = false
 
-  private var menuTitle: String {
-    if book.oneshot {
-      return book.metadata.title
-    }
-    let number = book.metadata.number
-    if number.isEmpty {
-      return book.metadata.title
-    }
-    return "#\(number) - \(book.metadata.title)"
-  }
-
   var body: some View {
     Group {
-      Button(action: {}) {
-        Text(menuTitle.isEmpty ? "Untitled" : menuTitle)
-          .font(.footnote)
-          .foregroundStyle(.secondary)
-          .lineLimit(2)
-      }
-      .disabled(true)
-      Divider()
-
       detailsSection
 
       if !isOffline {
@@ -109,9 +89,7 @@ struct BookContextMenu: View {
           let previousStatus = downloadStatus
           await OfflineManager.shared.toggleDownload(
             instanceId: current.instanceId, info: book.downloadInfo)
-          ErrorManager.shared.notify(
-            message: downloadNotificationMessage(for: previousStatus)
-          )
+          ErrorManager.shared.notify(message: previousStatus.toggledNotification)
           onMutationCompleted?()
         }
       } label: {
@@ -218,17 +196,6 @@ struct BookContextMenu: View {
       } catch {
         ErrorManager.shared.alert(error: error)
       }
-    }
-  }
-
-  private func downloadNotificationMessage(for status: DownloadStatus) -> String {
-    switch status {
-    case .downloaded:
-      return String(localized: "notification.book.offlineRemoved", defaultValue: "Removed from offline")
-    case .pending:
-      return String(localized: "notification.book.downloadCancelled", defaultValue: "Download cancelled")
-    case .notDownloaded, .failed:
-      return String(localized: "notification.book.downloadQueued", defaultValue: "Download queued")
     }
   }
 

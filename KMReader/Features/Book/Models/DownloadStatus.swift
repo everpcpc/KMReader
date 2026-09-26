@@ -36,7 +36,7 @@ nonisolated enum DownloadStatus: Equatable, Sendable {
     case .pending:
       return "arrow.clockwise"
     case .downloaded:
-      return "checkmark.icloud.fill"
+      return "checkmark.icloud"
     case .failed:
       return "exclamationmark.circle.fill"
     }
@@ -53,6 +53,18 @@ nonisolated enum DownloadStatus: Equatable, Sendable {
       return String(localized: "Cancel Download")
     case .notDownloaded, .failed:
       return String(localized: "Make Offline")
+    }
+  }
+
+  /// Notification message after toggling away from this status.
+  var toggledNotification: String {
+    switch self {
+    case .downloaded:
+      return String(localized: "notification.book.offlineRemoved", defaultValue: "Removed from offline")
+    case .pending:
+      return String(localized: "notification.book.downloadCancelled", defaultValue: "Download cancelled")
+    case .notDownloaded, .failed:
+      return String(localized: "notification.book.downloadQueued", defaultValue: "Download queued")
     }
   }
 
