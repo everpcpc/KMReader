@@ -63,6 +63,8 @@ Additional patterns:
 - The Xcode project uses folder references (not groups); adding/removing files does not require editing `project.pbxproj`.
 - Translate all supported languages (see `misc/translate.py`); reference `../komga/komga-webui/src/locales/` when available.
 - When building JSON strings for storage or cache keys, use `JSONSerialization` with `sortedKeys` for stable raw values.
+- Colors that only vary between light and dark mode belong in `Assets.xcassets` as color sets with light/dark appearances, referenced as `Color.<name>` — not `colorScheme` branching in views. Assets also carry alpha and can encode gradient-stop pairs (start/end as two assets), so a flipped gradient still needs no branch. Reserve `colorScheme` reads for layout or logic differences; clusters of one-off decorative tints serving a single view may stay local when converting would mean many single-use assets.
+- SF Symbol fill/outline duality is a rendering concern, not data: models and enums expose the base (outline) symbol name, and the site that knows its rendering context applies `.symbolVariant(.fill)` (e.g. white-on-cover icons). Do not thread hardcoded `*.fill` names or parallel filled-name parameters through view APIs.
 
 ## GRDB Migration Discipline
 

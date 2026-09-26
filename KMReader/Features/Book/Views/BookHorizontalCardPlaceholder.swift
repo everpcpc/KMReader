@@ -7,12 +7,12 @@ import SwiftUI
 
 /// Placeholder skeleton matching BookHorizontalCardView while data is loading
 struct BookHorizontalCardPlaceholder: View {
-  var coverWidth: CGFloat = 60
+  var coverWidth: CGFloat = 45
 
   private let cornerRadius: CGFloat = 8
 
   var body: some View {
-    HStack(alignment: .center, spacing: 10) {
+    HStack(alignment: .center, spacing: 12) {
       RoundedRectangle(cornerRadius: cornerRadius)
         .fill(Color.gray.opacity(0.2))
         .aspectRatio(CoverAspectRatio.widthToHeight, contentMode: .fit)
@@ -21,21 +21,21 @@ struct BookHorizontalCardPlaceholder: View {
       VStack(alignment: .leading, spacing: 4) {
         placeholderLine(
           size: LayoutConfig.horizontalCardFontSize,
-          text: "Series Title", widthScale: 0.45, opacity: 0.18)
-        placeholderLine(
-          size: LayoutConfig.horizontalCardFontSize,
           text: "Book Title", widthScale: 0.8, opacity: 0.2)
         placeholderLine(
-          size: LayoutConfig.horizontalCardFontSize,
-          text: "Page 42 • 36%", widthScale: 0.55, opacity: 0.15)
+          size: LayoutConfig.horizontalCardSeriesFontSize,
+          text: "Series Title", widthScale: 0.45, opacity: 0.18)
+        placeholderLine(
+          size: LayoutConfig.horizontalCardMetaFontSize,
+          text: "40% • 120 pages", widthScale: 0.55, opacity: 0.15)
       }
       .frame(maxWidth: .infinity, alignment: .leading)
     }
-    .padding(6)
+    .padding(8)
     .frame(maxWidth: .infinity, alignment: .leading)
     .background {
       RoundedRectangle(cornerRadius: 12)
-        .fill(.regularMaterial)
+        .fill(Color.cardBackground)
         .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
     }
   }
