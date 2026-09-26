@@ -6,6 +6,7 @@
 import SwiftUI
 
 struct EllipsisMenuButton<Content: View>: View {
+  var color: Color = .secondary
   @ViewBuilder let content: () -> Content
 
   var body: some View {
@@ -16,7 +17,7 @@ struct EllipsisMenuButton<Content: View>: View {
           content()
         } label: {
           Image(systemName: "ellipsis")
-            .foregroundColor(.secondary)
+            .foregroundColor(color)
             .frame(width: 40, height: 40)
             .contentShape(Rectangle())
         }

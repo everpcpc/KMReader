@@ -18,6 +18,22 @@ struct BookHorizontalCardView: View {
   @AppStorage("thumbnailBlurUnreadCovers") private var thumbnailBlurUnreadCovers: Bool = false
   @State private var showReadListPicker = false
   @State private var showEditSheet = false
+  @State private var tint = ThumbnailTint()
+
+  private var isTinted: Bool { tint.color != nil }
+
+  private var titleColor: Color {
+    if isTinted { return item.isCompleted ? .white.opacity(0.7) : .white }
+    return item.isCompleted ? .secondary : .primary
+  }
+
+  private var seriesColor: Color {
+    isTinted ? .white.opacity(0.85) : .primary
+  }
+
+  private var metaColor: Color {
+    isTinted ? .white.opacity(0.7) : .secondary
+  }
 
   private var titleSize: CGFloat {
     LayoutConfig.horizontalCardFontSize
@@ -87,7 +103,7 @@ struct BookHorizontalCardView: View {
 
             Text(item.bookTitleLine)
               .font(.system(size: titleSize, weight: .semibold))
-              .foregroundColor(item.isCompleted ? .secondary : .primary)
+              .foregroundColor(titleColor)
               .lineLimit(2)
               .multilineTextAlignment(.leading)
               .padding(.bottom, 4)
@@ -95,12 +111,12 @@ struct BookHorizontalCardView: View {
             if item.oneshot {
               Text("Oneshot")
                 .font(.system(size: seriesSize))
-                .foregroundColor(.primary)
+                .foregroundColor(seriesColor)
                 .lineLimit(1)
             } else if !item.seriesTitle.isEmpty {
               Text(item.seriesTitle)
                 .font(.system(size: seriesSize))
-                .foregroundColor(.primary)
+                .foregroundColor(seriesColor)
                 .lineLimit(1)
             }
 
@@ -122,15 +138,22 @@ struct BookHorizontalCardView: View {
     .frame(maxWidth: .infinity, alignment: .leading)
     .background {
       RoundedRectangle(cornerRadius: 12)
-        .fill(Color.cardBackground)
+        .fill(tint.color ?? Color.cardBackground)
         .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
     }
+    .animation(.easeInOut(duration: 0.18), value: isTinted)
     .contentShape(Rectangle())
     #if os(iOS)
       .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: 12))
     #endif
     .contextMenu {
       bookContextMenu
+    }
+    .task {
+      tint.load(id: item.bookId, type: .book)
+    }
+    .onReceive(NotificationCenter.default.publisher(for: .thumbnailDidRefresh)) { notification in
+      tint.reloadIfMatches(notification)
     }
     .sheet(isPresented: $showReadListPicker) {
       ReadListPickerSheet(
@@ -152,12 +175,12 @@ struct BookHorizontalCardView: View {
         DownloadStatusIcon(
           systemName: icon,
           spinning: item.downloadStatus.isPending,
-          color: .secondary
+          color: metaColor
         )
         .font(.system(size: accessoryIconSize))
       }
 
-      EllipsisMenuButton {
+      EllipsisMenuButton(color: metaColor) {
         bookContextMenu
       }
       .font(.system(size: accessoryIconSize, weight: .medium))
@@ -182,14 +205,14 @@ struct BookHorizontalCardView: View {
         }
         if item.progress == 1 {
           Image(systemName: "checkmark.circle")
-            .foregroundColor(.secondary)
+            .foregroundColor(metaColor)
             .font(.system(size: metaSize))
         }
         Text(item.progress == 1 ? item.completedMetaText : "\(item.mediaPagesCount) pages")
       }
     }
     .font(.system(size: metaSize))
-    .foregroundColor(.secondary)
+    .foregroundColor(metaColor)
     .lineLimit(1)
   }
 

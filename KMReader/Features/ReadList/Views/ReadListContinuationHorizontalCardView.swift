@@ -14,6 +14,17 @@ struct ReadListContinuationHorizontalCardView: View {
   var coverWidth: CGFloat = 56
 
   @Environment(\.readerActions) private var readerActions
+  @State private var tint = ThumbnailTint()
+
+  private var isTinted: Bool { tint.color != nil }
+
+  private var titleColor: Color {
+    isTinted ? .white : .primary
+  }
+
+  private var metaColor: Color {
+    isTinted ? .white.opacity(0.7) : .secondary
+  }
 
   private var continuationContextMenu: some View {
     ReadListContinuationContextMenu(continuation: continuation)
@@ -43,6 +54,7 @@ struct ReadListContinuationHorizontalCardView: View {
 
             Text(continuation.readListName)
               .font(.system(size: LayoutConfig.horizontalCardFontSize, weight: .semibold))
+              .foregroundColor(titleColor)
               .lineLimit(2)
               .multilineTextAlignment(.leading)
 
@@ -51,14 +63,14 @@ struct ReadListContinuationHorizontalCardView: View {
             VStack(alignment: .leading, spacing: 4) {
               Text(continuation.bookTitle)
                 .font(.system(size: LayoutConfig.horizontalCardSeriesFontSize))
-                .foregroundColor(.primary)
+                .foregroundColor(isTinted ? .white.opacity(0.85) : .primary)
                 .lineLimit(1)
 
               ReadListContinuationProgressText(continuation: continuation)
                 .font(.system(size: LayoutConfig.horizontalCardMetaFontSize))
                 .lineLimit(1)
             }
-            .foregroundColor(.secondary)
+            .foregroundColor(metaColor)
 
             Spacer(minLength: 0)
           }
@@ -74,15 +86,22 @@ struct ReadListContinuationHorizontalCardView: View {
     .frame(maxWidth: .infinity, alignment: .leading)
     .background {
       RoundedRectangle(cornerRadius: 12)
-        .fill(Color.cardBackground)
+        .fill(tint.color ?? Color.cardBackground)
         .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
     }
+    .animation(.easeInOut(duration: 0.18), value: isTinted)
     .contentShape(Rectangle())
     #if os(iOS)
       .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: 12))
     #endif
     .contextMenu {
       continuationContextMenu
+    }
+    .task {
+      tint.load(id: continuation.bookId, type: .book)
+    }
+    .onReceive(NotificationCenter.default.publisher(for: .thumbnailDidRefresh)) { notification in
+      tint.reloadIfMatches(notification)
     }
   }
 
@@ -93,12 +112,12 @@ struct ReadListContinuationHorizontalCardView: View {
         DownloadStatusIcon(
           systemName: icon,
           spinning: continuation.downloadStatus.isPending,
-          color: .secondary
+          color: metaColor
         )
         .font(.system(size: LayoutConfig.horizontalCardAccessoryIconSize))
       }
 
-      EllipsisMenuButton {
+      EllipsisMenuButton(color: metaColor) {
         continuationContextMenu
       }
       .font(.system(size: LayoutConfig.horizontalCardAccessoryIconSize, weight: .medium))
