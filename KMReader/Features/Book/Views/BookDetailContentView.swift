@@ -57,6 +57,7 @@ struct BookDetailContentView: View {
               .foregroundColor(.secondary)
             }
             .buttonStyle(.plain)
+            .contentShape(Rectangle())
           }
 
           DetailTitleView(title: book.metadata.title)

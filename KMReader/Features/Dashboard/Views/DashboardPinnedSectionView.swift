@@ -120,6 +120,7 @@ struct DashboardPinnedSectionView: View {
             }
           }
           .buttonStyle(.plain)
+          .contentShape(Rectangle())
           .padding(.horizontal)
           .padding(.top)
           #if os(macOS)

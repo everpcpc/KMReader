@@ -79,6 +79,7 @@ struct DashboardSectionView: View {
             }
           }
           .buttonStyle(.plain)
+          .contentShape(Rectangle())
           .disabled(viewModel.pagination.isEmpty)
 
           Spacer()

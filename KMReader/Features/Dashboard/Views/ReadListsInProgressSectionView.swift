@@ -77,6 +77,7 @@ struct ReadListsInProgressSectionView: View {
             }
           }
           .buttonStyle(.plain)
+          .contentShape(Rectangle())
           .disabled(continuations.isEmpty)
 
           Spacer()
