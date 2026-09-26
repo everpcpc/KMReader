@@ -124,6 +124,16 @@ struct OneShotDetailContentView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
             }
+
+            if let downloadStatus, let icon = downloadStatus.displayIcon {
+              Spacer()
+              OfflineProtectionStatusChip(
+                label: downloadStatus.displayLabel,
+                systemImage: icon,
+                spinning: downloadStatus.isPending,
+                sources: protectionSources
+              )
+            }
           }
 
           if let readProgress = book.readProgress, !book.deleted {
@@ -139,15 +149,7 @@ struct OneShotDetailContentView: View {
         if !inSheet {
           BookActionsSection(
             book: book,
-            seriesLink: false
-          )
-        }
-
-        if let downloadStatus = downloadStatus {
-          BookDownloadActionsSection(
-            book: book,
-            status: downloadStatus,
-            protectionSources: protectionSources
+            downloadStatus: downloadStatus
           )
         }
       }

@@ -51,6 +51,7 @@ After changing code: `make format`, then `make build`. Simulator interaction and
 22. **No force casts** (`as!`), especially on GRDB `Row` subscripts; use the generic converting subscript (`let date: Date = row["created_date"]`) or `as?` with a fallback.
 23. Never render an empty `HStack`/`VStack`; put the condition around the stack itself so nothing renders when there is no content.
 24. Lazy containers (`LazyVStack`/`LazyHStack`/`LazyVGrid`) only for genuinely unbounded content (paginated or otherwise huge lists); eager stacks everywhere else — lazy stacks cache child frames and misplace children during animated layout updates.
+25. Plain-style buttons and links (`.buttonStyle(.plain)`, text-or-label-only) must declare `.contentShape(Rectangle())` (or an equivalent hit shape) so the whole frame is tappable; without it only the glyphs respond.
 
 Additional patterns:
 
