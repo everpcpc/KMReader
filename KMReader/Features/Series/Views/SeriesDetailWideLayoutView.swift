@@ -5,11 +5,10 @@
 
 import SwiftUI
 
-/// Wide series detail (iPad regular width, macOS wide windows): the left
-/// rail carries identity and about-info (cover, hero info, action card,
-/// summary, metadata detail, timestamps); collections and the books list
-/// flow in the right column. Rail and content scroll independently so the
-/// rail never scrolls away with the books list.
+/// Wide series detail (iPad regular width, macOS wide windows): the rail
+/// carries identity and about-info (cover, hero info, action card, summary,
+/// metadata detail, timestamps); collections and the books list flow in the
+/// right column.
 struct SeriesDetailWideLayoutView<Actions: View>: View {
   let series: Series
   let item: SeriesDisplayItem?
@@ -23,19 +22,11 @@ struct SeriesDetailWideLayoutView<Actions: View>: View {
 
   @AppStorage("thumbnailBlurUnreadCovers") private var thumbnailBlurUnreadCovers: Bool = false
 
-  /// Rail takes the smaller golden-ratio slice of the detail column
-  /// (width / φ² ≈ 38.2%), floored so narrow columns stay usable.
-  private var railWidth: CGFloat {
-    max(availableWidth * 0.382, 340)
-  }
-
   /// Cover stays narrower than the rail instead of filling it edge to edge.
   private let coverWidth: CGFloat = 240
 
   /// Action card caps its width inside the rail, like the cover.
-  private var cardWidth: CGFloat {
-    min(400, railWidth)
-  }
+  private let cardWidthCap: CGFloat = 400
 
   init(
     series: Series,
@@ -64,61 +55,51 @@ struct SeriesDetailWideLayoutView<Actions: View>: View {
   }
 
   var body: some View {
-    HStack(alignment: .top, spacing: 28) {
-      ScrollView {
-        VStack(alignment: .leading, spacing: 20) {
-          DetailCoverView(
-            id: series.id,
-            type: .series,
-            contentBlurRadius: coverBlurRadius,
-            width: coverWidth,
-            cornerRadius: 12
-          )
-          .frame(maxWidth: .infinity, alignment: .center)
+    DetailWideLayoutView(availableWidth: availableWidth) { railWidth in
+      VStack(alignment: .leading, spacing: 20) {
+        DetailCoverView(
+          id: series.id,
+          type: .series,
+          contentBlurRadius: coverBlurRadius,
+          width: coverWidth,
+          cornerRadius: 12
+        )
+        .frame(maxWidth: .infinity, alignment: .center)
 
-          SeriesHeroInfoView(series: series)
-            .environment(\.detailHeroCentered, true)
-
-          DetailActionCard {
-            SeriesBookCountView(series: series)
-            actions
-          }
+        SeriesHeroInfoView(series: series)
           .environment(\.detailHeroCentered, true)
-          .frame(width: cardWidth)
+
+        DetailActionCard {
+          SeriesBookCountView(series: series)
+          actions
+        }
+        .environment(\.detailHeroCentered, true)
+        .frame(width: min(cardWidthCap, railWidth))
+        .frame(maxWidth: .infinity, alignment: .center)
+
+        DetailTimestampsView(created: series.created, lastModified: series.lastModified)
           .frame(maxWidth: .infinity, alignment: .center)
 
-          DetailTimestampsView(created: series.created, lastModified: series.lastModified)
-            .frame(maxWidth: .infinity, alignment: .center)
-
-          VStack(alignment: .leading, spacing: 16) {
-            SeriesSummaryView(series: series)
-            SeriesDetailChipsView(series: series)
-            SeriesAlternateTitlesView(series: series)
-          }
+        VStack(alignment: .leading, spacing: 16) {
+          SeriesSummaryView(series: series)
+          SeriesDetailChipsView(series: series)
+          SeriesAlternateTitlesView(series: series)
         }
-        .padding(.vertical)
       }
-      .scrollIndicators(.hidden)
-      .frame(width: railWidth)
-
-      ScrollView {
+    } column: {
+      if item != nil {
         VStack(alignment: .leading, spacing: 20) {
-          if item != nil {
-            SeriesCollectionsSection(collections: collections)
-              .padding(.horizontal)
+          SeriesCollectionsSection(collections: collections)
+            .padding(.horizontal)
 
-            BooksListViewForSeries(
-              seriesId: seriesId,
-              bookViewModel: bookViewModel,
-              showFilterSheet: $showFilterSheet,
-              showSavedFilters: $showSavedFilters
-            )
-          }
+          BooksListViewForSeries(
+            seriesId: seriesId,
+            bookViewModel: bookViewModel,
+            showFilterSheet: $showFilterSheet,
+            showSavedFilters: $showSavedFilters
+          )
         }
-        .padding(.vertical)
-        .frame(maxWidth: .infinity, alignment: .leading)
       }
     }
-    .padding(.horizontal, 24)
   }
 }
