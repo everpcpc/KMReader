@@ -270,21 +270,6 @@ struct SeriesContextMenu: View {
     }
   }
 
-  private func addToCollection(collectionId: String) {
-    Task {
-      do {
-        try await CollectionService.addSeriesToCollection(
-          collectionId: collectionId,
-          seriesIds: [seriesId]
-        )
-        ErrorManager.shared.notify(
-          message: String(localized: "notification.series.addedToCollection"))
-      } catch {
-        ErrorManager.shared.alert(error: error)
-      }
-    }
-  }
-
   private func updatePolicy(_ policy: OfflinePolicy) {
     Task {
       // Sync books first if policy is not manual

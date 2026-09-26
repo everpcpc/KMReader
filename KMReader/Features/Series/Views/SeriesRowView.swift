@@ -23,14 +23,6 @@ struct SeriesRowView: View {
     item.downloadStatus
   }
 
-  var navDestination: NavDestination {
-    if item.oneshot {
-      return NavDestination.oneshotDetail(seriesId: item.seriesId)
-    } else {
-      return NavDestination.seriesDetail(seriesId: item.seriesId)
-    }
-  }
-
   var progress: Double {
     guard item.booksCount > 0 else { return 0 }
     guard item.booksReadCount > 0 else { return 0 }
@@ -43,7 +35,7 @@ struct SeriesRowView: View {
 
   var body: some View {
     HStack(spacing: 12) {
-      NavigationLink(value: navDestination) {
+      NavigationLink(value: item.navDestination) {
         ThumbnailImage(
           id: series.id,
           type: .series,
@@ -54,7 +46,7 @@ struct SeriesRowView: View {
       .adaptiveButtonStyle(.plain)
 
       VStack(alignment: .leading, spacing: 6) {
-        NavigationLink(value: navDestination) {
+        NavigationLink(value: item.navDestination) {
           Text(series.metadata.title)
             .font(.callout)
             .lineLimit(2)
