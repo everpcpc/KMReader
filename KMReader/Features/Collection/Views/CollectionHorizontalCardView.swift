@@ -80,9 +80,9 @@ struct CollectionHorizontalCardView: View {
         }
         .contentShape(Rectangle())
       }
-      .adaptiveButtonStyle(.plain)
+      .adaptiveButtonStyle(.plain, hoverEffect: false)
 
-      EllipsisMenuButton(color: metaColor) {
+      EllipsisMenuButton(color: metaColor, hoverEffect: false) {
         collectionContextMenu
       }
       .font(.system(size: LayoutConfig.horizontalCardAccessoryIconSize, weight: .medium))
@@ -100,6 +100,7 @@ struct CollectionHorizontalCardView: View {
     #if os(iOS)
       .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: 12))
     #endif
+    .cardHoverEffect()
     .contextMenu {
       collectionContextMenu
     }

@@ -130,7 +130,7 @@ struct BookHorizontalCardView: View {
         }
         .contentShape(Rectangle())
       }
-      .adaptiveButtonStyle(.plain)
+      .adaptiveButtonStyle(.plain, hoverEffect: false)
 
       accessories
     }
@@ -146,6 +146,7 @@ struct BookHorizontalCardView: View {
     #if os(iOS)
       .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: 12))
     #endif
+    .cardHoverEffect()
     .contextMenu {
       bookContextMenu
     }
@@ -180,7 +181,7 @@ struct BookHorizontalCardView: View {
         .font(.system(size: accessoryIconSize))
       }
 
-      EllipsisMenuButton(color: metaColor) {
+      EllipsisMenuButton(color: metaColor, hoverEffect: false) {
         bookContextMenu
       }
       .font(.system(size: accessoryIconSize, weight: .medium))
