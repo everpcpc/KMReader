@@ -58,12 +58,11 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
       .withContextMenu(Menu.self == EmptyView.self ? nil : menu)
   }
 
-  @ViewBuilder
+  // Defines the card edge where covers blend into the background — dark
+  // covers, or any cover in dark mode where the shadow is too faint to see.
   private var borderOverlay: some View {
-    if !thumbnailShowShadow {
-      RoundedRectangle(cornerRadius: cornerRadius)
-        .stroke(Color.primary.opacity(0.15), lineWidth: 0.5)
-    }
+    RoundedRectangle(cornerRadius: cornerRadius)
+      .stroke(Color.primary.opacity(0.15), lineWidth: 0.5)
   }
 
   init(
@@ -269,12 +268,13 @@ struct ThumbnailImage<Overlay: View, Menu: View>: View {
   private var framedImageCard: some View {
     imageContent
       .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-      .overlay { borderOverlay }
       .overlay {
         if !isAbnormalSize, let overlay = overlay {
           overlay()
         }
       }
+      // Above the content overlay so the text-overlay gradient cannot dim it.
+      .overlay { borderOverlay }
   }
 
   private var placeholderCard: some View {

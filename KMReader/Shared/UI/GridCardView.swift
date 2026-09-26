@@ -187,7 +187,6 @@ struct GridCardView<Badge: View, Menu: View, Detail: View, OverlayDetail: View>:
             systemName: downloadIcon, spinning: downloadSpinning, color: style.secondaryColor
           )
           .font(.caption2)
-          .symbolVariant(.fill)
         }
       }
     }

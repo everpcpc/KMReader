@@ -13,6 +13,17 @@ struct ReadListHorizontalCardView: View {
   let onDeleteRequested: () -> Void
 
   @State private var showEditSheet = false
+  @State private var tint = ThumbnailTint()
+
+  private var isTinted: Bool { tint.color != nil }
+
+  private var titleColor: Color {
+    isTinted ? .white : .primary
+  }
+
+  private var metaColor: Color {
+    isTinted ? .white.opacity(0.7) : .secondary
+  }
 
   private var readListContextMenu: some View {
     ReadListContextMenu(
@@ -50,6 +61,7 @@ struct ReadListHorizontalCardView: View {
 
             Text(item.name)
               .font(.system(size: LayoutConfig.horizontalCardFontSize, weight: .semibold))
+              .foregroundColor(titleColor)
               .lineLimit(2)
               .multilineTextAlignment(.leading)
 
@@ -62,7 +74,7 @@ struct ReadListHorizontalCardView: View {
               Text(item.lastModifiedDate.formattedMediumDate)
                 .font(.system(size: LayoutConfig.horizontalCardMetaFontSize))
             }
-            .foregroundColor(.secondary)
+            .foregroundColor(metaColor)
 
             Spacer(minLength: 0)
           }
@@ -72,7 +84,7 @@ struct ReadListHorizontalCardView: View {
       }
       .adaptiveButtonStyle(.plain)
 
-      EllipsisMenuButton {
+      EllipsisMenuButton(color: metaColor) {
         readListContextMenu
       }
       .font(.system(size: LayoutConfig.horizontalCardAccessoryIconSize, weight: .medium))
@@ -82,15 +94,22 @@ struct ReadListHorizontalCardView: View {
     .frame(maxWidth: .infinity, alignment: .leading)
     .background {
       RoundedRectangle(cornerRadius: 12)
-        .fill(Color.cardBackground)
+        .fill(tint.color ?? Color.cardBackground)
         .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
     }
+    .animation(.easeInOut(duration: 0.18), value: isTinted)
     .contentShape(Rectangle())
     #if os(iOS)
       .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: 12))
     #endif
     .contextMenu {
       readListContextMenu
+    }
+    .task {
+      tint.load(id: item.readListId, type: .readlist)
+    }
+    .onReceive(NotificationCenter.default.publisher(for: .thumbnailDidRefresh)) { notification in
+      tint.reloadIfMatches(notification)
     }
     .sheet(isPresented: $showEditSheet, onDismiss: onChanged) {
       ReadListEditSheet(readList: item.readList)
