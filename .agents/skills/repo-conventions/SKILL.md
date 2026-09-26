@@ -117,17 +117,19 @@ Subsystem conventions and invariants for KMReader. `AGENTS.md` holds repo-wide r
 
 ## Detail Pages
 
-- Detail pages follow a fixed hierarchy: hero (cover beside title, author chips, and quiet `DetailMetadataRow` facts), a `DetailActionCard` grouping reading state with primary actions (the page's single focal point; the series continue-reading button and `SeriesDownloadActionsSection` are injected by `SeriesDetailView` through the content view's `actions` slot), summary, `DetailChipFlowSection` chips for relational metadata (genres/tags/publisher/external links), headline sections (alternate titles, media information).
+- Detail pages follow a fixed hierarchy: hero (cover beside title, author chips, and quiet `DetailMetadataRow` facts), a `DetailActionCard` grouping reading state with primary actions (the page's single focal point; the series continue-reading button and `SeriesDownloadActionsSection` are injected by `SeriesDetailView` through the content view's `actions` slot), summary, `DetailChipFlowSection` chips for relational metadata (genres/tags/publisher/external links), headline sections (alternate titles, media information, membership sections like `BookReadListsSection`/`SeriesCollectionsSection`).
+- Headline-section titles are plain `Text(...).font(.headline)` in primary color with no icon; an icon-tinted secondary header reads as another row of the section above. Membership sections render nothing while empty and carry their own top padding to separate from the block above.
 - `DetailTimestampsView` sits directly under the `DetailActionCard` (ReadList/Collection cards carry the count line — `ReadListBookCountView`/`CollectionBookCountView` — with `ReadListDownloadActionsSection` injected through the read list content view's `actions` slot).
 - Chips use `DetailChip`: a small neutral capsule rendered with `glassEffect` on iOS/macOS/tvOS 26+ (falling back to a quiet secondary fill on older OS), no per-field colors; icons only where they carry meaning (author role, external link).
 - State color appears only as text: green/orange/red and `MediaStatus.detailColor`/series `statusColor` in the action card; static metadata stays secondary.
 - The scrolling content always carries `.padding(.vertical)` (horizontal padding stays per-section); in the wide two-column layout each column's `ScrollView` content pads itself.
+- Detail-page ScrollViews use an eager `VStack`, never `LazyVStack`: the only lazy content is the books/series list, which carries its own lazy containers, and a `LazyVStack` transiently misplaces children during animated section updates.
 
 ## Platform UI Placement
 
 ### Tabs & Navigation Entries
 
-- Series continue-reading accessory: `tabViewBottomAccessory(isEnabled:)` in `PhoneTabView` (iOS 26.1+ only), modifier permanently attached with `isEnabled` toggling visibility; other platforms use the inline `SeriesReadingActionButton`. Do not reintroduce the floating `safeAreaInset` bar.
+- Series continue-reading accessory: `tabViewBottomAccessory(isEnabled:)` in `PhoneTabView` (iOS 26.1+ only), modifier permanently attached with `isEnabled` toggling visibility; other platforms use the inline `SeriesReadingActionButton`. Do not reintroduce the floating `safeAreaInset` bar. The reading target is resolved from the local projection first (presented as the page appears) and only confirmed against the server after the detail sync, so the bar never pops in late with fallback content.
 - iPhone has no Server tab: the current-server card plus Management/Account entries live in `SettingsView` on iPhone only; iPad/tvOS keep the full `ServerView`.
 - iPhone Library tab root is `LibraryBrowseView`; its scope is the global dashboard selection (no tab-local store). `LibraryScopeToolbarButton` is the shared leading button (explicit `HStack` icon + `Text`, sheet/list owned by the parent view), always shown at tab roots regardless of library count; a single library is titled with its name.
 - `NavDestination.browseLibrary` carries its `LibrarySelection` in the destination value; do not reintroduce side channels into `BrowseView`.

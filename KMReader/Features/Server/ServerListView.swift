@@ -194,7 +194,7 @@ struct ServerListView: View {
     }
     #if os(tvOS)
       // tvOS focus engine fails to reach sheet-over-sheet content, leaving only
-      // the toolbar Close button focusable (#951). Push the login form onto the
+      // the toolbar Close button focusable. Push the login form onto the
       // existing navigation stack instead of presenting a second sheet.
       .navigationDestination(isPresented: $showLogin) {
         LoginView(authViewModel: authViewModel)

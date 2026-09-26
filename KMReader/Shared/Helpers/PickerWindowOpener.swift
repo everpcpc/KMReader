@@ -8,7 +8,7 @@
 
   /// Routes picker-window open requests from deep view hierarchies (context
   /// menus, toolbar menus) to the `openWindow` environment captured at the
-  /// app scene root (#959).
+  /// app scene root.
   @MainActor
   final class PickerWindowOpener {
     static let shared = PickerWindowOpener()

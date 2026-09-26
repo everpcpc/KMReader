@@ -8,18 +8,14 @@ import SwiftUI
 struct SeriesCollectionsSection: View {
   let collections: [SidebarCollectionItem]
 
-  // Pure display component: loading is hoisted to the parent detail view's
-  // always-realized task. A self-loading .task here never fires while the body
-  // renders empty inside the parent's LazyVStack (#967), and an always-present
-  // zero-height anchor would collapse the surrounding stack spacing (#986).
+  // Pure display component: loading is hoisted to the parent detail view, so
+  // the section renders nothing while empty — an always-present zero-height
+  // anchor would collapse the surrounding stack spacing.
   var body: some View {
     if !collections.isEmpty {
       VStack(alignment: .leading, spacing: 8) {
-        HStack(spacing: 4) {
-          Text("Collections")
-            .font(.headline)
-        }
-        .foregroundColor(.secondary)
+        Text("Collections")
+          .font(.headline)
 
         VStack(alignment: .leading, spacing: 8) {
           ForEach(collections) { collection in
@@ -41,6 +37,7 @@ struct SeriesCollectionsSection: View {
           }
         }
       }
+      .padding(.top, 8)
       .frame(maxWidth: .infinity, alignment: .leading)
     }
   }

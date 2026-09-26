@@ -168,7 +168,7 @@ struct SeriesDetailView: View {
         }
       } else {
         ScrollView {
-          LazyVStack(alignment: .leading) {
+          VStack(alignment: .leading) {
             if let series = series {
               VStack(alignment: .leading) {
                 #if os(tvOS)
@@ -313,6 +313,7 @@ struct SeriesDetailView: View {
 extension SeriesDetailView {
   private func refreshSeriesData() async {
     await loadLocalSeries()
+    await refreshReadingTargetBook(localOnly: true)
     do {
       _ = try await SyncService.syncSeriesDetail(seriesId: seriesId)
       await SyncService.syncSeriesCollections(seriesId: seriesId)
@@ -568,7 +569,7 @@ extension SeriesDetailView {
       Button {
         #if os(macOS)
           // Present in a standalone window: a view-attached sheet triggered
-          // from an NSMenu action can wedge the app on macOS 15 (#959).
+          // from an NSMenu action can wedge the app on macOS 15.
           PickerWindowOpener.shared.open(.collection(seriesId: seriesId))
         #else
           deferMenuActionPresentation { showCollectionPicker = true }
@@ -661,7 +662,7 @@ extension SeriesDetailView {
     )
   }
 
-  private func refreshReadingTargetBook() async {
+  private func refreshReadingTargetBook(localOnly: Bool = false) async {
     readingTargetResolutionID += 1
     defer { syncReadingBarContext() }
     let resolutionID = readingTargetResolutionID
@@ -680,7 +681,25 @@ extension SeriesDetailView {
       return
     }
 
-    isResolvingReadingTarget = true
+    // Prime from the local projection so the reading bar presents its final
+    // content as the page appears; the server resolution below only corrects
+    // it when the local projection is stale.
+    if !offline {
+      if readingTargetBookForCurrentContext == nil {
+        let local = await SeriesContinueReadingResolver.resolveLocal(
+          seriesId: seriesId, instanceId: instanceId)
+        guard readingTargetResolutionID == resolutionID else { return }
+        if readingTargetBookForCurrentContext == nil {
+          updateReadingTarget(local, instanceId: instanceId, isOffline: offline)
+        }
+      }
+      if localOnly {
+        isResolvingReadingTarget = false
+        return
+      }
+    }
+
+    isResolvingReadingTarget = readingTargetBookForCurrentContext == nil
     let book = await resolveReadingTargetBook(instanceId: instanceId, isOffline: offline)
     guard readingTargetResolutionID == resolutionID else { return }
     guard instanceId == current.instanceId, offline == isOffline else { return }

@@ -8,20 +8,14 @@ import SwiftUI
 struct BookReadListsSection: View {
   let readLists: [SidebarReadListItem]
 
-  // Pure display component: loading is hoisted to the parent detail view's
-  // always-realized task. A self-loading .task here never fires while the body
-  // renders empty inside the parent's LazyVStack (#967), and an always-present
-  // zero-height anchor would collapse the surrounding stack spacing (#986).
+  // Pure display component: loading is hoisted to the parent detail view, so
+  // the section renders nothing while empty — an always-present zero-height
+  // anchor would collapse the surrounding stack spacing.
   var body: some View {
     if !readLists.isEmpty {
       VStack(alignment: .leading, spacing: 6) {
-        HStack(spacing: 4) {
-          Image(systemName: ContentIcon.readList)
-            .font(.caption)
-          Text("Read Lists")
-            .font(.headline)
-        }
-        .foregroundColor(.secondary)
+        Text("Read Lists")
+          .font(.headline)
 
         VStack(alignment: .leading, spacing: 8) {
           ForEach(readLists) { readList in
@@ -41,6 +35,7 @@ struct BookReadListsSection: View {
           }
         }
       }
+      .padding(.top, 8)
       .frame(maxWidth: .infinity, alignment: .leading)
     }
   }

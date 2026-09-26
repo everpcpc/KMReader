@@ -270,26 +270,31 @@ extension DatabaseOperator {
     return formatter.string(from: cutoffDate)
   }
 
-  func fetchOfflineContinueReadingBook(seriesId: String, instanceId: String) -> Book? {
+  /// `downloadedOnly` restricts the candidates to downloaded books (offline
+  /// mode); otherwise the whole local projection of the series takes part.
+  func fetchContinueReadingBook(seriesId: String, instanceId: String, downloadedOnly: Bool) -> Book? {
     guard !seriesId.isEmpty, !instanceId.isEmpty else { return nil }
     return try? read { db in
-      if let inProgress = try fetchLatestOfflineBook(
+      if let inProgress = try fetchLatestSeriesBook(
         db: db,
         seriesId: seriesId,
         instanceId: instanceId,
-        completed: false
+        completed: false,
+        downloadedOnly: downloadedOnly
       ) {
         return inProgress.toBook()
       }
 
-      let orderedBooks = try fetchOfflineSeriesBooks(db: db, seriesId: seriesId, instanceId: instanceId)
+      let orderedBooks = try fetchSeriesBooksForContinueReading(
+        db: db, seriesId: seriesId, instanceId: instanceId, downloadedOnly: downloadedOnly)
       guard !orderedBooks.isEmpty else { return nil }
 
-      if let lastRead = try fetchLatestOfflineBook(
+      if let lastRead = try fetchLatestSeriesBook(
         db: db,
         seriesId: seriesId,
         instanceId: instanceId,
-        completed: true
+        completed: true,
+        downloadedOnly: downloadedOnly
       ) {
         if let nextBook = orderedBooks.first(where: {
           $0.metaNumberSort > lastRead.metaNumberSort
@@ -797,25 +802,37 @@ extension DatabaseOperator {
     if existing.seriesTitle != dto.seriesTitle { existing.seriesTitle = dto.seriesTitle }
   }
 
-  func fetchLatestOfflineBook(
+  func fetchLatestSeriesBook(
     db: Database,
     seriesId: String,
     instanceId: String,
-    completed: Bool
+    completed: Bool,
+    downloadedOnly: Bool
   ) throws -> KomgaBook? {
-    try fetchOfflineSeriesBooks(db: db, seriesId: seriesId, instanceId: instanceId)
-      .filter { $0.progressCompleted == completed && $0.progressReadDate != nil }
-      .sorted { ($0.progressReadDate ?? .distantPast) > ($1.progressReadDate ?? .distantPast) }
-      .first
+    try fetchSeriesBooksForContinueReading(
+      db: db, seriesId: seriesId, instanceId: instanceId, downloadedOnly: downloadedOnly
+    )
+    .filter { $0.progressCompleted == completed && $0.progressReadDate != nil }
+    .sorted { ($0.progressReadDate ?? .distantPast) > ($1.progressReadDate ?? .distantPast) }
+    .first
   }
 
-  func fetchOfflineSeriesBooks(db: Database, seriesId: String, instanceId: String) throws -> [KomgaBook] {
-    try KomgaBook
-      .filter(
-        KomgaBook.Columns.instanceId == instanceId
-          && KomgaBook.Columns.seriesId == seriesId
-          && KomgaBook.Columns.downloadStatusRaw == "downloaded"
-      )
+  func fetchSeriesBooksForContinueReading(
+    db: Database,
+    seriesId: String,
+    instanceId: String,
+    downloadedOnly: Bool
+  ) throws -> [KomgaBook] {
+    let base = KomgaBook.filter(
+      KomgaBook.Columns.instanceId == instanceId
+        && KomgaBook.Columns.seriesId == seriesId
+    )
+    let scoped =
+      downloadedOnly
+      ? base.filter(KomgaBook.Columns.downloadStatusRaw == "downloaded")
+      : base
+    return
+      try scoped
       .order(KomgaBook.Columns.metaNumberSort, KomgaBook.Columns.id)
       .fetchAll(db)
   }

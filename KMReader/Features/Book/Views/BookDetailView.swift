@@ -41,7 +41,7 @@ struct BookDetailView: View {
 
   var body: some View {
     ScrollView {
-      LazyVStack(alignment: .leading) {
+      VStack(alignment: .leading) {
         if let book {
           #if os(tvOS)
             bookToolbarContent
@@ -344,7 +344,7 @@ struct BookDetailView: View {
       Button {
         #if os(macOS)
           // Present in a standalone window: a view-attached sheet triggered
-          // from an NSMenu action can wedge the app on macOS 15 (#959).
+          // from an NSMenu action can wedge the app on macOS 15.
           PickerWindowOpener.shared.open(.readList(bookId: bookId))
         #else
           deferMenuActionPresentation { showReadListPicker = true }

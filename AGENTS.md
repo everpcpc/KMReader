@@ -27,7 +27,7 @@ After changing code: `make format`, then `make build`. Simulator interaction and
 
 ## Coding Conventions
 
-1. **Comments**: minimal, English only.
+1. **Comments**: minimal, English only; no issue/PR numbers (link issues in the PR description instead).
 2. **Git-facing text**: commit messages, PR titles/bodies, and review comments are always in English.
 3. **UI frameworks**: SwiftUI, UIKit, and AppKit are all acceptable; pick per feature and platform.
 4. **No inline `Binding`**.
@@ -50,6 +50,7 @@ After changing code: `make format`, then `make build`. Simulator interaction and
 21. No hand-rolled fallback shims for newer OS APIs; gate features to the OS version that supports them natively.
 22. **No force casts** (`as!`), especially on GRDB `Row` subscripts; use the generic converting subscript (`let date: Date = row["created_date"]`) or `as?` with a fallback.
 23. Never render an empty `HStack`/`VStack`; put the condition around the stack itself so nothing renders when there is no content.
+24. Lazy containers (`LazyVStack`/`LazyHStack`/`LazyVGrid`) only for genuinely unbounded content (paginated or otherwise huge lists); eager stacks everywhere else — lazy stacks cache child frames and misplace children during animated layout updates.
 
 Additional patterns:
 
