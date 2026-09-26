@@ -166,7 +166,7 @@
 
     // PDFView's internal scroll views use .automatic inset adjustment, so a
     // status bar / safe area change (controls overlay toggles it) shifts the
-    // rendered page vertically on iOS 18. Lock all of them to .never (#956).
+    // rendered page vertically on iOS 18. Lock all of them to .never.
     private func disableScrollInsetAdjustment(in view: UIView) {
       if let scrollView = view as? UIScrollView {
         scrollView.contentInsetAdjustmentBehavior = .never
@@ -193,7 +193,7 @@
       private var singleTapStartTime: TimeInterval = 0
 
       // Stricter than UITapGestureRecognizer's built-in slop: slow/short drags
-      // must not toggle the reader overlays (#957). The duration budget includes
+      // must not toggle the reader overlays. The duration budget includes
       // the wait for the double-tap/long-press failure requirements, so it must
       // stay comfortably above a quick tap's handler delivery latency.
       private let singleTapMaximumMovement: CGFloat = 10
@@ -350,7 +350,7 @@
         // Record the start point in the PDFView's coordinate space, matching
         // the end point measured in handleSingleTap. touch.view is a private
         // subview with its own origin/scroll offset, so mixing the two spaces
-        // inflates the movement and rejects every tap (#956, #957).
+        // inflates the movement and rejects every tap.
         if gestureRecognizer === singleTapRecognizer, let pdfView = gestureRecognizer.view {
           singleTapStartPoint = touch.location(in: pdfView)
           singleTapStartTime = touch.timestamp

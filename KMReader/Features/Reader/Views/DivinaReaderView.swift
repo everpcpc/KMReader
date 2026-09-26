@@ -60,7 +60,7 @@ struct DivinaReaderView: View {
   @State private var viewModel: ReaderViewModel
   @State private var showingControls = false
   // Captures `shouldShowControls` on the active → non-active scene-phase
-  // transition (before the PR #682 force-show flips `showingControls`), so the
+  // transition (before the force-show below flips `showingControls`), so the
   // subsequent resume can decide whether to auto-hide the overlay or leave it
   // visible. See `handleScenePhaseChange(from:to:)`.
   @State private var wasShowingControlsBeforeBackground: Bool = false
@@ -286,11 +286,11 @@ struct DivinaReaderView: View {
       cancelAutoHideAfterResume()
     }
 
-    // PR #682 force-show — unchanged. Keeps iOS's status-bar / safe-area state
-    // in a known configuration across the background → foreground cycle so the
-    // dashboard inherits a clean safe-area on subsequent close. The historical
-    // UX cost (overlay flashing visible on every lock/unlock until tapped) is
-    // what the auto-hide below mitigates.
+    // Force the overlay visible on every background → foreground cycle so
+    // iOS's status-bar / safe-area state stays in a known configuration and
+    // the dashboard inherits a clean safe-area on subsequent close. The
+    // overlay flashing visible on every lock/unlock until tapped is what the
+    // auto-hide below mitigates.
     if newPhase != .active || !shouldShowControls {
       showingControls = true
     }

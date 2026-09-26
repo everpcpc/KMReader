@@ -35,7 +35,7 @@
     @State private var currentSeries: Series?
     @State private var showingControls = false
     // Captures `shouldShowControls` on the active → non-active scene-phase
-    // transition (before the PR #682 force-show flips `showingControls`), so
+    // transition (before the force-show below flips `showingControls`), so
     // the subsequent resume can decide whether to auto-hide the overlay or
     // leave it visible. See `handleScenePhaseChange(from:to:)`.
     @State private var wasShowingControlsBeforeBackground: Bool = false
@@ -97,7 +97,7 @@
           .simultaneousGesture(
             // Touching the controls (close button, title, ⋯ menu, page jump)
             // is explicit intent to keep the overlay: cancel the post-resume
-            // auto-hide instead of letting it dismiss an open menu (#1022).
+            // auto-hide instead of letting it dismiss an open menu.
             TapGesture().onEnded { cancelAutoHideAfterResume() }
           )
 
@@ -209,7 +209,7 @@
       }
       .onChange(of: isPresentingModalSheet) { _, presenting in
         // A sheet opening (menu action, keyboard command) is controls
-        // interaction: the post-resume glance window ends here (#1022).
+        // interaction: the post-resume glance window ends here.
         if presenting {
           cancelAutoHideAfterResume()
         }
@@ -252,11 +252,11 @@
         cancelAutoHideAfterResume()
       }
 
-      // PR #682 force-show — unchanged. Keeps iOS's status-bar / safe-area
-      // state in a known configuration across background → foreground so the
-      // dashboard inherits a clean safe-area on subsequent close. The
-      // historical UX cost (overlay flashing visible on every lock/unlock) is
-      // what the auto-hide below mitigates.
+      // Force the overlay visible on every background → foreground cycle so
+      // iOS's status-bar / safe-area state stays in a known configuration and
+      // the dashboard inherits a clean safe-area on subsequent close. The
+      // overlay flashing visible on every lock/unlock is what the auto-hide
+      // below mitigates.
       if newPhase != .active || !shouldShowControls {
         showingControls = true
       }
@@ -286,7 +286,7 @@
         try? await Task.sleep(for: .seconds(1))
         guard !Task.isCancelled else { return }
         // Belt and braces: never pull the overlay out from under an open
-        // sheet or menu interaction (#1022).
+        // sheet or menu interaction.
         guard !isPresentingModalSheet else {
           autoHideAfterResumeTask = nil
           return

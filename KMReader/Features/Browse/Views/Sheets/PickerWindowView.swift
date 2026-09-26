@@ -9,7 +9,7 @@
   /// Root view of the standalone picker window on macOS. Hosts the same
   /// picker sheets used on other platforms; the mutation and the refresh
   /// notifications are centralized here because call-site closures cannot
-  /// reach into a separate window (#959).
+  /// reach into a separate window.
   struct PickerWindowView: View {
     let request: PickerWindowRequest
 

@@ -49,7 +49,7 @@ struct OneshotDetailView: View {
 
   var body: some View {
     ScrollView {
-      LazyVStack(alignment: .leading) {
+      VStack(alignment: .leading) {
         if let book, let series {
           #if os(tvOS)
             oneshotToolbarContent
@@ -418,7 +418,7 @@ struct OneshotDetailView: View {
       Button {
         #if os(macOS)
           // Present in a standalone window: a view-attached sheet triggered
-          // from an NSMenu action can wedge the app on macOS 15 (#959).
+          // from an NSMenu action can wedge the app on macOS 15.
           PickerWindowOpener.shared.open(.collection(seriesId: seriesId))
         #else
           deferMenuActionPresentation { showCollectionPicker = true }

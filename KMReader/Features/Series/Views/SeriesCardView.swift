@@ -74,7 +74,7 @@ struct SeriesCardView: View {
           #if os(macOS)
             // Present in a standalone window: a view-attached sheet
             // triggered from an NSMenu action can wedge the app on
-            // macOS 15 (#959).
+            // macOS 15.
             PickerWindowOpener.shared.open(.collection(seriesId: item.seriesId))
           #else
             showCollectionPicker = true
