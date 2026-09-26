@@ -14,6 +14,12 @@
     private let pageMarkerContainer = UIView()
     private let pageMarkerLabel = UILabel()
     private let errorLabel = UILabel()
+    private let errorDetailLabel = UILabel()
+    private let retryButton = UIButton(type: .system)
+    private var retryToErrorConstraint: NSLayoutConstraint?
+    private var retryToDetailConstraint: NSLayoutConstraint?
+
+    var onRetry: (() -> Void)?
 
     var readerBackground: ReaderBackground = .system {
       didSet {
@@ -68,6 +74,25 @@
       errorLabel.translatesAutoresizingMaskIntoConstraints = false
       contentView.addSubview(errorLabel)
 
+      retryButton.setTitle(String(localized: "Retry"), for: .normal)
+      retryButton.isHidden = true
+      retryButton.translatesAutoresizingMaskIntoConstraints = false
+      retryButton.addTarget(self, action: #selector(handleRetryTapped), for: .touchUpInside)
+      contentView.addSubview(retryButton)
+
+      errorDetailLabel.font = .systemFont(ofSize: 13)
+      errorDetailLabel.textColor = .secondaryLabel
+      errorDetailLabel.numberOfLines = 0
+      errorDetailLabel.textAlignment = .center
+      errorDetailLabel.isHidden = true
+      errorDetailLabel.translatesAutoresizingMaskIntoConstraints = false
+      contentView.addSubview(errorDetailLabel)
+
+      retryToErrorConstraint = retryButton.topAnchor.constraint(equalTo: errorLabel.bottomAnchor, constant: 12)
+      retryToDetailConstraint = retryButton.topAnchor.constraint(
+        equalTo: errorDetailLabel.bottomAnchor, constant: 12)
+      retryToErrorConstraint?.isActive = true
+
       NSLayoutConstraint.activate([
         imageView.topAnchor.constraint(equalTo: contentView.topAnchor),
         imageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
@@ -89,7 +114,23 @@
 
         errorLabel.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
         errorLabel.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+
+        errorDetailLabel.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
+        errorDetailLabel.topAnchor.constraint(equalTo: errorLabel.bottomAnchor, constant: 4),
+        errorDetailLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
+        errorDetailLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
+
+        retryButton.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
       ])
+    }
+
+    @objc private func handleRetryTapped() {
+      errorLabel.isHidden = true
+      errorDetailLabel.isHidden = true
+      retryButton.isHidden = true
+      loadingIndicator.isHidden = false
+      loadingIndicator.startAnimating()
+      onRetry?()
     }
 
     private func applyBackground() {
@@ -125,6 +166,8 @@
         imageView.image = nil
         imageView.alpha = 0.0
         errorLabel.isHidden = true
+        errorDetailLabel.isHidden = true
+        retryButton.isHidden = true
         loadingIndicator.isHidden = false
         loadingIndicator.startAnimating()
       }
@@ -135,6 +178,8 @@
       loadingIndicator.stopAnimating()
       loadingIndicator.isHidden = true
       errorLabel.isHidden = true
+      errorDetailLabel.isHidden = true
+      retryButton.isHidden = true
       imageView.image = image
       imageView.alpha = 1.0
     }
@@ -155,11 +200,16 @@
       }
     }
 
-    func showError() {
+    func showError(failure: ReaderPageLoadFailure? = nil) {
       imageView.image = nil
       imageView.alpha = 0.0
       loadingIndicator.stopAnimating()
       errorLabel.isHidden = false
+      errorDetailLabel.text = failure?.detail
+      errorDetailLabel.isHidden = failure?.detail == nil
+      retryToDetailConstraint?.isActive = failure?.detail != nil
+      retryToErrorConstraint?.isActive = failure?.detail == nil
+      retryButton.isHidden = false
     }
 
     override func prepareForReuse() {
@@ -169,6 +219,9 @@
       loadingIndicator.stopAnimating()
       loadingIndicator.isHidden = true
       errorLabel.isHidden = true
+      errorDetailLabel.isHidden = true
+      retryButton.isHidden = true
+      onRetry = nil
       pageMarkerLabel.isHidden = true
     }
   }

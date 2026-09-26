@@ -36,7 +36,6 @@
     private var animatedInlinePreparationTask: Task<Void, Never>?
 
     private var lastConfiguredPageID: ReaderPageID?
-    private var loadError: String?
     private var isVisibleForAnimatedInlinePlayback = false
 
     func configure(
@@ -60,7 +59,6 @@
         loadTask?.cancel()
         loadTask = nil
         cancelAnimatedInlinePreparation()
-        loadError = nil
         scrollView.setZoomScale(scrollView.minimumZoomScale, animated: false)
         viewModel.isZoomed = false
         hideAnimatedInlinePlayback()
@@ -152,18 +150,15 @@
 
       let readerPage = viewModel.readerPage(for: pageID)
       let image = viewModel.preloadedImage(for: pageID)
-
-      if image != nil {
-        loadError = nil
-      }
+      let loadFailed = image == nil && viewModel.hasFailedImageLoad(for: pageID)
 
       let isLoading =
         loadTask != nil
-        || (image == nil && readerPage != nil && loadError == nil)
+        || (image == nil && readerPage != nil && !loadFailed)
       let data = NativePageData(
         pageID: pageID,
         isLoading: isLoading,
-        error: loadError,
+        failure: loadFailed ? viewModel.imageLoadFailure(for: pageID) : nil,
         alignment: alignment,
         splitMode: splitMode,
         rotation: viewModel.rotation
@@ -187,7 +182,7 @@
 
       updateAnimatedInlinePlayback()
 
-      if image == nil, readerPage != nil, loadError == nil {
+      if image == nil, readerPage != nil, !loadFailed {
         startLoadingImageIfNeeded()
       }
     }
@@ -200,16 +195,11 @@
 
       loadTask = Task { [weak self] in
         guard let self else { return }
-        let image = await viewModel.preloadImage(for: requestedPageID)
+        _ = await viewModel.preloadImage(for: requestedPageID)
         guard !Task.isCancelled else { return }
         guard self.pageID == requestedPageID else { return }
 
         self.loadTask = nil
-        if image == nil && viewModel.preloadedImage(for: requestedPageID) == nil {
-          self.loadError = "Failed to load page"
-        } else {
-          self.loadError = nil
-        }
         self.refreshPageItem()
         self.prepareAnimatedInlinePlaybackIfNeeded()
       }

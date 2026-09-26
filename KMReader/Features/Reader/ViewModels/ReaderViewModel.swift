@@ -369,6 +369,18 @@ class ReaderViewModel {
     pageLoadScheduler.hasPendingImageLoad(for: pageID)
   }
 
+  func hasFailedImageLoad(for pageID: ReaderPageID) -> Bool {
+    pageLoadScheduler.hasFailedImageLoad(for: pageID)
+  }
+
+  func imageLoadFailure(for pageID: ReaderPageID) -> ReaderPageLoadFailure? {
+    pageLoadScheduler.imageLoadFailure(for: pageID)
+  }
+
+  func retryImageLoad(for pageID: ReaderPageID) {
+    pageLoadScheduler.retryImageLoad(for: pageID)
+  }
+
   func prioritizeVisiblePageLoads(for pageIDs: [ReaderPageID]) {
     pageLoadScheduler.prioritizeVisiblePageLoads(for: pageIDs)
   }

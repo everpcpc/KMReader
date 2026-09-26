@@ -77,7 +77,7 @@ actor PdfOfflinePreparationService {
   ) async -> URL? {
     guard pageNumber > 0 else { return nil }
 
-    if let existingURL = await OfflineManager.shared.getOfflinePageImageURL(
+    if let existingURL = try? await OfflineManager.shared.getOfflinePageImageURL(
       instanceId: instanceId,
       bookId: bookId,
       pageNumber: pageNumber,
@@ -231,7 +231,7 @@ actor PdfOfflinePreparationService {
       renderQuality: PdfOfflineRenderQuality
     ) async -> URL? {
       await Task.detached(priority: .userInitiated) {
-        if let existingURL = await OfflineManager.shared.getOfflinePageImageURL(
+        if let existingURL = try? await OfflineManager.shared.getOfflinePageImageURL(
           instanceId: instanceId,
           bookId: bookId,
           pageNumber: pageNumber,
@@ -334,7 +334,7 @@ actor PdfOfflinePreparationService {
           let fallbackPixelSize = targetPixelSize(for: pdfPage, renderQuality: renderQuality)
 
           if !forceRerenderImages,
-            let offlineURL = await OfflineManager.shared.getOfflinePageImageURL(
+            let offlineURL = try? await OfflineManager.shared.getOfflinePageImageURL(
               instanceId: instanceId,
               bookId: bookId,
               pageNumber: pageNumber,

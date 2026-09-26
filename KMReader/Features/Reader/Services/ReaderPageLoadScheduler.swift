@@ -14,14 +14,9 @@ import os
 final class ReaderPageLoadScheduler {
   typealias PresentationInvalidationHandler = @MainActor (ReaderPagePresentationInvalidation) -> Void
 
-  private struct URLLoadTaskRecord {
+  private struct TrackedTaskRecord<Success: Sendable> {
     let token: UUID
-    let task: Task<URL?, Never>
-  }
-
-  private struct ImageLoadTaskRecord {
-    let token: UUID
-    let task: Task<PlatformImage?, Never>
+    let task: Task<Success, Never>
   }
 
   private let logger = AppLogger(.reader)
@@ -36,10 +31,11 @@ final class ReaderPageLoadScheduler {
   private var preloadedImagesByID: [ReaderPageID: PlatformImage] = [:]
   private var animatedPageStates: [ReaderPageID: Bool] = [:]
   private var animatedPageSourceFileURLs: [ReaderPageID: URL] = [:]
+  private var failedImageLoadsByID: [ReaderPageID: ReaderPageLoadFailure] = [:]
 
-  private var downloadingTasks: [ReaderPageID: URLLoadTaskRecord] = [:]
-  private var upscalingTasks: [ReaderPageID: URLLoadTaskRecord] = [:]
-  private var preloadingImageTasks: [ReaderPageID: ImageLoadTaskRecord] = [:]
+  private var downloadingTasks: [ReaderPageID: TrackedTaskRecord<(url: URL?, failure: ReaderPageLoadFailure?)>] = [:]
+  private var upscalingTasks: [ReaderPageID: TrackedTaskRecord<URL?>] = [:]
+  private var preloadingImageTasks: [ReaderPageID: TrackedTaskRecord<PlatformImage?>] = [:]
   private var lastPreloadRequestTime: Date?
   private var preloadTask: Task<Void, Never>?
   private var visiblePageIDs: [ReaderPageID] = []
@@ -65,9 +61,9 @@ final class ReaderPageLoadScheduler {
 
     let keepPageIDs = prioritizedPageIDs(around: visiblePageIDs)
     if !keepPageIDs.isEmpty {
-      cancelTrackedURLTasksOutsideWindow(&downloadingTasks, keeping: keepPageIDs)
-      cancelTrackedURLTasksOutsideWindow(&upscalingTasks, keeping: keepPageIDs)
-      cancelTrackedImageTasksOutsideWindow(&preloadingImageTasks, keeping: keepPageIDs)
+      cancelTrackedTasksOutsideWindow(&downloadingTasks, keeping: keepPageIDs)
+      cancelTrackedTasksOutsideWindow(&upscalingTasks, keeping: keepPageIDs)
+      cancelTrackedTasksOutsideWindow(&preloadingImageTasks, keeping: keepPageIDs)
     }
 
     cleanupDistantImagesAroundCurrentPage()
@@ -97,7 +93,7 @@ final class ReaderPageLoadScheduler {
 
   func getPageImageFileURL(pageID: ReaderPageID) async -> URL? {
     guard let pageIndex = pageIndex(for: pageID) else { return nil }
-    return await getPageImageFileURL(pageIndex: pageIndex)
+    return await getPageImageFileURL(pageIndex: pageIndex).url
   }
 
   func preloadedImage(for pageID: ReaderPageID) -> PlatformImage? {
@@ -110,6 +106,22 @@ final class ReaderPageLoadScheduler {
       || upscalingTasks[pageID] != nil
   }
 
+  func hasFailedImageLoad(for pageID: ReaderPageID) -> Bool {
+    failedImageLoadsByID[pageID] != nil
+  }
+
+  func imageLoadFailure(for pageID: ReaderPageID) -> ReaderPageLoadFailure? {
+    failedImageLoadsByID[pageID]
+  }
+
+  func retryImageLoad(for pageID: ReaderPageID) {
+    failedImageLoadsByID.removeValue(forKey: pageID)
+    invalidatePresentation(.pages([pageID]))
+    Task { [weak self] in
+      _ = await self?.preloadImage(for: pageID)
+    }
+  }
+
   func prioritizeVisiblePageLoads(for pageIDs: [ReaderPageID]) {
     visiblePageIDs = pageIDs
 
@@ -120,9 +132,9 @@ final class ReaderPageLoadScheduler {
     preloadTask = nil
     lastPreloadRequestTime = nil
 
-    cancelTrackedURLTasksOutsideWindow(&downloadingTasks, keeping: keepPageIDs)
-    cancelTrackedURLTasksOutsideWindow(&upscalingTasks, keeping: keepPageIDs)
-    cancelTrackedImageTasksOutsideWindow(&preloadingImageTasks, keeping: keepPageIDs)
+    cancelTrackedTasksOutsideWindow(&downloadingTasks, keeping: keepPageIDs)
+    cancelTrackedTasksOutsideWindow(&upscalingTasks, keeping: keepPageIDs)
+    cancelTrackedTasksOutsideWindow(&preloadingImageTasks, keeping: keepPageIDs)
   }
 
   func preloadPages(bypassThrottle: Bool = false) async {
@@ -256,7 +268,7 @@ final class ReaderPageLoadScheduler {
     let taskToken = UUID()
     let preloadTask = Task<PlatformImage?, Never> { [weak self] in
       guard let self else { return nil }
-      let (image, animatedSourceFileURL) = await self.preloadDecodedPageImage(pageIndex: pageIndex)
+      let (image, animatedSourceFileURL, failure) = await self.preloadDecodedPageImage(pageIndex: pageIndex)
       guard !Task.isCancelled else { return nil }
 
       self.updateAnimatedPresentation(
@@ -264,15 +276,18 @@ final class ReaderPageLoadScheduler {
         sourceFileURL: animatedSourceFileURL,
         for: pageID
       )
-      guard let image else { return nil }
+      guard let image else {
+        self.markImageLoadFailed(for: pageID, failure: failure ?? .unknown)
+        return nil
+      }
 
       self.setPreloadedImage(image, for: pageID)
       return image
     }
 
-    preloadingImageTasks[pageID] = ImageLoadTaskRecord(token: taskToken, task: preloadTask)
+    preloadingImageTasks[pageID] = TrackedTaskRecord(token: taskToken, task: preloadTask)
     let image = await preloadTask.value
-    removeTrackedImageTaskIfCurrent(for: pageID, token: taskToken, from: &preloadingImageTasks)
+    removeTrackedTaskIfCurrent(for: pageID, token: taskToken, from: &preloadingImageTasks)
     return image
   }
 
@@ -299,6 +314,7 @@ final class ReaderPageLoadScheduler {
     preloadedImagesByID.removeAll()
     animatedPageStates.removeAll()
     animatedPageSourceFileURLs.removeAll()
+    failedImageLoadsByID.removeAll()
     invalidatePresentation(.all)
     logger.debug("🗑️ Cleared all preloaded images and cancelled tasks")
   }
@@ -307,8 +323,8 @@ final class ReaderPageLoadScheduler {
     let pageIDs = Set(readerPages.lazy.filter { $0.bookId == bookId }.map(\.id))
     guard !pageIDs.isEmpty else { return }
 
-    cancelTrackedURLTasks(&upscalingTasks, matching: pageIDs)
-    cancelTrackedImageTasks(&preloadingImageTasks, matching: pageIDs)
+    cancelTrackedTasks(&upscalingTasks, matching: pageIDs)
+    cancelTrackedTasks(&preloadingImageTasks, matching: pageIDs)
 
     var removedImageCount = 0
     for pageID in pageIDs {
@@ -317,6 +333,7 @@ final class ReaderPageLoadScheduler {
       }
       animatedPageStates.removeValue(forKey: pageID)
       animatedPageSourceFileURLs.removeValue(forKey: pageID)
+      failedImageLoadsByID.removeValue(forKey: pageID)
     }
 
     logger.debug(
@@ -374,7 +391,13 @@ final class ReaderPageLoadScheduler {
   }
 
   private func setPreloadedImage(_ image: PlatformImage, for pageID: ReaderPageID) {
+    failedImageLoadsByID.removeValue(forKey: pageID)
     preloadedImagesByID[pageID] = image
+    invalidatePresentation(.pages([pageID]))
+  }
+
+  private func markImageLoadFailed(for pageID: ReaderPageID, failure: ReaderPageLoadFailure) {
+    failedImageLoadsByID[pageID] = failure
     invalidatePresentation(.pages([pageID]))
   }
 
@@ -387,26 +410,17 @@ final class ReaderPageLoadScheduler {
     presentationInvalidationHandler?(invalidation)
   }
 
-  private func removeTrackedURLTaskIfCurrent(
+  private func removeTrackedTaskIfCurrent<Success: Sendable>(
     for pageID: ReaderPageID,
     token: UUID,
-    from tasks: inout [ReaderPageID: URLLoadTaskRecord]
+    from tasks: inout [ReaderPageID: TrackedTaskRecord<Success>]
   ) {
     guard tasks[pageID]?.token == token else { return }
     tasks.removeValue(forKey: pageID)
   }
 
-  private func removeTrackedImageTaskIfCurrent(
-    for pageID: ReaderPageID,
-    token: UUID,
-    from tasks: inout [ReaderPageID: ImageLoadTaskRecord]
-  ) {
-    guard tasks[pageID]?.token == token else { return }
-    tasks.removeValue(forKey: pageID)
-  }
-
-  private func cancelTrackedURLTasksOutsideWindow(
-    _ tasks: inout [ReaderPageID: URLLoadTaskRecord],
+  private func cancelTrackedTasksOutsideWindow<Success: Sendable>(
+    _ tasks: inout [ReaderPageID: TrackedTaskRecord<Success>],
     keeping keepPageIDs: Set<ReaderPageID>
   ) {
     let stalePageIDs = tasks.keys.filter { !keepPageIDs.contains($0) }
@@ -416,30 +430,8 @@ final class ReaderPageLoadScheduler {
     }
   }
 
-  private func cancelTrackedURLTasks(
-    _ tasks: inout [ReaderPageID: URLLoadTaskRecord],
-    matching pageIDs: Set<ReaderPageID>
-  ) {
-    let matchedPageIDs = tasks.keys.filter { pageIDs.contains($0) }
-    for pageID in matchedPageIDs {
-      tasks[pageID]?.task.cancel()
-      tasks.removeValue(forKey: pageID)
-    }
-  }
-
-  private func cancelTrackedImageTasksOutsideWindow(
-    _ tasks: inout [ReaderPageID: ImageLoadTaskRecord],
-    keeping keepPageIDs: Set<ReaderPageID>
-  ) {
-    let stalePageIDs = tasks.keys.filter { !keepPageIDs.contains($0) }
-    for pageID in stalePageIDs {
-      tasks[pageID]?.task.cancel()
-      tasks.removeValue(forKey: pageID)
-    }
-  }
-
-  private func cancelTrackedImageTasks(
-    _ tasks: inout [ReaderPageID: ImageLoadTaskRecord],
+  private func cancelTrackedTasks<Success: Sendable>(
+    _ tasks: inout [ReaderPageID: TrackedTaskRecord<Success>],
     matching pageIDs: Set<ReaderPageID>
   ) {
     let matchedPageIDs = tasks.keys.filter { pageIDs.contains($0) }
@@ -454,10 +446,10 @@ final class ReaderPageLoadScheduler {
     return AnimatedImageSupport.isAnimatedImageFile(at: fileURL)
   }
 
-  private func getPageImageFileURL(pageIndex: Int) async -> URL? {
+  private func getPageImageFileURL(pageIndex: Int) async -> (url: URL?, failure: ReaderPageLoadFailure?) {
     guard let readerPage = readerPage(at: pageIndex) else {
       logger.warning("⚠️ Invalid page index \(pageIndex), cannot load page image")
-      return nil
+      return (nil, nil)
     }
 
     let pageID = readerPage.id
@@ -466,31 +458,38 @@ final class ReaderPageLoadScheduler {
 
     if let existingTask = downloadingTasks[pageID] {
       logger.debug("⏳ Waiting for existing download task for page \(page.number) for book \(currentBookId)")
-      if let result = await existingTask.task.value {
+      let result = await existingTask.task.value
+      if result.url != nil {
         return result
       }
       if let cachedFileURL = await getCachedImageFileURL(for: readerPage) {
-        return cachedFileURL
+        return (cachedFileURL, nil)
       }
-      return nil
+      return (nil, result.failure)
     }
 
     let taskToken = UUID()
-    let loadTask = Task<URL?, Never> {
-      guard !Task.isCancelled else { return nil }
+    let loadTask = Task<(url: URL?, failure: ReaderPageLoadFailure?), Never> {
+      guard !Task.isCancelled else { return (nil, nil) }
 
-      if let offlineURL = await OfflineManager.shared.getOfflinePageImageURL(
-        instanceId: AppConfig.current.instanceId,
-        bookId: currentBookId,
-        page: page
-      ) {
-        self.logger.debug("✅ Using offline downloaded image for page \(page.number) for book \(currentBookId)")
-        return offlineURL
+      var failure: ReaderPageLoadFailure?
+
+      do {
+        if let offlineURL = try await OfflineManager.shared.getOfflinePageImageURL(
+          instanceId: AppConfig.current.instanceId,
+          bookId: currentBookId,
+          page: page
+        ) {
+          self.logger.debug("✅ Using offline downloaded image for page \(page.number) for book \(currentBookId)")
+          return (offlineURL, nil)
+        }
+      } catch {
+        failure = .readDownloadFailed
       }
 
       if let cachedFileURL = await self.getCachedImageFileURL(for: readerPage) {
         self.logger.debug("✅ Using cached image for page \(page.number) for book \(currentBookId)")
-        return cachedFileURL
+        return (cachedFileURL, nil)
       }
 
       let instanceId = AppConfig.current.instanceId
@@ -505,13 +504,13 @@ final class ReaderPageLoadScheduler {
           pageNumber: page.number
         ) {
           self.logger.debug("✅ Rendered PDF page \(page.number) on demand for book \(currentBookId)")
-          return renderedURL
+          return (renderedURL, nil)
         }
       }
 
       if AppConfig.isOffline {
         self.logger.error("❌ Missing offline page \(page.number) for book \(currentBookId)")
-        return nil
+        return (nil, failure ?? .offlineUnavailable)
       }
 
       self.logger.info("📥 Downloading page \(page.number) for book \(currentBookId)")
@@ -519,11 +518,11 @@ final class ReaderPageLoadScheduler {
       do {
         guard let remoteURL = self.resolvedDownloadURL(for: page, bookId: currentBookId) else {
           self.logger.error("❌ Unable to resolve download URL for page \(page.number) in book \(currentBookId)")
-          return nil
+          return (nil, failure)
         }
 
         let result = try await BookService.downloadImageResource(at: remoteURL)
-        guard !Task.isCancelled else { return nil }
+        guard !Task.isCancelled else { return (nil, nil) }
 
         let data = result.data
         let dataSize = ByteCountFormatter.string(fromByteCount: Int64(data.count), countStyle: .binary)
@@ -539,23 +538,38 @@ final class ReaderPageLoadScheduler {
 
         if let fileURL = await self.getCachedImageFileURL(for: readerPage) {
           self.logger.debug("💾 Saved page \(page.number) to disk cache for book \(currentBookId)")
-          return fileURL
+          return (fileURL, nil)
         }
 
         self.logger.error(
           "❌ Failed to get file URL after saving page \(page.number) to cache for book \(currentBookId)"
         )
-        return nil
+        return (nil, failure)
       } catch {
         self.logger.error("❌ Failed to download page \(page.number) for book \(currentBookId): \(error)")
-        return nil
+        return (nil, Self.loadFailure(for: error) ?? failure)
       }
     }
 
-    downloadingTasks[pageID] = URLLoadTaskRecord(token: taskToken, task: loadTask)
+    downloadingTasks[pageID] = TrackedTaskRecord(token: taskToken, task: loadTask)
     let result = await loadTask.value
-    removeTrackedURLTaskIfCurrent(for: pageID, token: taskToken, from: &downloadingTasks)
+    removeTrackedTaskIfCurrent(for: pageID, token: taskToken, from: &downloadingTasks)
     return result
+  }
+
+  nonisolated private static func loadFailure(for error: Error) -> ReaderPageLoadFailure? {
+    guard let apiError = error as? APIError else { return nil }
+    switch apiError {
+    case .serverError(let code, _, _, _, _), .httpError(let code, _, _, _, _):
+      return .serverError(code)
+    case .networkError(let underlying, _):
+      if let appError = underlying as? AppErrorType {
+        return .networkError(appError.description)
+      }
+      return .networkError(underlying.localizedDescription)
+    default:
+      return nil
+    }
   }
 
   private func getCachedImageFileURL(for readerPage: ReaderPage) async -> URL? {
@@ -587,26 +601,29 @@ final class ReaderPageLoadScheduler {
     return await ImageDecodeHelper.decodeForDisplay(image)
   }
 
-  private func preloadDecodedPageImage(pageIndex: Int) async -> (PlatformImage?, URL?) {
+  private func preloadDecodedPageImage(pageIndex: Int) async -> (
+    image: PlatformImage?, animatedSourceFileURL: URL?, failure: ReaderPageLoadFailure?
+  ) {
     guard let readerPage = readerPage(at: pageIndex) else {
-      return (nil, nil)
+      return (nil, nil, nil)
     }
     let page = readerPage.page
 
-    guard let sourceFileURL = await getPageImageFileURL(pageIndex: pageIndex) else {
-      return (nil, nil)
+    let (sourceFileURL, failure) = await getPageImageFileURL(pageIndex: pageIndex)
+    guard let sourceFileURL else {
+      return (nil, nil, failure)
     }
-    guard !Task.isCancelled else { return (nil, nil) }
+    guard !Task.isCancelled else { return (nil, nil, nil) }
 
     let isAnimated = Self.detectAnimatedState(for: page, fileURL: sourceFileURL)
     let animatedSourceFileURL = isAnimated ? sourceFileURL : nil
     if isAnimated {
       if let posterImage = await loadPosterImageFromAnimatedFile(fileURL: sourceFileURL) {
-        return (posterImage, animatedSourceFileURL)
+        return (posterImage, animatedSourceFileURL, nil)
       }
 
       let fallbackImage = await loadImageFromFile(fileURL: sourceFileURL)
-      return (fallbackImage, animatedSourceFileURL)
+      return (fallbackImage, animatedSourceFileURL, nil)
     }
 
     let preferredFileURL = await preferredDisplayImageFileURL(
@@ -617,7 +634,7 @@ final class ReaderPageLoadScheduler {
     )
 
     if let image = await loadImageFromFile(fileURL: preferredFileURL) {
-      return (image, animatedSourceFileURL)
+      return (image, animatedSourceFileURL, nil)
     }
 
     if preferredFileURL != sourceFileURL {
@@ -625,10 +642,10 @@ final class ReaderPageLoadScheduler {
         "⏭️ [Upscale] Fallback to original file for page \(page.number + 1) because @2x decode failed"
       )
       let fallbackImage = await loadImageFromFile(fileURL: sourceFileURL)
-      return (fallbackImage, animatedSourceFileURL)
+      return (fallbackImage, animatedSourceFileURL, nil)
     }
 
-    return (nil, animatedSourceFileURL)
+    return (nil, animatedSourceFileURL, nil)
   }
 
   private func preferredDisplayImageFileURL(
@@ -766,9 +783,9 @@ final class ReaderPageLoadScheduler {
       return persistedURL
     }
 
-    upscalingTasks[pageID] = URLLoadTaskRecord(token: taskToken, task: upscaleTask)
+    upscalingTasks[pageID] = TrackedTaskRecord(token: taskToken, task: upscaleTask)
     let result = await upscaleTask.value
-    removeTrackedURLTaskIfCurrent(for: pageID, token: taskToken, from: &upscalingTasks)
+    removeTrackedTaskIfCurrent(for: pageID, token: taskToken, from: &upscalingTasks)
     if let result {
       logger.debug("✅ [Upscale] Ready page \(pageNumber + 1): \(result.lastPathComponent)")
     } else {
@@ -959,7 +976,7 @@ final class ReaderPageLoadScheduler {
       return
     }
 
-    guard let fileURL = await getPageImageFileURL(pageIndex: pageIndex) else { return }
+    guard let fileURL = await getPageImageFileURL(pageIndex: pageIndex).url else { return }
     let isAnimated = Self.detectAnimatedState(for: page, fileURL: fileURL)
     updateAnimatedPresentation(
       knownAnimatedState: isAnimated,
