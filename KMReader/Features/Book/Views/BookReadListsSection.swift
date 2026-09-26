@@ -8,6 +8,17 @@ import SwiftUI
 struct BookReadListsSection: View {
   let readLists: [SidebarReadListItem]
 
+  @State private var isExpanded = false
+
+  private let collapsedLimit = 3
+
+  private var displayedReadLists: [SidebarReadListItem] {
+    if isExpanded || readLists.count <= collapsedLimit {
+      return readLists
+    }
+    return Array(readLists.prefix(collapsedLimit))
+  }
+
   // Pure display component: loading is hoisted to the parent detail view, so
   // the section renders nothing while empty — an always-present zero-height
   // anchor would collapse the surrounding stack spacing.
@@ -18,7 +29,7 @@ struct BookReadListsSection: View {
           .font(.headline)
 
         VStack(alignment: .leading, spacing: 8) {
-          ForEach(readLists) { readList in
+          ForEach(displayedReadLists) { readList in
             NavigationLink(value: NavDestination.readListDetail(readListId: readList.readListId)) {
               HStack {
                 Label(readList.name, systemImage: ContentIcon.readList)
@@ -33,6 +44,10 @@ struct BookReadListsSection: View {
               .cornerRadius(16)
             }.adaptiveButtonStyle(.plain)
           }
+        }
+
+        if readLists.count > collapsedLimit {
+          ExpandToggleButton(isExpanded: $isExpanded)
         }
       }
       .padding(.top, 8)
