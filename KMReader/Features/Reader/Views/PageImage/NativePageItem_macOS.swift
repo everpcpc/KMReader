@@ -13,6 +13,10 @@
     private let pageNumberLabel = NSTextField()
     private let progressIndicator = NSProgressIndicator()
     private let errorLabel = NSTextField()
+    private let errorDetailLabel = NSTextField()
+    private let retryButton = NSButton()
+    private var retryToErrorConstraint: NSLayoutConstraint?
+    private var retryToDetailConstraint: NSLayoutConstraint?
 
     private let overlayView = ImageAnalysisOverlayView()
     private var analysisTask: Task<Void, Never>?
@@ -178,6 +182,32 @@
       errorLabel.translatesAutoresizingMaskIntoConstraints = false
       addSubview(errorLabel)
 
+      errorDetailLabel.isEditable = false
+      errorDetailLabel.isSelectable = false
+      errorDetailLabel.isBordered = false
+      errorDetailLabel.drawsBackground = false
+      errorDetailLabel.font = .systemFont(ofSize: 12)
+      errorDetailLabel.textColor = .secondaryLabelColor
+      errorDetailLabel.alignment = .center
+      errorDetailLabel.maximumNumberOfLines = 0
+      errorDetailLabel.lineBreakMode = .byWordWrapping
+      errorDetailLabel.isHidden = true
+      errorDetailLabel.translatesAutoresizingMaskIntoConstraints = false
+      addSubview(errorDetailLabel)
+
+      retryButton.title = String(localized: "Retry")
+      retryButton.bezelStyle = .rounded
+      retryButton.target = self
+      retryButton.action = #selector(handleRetryButtonClicked)
+      retryButton.isHidden = true
+      retryButton.translatesAutoresizingMaskIntoConstraints = false
+      addSubview(retryButton)
+
+      retryToErrorConstraint = retryButton.topAnchor.constraint(equalTo: errorLabel.bottomAnchor, constant: 12)
+      retryToDetailConstraint = retryButton.topAnchor.constraint(
+        equalTo: errorDetailLabel.bottomAnchor, constant: 12)
+      retryToErrorConstraint?.isActive = true
+
       NSLayoutConstraint.activate([
         progressIndicator.centerXAnchor.constraint(equalTo: centerXAnchor),
         progressIndicator.centerYAnchor.constraint(equalTo: centerYAnchor),
@@ -191,7 +221,17 @@
         errorLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
         errorLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 20),
         errorLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -20),
+        errorDetailLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
+        errorDetailLabel.topAnchor.constraint(equalTo: errorLabel.bottomAnchor, constant: 4),
+        errorDetailLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 20),
+        errorDetailLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -20),
+        retryButton.centerXAnchor.constraint(equalTo: centerXAnchor),
       ])
+    }
+
+    @objc private func handleRetryButtonClicked() {
+      guard let pageID = currentData?.pageID else { return }
+      readerViewModel?.retryImageLoad(for: pageID)
     }
 
     func update(
@@ -245,18 +285,29 @@
         pageNumberContainer.isHidden = true
       }
 
-      if let error = data.error {
+      if let failure = data.failure {
         progressIndicator.stopAnimation(nil)
-        errorLabel.stringValue = error
+        errorLabel.stringValue = failure.title
         errorLabel.isHidden = false
+        errorDetailLabel.stringValue = failure.detail ?? ""
+        errorDetailLabel.isHidden = failure.detail == nil
+        retryToDetailConstraint?.isActive = failure.detail != nil
+        retryToErrorConstraint?.isActive = failure.detail == nil
+        retryButton.isHidden = false
       } else if hasDisplayableImage {
         errorLabel.isHidden = true
+        errorDetailLabel.isHidden = true
+        retryButton.isHidden = true
         progressIndicator.stopAnimation(nil)
       } else if data.isLoading {
         errorLabel.isHidden = true
+        errorDetailLabel.isHidden = true
+        retryButton.isHidden = true
         progressIndicator.startAnimation(nil)
       } else {
         errorLabel.isHidden = true
+        errorDetailLabel.isHidden = true
+        retryButton.isHidden = true
         progressIndicator.stopAnimation(nil)
       }
 

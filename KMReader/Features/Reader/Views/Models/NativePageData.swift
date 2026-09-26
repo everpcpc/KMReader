@@ -16,7 +16,7 @@ enum PageSplitMode: Hashable {
 struct NativePageData {
   let pageID: ReaderPageID
   let isLoading: Bool
-  let error: String?
+  let failure: ReaderPageLoadFailure?
   let alignment: HorizontalAlignment
   let splitMode: PageSplitMode
   let rotation: ReaderRotation
@@ -25,7 +25,7 @@ struct NativePageData {
   init(
     pageID: ReaderPageID,
     isLoading: Bool,
-    error: String?,
+    failure: ReaderPageLoadFailure? = nil,
     alignment: HorizontalAlignment,
     splitMode: PageSplitMode = .none,
     rotation: ReaderRotation = .none,
@@ -33,7 +33,7 @@ struct NativePageData {
   ) {
     self.pageID = pageID
     self.isLoading = isLoading
-    self.error = error
+    self.failure = failure
     self.alignment = alignment
     self.splitMode = splitMode
     self.rotation = rotation

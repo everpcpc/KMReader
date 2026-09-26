@@ -31,6 +31,11 @@ Subsystem conventions and invariants for KMReader. `AGENTS.md` holds repo-wide r
 
 - `ScrollReaderEngine` restores anchors strictly by page identity across item-list rebuilds, carrying the pending position as a full `ReaderPositionAnchor` (never a bare `ReaderViewItem`). Unresolvable anchors are discarded (`nil`), never positionally substituted.
 
+### Page Load Failure State
+
+- DIVINA page image load failures are recorded in `ReaderPageLoadScheduler` as a typed `ReaderPageLoadFailure` per page (cancellation never counts as failure), cleared on success and surfaced through the page-presentation invalidation channel; `NativePageData.failure` (paged/scroll/curl) and the Webtoon cell error state render `failure.title` / `failure.detail` with a retry button. Retry goes through `ReaderViewModel.retryImageLoad(for:)` — never re-enter the load pipeline from view code directly.
+- The failure value comes from the load pipeline itself: a server/HTTP status from the remote page fetch, a network error description, a local read failure from archive materialization (`OfflineManager.getOfflinePageImageURL` throws; the `try?` callers treat it as plain absence), or offline unavailability. View code never invents its own reason text.
+
 ### Next-Book Offline State
 
 - In offline-first reading, `ReaderViewModel.nextBookOfflineState` is the single observable for the next book's offline readiness, rendered by end-page/footer UIs.

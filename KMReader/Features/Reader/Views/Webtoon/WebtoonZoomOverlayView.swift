@@ -52,7 +52,6 @@
               NativePageData(
                 pageID: pageID,
                 isLoading: viewModel.isLoading && viewModel.preloadedImage(for: pageID) == nil,
-                error: nil,
                 alignment: .center
               )
             ]

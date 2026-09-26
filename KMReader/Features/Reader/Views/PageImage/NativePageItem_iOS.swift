@@ -15,6 +15,10 @@
     private let pageNumberLabel = UILabel()
     private let loadingIndicator = UIActivityIndicatorView(style: .medium)
     private let errorLabel = UILabel()
+    private let errorDetailLabel = UILabel()
+    private let retryButton = UIButton(type: .system)
+    private var retryToErrorConstraint: NSLayoutConstraint?
+    private var retryToDetailConstraint: NSLayoutConstraint?
     private var currentData: NativePageData?
     private weak var viewModel: ReaderViewModel?
     private var readingDirection: ReadingDirection = .ltr
@@ -145,6 +149,25 @@
       errorLabel.translatesAutoresizingMaskIntoConstraints = false
       addSubview(errorLabel)
 
+      errorDetailLabel.isHidden = true
+      errorDetailLabel.textColor = .secondaryLabel
+      errorDetailLabel.font = .systemFont(ofSize: 13)
+      errorDetailLabel.numberOfLines = 0
+      errorDetailLabel.textAlignment = .center
+      errorDetailLabel.translatesAutoresizingMaskIntoConstraints = false
+      addSubview(errorDetailLabel)
+
+      retryButton.isHidden = true
+      retryButton.setTitle(String(localized: "Retry"), for: .normal)
+      retryButton.translatesAutoresizingMaskIntoConstraints = false
+      retryButton.addTarget(self, action: #selector(handleRetryButtonTapped), for: .touchUpInside)
+      addSubview(retryButton)
+
+      retryToErrorConstraint = retryButton.topAnchor.constraint(equalTo: errorLabel.bottomAnchor, constant: 12)
+      retryToDetailConstraint = retryButton.topAnchor.constraint(
+        equalTo: errorDetailLabel.bottomAnchor, constant: 12)
+      retryToErrorConstraint?.isActive = true
+
       NSLayoutConstraint.activate([
         loadingIndicator.centerXAnchor.constraint(equalTo: centerXAnchor),
         loadingIndicator.centerYAnchor.constraint(equalTo: centerYAnchor),
@@ -154,7 +177,17 @@
         errorLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
         errorLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 20),
         errorLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -20),
+        errorDetailLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
+        errorDetailLabel.topAnchor.constraint(equalTo: errorLabel.bottomAnchor, constant: 4),
+        errorDetailLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 20),
+        errorDetailLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -20),
+        retryButton.centerXAnchor.constraint(equalTo: centerXAnchor),
       ])
+    }
+
+    @objc private func handleRetryButtonTapped() {
+      guard let pageID = currentData?.pageID else { return }
+      viewModel?.retryImageLoad(for: pageID)
     }
 
     func update(
@@ -211,18 +244,29 @@
         pageNumberLabel.isHidden = true
       }
 
-      if let error = data.error {
+      if let failure = data.failure {
         loadingIndicator.stopAnimating()
-        errorLabel.text = error
+        errorLabel.text = failure.title
         errorLabel.isHidden = false
+        errorDetailLabel.text = failure.detail
+        errorDetailLabel.isHidden = failure.detail == nil
+        retryToDetailConstraint?.isActive = failure.detail != nil
+        retryToErrorConstraint?.isActive = failure.detail == nil
+        retryButton.isHidden = false
       } else if hasDisplayableImage {
         errorLabel.isHidden = true
+        errorDetailLabel.isHidden = true
+        retryButton.isHidden = true
         loadingIndicator.stopAnimating()
       } else if data.isLoading {
         errorLabel.isHidden = true
+        errorDetailLabel.isHidden = true
+        retryButton.isHidden = true
         loadingIndicator.startAnimating()
       } else {
         errorLabel.isHidden = true
+        errorDetailLabel.isHidden = true
+        retryButton.isHidden = true
         loadingIndicator.stopAnimating()
       }
 

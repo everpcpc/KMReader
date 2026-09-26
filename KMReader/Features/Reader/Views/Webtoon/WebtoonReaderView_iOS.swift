@@ -780,6 +780,11 @@
             return item
           }
           cell.readerBackground = readerBackground
+          cell.onRetry = { [weak self] in
+            Task { @MainActor [weak self] in
+              await self?.loadImage(for: pageID)
+            }
+          }
 
           let displayImage = displayImageIfReady(
             viewModel?.preloadedImage(for: pageID),
@@ -965,7 +970,7 @@
       }
 
       private func showImageError(for pageID: ReaderPageID) {
-        pageCell(for: pageID)?.showError()
+        pageCell(for: pageID)?.showError(failure: viewModel?.imageLoadFailure(for: pageID))
       }
 
       // MARK: - Tap Gesture Handling

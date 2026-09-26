@@ -1428,7 +1428,7 @@ actor OfflineManager {
 
   func getOfflinePageImageURL(
     instanceId: String, bookId: String, pageNumber: Int, fileExtension: String
-  ) async -> URL? {
+  ) async throws -> URL? {
     guard await isBookDownloaded(bookId: bookId, instanceId: instanceId) else { return nil }
     let dir = bookDirectory(instanceId: instanceId, bookId: bookId)
 
@@ -1439,7 +1439,7 @@ actor OfflineManager {
     if let database = try? await DatabaseOperator.database() {
       let pages = await database.fetchPages(id: bookId, instanceId: instanceId)
       if let page = pages?.first(where: { $0.number == pageNumber }) {
-        return await getOfflinePageImageURL(instanceId: instanceId, bookId: bookId, page: page)
+        return try await getOfflinePageImageURL(instanceId: instanceId, bookId: bookId, page: page)
       }
     }
     return nil
@@ -1447,7 +1447,7 @@ actor OfflineManager {
 
   func getOfflinePageImageURL(
     instanceId: String, bookId: String, page: BookPage
-  ) async -> URL? {
+  ) async throws -> URL? {
     guard await isBookDownloaded(bookId: bookId, instanceId: instanceId) else { return nil }
     let dir = bookDirectory(instanceId: instanceId, bookId: bookId)
 
@@ -1476,7 +1476,7 @@ actor OfflineManager {
       logger.error(
         "❌ Failed to materialize archived page \(page.number) for book \(bookId): \(error)"
       )
-      return nil
+      throw error
     }
   }
 

@@ -103,8 +103,9 @@ extension ReaderViewModel {
   ) -> NativePageData {
     NativePageData(
       pageID: pageID,
-      isLoading: page(for: pageID) != nil && preloadedImage(for: pageID) == nil,
-      error: nil,
+      isLoading: page(for: pageID) != nil && preloadedImage(for: pageID) == nil
+        && !hasFailedImageLoad(for: pageID),
+      failure: imageLoadFailure(for: pageID),
       alignment: alignment,
       splitMode: splitMode,
       rotation: rotation,

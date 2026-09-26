@@ -14,6 +14,12 @@
     private let pageMarkerLabel = NSTextField(labelWithString: "")
     private let pageMarkerContainer = NSView()
     private let errorLabel = NSTextField(labelWithString: "⚠")
+    private let errorDetailLabel = NSTextField(labelWithString: "")
+    private let retryButton = NSButton()
+    private var retryToErrorConstraint: NSLayoutConstraint?
+    private var retryToDetailConstraint: NSLayoutConstraint?
+
+    var onRetry: (() -> Void)?
 
     var readerBackground: ReaderBackground = .system {
       didSet {
@@ -76,6 +82,30 @@
       errorLabel.translatesAutoresizingMaskIntoConstraints = false
       view.addSubview(errorLabel)
 
+      retryButton.title = String(localized: "Retry")
+      retryButton.bezelStyle = .rounded
+      retryButton.target = self
+      retryButton.action = #selector(handleRetryClicked)
+      retryButton.isHidden = true
+      retryButton.translatesAutoresizingMaskIntoConstraints = false
+      view.addSubview(retryButton)
+
+      errorDetailLabel.font = .systemFont(ofSize: 12)
+      errorDetailLabel.textColor = .secondaryLabelColor
+      errorDetailLabel.alignment = .center
+      errorDetailLabel.drawsBackground = false
+      errorDetailLabel.isBordered = false
+      errorDetailLabel.maximumNumberOfLines = 0
+      errorDetailLabel.lineBreakMode = .byWordWrapping
+      errorDetailLabel.isHidden = true
+      errorDetailLabel.translatesAutoresizingMaskIntoConstraints = false
+      view.addSubview(errorDetailLabel)
+
+      retryToErrorConstraint = retryButton.topAnchor.constraint(equalTo: errorLabel.bottomAnchor, constant: 12)
+      retryToDetailConstraint = retryButton.topAnchor.constraint(
+        equalTo: errorDetailLabel.bottomAnchor, constant: 12)
+      retryToErrorConstraint?.isActive = true
+
       NSLayoutConstraint.activate([
         pageMarkerContainer.topAnchor.constraint(equalTo: view.topAnchor, constant: 12),
         pageMarkerContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -12),
@@ -92,7 +122,22 @@
 
         errorLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
         errorLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+
+        errorDetailLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+        errorDetailLabel.topAnchor.constraint(equalTo: errorLabel.bottomAnchor, constant: 4),
+        errorDetailLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+        errorDetailLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+
+        retryButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
       ])
+    }
+
+    @objc private func handleRetryClicked() {
+      errorLabel.isHidden = true
+      errorDetailLabel.isHidden = true
+      retryButton.isHidden = true
+      loadingIndicator.startAnimation(nil)
+      onRetry?()
     }
 
     override func viewDidLayout() {
@@ -138,6 +183,8 @@
         pageImageView.image = nil
         pageImageView.alphaValue = 0.0
         errorLabel.isHidden = true
+        errorDetailLabel.isHidden = true
+        retryButton.isHidden = true
         loadingIndicator.startAnimation(nil)
       }
     }
@@ -146,6 +193,8 @@
     func setImage(_ image: NSImage) {
       loadingIndicator.stopAnimation(nil)
       errorLabel.isHidden = true
+      errorDetailLabel.isHidden = true
+      retryButton.isHidden = true
       pageImageView.image = image
       pageImageView.alphaValue = 1.0
     }
@@ -170,11 +219,16 @@
       }
     }
 
-    func showError() {
+    func showError(failure: ReaderPageLoadFailure? = nil) {
       pageImageView.image = nil
       pageImageView.alphaValue = 0.0
       loadingIndicator.stopAnimation(nil)
       errorLabel.isHidden = false
+      errorDetailLabel.stringValue = failure?.detail ?? ""
+      errorDetailLabel.isHidden = failure?.detail == nil
+      retryToDetailConstraint?.isActive = failure?.detail != nil
+      retryToErrorConstraint?.isActive = failure?.detail == nil
+      retryButton.isHidden = false
     }
 
     override func prepareForReuse() {
@@ -183,6 +237,9 @@
       pageImageView.alphaValue = 0.0
       loadingIndicator.stopAnimation(nil)
       errorLabel.isHidden = true
+      errorDetailLabel.isHidden = true
+      retryButton.isHidden = true
+      onRetry = nil
       pageMarkerContainer.isHidden = true
     }
   }

@@ -420,7 +420,7 @@ actor ThumbnailCache {
     var offlinePageURL: URL?
 
     for ext in extensions {
-      if let url = await OfflineManager.shared.getOfflinePageImageURL(
+      if let url = try? await OfflineManager.shared.getOfflinePageImageURL(
         instanceId: instanceId, bookId: bookId, pageNumber: pageNumber, fileExtension: ext)
       {
         offlinePageURL = url

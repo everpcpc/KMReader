@@ -760,6 +760,11 @@
             return item
           }
           cell.readerBackground = readerBackground
+          cell.onRetry = { [weak self] in
+            Task { @MainActor [weak self] in
+              await self?.loadImage(for: pageID)
+            }
+          }
           let displayImage = displayImageIfReady(
             viewModel?.preloadedImage(for: pageID),
             for: pageID,
@@ -907,6 +912,8 @@
           {
             pageCell(for: pageID)?.setImage(image)
           }
+        } else {
+          showImageError(for: pageID)
         }
       }
 
@@ -914,6 +921,10 @@
         guard let cv = collectionView else { return nil }
         guard let itemIndex = itemIndex(forPageID: pageID) else { return nil }
         return cv.item(at: IndexPath(item: itemIndex, section: 0)) as? WebtoonPageCell
+      }
+
+      private func showImageError(for pageID: ReaderPageID) {
+        pageCell(for: pageID)?.showError(failure: viewModel?.imageLoadFailure(for: pageID))
       }
 
       // MARK: - Click
