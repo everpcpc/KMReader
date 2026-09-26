@@ -111,18 +111,7 @@ struct ExpandableSummaryView: View {
         )
 
       if needsExpansion {
-        Button {
-          withAnimation {
-            isExpanded.toggle()
-          }
-        } label: {
-          HStack(spacing: 4) {
-            Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-              .font(.caption2)
-            Text(isExpanded ? "Show Less" : "Show More")
-              .font(.caption)
-          }
-        }
+        ExpandToggleButton(isExpanded: $isExpanded)
       }
     }
   }
