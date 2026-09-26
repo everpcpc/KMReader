@@ -33,7 +33,7 @@ nonisolated enum SeriesDownloadStatus: Equatable, Sendable {
     case .partiallyDownloaded:
       return "icloud"
     case .downloaded:
-      return "checkmark.icloud"
+      return "checkmark.icloud.fill"
     case .pending:
       return "arrow.clockwise"
     }

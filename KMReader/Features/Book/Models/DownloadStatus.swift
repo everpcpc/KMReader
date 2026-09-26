@@ -36,7 +36,7 @@ nonisolated enum DownloadStatus: Equatable, Sendable {
     case .pending:
       return "arrow.clockwise"
     case .downloaded:
-      return "checkmark.icloud"
+      return "checkmark.icloud.fill"
     case .failed:
       return "exclamationmark.circle.fill"
     }
