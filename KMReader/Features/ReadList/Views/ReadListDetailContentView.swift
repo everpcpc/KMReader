@@ -7,19 +7,20 @@ import SwiftUI
 
 struct ReadListDetailContentView<Actions: View>: View {
   let readList: ReadList
-  /// iPad's narrow single-column fallback forces the compact centered hero
-  /// and caps the action card instead of stretching both across the column.
-  let forceCompactHero: Bool
   @ViewBuilder let actions: Actions
+
+  @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
   init(
     readList: ReadList,
-    forceCompactHero: Bool = false,
     @ViewBuilder actions: () -> Actions
   ) {
     self.readList = readList
-    self.forceCompactHero = forceCompactHero
     self.actions = actions()
+  }
+
+  private var isCompactLayout: Bool {
+    horizontalSizeClass == .compact
   }
 
   var body: some View {
@@ -27,8 +28,7 @@ struct ReadListDetailContentView<Actions: View>: View {
       DetailHeroView(
         id: readList.id,
         type: .readlist,
-        contentBlurRadius: 0,
-        forceCentered: forceCompactHero
+        contentBlurRadius: 0
       ) {
         ReadListHeroInfoView(readList: readList)
       }
@@ -38,14 +38,14 @@ struct ReadListDetailContentView<Actions: View>: View {
 
         actions
       }
-      .environment(\.detailHeroCentered, forceCompactHero)
-      .frame(maxWidth: forceCompactHero ? 480 : .infinity)
-      .frame(maxWidth: .infinity, alignment: forceCompactHero ? .center : .leading)
+      .frame(maxWidth: isCompactLayout ? 480 : .infinity)
+      .frame(maxWidth: .infinity, alignment: isCompactLayout ? .center : .leading)
 
       DetailTimestampsView(
         created: readList.createdDate, lastModified: readList.lastModifiedDate
       )
-      .frame(maxWidth: .infinity, alignment: forceCompactHero ? .center : .leading)
+      .frame(maxWidth: .infinity, alignment: isCompactLayout ? .center : .leading)
     }
+    .environment(\.detailHeroCentered, isCompactLayout)
   }
 }

@@ -10,43 +10,36 @@ private struct DetailHeroCenteredKey: EnvironmentKey {
 }
 
 extension EnvironmentValues {
-  /// Set by detail pages so hero subviews (title, author chips, metadata
-  /// rows) can switch to centered alignment under the stacked compact hero.
+  /// Set by detail page content views so the hero and the action-card zone
+  /// share one alignment: centered on compact widths, leading on regular.
+  /// Wide two-column rails inject `true` for their centered rail content.
   var detailHeroCentered: Bool {
     get { self[DetailHeroCenteredKey.self] }
     set { self[DetailHeroCenteredKey.self] = newValue }
   }
 }
 
-/// Detail page hero: cover plus an info block. Compact widths (iPhone) stack
-/// a large cover above the centered info block; regular widths keep the
-/// side-by-side row at `PlatformHelper.detailThumbnailWidth`. The centered
-/// branch injects `detailHeroCentered` so only hero subviews adapt alignment.
+/// Detail page hero: cover plus an info block. Centered mode stacks a large
+/// cover above the centered info block; otherwise the cover sits beside the
+/// leading info block at `PlatformHelper.detailThumbnailWidth`.
 struct DetailHeroView<Info: View>: View {
   let id: String
   let type: ThumbnailType
   let contentBlurRadius: CGFloat
-  let forceCentered: Bool
   @ViewBuilder let info: Info
 
-  @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+  @Environment(\.detailHeroCentered) private var isCentered
 
   init(
     id: String,
     type: ThumbnailType,
     contentBlurRadius: CGFloat,
-    forceCentered: Bool = false,
     @ViewBuilder info: () -> Info
   ) {
     self.id = id
     self.type = type
     self.contentBlurRadius = contentBlurRadius
-    self.forceCentered = forceCentered
     self.info = info()
-  }
-
-  private var isCentered: Bool {
-    forceCentered || horizontalSizeClass == .compact
   }
 
   var body: some View {
@@ -56,7 +49,6 @@ struct DetailHeroView<Info: View>: View {
         info
           .frame(maxWidth: .infinity)
       }
-      .environment(\.detailHeroCentered, true)
     } else {
       HStack(alignment: .top, spacing: 12) {
         DetailCoverView(

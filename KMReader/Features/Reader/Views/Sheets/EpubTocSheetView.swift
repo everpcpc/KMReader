@@ -90,9 +90,9 @@
           goToChapter(link)
         } label: {
           ChapterLabel(link: link, currentLink: currentLink)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .contentShape(Rectangle())
         .id(rowID)
       }
     }

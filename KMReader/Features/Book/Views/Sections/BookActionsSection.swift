@@ -5,54 +5,77 @@
 
 import SwiftUI
 
-/// The book detail page's single action row: Read, Peek, and the download
-/// toggle when the book has a download state. Series navigation lives on the
+/// The book detail page's action block: a prominent capsule Read button,
+/// then Peek and the download toggle as a secondary row. Pages/progress stay
+/// in the status row above, so the button carries the action label only.
+/// Alignment follows `detailHeroCentered`. Series navigation lives on the
 /// hero's series title instead of a button here.
 struct BookActionsSection: View {
   let book: Book
   let downloadStatus: DownloadStatus?
 
   @Environment(\.readerActions) private var readerActions
+  @Environment(\.detailHeroCentered) private var heroCentered
   @AppStorage("currentAccount") private var current: Current = .init()
 
+  private var readLabel: String {
+    if book.hasStartedReading && !book.isCompleted {
+      return String(localized: "Resume Reading")
+    } else {
+      return String(localized: "Start Reading")
+    }
+  }
+
   var body: some View {
-    HStack {
+    VStack(alignment: heroCentered ? .center : .leading, spacing: 8) {
       Button {
         readerActions.open(book: book, incognito: false)
       } label: {
-        Label("Read", systemImage: "book")
+        HStack(spacing: 8) {
+          Image(systemName: "book.fill")
+            .font(.subheadline)
+
+          Text(readLabel)
+            .font(.subheadline)
+        }
+        .padding(.horizontal, 12)
       }
       .adaptiveButtonStyle(.borderedProminent)
+      .buttonBorderShape(.capsule)
+      .controlSize(.small)
 
-      Button {
-        readerActions.open(book: book, incognito: true)
-      } label: {
-        Label("Peek", systemImage: "eye.slash")
-      }
-      .adaptiveButtonStyle(.bordered)
-
-      if let downloadStatus {
+      HStack {
         Button {
-          Task {
-            await OfflineManager.shared.toggleDownload(
-              instanceId: current.instanceId, info: book.downloadInfo)
-          }
+          readerActions.open(book: book, incognito: true)
         } label: {
-          HStack(spacing: 4) {
-            Image(systemName: downloadStatus.menuIcon)
-              .font(.caption2)
-            Text(downloadStatus.menuLabel)
-              .font(.caption)
-              .fontWeight(.medium)
-              .lineLimit(1)
-          }
+          Label("Peek", systemImage: "eye.slash")
         }
         .adaptiveButtonStyle(.bordered)
-        .optimizedControlSize()
-        .tint(downloadStatus.menuColor)
+
+        if let downloadStatus {
+          Button {
+            Task {
+              await OfflineManager.shared.toggleDownload(
+                instanceId: current.instanceId, info: book.downloadInfo)
+            }
+          } label: {
+            HStack(spacing: 4) {
+              Image(systemName: downloadStatus.menuIcon)
+                .font(.caption2)
+              Text(downloadStatus.menuLabel)
+                .font(.caption)
+                .fontWeight(.medium)
+                .lineLimit(1)
+            }
+          }
+          .adaptiveButtonStyle(.bordered)
+          .optimizedControlSize()
+          .tint(downloadStatus.menuColor)
+        }
       }
+      .font(.caption)
     }
-    .font(.caption)
+    .frame(maxWidth: .infinity, alignment: heroCentered ? .center : .leading)
     .animation(.default, value: downloadStatus)
   }
 }

@@ -7,16 +7,13 @@ import SwiftUI
 
 struct SeriesDetailContentView<Actions: View>: View {
   let series: Series
-  /// iPad's narrow single-column fallback forces the compact centered hero
-  /// and caps the action card instead of stretching both across the column.
-  let forceCompactHero: Bool
   @ViewBuilder let actions: Actions
 
   @AppStorage("thumbnailBlurUnreadCovers") private var thumbnailBlurUnreadCovers: Bool = false
+  @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
-  init(series: Series, forceCompactHero: Bool = false, @ViewBuilder actions: () -> Actions) {
+  init(series: Series, @ViewBuilder actions: () -> Actions) {
     self.series = series
-    self.forceCompactHero = forceCompactHero
     self.actions = actions()
   }
 
@@ -24,13 +21,16 @@ struct SeriesDetailContentView<Actions: View>: View {
     thumbnailBlurUnreadCovers && series.isUnread ? CoverBlurStyle.unreadRadius : 0
   }
 
+  private var isCompactLayout: Bool {
+    horizontalSizeClass == .compact
+  }
+
   var body: some View {
     VStack(alignment: .leading, spacing: 16) {
       DetailHeroView(
         id: series.id,
         type: .series,
-        contentBlurRadius: coverBlurRadius,
-        forceCentered: forceCompactHero
+        contentBlurRadius: coverBlurRadius
       ) {
         SeriesHeroInfoView(series: series)
       }
@@ -40,12 +40,11 @@ struct SeriesDetailContentView<Actions: View>: View {
 
         actions
       }
-      .environment(\.detailHeroCentered, forceCompactHero)
-      .frame(maxWidth: forceCompactHero ? 480 : .infinity)
-      .frame(maxWidth: .infinity, alignment: forceCompactHero ? .center : .leading)
+      .frame(maxWidth: isCompactLayout ? 480 : .infinity)
+      .frame(maxWidth: .infinity, alignment: isCompactLayout ? .center : .leading)
 
       DetailTimestampsView(created: series.created, lastModified: series.lastModified)
-        .frame(maxWidth: .infinity, alignment: forceCompactHero ? .center : .leading)
+        .frame(maxWidth: .infinity, alignment: isCompactLayout ? .center : .leading)
 
       SeriesSummaryView(series: series)
 
@@ -53,5 +52,6 @@ struct SeriesDetailContentView<Actions: View>: View {
 
       SeriesAlternateTitlesView(series: series)
     }
+    .environment(\.detailHeroCentered, isCompactLayout)
   }
 }

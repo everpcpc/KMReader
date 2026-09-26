@@ -35,7 +35,7 @@ struct OneShotDetailContentView: View {
     thumbnailBlurUnreadCovers && book.isUnread ? CoverBlurStyle.unreadRadius : 0
   }
 
-  private var isCompactHero: Bool {
+  private var isCompactLayout: Bool {
     horizontalSizeClass == .compact
   }
 
@@ -46,9 +46,9 @@ struct OneShotDetailContentView: View {
         type: .book,
         contentBlurRadius: coverBlurRadius
       ) {
-        VStack(alignment: isCompactHero ? .center : .leading, spacing: 6) {
+        VStack(alignment: isCompactLayout ? .center : .leading, spacing: 6) {
           HStack(alignment: .bottom, spacing: 8) {
-            if isCompactHero {
+            if isCompactLayout {
               Spacer(minLength: 0)
             }
             DetailTitleView(title: book.metadata.title)
@@ -90,7 +90,7 @@ struct OneShotDetailContentView: View {
       }
 
       DetailActionCard {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: isCompactLayout ? .center : .leading, spacing: 2) {
           let mediaStatus = book.media.statusValue
           HStack(alignment: .firstTextBaseline, spacing: 8) {
             if mediaStatus != .ready {
@@ -126,7 +126,9 @@ struct OneShotDetailContentView: View {
             }
 
             if let downloadStatus, let icon = downloadStatus.displayIcon {
-              Spacer()
+              if !isCompactLayout {
+                Spacer()
+              }
               OfflineProtectionStatusChip(
                 label: downloadStatus.displayLabel,
                 systemImage: icon,
@@ -145,6 +147,7 @@ struct OneShotDetailContentView: View {
             .foregroundStyle(.secondary)
           }
         }
+        .frame(maxWidth: .infinity, alignment: isCompactLayout ? .center : .leading)
 
         if !inSheet {
           BookActionsSection(
@@ -153,10 +156,11 @@ struct OneShotDetailContentView: View {
           )
         }
       }
-      .frame(maxWidth: isCompactHero ? 480 : .infinity)
-      .frame(maxWidth: .infinity, alignment: isCompactHero ? .center : .leading)
+      .frame(maxWidth: isCompactLayout ? 480 : .infinity)
+      .frame(maxWidth: .infinity, alignment: isCompactLayout ? .center : .leading)
 
       DetailTimestampsView(created: book.created, lastModified: book.lastModified)
+        .frame(maxWidth: .infinity, alignment: isCompactLayout ? .center : .leading)
 
       if let summary = book.metadata.summary, !summary.isEmpty {
         ExpandableSummaryView(
@@ -228,6 +232,7 @@ struct OneShotDetailContentView: View {
         }
       }
     }
+    .environment(\.detailHeroCentered, isCompactLayout)
   }
 
   private var creatorItems: [DetailChipFlow.Item] {

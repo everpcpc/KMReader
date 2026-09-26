@@ -6,8 +6,7 @@
 import SwiftUI
 
 /// Series count and ordering line shown inside the collection detail action
-/// card. Centered in centered layouts (via `detailHeroCentered`), leading
-/// otherwise.
+/// card.
 struct CollectionBookCountView: View {
   let collection: SeriesCollection
 

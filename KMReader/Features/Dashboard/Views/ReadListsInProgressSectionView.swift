@@ -63,9 +63,9 @@ struct ReadListsInProgressSectionView: View {
               Image(systemName: "chevron.right")
                 .foregroundStyle(.secondary)
             }
+            .contentShape(Rectangle())
           }
           .buttonStyle(.plain)
-          .contentShape(Rectangle())
           .disabled(continuations.isEmpty)
 
           Spacer()

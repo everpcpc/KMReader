@@ -5,8 +5,7 @@
 
 import SwiftUI
 
-/// Title of the collection detail hero. Centered under the compact stacked
-/// hero and in the wide rail (via `detailHeroCentered`), leading otherwise.
+/// Title of the collection detail hero.
 struct CollectionHeroInfoView: View {
   let collection: SeriesCollection
 
@@ -16,6 +15,6 @@ struct CollectionHeroInfoView: View {
     VStack(alignment: heroCentered ? .center : .leading, spacing: 6) {
       DetailTitleView(title: collection.name)
     }
-    .frame(maxWidth: .infinity)
+    .frame(maxWidth: .infinity, alignment: heroCentered ? .center : .leading)
   }
 }

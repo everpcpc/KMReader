@@ -47,17 +47,6 @@ struct CollectionDetailView: View {
 
   private let wideLayoutMinimumWidth: CGFloat = 960
 
-  /// iPad's single-column fallback (narrow detail column) presents the compact
-  /// centered hero and a capped centered card instead of stretching the
-  /// side-by-side hero and a full-width card across the column.
-  private var usesCompactHeaderLayout: Bool {
-    #if os(iOS)
-      return PlatformHelper.isPad && horizontalSizeClass == .regular
-    #else
-      return false
-    #endif
-  }
-
   private var collection: SeriesCollection? {
     item?.collection
   }
@@ -97,8 +86,7 @@ struct CollectionDetailView: View {
               #endif
 
               CollectionDetailContentView(
-                collection: collection,
-                forceCompactHero: usesCompactHeaderLayout
+                collection: collection
               ).padding(.horizontal)
 
               // Series list

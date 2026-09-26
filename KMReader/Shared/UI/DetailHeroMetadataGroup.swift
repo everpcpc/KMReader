@@ -6,9 +6,8 @@
 import Flow
 import SwiftUI
 
-/// Container for a hero's metadata rows: a centered wrapping flow under the
-/// centered compact hero, plain rows (direct children of the info stack)
-/// otherwise.
+/// Container for a hero's metadata rows: a centered wrapping flow in the
+/// centered hero, plain rows (direct children of the info stack) otherwise.
 struct DetailHeroMetadataGroup<Content: View>: View {
   @ViewBuilder let content: Content
 

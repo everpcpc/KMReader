@@ -128,17 +128,6 @@ struct SeriesDetailView: View {
 
   private let wideLayoutMinimumWidth: CGFloat = 960
 
-  /// iPad's single-column fallback (narrow detail column) presents the compact
-  /// centered hero and a capped centered card instead of stretching the
-  /// side-by-side hero and a full-width card across the column.
-  private var usesCompactHeaderLayout: Bool {
-    #if os(iOS)
-      return PlatformHelper.isPad && horizontalSizeClass == .regular
-    #else
-      return false
-    #endif
-  }
-
   private var readingTargetBookForCurrentContext: Book? {
     guard readingTargetInstanceId == current.instanceId, readingTargetIsOffline == isOffline else {
       return nil
@@ -176,7 +165,7 @@ struct SeriesDetailView: View {
                     .padding(.vertical, 8)
                 #endif
 
-                SeriesDetailContentView(series: series, forceCompactHero: usesCompactHeaderLayout) {
+                SeriesDetailContentView(series: series) {
                   seriesActions
                 }
 

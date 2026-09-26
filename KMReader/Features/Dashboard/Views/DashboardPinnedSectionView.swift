@@ -106,9 +106,9 @@ struct DashboardPinnedSectionView: View {
               Image(systemName: "chevron.right")
                 .foregroundStyle(.secondary)
             }
+            .contentShape(Rectangle())
           }
           .buttonStyle(.plain)
-          .contentShape(Rectangle())
           .padding(.horizontal)
           .padding(.top)
           #if os(macOS)
