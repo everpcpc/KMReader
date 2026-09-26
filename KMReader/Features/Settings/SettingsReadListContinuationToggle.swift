@@ -5,7 +5,8 @@
 
 import SwiftUI
 
-/// The opt-in switch for read list continuation on the Dashboard settings page.
+/// The opt-in switch for read list continuation on the general reading
+/// settings page.
 /// Turning it on adds the Read Lists in Progress section to the dashboard;
 /// turning it off removes it, and the feature stops recording, syncing, and
 /// redirecting navigation.

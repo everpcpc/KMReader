@@ -38,7 +38,7 @@ struct SettingsDashboardView: View {
     var body: some View {
       List {
         Section {
-          SettingsReadListContinuationToggle()
+          SettingsDashboardCardKindMenuToggle()
         }
 
         Section {
@@ -132,7 +132,7 @@ struct SettingsDashboardView: View {
     var body: some View {
       Form {
         Section {
-          SettingsReadListContinuationToggle()
+          SettingsDashboardCardKindMenuToggle()
         }
 
         Section {
@@ -327,7 +327,7 @@ struct SettingsDashboardView: View {
         .listRowBackground(Color.clear)
 
         Section {
-          SettingsReadListContinuationToggle()
+          SettingsDashboardCardKindMenuToggle()
         }
 
         // Active Sections
