@@ -16,8 +16,8 @@ struct CardTextOverlay<Content: View>: View {
   init(
     cornerRadius: CGFloat = 8,
     overlayHeightRatio: CGFloat = 0.5,
-    horizontalPadding: CGFloat = 6,
-    verticalPadding: CGFloat = 4,
+    horizontalPadding: CGFloat = 8,
+    verticalPadding: CGFloat = 6,
     spacing: CGFloat = 4,
     @ViewBuilder content: () -> Content
   ) {
