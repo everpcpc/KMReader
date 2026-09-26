@@ -171,10 +171,14 @@ struct LayoutConfig {
   }
 
   /// Corner badge (unread count/indicator) size on card covers. Scales with
-  /// the card width so wide cards get a larger badge, but never drops below
-  /// the badge's own base size.
+  /// the card width so wide cards get a larger badge; the floor keeps digits
+  /// legible on the smallest dashboard cards.
   static func cardBadgeSize(cardWidth: CGFloat) -> CGFloat {
-    max(UnreadCountBadge.defaultSize, (cardWidth * 0.1).rounded())
+    #if os(tvOS)
+      return max(UnreadCountBadge.defaultSize, (cardWidth * 0.1).rounded())
+    #else
+      return max(9, (cardWidth * 0.1).rounded())
+    #endif
   }
 
   /// Default spacing between cards
